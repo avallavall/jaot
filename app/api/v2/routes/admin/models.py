@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import DBSession
-from app.models import APIKey, ModelProject, ModelProjectListing, Organization, User
+from app.models import APIKey, ModelProjectListing, Organization, User
 from app.schemas.admin import (
     AdminCountPair,
     AdminModelCounts,
@@ -19,6 +19,7 @@ from app.schemas.admin import (
     ModelVisibilityResponse,
     UpdateModelBadgesRequest,
 )
+from app.services.author_analytics_service import adoption_query
 from app.shared.utils.pagination import paginate_query
 
 router = APIRouter(tags=["admin-models"])
@@ -45,10 +46,13 @@ def get_admin_stats(db: DBSession) -> AdminStatsResponse:
             catalog_public=db.query(ModelProjectListing)
             .filter(ModelProjectListing.is_public == True)  # noqa: E712
             .count(),
-            # "Activated" = fork ModelProjects seeded from a marketplace listing.
-            activated_total=db.query(ModelProject)
-            .filter(ModelProject.source_type == "marketplace")
-            .count(),
+            # The SAME adoption as the author-analytics page, from the same
+            # query. This tile used to count every project tagged
+            # `source_type="marketplace"`, with no join and no self-exclusion,
+            # and show it under the word "adopted" beside a page that applied
+            # both: 112 here against 2 there. 105 of that 112 carry
+            # `source_ref = NULL` — projects that record no source at all.
+            activated_total=adoption_query(db).count(),
         ),
     )
 

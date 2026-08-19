@@ -14,6 +14,7 @@ Ordered by benefit ÷ effort.
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
 | D-30 | `check_rate_limit` takes no cost, so a solver comparison refused on quota has already spent the slots of the solvers before it | Low: a user near their daily cap loses a few slots | Small, but it changes a limiter every endpoint shares |
 | D-32 | A comparison stores its compiled problem once per cell | Measured: 3.8 MB per copy on a 22,500-variable model, so one matrix row of four solvers writes 19 MB | Medium: it is what every consumer reads the problem off |
+| D-33 | `ModelProjectListing.total_activations` is a stored counter nobody recomputes, and it disagrees with the query that now defines an adoption | Measured: 66 stored against 6 counted, and the stored one is what a marketplace card shows | Needs a backfill and a decision about who owns the number |
 
 ---
 
@@ -151,6 +152,29 @@ already holds is a question about those consumers, and changing it is a change w
 commit and its own tests.
 
 Recorded 2026-08-17, measured rather than estimated. Latency half closed the same day.
+
+---
+
+## D-33 · The stored adoption counter nobody recomputes
+
+`ModelProjectListing.total_activations` is a denormalized counter, bumped by one when someone
+adopts a listing (`app/api/v2/projects.py`, in `create_from_marketplace`). Nothing ever
+decrements it, nothing recomputes it, and it applies neither of the rules the counted adoption
+applies: it bumps for the author adopting their own listing, and it was seeded from the legacy
+catalogue during the P1.5 backfill with values no event produced.
+
+On the development database, 2026-08-19: **66 stored against 6 counted.**
+
+The admin dashboard and the author-analytics page now share one query (`adoption_query`), so
+those two agree. This counter is the third number, and it is the one on the marketplace card
+and the public organization profile — the number a visitor sees.
+
+Fixing it means deciding who owns the figure. Either the counter goes and both surfaces read
+the query, which costs a join on a hot listing page, or the counter stays and a backfill plus
+a recompute path keeps it honest. Both are a change with its own commit and its own tests, and
+the second one needs a rule for what to do with the legacy seeded values.
+
+Recorded 2026-08-19, measured rather than estimated.
 
 ---
 

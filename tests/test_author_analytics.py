@@ -44,6 +44,37 @@ def _add_listing(db, *, pid, author_org_id) -> ModelProjectListing:
     return listing
 
 
+def _add_authorless_listing(db, *, owner_org_id: str) -> str:
+    """A listing whose ``author_organization_id`` is NULL, and its anchor project.
+
+    Real rows look like this — 3 of 112 on the development database. The anchor
+    project still needs an owner because ``model_projects.organization_id`` is
+    NOT NULL; it is the LISTING that names no author.
+    """
+    pid = generate_id("mp_")
+    db.add(ModelProject(id=pid, organization_id=owner_org_id, name="Proj " + pid, status="active"))
+    db.flush()
+    db.add(
+        ModelProjectListing(
+            model_project_id=pid,
+            name=pid,
+            display_name="Author-less " + pid,
+            description="A listing with no author organization",
+            category="linear",
+            generator_type="linear_programming",
+            input_schema={"type": "object"},
+            input_fields=[],
+            example_input={},
+            version="1.0.0",
+            status="published",
+            is_public=True,
+            author_organization_id=None,
+        )
+    )
+    db.flush()
+    return pid
+
+
 @pytest.fixture
 def author_org(db_session):
     """Create a author organization."""
@@ -468,3 +499,207 @@ class TestAuthorAnalyticsCrossOrgIsolation:
         assert sibling_summary.total_views == 0
         assert sibling_summary.total_impressions == 0
         assert sibling_summary.total_activations == 0
+
+
+class TestAdoptionIsCountedOnce:
+    """# CONTRACT-TEST: every surface that says "adoption" counts the same thing.
+
+    Three places used to count it independently and none agreed. On the
+    development database an admin was shown 112 on the dashboard, 2 on the
+    author-analytics page and a stored 66 on the listings, all under that one
+    word. ``adoption_query`` is the single definition now; these tests pin what
+    it counts and what it leaves out.
+    """
+
+    @staticmethod
+    def _org(db, name: str) -> Organization:
+        org = Organization(id=generate_id("org_"), name=name, is_active=True)
+        db.add(org)
+        db.flush()
+        return org
+
+    @staticmethod
+    def _fork(db, *, org_id: str, source_ref: str | None) -> ModelProject:
+        fork = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org_id,
+            name="Fork " + generate_id("x_")[2:8],
+            status="active",
+            source_type="marketplace",
+            source_ref=source_ref,
+        )
+        db.add(fork)
+        db.flush()
+        return fork
+
+    def test_an_adoption_of_a_listing_with_no_author_org_is_counted(self, db_session, author_org):
+        """The bug that hid two thirds of them.
+
+        ``author_organization_id`` is nullable and the self-adoption exclusion
+        was a plain ``!=``. In SQL ``x != NULL`` is NULL, never true, so every
+        adoption of an author-less listing was dropped. Measured on the
+        development database: 3 listings of 112 had a NULL author org and
+        carried 4 of the 6 adoptions on the platform. The page said 2.
+        """
+        from app.services.author_analytics_service import adoption_query
+
+        orphan_pid = _add_authorless_listing(db_session, owner_org_id=author_org.id)
+        adopter = self._org(db_session, "Adopter of an author-less listing")
+        self._fork(db_session, org_id=adopter.id, source_ref=orphan_pid)
+        db_session.flush()
+
+        adoptions = adoption_query(db_session).all()
+
+        assert any(a.source_ref == orphan_pid for a in adoptions)
+
+    def test_a_project_that_records_no_source_is_not_an_adoption(self, db_session):
+        """A project with ``source_ref = NULL`` adopted nothing.
+
+        105 of the dashboard 112 looked exactly like this: seeded official
+        models tagged as coming from the marketplace, naming no listing.
+        """
+        from app.services.author_analytics_service import adoption_query
+
+        org = self._org(db_session, "Owner of a sourceless project")
+        sourceless = self._fork(db_session, org_id=org.id, source_ref=None)
+        db_session.flush()
+
+        assert sourceless.id not in {a.id for a in adoption_query(db_session).all()}
+
+    def test_the_author_forking_its_own_listing_is_not_an_adoption(self, db_session):
+        """Still excluded. That is what makes the word mean "somebody else"."""
+        from app.services.author_analytics_service import adoption_query
+
+        author = self._org(db_session, "Self Adopter")
+        pid = generate_id("mp_")
+        _add_listing(db_session, pid=pid, author_org_id=author.id)
+        own = self._fork(db_session, org_id=author.id, source_ref=pid)
+        db_session.flush()
+
+        assert own.id not in {a.id for a in adoption_query(db_session).all()}
+
+    def test_the_admin_dashboard_and_the_analytics_page_report_the_same_number(
+        self, admin_client, db_session
+    ):
+        """The disagreement an admin could see on two pages of the same panel."""
+        author = self._org(db_session, "Author With One Adopter")
+        adopter = self._org(db_session, "The Adopter")
+        pid = generate_id("mp_")
+        _add_listing(db_session, pid=pid, author_org_id=author.id)
+        self._fork(db_session, org_id=adopter.id, source_ref=pid)
+        # A sourceless project: the dashboard used to count it, the analytics
+        # page never did.
+        self._fork(db_session, org_id=adopter.id, source_ref=None)
+        db_session.commit()
+
+        stats = admin_client.get("/api/v2/admin/stats")
+        analytics = admin_client.get("/api/v2/admin/marketplace/author-analytics?period=all")
+        assert stats.status_code == 200, stats.text
+        assert analytics.status_code == 200, analytics.text
+
+        assert (
+            stats.json()["models"]["activated_total"]
+            == analytics.json()["platform_totals"]["total_activations"]
+        )
+
+
+class TestAuthorLeaderboardShowsEveryAuthor:
+    """# CONTRACT-TEST: publishing puts an author on the leaderboard, adoption ranks them.
+
+    The panel was built from its own ranking metric, so it could only ever show
+    authors somebody had already forked. On a platform with 112 listings by 2
+    organizations it read "No author data available" for the 30-day period it
+    opens on, because nobody had adopted anything in that window.
+    """
+
+    def test_an_author_with_no_adoptions_still_appears(self, db_session, author_org):
+        pid = generate_id("mp_")
+        _add_listing(db_session, pid=pid, author_org_id=author_org.id)
+        db_session.commit()
+
+        rows = AuthorAnalyticsService(db_session).get_author_leaderboard("all")
+
+        entry = next((r for r in rows if r.org_id == author_org.id), None)
+        assert entry is not None, "an author who published is missing from the leaderboard"
+        assert entry.total_activations == 0
+        assert entry.models_published == 1
+
+    def test_the_period_with_no_adoptions_still_lists_the_authors(self, db_session, author_org):
+        """An author adopted long ago still shows on a recent period, on zero.
+
+        This is the shape that made the 30-day default read as "nobody publishes
+        here": the adoptions existed, they were just older than the window.
+        """
+        from datetime import timedelta
+
+        pid = generate_id("mp_")
+        _add_listing(db_session, pid=pid, author_org_id=author_org.id)
+        adopter = Organization(id=generate_id("org_"), name="Old Adopter", is_active=True)
+        db_session.add(adopter)
+        db_session.flush()
+        db_session.add(
+            ModelProject(
+                id=generate_id("mp_"),
+                organization_id=adopter.id,
+                name="Adopted a year ago",
+                status="active",
+                source_type="marketplace",
+                source_ref=pid,
+                created_at=utcnow() - timedelta(days=365),
+            )
+        )
+        db_session.commit()
+
+        service = AuthorAnalyticsService(db_session)
+        recent = service.get_author_leaderboard("7d")
+        all_time = service.get_author_leaderboard("all")
+
+        assert recent, "the leaderboard is empty on a period with no adoptions"
+        recent_entry = next(r for r in recent if r.org_id == author_org.id)
+        assert recent_entry.total_activations == 0
+        assert recent_entry.models_published == 1
+        # The same author, ranked, once the window includes the adoption.
+        assert next(r for r in all_time if r.org_id == author_org.id).total_activations == 1
+
+    def test_an_adoption_nobody_wrote_creates_no_author_row(self, db_session, author_org):
+        """A listing with no author org has adoptions that belong to nobody.
+
+        They count in the platform total. A leaderboard row for them would be an
+        author who does not exist.
+        """
+        orphan_pid = _add_authorless_listing(db_session, owner_org_id=author_org.id)
+        adopter = Organization(id=generate_id("org_"), name="Adopter", is_active=True)
+        db_session.add(adopter)
+        db_session.flush()
+        db_session.add(
+            ModelProject(
+                id=generate_id("mp_"),
+                organization_id=adopter.id,
+                name="Fork of an author-less listing",
+                status="active",
+                source_type="marketplace",
+                source_ref=orphan_pid,
+            )
+        )
+        db_session.commit()
+
+        rows = AuthorAnalyticsService(db_session).get_author_leaderboard("all")
+
+        assert all(r.org_id is not None for r in rows)
+        assert all(r.org_name != "Unknown" for r in rows)
+
+    def test_the_order_is_adoption_then_output_then_name(self, db_session):
+        """Two authors on zero adoptions come back in the same order every time."""
+        service = AuthorAnalyticsService(db_session)
+        for name, listings in (("Zed Publishes Two", 2), ("Alice Publishes One", 1)):
+            org = Organization(id=generate_id("org_"), name=name, is_active=True)
+            db_session.add(org)
+            db_session.flush()
+            for _ in range(listings):
+                _add_listing(db_session, pid=generate_id("mp_"), author_org_id=org.id)
+        db_session.commit()
+
+        rows = service.get_author_leaderboard("all")
+        names = [r.org_name for r in rows if r.total_activations == 0]
+
+        assert names.index("Zed Publishes Two") < names.index("Alice Publishes One")

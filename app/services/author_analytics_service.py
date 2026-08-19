@@ -68,6 +68,55 @@ def _period_since(period: str) -> datetime | None:
     return None  # "all" -- no filter
 
 
+def adoption_query(
+    db: Session,
+    *,
+    author_org_id: str | None = None,
+    since: datetime | None = None,
+):  # noqa: ANN201
+    """The one definition of "somebody adopted a marketplace model".
+
+    An adoption is a ``ModelProject`` seeded from a listing through
+    from-marketplace: ``source_type="marketplace"`` and ``source_ref`` pointing
+    at a listing that still exists. The author's own organization forking its
+    own listing does not count, or the number would not mean what the word says.
+
+    This lives at module level because it used to live in three places at once.
+    The admin dashboard counted every project tagged ``source_type="marketplace"``
+    with no join and no exclusion, this service applied both, and the listings
+    carry a stored ``total_activations`` counter bumped on a third rule. All
+    three were shown to an admin under the word "adoption", two orders of
+    magnitude apart: 112, 6 and 66 on the development database. The 112 was the
+    worst of them — 105 of those projects carry ``source_ref = NULL``, so they
+    record no source at all and were never an adoption of anything.
+
+    Args:
+        author_org_id: Narrow to listings written by this organization.
+        since: Only adoptions created on or after this moment.
+    """
+    q = (
+        db.query(ModelProject)
+        .join(
+            ModelProjectListing,
+            ModelProjectListing.model_project_id == ModelProject.source_ref,
+        )
+        .filter(ModelProject.source_type == "marketplace")
+    )
+    if author_org_id is not None:
+        q = q.filter(ModelProjectListing.author_organization_id == author_org_id)
+    # `is_distinct_from`, not `!=`: `author_organization_id` is nullable, and in
+    # SQL `x != NULL` is NULL rather than true, so a plain `!=` DROPS every
+    # adoption of a listing with no author org. Measured on the development
+    # database: 3 listings of 112 have a NULL author org, and they carried 4 of
+    # the 6 adoptions on the platform. The page reported 2.
+    q = q.filter(
+        ModelProject.organization_id.is_distinct_from(ModelProjectListing.author_organization_id)
+    )
+    if since is not None:
+        q = q.filter(ModelProject.created_at >= since)
+    return q
+
+
 class AuthorAnalyticsService:
     """Analytics service for author dashboards and admin reporting."""
 
@@ -128,26 +177,8 @@ class AuthorAnalyticsService:
         return q
 
     def _base_activation_query(self, org_id: str | None, since: datetime | None):  # noqa: ANN202
-        """Activations = fork ModelProjects seeded from the org's listings.
-
-        A fork is a project seeded via from-marketplace (``source_type="marketplace"``,
-        ``source_ref`` = the listing's project id). Excludes the author org forking
-        its own listing.
-        """
-        q = (
-            self.db.query(ModelProject)
-            .join(
-                ModelProjectListing,
-                ModelProjectListing.model_project_id == ModelProject.source_ref,
-            )
-            .filter(ModelProject.source_type == "marketplace")
-        )
-        if org_id is not None:
-            q = q.filter(ModelProjectListing.author_organization_id == org_id)
-        q = q.filter(ModelProject.organization_id != ModelProjectListing.author_organization_id)
-        if since is not None:
-            q = q.filter(ModelProject.created_at >= since)
-        return q
+        """Adoptions, optionally scoped to one author org. See `adoption_query`."""
+        return adoption_query(self.db, author_org_id=org_id, since=since)
 
     def get_summary(self, org_id: str | None, period: str) -> AnalyticsSummaryResponse:
         """Aggregate views, impressions, and activations."""
@@ -321,11 +352,31 @@ class AuthorAnalyticsService:
         )
 
     def get_author_leaderboard(self, period: str) -> list[AuthorLeaderboardEntry]:
-        """Admin-only leaderboard: top authors by adoption (activations)."""
+        """Admin-only leaderboard of the platform's authors, ranked by adoption.
+
+        Driven by who has PUBLISHED, not by who has been adopted. Built from its
+        own ranking metric, the panel could only ever show authors somebody had
+        already forked: on a platform with 112 listings by 2 organizations it
+        read "No author data available" for the period it opens on, because
+        nobody had adopted anything in those 30 days. An author with published
+        models and no adoptions yet is exactly who an admin opens this page to
+        find, so they get a row with a zero.
+
+        An org that has since unpublished still appears while its adoptions are
+        in the period — the adoptions happened.
+
+        ``models_published`` and ``avg_rating`` are all-time on purpose. The
+        period ranks adoption; "models published in the last 7 days" is a
+        different question and not the one this column answers.
+
+        Adoptions of a listing with no author organization count in the platform
+        total but belong to nobody, so they appear in no row here.
+        """
         since = _period_since(period)
 
         activation_rows = (
             self._base_activation_query(org_id=None, since=since)
+            .filter(ModelProjectListing.author_organization_id.isnot(None))
             .with_entities(
                 ModelProjectListing.author_organization_id.label("org_id"),
                 func.count().label("total_activations"),
@@ -333,11 +384,27 @@ class AuthorAnalyticsService:
             .group_by(ModelProjectListing.author_organization_id)
             .all()
         )
+        activations = {r.org_id: r.total_activations for r in activation_rows}
 
-        if not activation_rows:
+        # Published listings per org. This is also the author set: everyone with
+        # something on the marketplace belongs on the leaderboard.
+        model_counts = (
+            self.db.query(
+                ModelProjectListing.author_organization_id.label("org_id"),
+                func.count().label("cnt"),
+            )
+            .filter(
+                ModelProjectListing.author_organization_id.isnot(None),
+                ModelProjectListing.status == "published",
+            )
+            .group_by(ModelProjectListing.author_organization_id)
+            .all()
+        )
+        models_map = {r.org_id: r.cnt for r in model_counts}
+
+        org_ids = sorted(set(models_map) | set(activations))
+        if not org_ids:
             return []
-
-        org_ids = [r.org_id for r in activation_rows]
 
         # Org names
         from app.models.organization import Organization  # noqa: PLC0415
@@ -348,21 +415,6 @@ class AuthorAnalyticsService:
             .all()
         )
         org_name_map = {o.id: o.name for o in orgs}
-
-        # Published listings count per org
-        model_counts = (
-            self.db.query(
-                ModelProjectListing.author_organization_id,
-                func.count().label("cnt"),
-            )
-            .filter(
-                ModelProjectListing.author_organization_id.in_(org_ids),
-                ModelProjectListing.status == "published",
-            )
-            .group_by(ModelProjectListing.author_organization_id)
-            .all()
-        )
-        models_map = {r.author_organization_id: r.cnt for r in model_counts}
 
         # Avg rating per org
         rating_rows = (
@@ -379,16 +431,20 @@ class AuthorAnalyticsService:
         )
         rating_map = {r.author_organization_id: round(float(r.avg_r), 2) for r in rating_rows}
 
-        result = []
-        for row in activation_rows:
-            result.append(
-                AuthorLeaderboardEntry(
-                    org_id=row.org_id,
-                    org_name=org_name_map.get(row.org_id, "Unknown"),
-                    total_activations=row.total_activations,
-                    models_published=models_map.get(row.org_id, 0),
-                    avg_rating=rating_map.get(row.org_id),
-                )
+        result = [
+            AuthorLeaderboardEntry(
+                org_id=org_id,
+                org_name=org_name_map.get(org_id, "Unknown"),
+                total_activations=activations.get(org_id, 0),
+                models_published=models_map.get(org_id, 0),
+                avg_rating=rating_map.get(org_id),
             )
+            for org_id in org_ids
+        ]
 
-        return sorted(result, key=lambda r: r.total_activations, reverse=True)
+        # Adoption first, then who published most, then the name — so two authors
+        # on zero adoptions come back in the same order on every load.
+        return sorted(
+            result,
+            key=lambda r: (-r.total_activations, -r.models_published, r.org_name),
+        )
