@@ -362,9 +362,9 @@
       "datasetCap": "Una matriz admite hasta {max} conjuntos de datos.",
       "timeLimitLabel": "Límite de tiempo (segundos)",
       "gapLabel": "Tolerancia de gap",
-      "estimate": "{runs} resoluciones, hasta {minutes} minutos en total.",
-      "confirmTitle": "¿Lanzar {runs} resoluciones?",
-      "confirmBody": "{datasets} conjuntos de datos por {solvers} solvers son {runs} resoluciones, una detrás de otra: hasta {minutes} minutos. Cada resolución gasta cuota diaria.",
+      "estimate": "{runs, plural, one {# resolución} other {# resoluciones}}, hasta {minutes, plural, one {# minuto} other {# minutos}} en total.",
+      "confirmTitle": "{runs, plural, one {¿Lanzar # resolución?} other {¿Lanzar # resoluciones?}}",
+      "confirmBody": "{datasets, plural, one {# conjunto de datos} other {# conjuntos de datos}} por {solvers, plural, one {# solver} other {# solvers}} son {runs, plural, one {# resolución} other {# resoluciones}}, una detrás de otra: hasta {minutes, plural, one {# minuto} other {# minutos}}. Cada resolución gasta cuota diaria.",
       "confirmCancel": "Cancelar",
       "confirmRun": "Lanzar la matriz",
       "metricLabel": "Métrica",
@@ -3043,7 +3043,7 @@
       "justNow": "Ahora mismo",
       "hoursAgo": "hace {count}h",
       "daysAgo": "hace {count}d",
-      "accessCount": "{count} ejecuciones",
+      "accessCount": "{count, plural, one {# ejecución} other {# ejecuciones}}",
       "removeFailed": "Error al eliminar favorito. Por favor, inténtalo de nuevo."
     },
     "multiObjective": {

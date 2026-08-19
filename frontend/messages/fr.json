@@ -362,9 +362,9 @@
       "datasetCap": "Une matrice accepte jusqu'à {max} jeux de données.",
       "timeLimitLabel": "Limite de temps (secondes)",
       "gapLabel": "Tolérance de gap",
-      "estimate": "{runs} résolutions, jusqu'à {minutes} minutes au total.",
-      "confirmTitle": "Lancer {runs} résolutions ?",
-      "confirmBody": "{datasets} jeux de données par {solvers} solveurs font {runs} résolutions, l'une après l'autre : jusqu'à {minutes} minutes. Chaque résolution consomme le quota quotidien.",
+      "estimate": "{runs, plural, one {# résolution} other {# résolutions}}, jusqu'à {minutes, plural, one {# minute} other {# minutes}} au total.",
+      "confirmTitle": "{runs, plural, one {Lancer # résolution ?} other {Lancer # résolutions ?}}",
+      "confirmBody": "{datasets, plural, one {# jeu de données} other {# jeux de données}} par {solvers, plural, one {# solveur} other {# solveurs}} font {runs, plural, one {# résolution} other {# résolutions}}, l'une après l'autre : jusqu'à {minutes, plural, one {# minute} other {# minutes}}. Chaque résolution consomme du quota quotidien.",
       "confirmCancel": "Annuler",
       "confirmRun": "Lancer la matrice",
       "metricLabel": "Métrique",
@@ -3043,7 +3043,7 @@
       "justNow": "À l'instant",
       "hoursAgo": "Il y a {count} h",
       "daysAgo": "Il y a {count} j",
-      "accessCount": "{count} exécutions",
+      "accessCount": "{count, plural, one {# exécution} other {# exécutions}}",
       "removeFailed": "Échec de la suppression du favori. Veuillez réessayer."
     },
     "multiObjective": {

@@ -362,9 +362,9 @@
       "datasetCap": "Eine Matrix nimmt bis zu {max} Datensätze.",
       "timeLimitLabel": "Zeitlimit (Sekunden)",
       "gapLabel": "Gap-Toleranz",
-      "estimate": "{runs} Läufe, bis zu {minutes} Minuten insgesamt.",
-      "confirmTitle": "{runs} Läufe starten?",
-      "confirmBody": "{datasets} Datensätze mal {solvers} Solver sind {runs} Läufe, einer nach dem anderen: bis zu {minutes} Minuten. Jeder Lauf zählt gegen das Tageskontingent.",
+      "estimate": "{runs, plural, one {# Lauf} other {# Läufe}}, bis zu {minutes, plural, one {# Minute} other {# Minuten}} insgesamt.",
+      "confirmTitle": "{runs, plural, one {# Lauf starten?} other {# Läufe starten?}}",
+      "confirmBody": "{datasets, plural, one {# Datensatz} other {# Datensätze}} mal {solvers, plural, one {# Solver} other {# Solver}} sind {runs, plural, one {# Lauf} other {# Läufe}}, einer nach dem anderen: bis zu {minutes, plural, one {# Minute} other {# Minuten}}. Jeder Lauf zählt gegen das Tageskontingent.",
       "confirmCancel": "Abbrechen",
       "confirmRun": "Matrix starten",
       "metricLabel": "Kennzahl",
@@ -3043,7 +3043,7 @@
       "justNow": "Gerade eben",
       "hoursAgo": "vor {count} Std.",
       "daysAgo": "vor {count} Tagen",
-      "accessCount": "{count} Ausführungen",
+      "accessCount": "{count, plural, one {# Ausführung} other {# Ausführungen}}",
       "removeFailed": "Fehler beim Entfernen des Favoriten. Bitte versuchen Sie es erneut."
     },
     "multiObjective": {

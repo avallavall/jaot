@@ -362,9 +362,9 @@
       "datasetCap": "A matrix takes up to {max} datasets.",
       "timeLimitLabel": "Time limit (seconds)",
       "gapLabel": "Gap tolerance",
-      "estimate": "{runs} solves, up to {minutes} minutes in total.",
-      "confirmTitle": "Run {runs} solves?",
-      "confirmBody": "{datasets} datasets by {solvers} solvers is {runs} solves, one after another: up to {minutes} minutes. Each solve counts against the daily quota.",
+      "estimate": "{runs, plural, one {# solve} other {# solves}}, up to {minutes, plural, one {# minute} other {# minutes}} in total.",
+      "confirmTitle": "{runs, plural, one {Run # solve?} other {Run # solves?}}",
+      "confirmBody": "{datasets, plural, one {# dataset} other {# datasets}} by {solvers, plural, one {# solver} other {# solvers}} is {runs, plural, one {# solve} other {# solves}}, one after another: up to {minutes, plural, one {# minute} other {# minutes}}. Each solve counts against the daily quota.",
       "confirmCancel": "Cancel",
       "confirmRun": "Run the matrix",
       "metricLabel": "Metric",
@@ -3068,7 +3068,7 @@
       "justNow": "Just now",
       "hoursAgo": "{count}h ago",
       "daysAgo": "{count}d ago",
-      "accessCount": "{count} runs",
+      "accessCount": "{count, plural, one {# run} other {# runs}}",
       "removeFailed": "Failed to remove favorite. Please try again."
     },
     "multiObjective": {

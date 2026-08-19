@@ -362,9 +362,9 @@
       "datasetCap": "Una matriu admet fins a {max} conjunts de dades.",
       "timeLimitLabel": "Límit de temps (segons)",
       "gapLabel": "Tolerància de gap",
-      "estimate": "{runs} resolucions, fins a {minutes} minuts en total.",
-      "confirmTitle": "Vols llançar {runs} resolucions?",
-      "confirmBody": "{datasets} conjunts de dades per {solvers} solvers són {runs} resolucions, una darrere l'altra: fins a {minutes} minuts. Cada resolució gasta quota diària.",
+      "estimate": "{runs, plural, one {# resolució} other {# resolucions}}, fins a {minutes, plural, one {# minut} other {# minuts}} en total.",
+      "confirmTitle": "{runs, plural, one {Llançar # resolució?} other {Llançar # resolucions?}}",
+      "confirmBody": "{datasets, plural, one {# conjunt de dades} other {# conjunts de dades}} per {solvers, plural, one {# solver} other {# solvers}} són {runs, plural, one {# resolució} other {# resolucions}}, una darrere l'altra: fins a {minutes, plural, one {# minut} other {# minuts}}. Cada resolució gasta quota diària.",
       "confirmCancel": "Cancel·la",
       "confirmRun": "Llança la matriu",
       "metricLabel": "Mètrica",
@@ -3043,7 +3043,7 @@
       "justNow": "Ara mateix",
       "hoursAgo": "Fa {count}h",
       "daysAgo": "Fa {count}d",
-      "accessCount": "{count} execucions",
+      "accessCount": "{count, plural, one {# execució} other {# execucions}}",
       "removeFailed": "Error en eliminar el favorit. Si us plau, torna-ho a provar."
     },
     "multiObjective": {
