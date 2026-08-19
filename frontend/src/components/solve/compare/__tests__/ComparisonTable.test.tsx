@@ -78,6 +78,23 @@ async function renderTable(detail: ComparisonDetail) {
   };
 }
 
+describe("overrunOf", () => {
+  // Stopping precision differs per solver: hundredths over the limit is
+  // keeping the terms, whole extra seconds of search is not. The first import
+  // of the component pays for its whole dependency graph, hence the timeout.
+  it("tells stopping imprecision apart from a real overrun", { timeout: 30_000 }, async () => {
+    const { overrunOf } = await import("../ComparisonTable");
+    const detail = comparison({
+      settings: { time_limit_seconds: 10, gap_tolerance: 0.0001, threads: 1 },
+    });
+
+    expect(overrunOf(row({ solver_time_seconds: 10.004 }), detail)).toBeNull();
+    expect(overrunOf(row({ solver_time_seconds: 11 }), detail)).toBeNull();
+    expect(overrunOf(row({ solver_time_seconds: 14.158 }), detail)).toBeCloseTo(4.158);
+    expect(overrunOf(row({ solver_time_seconds: null }), detail)).toBeNull();
+  });
+});
+
 describe("ComparisonTable", () => {
   it("shows one row per solver, in the order they were asked for", async () => {
     const { rows } = await renderTable(comparison());
@@ -261,6 +278,44 @@ describe("ComparisonTable", () => {
 
     expect(rows[1]).toContain("solverCompare.status.pending");
     expect(rows[1]).toContain("—");
+  });
+
+  // The conditions notice promises identical terms. A solver that searched
+  // seconds past the shared limit did not keep them, and saying nothing sells
+  // its extra time as a fair loss.
+  it("names a solver that searched well past the shared limit", async () => {
+    const { text } = await renderTable(
+      comparison({
+        settings: { time_limit_seconds: 10, gap_tolerance: 0.0001, threads: 1 },
+        results: [
+          row({ solver_status: "time_limit", wall_time_ms: 10003, solver_time_seconds: 10.004 }),
+          row({
+            solver_name: "cbc",
+            solver_status: "time_limit",
+            wall_time_ms: 14158,
+            solver_time_seconds: 14.158,
+          }),
+        ],
+        agreement: null,
+      }),
+    );
+
+    const mentions = text.split("solverCompare.overrun.notice").length - 1;
+    expect(mentions).toBe(1);
+  });
+
+  it("says nothing about overruns when every solver kept the limit", async () => {
+    const { text } = await renderTable(
+      comparison({
+        settings: { time_limit_seconds: 10, gap_tolerance: 0.0001, threads: 1 },
+        results: [
+          row({ solver_time_seconds: 10.004 }),
+          row({ solver_name: "highs", solver_time_seconds: 9.9 }),
+        ],
+        agreement: null,
+      }),
+    );
+    expect(text).not.toContain("solverCompare.overrun.");
   });
 
   it("shows the message of a solver that broke", async () => {

@@ -36,6 +36,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 - **CBC now keeps the time limit a solver comparison promised every solver.** It was measuring that limit in CPU seconds while the table reported the clock, so on a hard model given 10 seconds it searched for 14.5 and came last partly because it had been allowed to run longer. Comparisons involving CBC are worth re-running.
 
+### Added
+
+- **A comparison now names any solver that still searched past the shared limit.** The row's Search time turns amber and a notice under the table says which solver and by how much, so extra time is never read as a fair loss.
+
 ## [3.6.0] - 2026-08-19
 
 ### Changed

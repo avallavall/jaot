@@ -4854,6 +4854,9 @@
       "not_registered": "Dieser Solver ist auf diesem Server nicht installiert.",
       "not_available": "Dieser Solver kann auf diesem Server nicht an einem Vergleich teilnehmen."
     },
+    "overrun": {
+      "notice": "{solver} hat {overrun} über das gemeinsame Zeitlimit hinaus weitergesucht. Seine Zeiten gelten nicht unter denselben Bedingungen wie die übrigen Zeilen."
+    },
     "agreement": {
       "identical": "Alle {count} Solver fanden dieselbe Lösung.",
       "alternativeOptima": "Die Solver erreichten denselben Zielwert mit unterschiedlichen Variablenwerten. Beide haben recht: Dieses Problem hat mehr als eine optimale Lösung.",

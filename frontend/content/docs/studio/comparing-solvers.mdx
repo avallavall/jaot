@@ -52,6 +52,8 @@ When the comparison finishes, **Run again** repeats it with the same problem, th
 
 **Times are comparable inside one comparison and nowhere else.** The machine that produced them is stated above the table, and each row carries the version of the solver that produced it. A comparison you ran last month, on a machine under a different load and possibly an older build, is not a fair opponent for one you run today.
 
+**A solver that searched past the shared limit is named under the table.** Every solver is asked for the same limit against the same clock, and all four normally stop within hundredths of a second of it. A solver can still overrun on a hard model, because they all check the time only between search steps. When one does, its Search time turns amber and a notice under the table names the solver and by how much. Read that row's times as "it was allowed to run longer", not as a fair loss.
+
 ### A solver that cannot run your model
 
 It still gets a row, marked **Not supported**, with the reason:

@@ -63,11 +63,14 @@ export function ComparisonTable({ comparison }: { comparison: ComparisonDetail }
                 row={row}
                 fastest={fastest}
                 ratio={ratioOf(row, comparison)}
+                overrun={overrunOf(row, comparison)}
               />
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <OverrunNotice comparison={comparison} />
 
       <AgreementNotice comparison={comparison} />
 
@@ -129,12 +132,16 @@ function ResultRow({
   row,
   fastest,
   ratio,
+  overrun,
 }: {
   row: ComparisonSolverResult;
   fastest: string | null;
   /** This row's total time divided by the quickest one's, or null when there is
    * nothing to compare it against. */
   ratio: number | null;
+  /** Seconds this solver searched past the shared limit, or null when it kept
+   * to it. */
+  overrun: number | null;
 }) {
   const t = useTranslations("solverCompare");
   const unsupported = row.solver_status === "unsupported";
@@ -176,7 +183,12 @@ function ResultRow({
           </span>
         ) : null}
       </TableCell>
-      <TableCell className="text-right tabular-nums">
+      <TableCell
+        className={cn(
+          "text-right tabular-nums",
+          overrun !== null && "text-amber-700 dark:text-amber-400",
+        )}
+      >
         {formatSeconds(row.solver_time_seconds)}
       </TableCell>
       <TableCell className="text-right tabular-nums">{formatCount(row.nodes)}</TableCell>
@@ -228,6 +240,55 @@ function StatusCell({ row }: { row: ComparisonSolverResult }) {
       {row.error_message ? <p className="mt-1 text-xs">{row.error_message}</p> : null}
     </div>
   );
+}
+
+/**
+ * Names every solver whose own search ran well past the shared time limit.
+ *
+ * The conditions notice above the table promises identical terms, and CBC in
+ * particular does not keep them: it counts CPU seconds and checks the clock
+ * only between nodes, so it can search seconds past the limit it was given.
+ * A row like that is slower partly because it was allowed to run longer, and
+ * without this notice the table presents that extra time as a fair loss.
+ */
+function OverrunNotice({ comparison }: { comparison: ComparisonDetail }) {
+  const t = useTranslations("solverCompare");
+  const offenders = comparison.results
+    .map((row) => ({ row, overrun: overrunOf(row, comparison) }))
+    .filter((o): o is { row: ComparisonSolverResult; overrun: number } => o.overrun !== null);
+  if (offenders.length === 0) return null;
+
+  return (
+    <div className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+      {offenders.map(({ row, overrun }) => (
+        <p key={row.solver_name}>
+          {t("overrun.notice", {
+            solver: row.solver_name.toUpperCase(),
+            overrun: formatSeconds(overrun),
+          })}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Seconds this row searched past the shared limit, or null when it kept to it.
+ *
+ * Solvers check their clocks with different granularity — SCIP and HiGHS land
+ * within hundredths of the limit, which is keeping the terms, not breaking
+ * them. The allowance below flags whole extra seconds of search, never
+ * stopping precision.
+ */
+export function overrunOf(
+  row: ComparisonSolverResult,
+  comparison: ComparisonDetail,
+): number | null {
+  const limit = comparison.settings.time_limit_seconds;
+  if (row.solver_time_seconds === null || limit <= 0) return null;
+  const allowance = Math.max(0.5, limit * 0.1);
+  const overrun = row.solver_time_seconds - limit;
+  return overrun > allowance ? overrun : null;
 }
 
 /**

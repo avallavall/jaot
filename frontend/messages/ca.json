@@ -4854,6 +4854,9 @@
       "not_registered": "Aquest solver no està instal·lat en aquest servidor.",
       "not_available": "Aquest solver no pot participar en una comparació en aquest servidor."
     },
+    "overrun": {
+      "notice": "{solver} va continuar cercant {overrun} més enllà del límit de temps comú. Els seus temps no estan en les mateixes condicions que la resta de files."
+    },
     "agreement": {
       "identical": "Els {count} solvers van trobar la mateixa solució.",
       "alternativeOptima": "Els solvers van arribar al mateix valor de l'objectiu amb valors diferents a les variables. Tots dos encerten: aquest problema té més d'una solució òptima.",
