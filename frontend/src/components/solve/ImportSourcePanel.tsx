@@ -15,8 +15,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiDate } from "@/lib/dates";
 import { Import, Search, X, FileCode, Box, LayoutTemplate } from "lucide-react";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 type TabId = "builder" | "models" | "templates";
 
@@ -57,6 +57,7 @@ function ListItem({ name, subtitle, onImport, loading, t }: ListItemProps) {
 
 export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSourcePanelProps) {
   const t = useTranslations("solve.multiObjective");
+  const { day } = useDateFormat();
   const { activeWorkspaceId } = useAuth();
 
   // Open on the models the user actually has. Builder documents are the
@@ -296,7 +297,7 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
               <ListItem
                 key={doc.id}
                 name={doc.name}
-                subtitle={apiDate(doc.updated_at).toLocaleDateString()}
+                subtitle={day(doc.updated_at)}
                 onImport={() => importFromBuilder(doc)}
                 loading={loading}
                 t={t}
@@ -314,7 +315,7 @@ export function ImportSourcePanel({ onImport, importedFrom, onClear }: ImportSou
               <ListItem
                 key={model.id}
                 name={model.name}
-                subtitle={apiDate(model.updated_at).toLocaleDateString()}
+                subtitle={day(model.updated_at)}
                 onImport={() => importFromModel(model)}
                 loading={loading}
                 t={t}

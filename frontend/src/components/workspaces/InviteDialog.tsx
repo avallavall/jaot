@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useTranslations } from "next-intl";
 import { Copy, Check, Trash2, UserPlus } from "lucide-react";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface InviteDialogProps {
   workspaceId: string;
@@ -41,12 +42,13 @@ const ROLE_COLORS: Record<WorkspaceRole, string> = {
   viewer: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
 };
 
-function formatExpiry(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString();
+function formatExpiry(dateStr: string, day: (v: string) => string): string {
+  return day(dateStr);
 }
 
 export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) {
   const t = useTranslations("workspace.invite");
+  const { day } = useDateFormat();
   const [emailInput, setEmailInput] = useState("");
   const [emailRole, setEmailRole] = useState<WorkspaceRole>("solver");
   const [linkRole, setLinkRole] = useState<WorkspaceRole>("solver");
@@ -206,7 +208,7 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
                   </div>
                   {linkExpiresAt && (
                     <p className="text-xs text-muted-foreground">
-                      {t("expiresLabel", { date: formatExpiry(linkExpiresAt) })}
+                      {t("expiresLabel", { date: formatExpiry(linkExpiresAt, day) })}
                     </p>
                   )}
                 </div>
@@ -240,7 +242,7 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
                         {invite.role}
                       </Badge>
                       <span className="text-muted-foreground truncate">
-                        {invite.invitee_email ?? `Link \u2022 expires ${formatExpiry(invite.expires_at)}`}
+                        {invite.invitee_email ?? `Link \u2022 expires ${formatExpiry(invite.expires_at, day)}`}
                       </span>
                     </div>
                     <Button

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+import { useDateFormat } from "@/hooks/useDateFormat";
 import { useRouter } from "@/i18n/navigation";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { api } from "@/lib/api";
@@ -39,6 +40,7 @@ import {
 
 export default function FavoritesPage() {
   const t = useTranslations("solve.favorites");
+  const { day } = useDateFormat();
   const tCard = useTranslations("marketplace.card");
   const tCatalog = useTranslations("marketplace.catalog");
   const router = useRouter();
@@ -111,7 +113,7 @@ export default function FavoritesPage() {
     if (hours < 1) return t("justNow");
     if (hours < 24) return t("hoursAgo", { count: hours });
     if (days < 7) return t("daysAgo", { count: days });
-    return date.toLocaleDateString();
+    return day(date);
   };
 
   if (loading) {

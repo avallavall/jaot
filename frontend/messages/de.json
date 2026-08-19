@@ -3449,6 +3449,11 @@
   },
   "triggers": {
     "list": {
+      "timeJustNow": "Gerade eben",
+      "timeMinutesAgo": "vor {count} Min.",
+      "timeHoursAgo": "vor {count} Std.",
+      "timeYesterday": "Gestern",
+      "timeDaysAgo": "vor {count} Tagen",
       "title": "Trigger",
       "subtitle": "HTTP-Ereignis-Trigger, die automatisch gepinnte Modellversionen ausführen",
       "newTrigger": "Neuer Trigger",
@@ -3569,6 +3574,11 @@
       "defaultValue": "Standard: {value}"
     },
     "runHistory": {
+      "timeJustNow": "Gerade eben",
+      "timeMinutesAgo": "vor {count} Min.",
+      "timeHoursAgo": "vor {count} Std.",
+      "timeYesterday": "Gestern",
+      "timeDaysAgo": "vor {count} Tagen",
       "title": "Ausführungsverlauf",
       "noRuns": "Noch keine Ausführungen",
       "noRunsDescription": "Lösen Sie diesen Trigger aus, um hier Ergebnisse zu sehen.",

@@ -11,6 +11,7 @@ import type { ModelExecution } from "@/lib/types";
 
 const labels: ExportLabels = {
   solutionReport: "Solution report",
+  generatedAt: "8/5/2026, 10:00:00",
   variableAssignments: "Variables",
   constraintDetails: "Constraints",
   executionId: "Execution",

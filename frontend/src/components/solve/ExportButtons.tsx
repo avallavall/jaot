@@ -19,6 +19,7 @@ import { extractVariables } from "@/lib/result-utils";
 import { apiDate } from "@/lib/dates";
 import { originLabel } from "@/lib/execution-origin";
 import { solverDisplayName } from "@/lib/solver-display";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface ExportButtonsProps {
   execution: ModelExecution;
@@ -27,6 +28,11 @@ interface ExportButtonsProps {
 
 export interface ExportLabels {
   solutionReport: string;
+  /** When the report was produced, already written in the reader's language.
+   * Resolved in the component for the same reason `originValue` is: this
+   * builder has no locale of its own, and `toLocaleString()` here followed the
+   * browser rather than the page. */
+  generatedAt: string;
   variableAssignments: string;
   constraintDetails: string;
   executionId: string;
@@ -481,7 +487,7 @@ export function buildReportHtml(
     </div>
     <div class="header-meta">
       <div>${labels.generated}</div>
-      <div><strong>${new Date().toLocaleString()}</strong></div>
+      <div><strong>${labels.generatedAt}</strong></div>
     </div>
   </div>
 
@@ -592,6 +598,7 @@ function openPrintableReport(html: string, executionId: string, popupBlockedMsg:
 
 export function ExportButtons({ execution, chartRef }: ExportButtonsProps) {
   const t = useTranslations("solve.export");
+  const { dayTime } = useDateFormat();
   const tOrigin = useTranslations("solve.origin");
   const locale = useLocale();
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -602,6 +609,7 @@ export function ExportButtons({ execution, chartRef }: ExportButtonsProps) {
 
   const labels: ExportLabels = {
     solutionReport: t("solutionReport"),
+    generatedAt: dayTime(new Date()),
     variableAssignments: t("variableAssignments"),
     constraintDetails: t("constraintDetails"),
     executionId: t("executionId"),

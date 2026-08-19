@@ -4,8 +4,8 @@ import { useState } from "react";
 import type { ModelExecution, OptimizationResult, VariableType } from "@/lib/types";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { extractVariables } from "@/lib/result-utils";
-import { apiDate } from "@/lib/dates";
 import { useTranslations } from "next-intl";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface ComparedVariable {
   name: string;
@@ -162,6 +162,7 @@ export function comparisonMismatch(
 
 export function ExecutionComparisonView({ executionA, executionB }: ExecutionComparisonViewProps) {
   const t = useTranslations("solve.comparison");
+  const { day } = useDateFormat();
   const resultA = executionA.result_data as OptimizationResult | undefined;
   const resultB = executionB.result_data as OptimizationResult | undefined;
 
@@ -294,13 +295,13 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">
                   <div>{t("runA")}</div>
                   <div className="text-xs font-normal text-muted-foreground/70">
-                    {idPrefix(executionA.id)} · {apiDate(executionA.created_at).toLocaleDateString()}
+                    {idPrefix(executionA.id)} · {day(executionA.created_at)}
                   </div>
                 </th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">
                   <div>{t("runB")}</div>
                   <div className="text-xs font-normal text-muted-foreground/70">
-                    {idPrefix(executionB.id)} · {apiDate(executionB.created_at).toLocaleDateString()}
+                    {idPrefix(executionB.id)} · {day(executionB.created_at)}
                   </div>
                 </th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">

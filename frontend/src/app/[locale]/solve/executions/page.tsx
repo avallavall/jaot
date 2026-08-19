@@ -12,7 +12,7 @@ import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { ORIGIN_KEYS, executionOriginHref } from "@/lib/execution-origin";
 import { EmptyState } from "@/components/guidance/EmptyState";
-import { apiDate } from "@/lib/dates";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 // The filter goes to `?origin=`, which the backend matches against the origin
 // column — so `model_project` is left out: it is a source_kind, and offering it
@@ -33,6 +33,7 @@ const STATUS_FILTER_KEYS = [
 
 export default function ExecutionsPage() {
   const t = useTranslations("solve.executions");
+  const { dayTime } = useDateFormat();
   const tOrigin = useTranslations("solve.origin");
   const { statusLabel } = useCommonLabels();
   const router = useRouter();
@@ -271,7 +272,7 @@ export default function ExecutionsPage() {
                     {exec.execution_time_ms ? `${exec.execution_time_ms}ms` : "-"}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                    {apiDate(exec.created_at).toLocaleString()}
+                    {dayTime(exec.created_at)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button

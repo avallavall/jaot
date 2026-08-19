@@ -12,7 +12,7 @@ import {
   Bell, Webhook, Activity,
 } from "lucide-react";
 import type { ModelExecution, SolveTrigger, UserInfo } from "@/lib/types";
-import { apiDate } from "@/lib/dates";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface DashboardStats {
   activeTriggers: number;
@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { logout } = useAuth();
   const t = useTranslations("workspace");
+  const { day } = useDateFormat();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,7 +137,7 @@ export default function DashboardPage() {
                     {exec.status}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {apiDate(exec.created_at).toLocaleDateString()}
+                    {day(exec.created_at)}
                   </span>
                 </div>
               </Link>

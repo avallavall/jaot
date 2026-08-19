@@ -24,6 +24,7 @@ import {
 import { api } from "@/lib/api";
 import { useTranslations } from "next-intl";
 import type { PaginatedResponse } from "@/lib/types";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface AdminOrganizationSummary { id: string; name: string; }
 interface AdminUserSummary { id: string; name: string; }
@@ -31,6 +32,7 @@ interface AdminAPIKey { id: string; name: string; description?: string; key_pref
 
 export default function APIKeysPage() {
   const t = useTranslations("admin.apiKeys");
+  const { day } = useDateFormat();
   const tc = useTranslations("common");
   const [apiKeys, setApiKeys] = useState<AdminAPIKey[]>([]);
   const [organizations, setOrganizations] = useState<AdminOrganizationSummary[]>([]);
@@ -115,10 +117,7 @@ export default function APIKeysPage() {
     return org?.name || orgId;
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString();
-  };
+  const formatDate = (dateStr: string | null) => day(dateStr) || "-";
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

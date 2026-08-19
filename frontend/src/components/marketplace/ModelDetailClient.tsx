@@ -26,8 +26,8 @@ import {
 import type { Review } from "@/lib/types";
 import { ModelTabs } from "@/components/marketplace/ModelTabs";
 import { ImageGallery } from "@/components/marketplace/ImageGallery";
-import { apiDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface ReviewsResponse {
   items: Review[];
@@ -38,6 +38,7 @@ interface ReviewsResponse {
 
 export function ModelDetailClient({ modelId }: { modelId: string }) {
   const t = useTranslations("marketplace.detail");
+  const { day } = useDateFormat();
   const router = useRouter();
   const dialog = useDialog();
   const { isAuthenticated } = useAuth();
@@ -568,7 +569,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {apiDate(review.created_at).toLocaleDateString()}
+                    {day(review.created_at)}
                   </span>
                 </div>
 

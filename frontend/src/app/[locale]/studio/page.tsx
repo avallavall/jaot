@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ProjectListItem } from "@/lib/types";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 type View = "active" | "archived";
 type Scope = "all" | "mine";
@@ -31,11 +32,6 @@ type Confirm =
   | { kind: "bulk"; ids: string[] }
   | null;
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString();
-}
-
 /**
  * Studio home — the org's models (collaborative, org-wide), with Active/Archived
  * tabs and a Mine / Whole-org scope filter. Each row shows who created it. Active
@@ -45,6 +41,7 @@ function formatDate(iso: string): string {
  */
 export default function StudioHomePage() {
   const t = useTranslations("studio");
+  const { day: formatDate } = useDateFormat();
   const router = useRouter();
   const { activeWorkspaceId } = useAuth();
   const [view, setView] = useState<View>("active");

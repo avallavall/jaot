@@ -23,6 +23,7 @@ import {
 import { useDialog } from "@/components/ui/dialog-custom";
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface MemberTableProps {
   workspaceId: string;
@@ -48,14 +49,13 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString();
-}
+
 
 export function MemberTable({ workspaceId, members, onMembersChange }: MemberTableProps) {
   const dialog = useDialog();
   const isAdmin = usePermission("admin");
   const t = useTranslations("workspace.memberTable");
+  const { day } = useDateFormat();
   const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
 
   const handleRoleChange = async (member: WorkspaceMember, newRole: WorkspaceRole) => {
@@ -151,7 +151,7 @@ export function MemberTable({ workspaceId, members, onMembersChange }: MemberTab
                     </Badge>
                   )}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{formatDate(member.joined_at)}</td>
+                <td className="px-4 py-3 text-muted-foreground">{day(member.joined_at)}</td>
                 {isAdmin && (
                   <td className="px-4 py-3 text-right">
                     <Tooltip>

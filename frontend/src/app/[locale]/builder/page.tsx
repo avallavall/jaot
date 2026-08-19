@@ -23,9 +23,11 @@ import {
 import { FileEdit } from "lucide-react";
 import { EmptyState } from "@/components/guidance/EmptyState";
 import { useTranslations } from "next-intl";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 function useFormatDate() {
   const t = useTranslations("builder");
+  const { day } = useDateFormat();
   return (dateStr: string): string => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -35,7 +37,7 @@ function useFormatDate() {
     if (diffDays === 0) return t("list.today");
     if (diffDays === 1) return t("list.yesterday");
     if (diffDays < 7) return t("list.daysAgo", { count: diffDays });
-    return date.toLocaleDateString();
+    return day(date);
   };
 }
 

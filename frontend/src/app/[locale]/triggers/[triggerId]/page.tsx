@@ -28,7 +28,7 @@ import { useDialog } from "@/components/ui/dialog-custom";
 import { CodeSnippets } from "@/components/triggers/CodeSnippets";
 import { RunHistoryTable } from "@/components/triggers/RunHistoryTable";
 import { ScheduleTab } from "@/components/triggers/ScheduleTab";
-import { apiDate } from "@/lib/dates";
+import { useDateFormat } from "@/hooks/useDateFormat";
 import {
   ChevronLeft,
   Clock,
@@ -76,6 +76,7 @@ function TriggerDetailPageInner() {
   const t = useTranslations("triggers.detail");
 
   const { activeWorkspaceId } = useAuth();
+  const { dayTime } = useDateFormat();
   const canEdit = useWorkspacePermission("editor");
   const roleName = useRoleDisplayName();
 
@@ -310,12 +311,12 @@ function TriggerDetailPageInner() {
                 {trigger.last_fired_at && (
                   <div className="flex items-start gap-4 px-4 py-3">
                     <div className="w-40 shrink-0 text-sm text-muted-foreground">{t("lastFired")}</div>
-                    <div className="text-sm">{apiDate(trigger.last_fired_at).toLocaleString()}</div>
+                    <div className="text-sm">{dayTime(trigger.last_fired_at)}</div>
                   </div>
                 )}
                 <div className="flex items-start gap-4 px-4 py-3">
                   <div className="w-40 shrink-0 text-sm text-muted-foreground">{t("createdAt")}</div>
-                  <div className="text-sm">{apiDate(trigger.created_at).toLocaleString()}</div>
+                  <div className="text-sm">{dayTime(trigger.created_at)}</div>
                 </div>
               </div>
             </div>

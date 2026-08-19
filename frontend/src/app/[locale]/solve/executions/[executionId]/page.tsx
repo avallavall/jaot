@@ -23,6 +23,7 @@ import { useSolverCapabilities } from "@/hooks/useSolvers";
 import { solverDisplayName } from "@/lib/solver-display";
 import { useTranslations } from "next-intl";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
+import { useDateFormat } from "@/hooks/useDateFormat";
 import { Database } from "lucide-react";
 
 /** How often an unfinished run is re-fetched while its detail page is open. */
@@ -30,6 +31,7 @@ const EXECUTION_POLL_MS = 3000;
 
 export default function ExecutionDetailPage() {
   const t = useTranslations("solve.execution");
+  const { dayTime } = useDateFormat();
   const { statusLabel } = useCommonLabels();
   const params = useParams();
   const router = useRouter();
@@ -105,9 +107,7 @@ export default function ExecutionDetailPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
+  const formatDate = (dateStr: string) => dayTime(dateStr);
 
   const formatJson = (obj: unknown) => {
     return JSON.stringify(obj, null, 2);

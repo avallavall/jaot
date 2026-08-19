@@ -17,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { apiDate } from "@/lib/dates";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface VerificationQueueProps {
   requests: AdminVerificationEntry[];
@@ -33,6 +33,7 @@ interface VerificationQueueProps {
 
 export function VerificationQueue({ requests, onUpdate }: VerificationQueueProps) {
   const t = useTranslations("admin.marketplace");
+  const { day } = useDateFormat();
   const [deciding, setDeciding] = useState<string | null>(null);
   const [adminNote, setAdminNote] = useState("");
 
@@ -93,7 +94,7 @@ export function VerificationQueue({ requests, onUpdate }: VerificationQueueProps
               </TableCell>
               <TableCell>{r.member_since}</TableCell>
               <TableCell>
-                {apiDate(r.created_at).toLocaleDateString()}
+                {day(r.created_at)}
               </TableCell>
               <TableCell>
                 <Badge variant="secondary">{t("pending")}</Badge>

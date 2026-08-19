@@ -23,6 +23,7 @@ import {
 import { Activity, Clock, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 import { useTranslations } from "next-intl";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface AdminExecution {
   id: string;
@@ -55,6 +56,7 @@ interface AdminExecutionsResponse {
 export default function AdminExecutionsPage() {
   const t = useTranslations("admin.executions");
   const tc = useTranslations("common");
+  const { dayTime } = useDateFormat();
   const [executions, setExecutions] = useState<AdminExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -103,9 +105,7 @@ export default function AdminExecutionsPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
+  const formatDate = (dateStr: string) => dayTime(dateStr);
 
   const formatDuration = (ms: number | null) => {
     if (ms === null) return "-";

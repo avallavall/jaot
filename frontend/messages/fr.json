@@ -3449,6 +3449,11 @@
   },
   "triggers": {
     "list": {
+      "timeJustNow": "À l'instant",
+      "timeMinutesAgo": "Il y a {count} min",
+      "timeHoursAgo": "Il y a {count} h",
+      "timeYesterday": "Hier",
+      "timeDaysAgo": "Il y a {count} j",
       "title": "Déclencheurs",
       "subtitle": "Déclencheurs HTTP qui exécutent automatiquement des versions de modèles épinglées",
       "newTrigger": "Nouveau déclencheur",
@@ -3569,6 +3574,11 @@
       "defaultValue": "défaut : {value}"
     },
     "runHistory": {
+      "timeJustNow": "À l'instant",
+      "timeMinutesAgo": "Il y a {count} min",
+      "timeHoursAgo": "Il y a {count} h",
+      "timeYesterday": "Hier",
+      "timeDaysAgo": "Il y a {count} j",
       "title": "Historique des exécutions",
       "noRuns": "Aucune exécution pour le moment",
       "noRunsDescription": "Déclenchez ce trigger pour voir les résultats ici.",

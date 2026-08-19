@@ -23,8 +23,9 @@ import type { ModelVersion, ModelVersionListItem } from "@/lib/types";
 import { diffCanvasJson } from "@/lib/builder/diff";
 import type { CanvasDiff, NodeChange } from "@/lib/builder/diff";
 import { useTranslations } from "next-intl";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, day: (v: string) => string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diff = Math.floor((now - then) / 1000);
@@ -33,7 +34,7 @@ function formatRelativeTime(dateStr: string): string {
   if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)} day(s) ago`;
-  return new Date(dateStr).toLocaleDateString();
+  return day(dateStr);
 }
 
 function formatFieldValue(value: unknown): string {
@@ -265,6 +266,7 @@ export function VersionModal({
   const [namedOnly, setNamedOnly] = useState(false);
   const [namingVersionId, setNamingVersionId] = useState<string | null>(null);
   const t = useTranslations("builder");
+  const { day } = useDateFormat();
 
   // Load the full version list when modal opens
   useEffect(() => {
@@ -415,7 +417,7 @@ export function VersionModal({
                                       : version.change_summary}
                                   </p>
                                   <p className="text-muted-foreground mt-0.5">
-                                    {formatRelativeTime(version.created_at)}
+                                    {formatRelativeTime(version.created_at, day)}
                                     <span className="ml-1 opacity-60">#{version.sequence}</span>
                                   </p>
                                 </div>

@@ -8,7 +8,6 @@ import { api } from "@/lib/api";
 import type { TriggerRun, TriggerRunStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiDate } from "@/lib/dates";
 import {
   Dialog,
   DialogContent,
@@ -16,24 +15,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Copy, Check, RefreshCw, Eye, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface RunHistoryTableProps {
   triggerId: string;
 }
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+/** Relative for the last day, then an absolute date — both in the page's language. */
+function formatDate(
+  dateStr: string,
+  t: (key: string, values?: Record<string, string | number>) => string,
+  day: (value: string) => string,
+): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  return date.toLocaleDateString();
+  if (diffMins < 1) return t("timeJustNow");
+  if (diffMins < 60) return t("timeMinutesAgo", { count: diffMins });
+  if (diffHours < 24) return t("timeHoursAgo", { count: diffHours });
+  if (diffDays === 1) return t("timeYesterday");
+  return day(dateStr);
 }
 
 function formatDuration(ms?: number): string {
@@ -87,7 +90,18 @@ function CopyableId({ id }: { id: string }) {
 }
 
 // Run Detail Modal
-function RunDetailModal({ run, open, onClose, t }: { run: TriggerRun; open: boolean; onClose: () => void; t: (key: string, values?: Record<string, string | number>) => string }) {
+function RunDetailModal({
+  run,
+  open,
+  onClose,
+  t,
+}: {
+  run: TriggerRun;
+  open: boolean;
+  onClose: () => void;
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  const { dayTime } = useDateFormat();
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -123,7 +137,7 @@ function RunDetailModal({ run, open, onClose, t }: { run: TriggerRun; open: bool
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">{t("createdAt")}</div>
-              <div className="text-xs">{apiDate(run.created_at).toLocaleString()}</div>
+              <div className="text-xs">{dayTime(run.created_at)}</div>
             </div>
           </div>
 
@@ -162,6 +176,7 @@ function RunDetailModal({ run, open, onClose, t }: { run: TriggerRun; open: bool
 export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
   const router = useRouter();
   const t = useTranslations("triggers.runHistory");
+  const { day } = useDateFormat();
   const tc = useTranslations("common");
   const [runs, setRuns] = useState<TriggerRun[]>([]);
   const [total, setTotal] = useState(0);
@@ -287,7 +302,7 @@ export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
                   )}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">
-                  {formatDate(run.created_at)}
+                  {formatDate(run.created_at, t, day)}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">

@@ -27,6 +27,9 @@ vi.mock("next-intl", () => ({
     }),
   useNow: () => new Date(0),
   useFormatter: () => ({}),
+  // The view formats each run's date through `useDateFormat`, which reads the
+  // page locale rather than the browser's.
+  useLocale: () => "en",
 }));
 
 import { ExecutionComparisonView, comparisonMismatch } from "../ExecutionComparisonView";

@@ -26,9 +26,11 @@ import { EmptyState } from "@/components/guidance/EmptyState";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { APIKey as APIKeyInfo } from "@/lib/types";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 export default function ClientAPIKeysPage() {
   const t = useTranslations("workspace.apiKeys");
+  const { day } = useDateFormat();
   const tc = useTranslations("common");
   const dialog = useDialog();
   const [keys, setKeys] = useState<APIKeyInfo[]>([]);
@@ -97,10 +99,7 @@ export default function ClientAPIKeysPage() {
     }
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return t("never");
-    return new Date(dateStr).toLocaleDateString();
-  };
+  const formatDate = (dateStr: string | null) => day(dateStr) || t("never");
 
   return (
     <div className="space-y-6">

@@ -23,8 +23,13 @@ import {
 import { Building2, ChevronDown, ChevronRight, ScrollText } from "lucide-react";
 import Link from "next/link";
 import { ACTION_LABELS, getActionMeta } from "@/lib/audit-labels";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
-function formatTimestamp(dateStr: string, t: (key: string, values?: Record<string, string | number | Date>) => string): string {
+function formatTimestamp(
+  dateStr: string,
+  t: (key: string, values?: Record<string, string | number | Date>) => string,
+  dayTime: (value: string) => string,
+): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -37,7 +42,7 @@ function formatTimestamp(dateStr: string, t: (key: string, values?: Record<strin
   if (diffHours < 24) return t("timeHoursAgo", { count: diffHours });
   if (diffDays === 1) return t("timeYesterday");
   if (diffDays < 7) return t("timeDaysAgo", { count: diffDays });
-  return date.toLocaleString();
+  return dayTime(dateStr);
 }
 
 interface ExpandedRowProps {
@@ -85,6 +90,7 @@ export default function AuditLogPage() {
   const isAdmin = usePermission("admin");
   const roleName = useRoleDisplayName();
   const t = useTranslations("workspace.audit");
+  const { dayTime } = useDateFormat();
   const tc = useTranslations("common");
 
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
@@ -308,7 +314,7 @@ export default function AuditLogPage() {
                         {entry.target_name ?? entry.target_type ?? "\u2014"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                        {formatTimestamp(entry.created_at, t)}
+                        {formatTimestamp(entry.created_at, t, dayTime)}
                       </td>
                     </tr>
                     {isExpanded && (

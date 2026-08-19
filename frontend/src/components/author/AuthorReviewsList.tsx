@@ -5,12 +5,12 @@ import { useTranslations } from "next-intl";
 import { MessageSquare, Star } from "lucide-react";
 
 import { api } from "@/lib/api";
-import { apiDate } from "@/lib/dates";
 import type { AuthorReviews } from "@/lib/types";
 import { LoadFailed } from "@/components/author/LoadFailed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 const PAGE_SIZE = 10;
 
@@ -31,6 +31,7 @@ function Stars({ rating }: { rating: number }) {
 
 export function AuthorReviewsList({ hasListings }: { hasListings: boolean }) {
   const t = useTranslations("author.reviews");
+  const { day } = useDateFormat();
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AuthorReviews | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +92,7 @@ export function AuthorReviewsList({ hasListings }: { hasListings: boolean }) {
                 {review.title && <span className="font-medium">{review.title}</span>}
               </div>
               <span className="text-xs text-muted-foreground">
-                {apiDate(review.created_at).toLocaleDateString()}
+                {day(review.created_at)}
               </span>
             </div>
             {review.comment && <p className="text-sm">{review.comment}</p>}

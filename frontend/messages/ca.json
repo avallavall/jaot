@@ -3449,6 +3449,11 @@
   },
   "triggers": {
     "list": {
+      "timeJustNow": "Ara mateix",
+      "timeMinutesAgo": "Fa {count}m",
+      "timeHoursAgo": "Fa {count}h",
+      "timeYesterday": "Ahir",
+      "timeDaysAgo": "Fa {count}d",
       "title": "Triggers",
       "subtitle": "Triggers d'events HTTP que executen automàticament versions fixades de models",
       "newTrigger": "Nou Trigger",
@@ -3569,6 +3574,11 @@
       "defaultValue": "per defecte: {value}"
     },
     "runHistory": {
+      "timeJustNow": "Ara mateix",
+      "timeMinutesAgo": "Fa {count}m",
+      "timeHoursAgo": "Fa {count}h",
+      "timeYesterday": "Ahir",
+      "timeDaysAgo": "Fa {count}d",
       "title": "Historial d'Execucions",
       "noRuns": "Encara no hi ha execucions",
       "noRunsDescription": "Dispareu aquest trigger per veure els resultats aquí.",

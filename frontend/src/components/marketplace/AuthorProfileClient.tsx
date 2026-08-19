@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MarketplaceModelCard } from "@/components/marketplace/MarketplaceModelCard";
 import { apiDate } from "@/lib/dates";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 function StatCard({
   icon: Icon,
@@ -88,6 +89,7 @@ function ProfileSkeleton() {
 
 export function AuthorProfileClient({ orgId }: { orgId: string }) {
   const t = useTranslations("marketplace.authorProfile");
+  const { day } = useDateFormat();
 
   const [profile, setProfile] = useState<OrgProfile | null>(null);
   const [models, setModels] = useState<ModelCatalogItem[]>([]);
@@ -171,7 +173,7 @@ export function AuthorProfileClient({ orgId }: { orgId: string }) {
               <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {t("memberSince")}{" "}
-                {apiDate(profile.created_at).toLocaleDateString()}
+                {day(profile.created_at)}
               </div>
               {(profile.website_url ||
                 profile.linkedin_url ||

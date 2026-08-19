@@ -3449,6 +3449,11 @@
   },
   "triggers": {
     "list": {
+      "timeJustNow": "Ahora mismo",
+      "timeMinutesAgo": "hace {count}m",
+      "timeHoursAgo": "hace {count}h",
+      "timeYesterday": "Ayer",
+      "timeDaysAgo": "hace {count}d",
       "title": "Automatizaciones",
       "subtitle": "Automatizaciones de eventos HTTP que ejecutan automáticamente versiones fijadas de modelos",
       "newTrigger": "Nuevo trigger",
@@ -3569,6 +3574,11 @@
       "defaultValue": "por defecto: {value}"
     },
     "runHistory": {
+      "timeJustNow": "Ahora mismo",
+      "timeMinutesAgo": "hace {count}m",
+      "timeHoursAgo": "hace {count}h",
+      "timeYesterday": "Ayer",
+      "timeDaysAgo": "hace {count}d",
       "title": "Historial de ejecuciones",
       "noRuns": "Aún no hay ejecuciones",
       "noRunsDescription": "Dispara este trigger para ver los resultados aquí.",

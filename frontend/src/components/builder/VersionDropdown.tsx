@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import type { ModelVersionListItem } from "@/lib/types";
 import { useTranslations } from "next-intl";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, day: (v: string) => string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diff = Math.floor((now - then) / 1000);
@@ -24,7 +25,7 @@ function formatRelativeTime(dateStr: string): string {
   if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)} day(s) ago`;
-  return new Date(dateStr).toLocaleDateString();
+  return day(dateStr);
 }
 
 interface VersionDropdownProps {
@@ -41,6 +42,7 @@ export function VersionDropdown({
   onRestore,
 }: VersionDropdownProps) {
   const t = useTranslations("builder");
+  const { day } = useDateFormat();
   const [versions, setVersions] = useState<ModelVersionListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   // Track which saveCounter value the cached versions correspond to
@@ -112,7 +114,7 @@ export function VersionDropdown({
                     : version.change_summary}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatRelativeTime(version.created_at)}
+                  {formatRelativeTime(version.created_at, day)}
                   <span className="ml-1 opacity-60">#{version.sequence}</span>
                 </p>
               </div>

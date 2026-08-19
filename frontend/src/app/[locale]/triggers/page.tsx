@@ -21,21 +21,26 @@ import {
 } from "@/components/ui/tooltip";
 import { useDialog } from "@/components/ui/dialog-custom";
 import { Webhook, Plus, Trash2, ExternalLink, ToggleLeft, ToggleRight, Clock } from "lucide-react";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
-function formatDate(dateStr: string): string {
+/** Relative for the last week, then an absolute date — both in the page's language. */
+function formatDate(
+  dateStr: string,
+  t: (key: string, values?: Record<string, string | number>) => string,
+  day: (value: string) => string,
+): string {
   const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = Date.now() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
+  if (diffMins < 1) return t("timeJustNow");
+  if (diffMins < 60) return t("timeMinutesAgo", { count: diffMins });
+  if (diffHours < 24) return t("timeHoursAgo", { count: diffHours });
+  if (diffDays === 1) return t("timeYesterday");
+  if (diffDays < 7) return t("timeDaysAgo", { count: diffDays });
+  return day(dateStr);
 }
 
 /** The pinned version, whichever pair this trigger carries (studio or builder). */
@@ -50,6 +55,7 @@ export default function TriggersPage() {
   const canEdit = useWorkspacePermission("editor");
   const roleName = useRoleDisplayName();
   const t = useTranslations("triggers.list");
+  const { day } = useDateFormat();
   const [triggers, setTriggers] = useState<SolveTrigger[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<Record<string, boolean>>({});
@@ -241,9 +247,9 @@ export default function TriggersPage() {
                       {t("runs", { count: trigger.total_runs })}
                     </span>
                     {trigger.last_fired_at && (
-                      <span>{t("lastFired", { date: formatDate(trigger.last_fired_at) })}</span>
+                      <span>{t("lastFired", { date: formatDate(trigger.last_fired_at, t, day) })}</span>
                     )}
-                    <span>{t("created", { date: formatDate(trigger.created_at) })}</span>
+                    <span>{t("created", { date: formatDate(trigger.created_at, t, day) })}</span>
                     {/* A studio trigger pins model_project_version_id and leaves
                         version_id null — reading .slice off it blanked the whole
                         page to the error boundary the moment one existed. */}

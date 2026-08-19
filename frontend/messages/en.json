@@ -3449,6 +3449,11 @@
   },
   "triggers": {
     "list": {
+      "timeJustNow": "Just now",
+      "timeMinutesAgo": "{count}m ago",
+      "timeHoursAgo": "{count}h ago",
+      "timeYesterday": "Yesterday",
+      "timeDaysAgo": "{count}d ago",
       "title": "Triggers",
       "subtitle": "HTTP event triggers that automatically run pinned model versions",
       "newTrigger": "New Trigger",
@@ -3569,6 +3574,11 @@
       "defaultValue": "default: {value}"
     },
     "runHistory": {
+      "timeJustNow": "Just now",
+      "timeMinutesAgo": "{count}m ago",
+      "timeHoursAgo": "{count}h ago",
+      "timeYesterday": "Yesterday",
+      "timeDaysAgo": "{count}d ago",
       "title": "Run History",
       "noRuns": "No runs yet",
       "noRunsDescription": "Fire this trigger to see results here.",

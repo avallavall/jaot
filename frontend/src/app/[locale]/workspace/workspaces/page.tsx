@@ -11,14 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslations } from "next-intl";
 import { Building2, Plus, Users } from "lucide-react";
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString();
-}
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 export default function WorkspacesPage() {
   const { isOwner } = useAuth();
   const t = useTranslations("workspace.workspaces");
+  const { day: formatDate } = useDateFormat();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { notificationText } from "@/lib/notification-text";
 import type { Notification } from "@/lib/types";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -24,6 +25,7 @@ export function NotificationBell() {
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const prevUnreadCountRef = useRef<number | null>(null);
   const t = useTranslations("common");
+  const { day } = useDateFormat();
   // The notification body itself is written from `type` + `data`, not from the
   // English title/message the server stored — see lib/notification-text.
   const tType = useTranslations("common.notifications.types");
@@ -112,7 +114,7 @@ export function NotificationBell() {
     if (diffMins < 60) return t("notifications.minutesAgo", { count: diffMins });
     if (diffHours < 24) return t("notifications.hoursAgo", { count: diffHours });
     if (diffDays < 7) return t("notifications.daysAgo", { count: diffDays });
-    return date.toLocaleDateString();
+    return day(date);
   };
 
   useEffect(() => {
