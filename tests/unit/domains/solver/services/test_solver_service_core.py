@@ -457,3 +457,68 @@ class TestScalarizationHelpers:
                 v1, v2 = term.variables
                 value += term.coefficient * {"x": 1.0, "y": 2.0}[v1] * {"x": 1.0, "y": 2.0}[v2]
         assert value == pytest.approx(13.0)
+
+
+# ---------------------------------------------------------------------------
+# _pareto_front — what the two scalarization loops are allowed to report.
+# ---------------------------------------------------------------------------
+
+
+def _point(f1: float, f2: float) -> ParetoPoint:
+    return ParetoPoint(f1=f1, f2=f2, solution={"x": f1}, objective_values={"a": f1, "b": f2})
+
+
+class TestParetoFront:
+    """A front is distinct trade-offs, and nothing else.
+
+    Both loops solve the same model once per weight or per epsilon, and several
+    of those runs land on the same corner. A ten-point front came back as seven
+    copies of (0, 0) and three real points — counted, listed and drawn as ten
+    trade-offs. The dominance filter existed and had its own unit tests, and
+    nothing in the product ever called it.
+    """
+
+    @staticmethod
+    def _front(points, sense1=ObjectiveSense.MINIMIZE, sense2=ObjectiveSense.MINIMIZE):
+        return SolverService()._pareto_front(points, sense1=sense1, sense2=sense2)
+
+    # CONTRACT-TEST: the same trade-off is reported once.
+    def test_repeated_points_are_reported_once(self):
+        front = self._front([_point(0.0, 0.0)] * 7 + [_point(1.0, -1.0)])
+
+        assert [(p.f1, p.f2) for p in front] == [(0.0, 0.0), (1.0, -1.0)]
+
+    def test_a_point_another_one_beats_outright_is_dropped(self):
+        front = self._front([_point(1.0, 1.0), _point(2.0, 2.0)])
+
+        assert [(p.f1, p.f2) for p in front] == [(1.0, 1.0)]
+
+    # The order the loop finds them in is not the order of quality: a later
+    # point can beat an earlier one, and then the earlier one has to go.
+    def test_a_point_beaten_by_a_later_one_is_removed(self):
+        front = self._front([_point(2.0, 2.0), _point(1.0, 1.0)])
+
+        assert [(p.f1, p.f2) for p in front] == [(1.0, 1.0)]
+
+    def test_real_trade_offs_all_survive(self):
+        front = self._front([_point(0.0, 5.0), _point(2.0, 3.0), _point(5.0, 0.0)])
+
+        assert [(p.f1, p.f2) for p in front] == [(0.0, 5.0), (2.0, 3.0), (5.0, 0.0)]
+
+    def test_dominance_follows_the_objectives_senses(self):
+        """Maximizing both, (2,2) beats (1,1) — the opposite of the minimize case."""
+        front = self._front(
+            [_point(1.0, 1.0), _point(2.0, 2.0)],
+            sense1=ObjectiveSense.MAXIMIZE,
+            sense2=ObjectiveSense.MAXIMIZE,
+        )
+
+        assert [(p.f1, p.f2) for p in front] == [(2.0, 2.0)]
+
+    def test_two_runs_that_differ_in_the_last_bit_are_one_point(self):
+        front = self._front([_point(1.0, 2.0), _point(1.0 + 1e-9, 2.0 - 1e-9)])
+
+        assert len(front) == 1
+
+    def test_an_empty_run_stays_empty(self):
+        assert self._front([]) == []

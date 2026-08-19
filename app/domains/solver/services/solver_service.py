@@ -258,6 +258,39 @@ class SolverService:
                 return False  # dominated
         return True
 
+    def _pareto_front(
+        self,
+        points: list[ParetoPoint],
+        *,
+        sense1: ObjectiveSense,
+        sense2: ObjectiveSense,
+    ) -> list[ParetoPoint]:
+        """The non-dominated, duplicate-free subset of *points*, in the order found.
+
+        Both scalarization loops solve the same model once per weight or per
+        epsilon, and several of those runs land on the same corner: a front of
+        ten reported seven copies of (0, 0) and three real points, counted and
+        drawn as ten trade-offs. A scalarized run can also return a point
+        another run beats outright, which is not a trade-off either.
+
+        A point already on the list dominates the new one, or the new one
+        dominates points already there — both directions have to be checked, so
+        the survivors are re-filtered against each newcomer.
+        """
+        kept: list[ParetoPoint] = []
+        for point in points:
+            if any(_same_point(point, other) for other in kept):
+                continue
+            if not self._is_nondominated(point.f1, point.f2, kept, sense1=sense1, sense2=sense2):
+                continue
+            kept = [
+                other
+                for other in kept
+                if self._is_nondominated(other.f1, other.f2, [point], sense1=sense1, sense2=sense2)
+            ]
+            kept.append(point)
+        return kept
+
     def _solve_weighted(
         self,
         problem: OptimizationProblem,
@@ -301,16 +334,7 @@ class SolverService:
                 logger.debug(f"Weighted solve failed for w1={w1}: {e}")
                 continue
 
-        # Deduplicate approximately equal points
-        unique_points: list[ParetoPoint] = []
-        for pt in pareto_points:
-            is_duplicate = any(
-                abs(pt.f1 - up.f1) < 1e-6 and abs(pt.f2 - up.f2) < 1e-6 for up in unique_points
-            )
-            if not is_duplicate:
-                unique_points.append(pt)
-
-        return unique_points
+        return self._pareto_front(pareto_points, sense1=obj1.sense, sense2=obj2.sense)
 
     def _solve_epsilon_constraint(
         self,
@@ -399,7 +423,21 @@ class SolverService:
                 logger.debug(f"Epsilon-constraint solve failed for eps={eps}: {exc}")
                 continue
 
-        return pareto_points
+        return self._pareto_front(pareto_points, sense1=obj1.sense, sense2=obj2.sense)
+
+
+#: How close two objective values have to be to count as the same point. The
+#: numbers come back from a solver, so exact equality would keep two runs that
+#: landed on the same corner and differ in the last bit.
+_SAME_POINT_TOLERANCE = 1e-6
+
+
+def _same_point(one: ParetoPoint, other: ParetoPoint) -> bool:
+    """True when two Pareto points are the same trade-off."""
+    return (
+        abs(one.f1 - other.f1) < _SAME_POINT_TOLERANCE
+        and abs(one.f2 - other.f2) < _SAME_POINT_TOLERANCE
+    )
 
 
 def get_solver_service(solver_name: str | None = None) -> SolverService:
