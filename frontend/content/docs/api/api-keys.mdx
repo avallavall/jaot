@@ -16,6 +16,8 @@ Create a new API key for the authenticated user.
 
 > **Warning:** The API key value is only returned once at creation time. Store it immediately in a secure location. You will not be able to retrieve it again.
 
+**There is a limit on how many live keys one user may hold.** Past it, this endpoint answers **409** and names the number. Revoking a key frees a slot straight away, and an expired key occupies none. The limit is a platform setting (`AUTH_MAX_ACTIVE_API_KEYS_PER_USER`, 25 by default) that an admin can raise, or set to 0 to remove.
+
 ### Request Body
 
 All fields are optional.

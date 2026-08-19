@@ -34,6 +34,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Security
 
+- **A user can no longer mint unlimited API keys.** There was no cap: 20 creations in a row all succeeded. Past the limit the endpoint now answers 409 and names the number, revoking a key frees a slot immediately, and an expired key occupies none. The ceiling is a platform setting (`AUTH_MAX_ACTIVE_API_KEYS_PER_USER`, 25 by default) an admin can raise or switch off.
 - **Signing up no longer leaves an API key in the browser's local storage.** The signup response carries an account API key, and the page stored it. That left a live, non-expiring credential on the machine of everyone who ever signed up, and the app then sent it as a Bearer token on every request — while every other session in the product runs on cookies. The key was never shown to the user either; keys for programmatic use are still minted, and revealed once, under Workspace → API keys.
 
 ### Fixed

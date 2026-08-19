@@ -569,6 +569,22 @@ SETTINGS_REGISTRY.extend(
             unit="days",
         ),
         SettingDefinition(
+            key="AUTH_MAX_ACTIVE_API_KEYS_PER_USER",
+            label="Max Active API Keys per User",
+            description=(
+                "How many live API keys one user may hold at once. Every key is a "
+                "standing credential that survives a password change, so a user "
+                "who mints them without limit is building a set of doors nobody "
+                "is counting. Revoked and expired keys do not count against this. "
+                "Set to 0 to remove the cap."
+            ),
+            category=SettingCategory.SECURITY,
+            setting_type=SettingType.INT,
+            default_value="25",
+            min_value=0,
+            max_value=1000,
+        ),
+        SettingDefinition(
             key="AUTH_LOGIN_RATE_LIMIT_PER_MINUTE",
             label="Login Rate Limit per Minute",
             description=(

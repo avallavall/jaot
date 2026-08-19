@@ -16,9 +16,41 @@ from app.schemas.api_key import (
     RevokeKeyResponse,
 )
 from app.services.auth import APIKeyService
+from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.utils.datetime_helpers import utcnow
 
 router = APIRouter(prefix="/keys", tags=["api-keys"])
+
+
+def _refuse_if_at_key_limit(db: DBSession, user: User) -> None:
+    """Refuse a new key once the user already holds the maximum live ones.
+
+    An expired key is spent and a revoked one is dead, so neither occupies a
+    slot. The message names the number, because a limit a user cannot see is
+    one they meet as an unexplained failure.
+    """
+    limit = PSS.get_int(db, "AUTH_MAX_ACTIVE_API_KEYS_PER_USER")
+    if not limit or limit <= 0:
+        return  # 0 means the operator turned the cap off.
+
+    now = utcnow()
+    live = (
+        db.query(APIKey)
+        .filter(
+            APIKey.user_id == user.id,
+            APIKey.is_active == True,  # noqa: E712
+            or_(APIKey.expires_at.is_(None), APIKey.expires_at > now),
+        )
+        .count()
+    )
+    if live >= limit:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"You already hold {live} active API keys, which is the limit of "
+                f"{limit}. Revoke one you no longer use and try again."
+            ),
+        )
 
 
 @router.post("/", response_model=CreateKeyResponse)
@@ -27,7 +59,19 @@ def create_api_key(
     db: DBSession,
     current_user: User = Depends(get_current_user),
 ) -> CreateKeyResponse:
-    """Create a new API key for the authenticated user."""
+    """Create a new API key for the authenticated user.
+
+    Capped by ``AUTH_MAX_ACTIVE_API_KEYS_PER_USER``. There was no cap at all:
+    driving the app, a plain member minted 20 keys in a row and every one
+    returned 200. Each is a standing credential that outlives a password change,
+    so an account could accumulate doors nobody was counting — and nothing on
+    the page hinted there was a number to stay under.
+
+    Only LIVE keys count. Revoking one frees a slot, which is what makes the
+    limit a ceiling on exposure rather than on the total ever created.
+    """
+    _refuse_if_at_key_limit(db, current_user)
+
     expires_at = None
     if request.expires_days:
         expires_at = utcnow() + timedelta(days=request.expires_days)
