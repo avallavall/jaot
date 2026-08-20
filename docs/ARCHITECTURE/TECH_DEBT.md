@@ -14,7 +14,6 @@ Ordered by benefit ÷ effort.
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
 | D-32 | A comparison stores its compiled problem once per cell | Measured: 3.8 MB per copy on a 22,500-variable model, so one matrix row of four solvers writes 19 MB | Medium: it is what every consumer reads the problem off |
 | D-33 | `ModelProjectListing.total_activations` is a stored counter nobody recomputes, and it disagrees with the query that now defines an adoption | Measured: 66 stored against 6 counted, and the stored one is what a marketplace card shows | Needs a backfill and a decision about who owns the number |
-| D-35 | A route component that unwraps `params` with React 19's `use()` does not mount under vitest | The join page has no render test; four attempts left the DOM empty | Every App Router route has the same hole — solve it once in the test setup |
 
 ---
 
@@ -150,22 +149,6 @@ a recompute path keeps it honest. Both are a change with its own commit and its 
 the second one needs a rule for what to do with the legacy seeded values.
 
 Recorded 2026-08-19, measured rather than estimated.
-
----
-
-## D-35 · A page that reads its params with React 19's `use()` cannot be rendered in vitest
-
-`frontend/src/app/[locale]/join/[token]/page.tsx` takes `params: Promise<{token}>` and unwraps it
-with `use()`. Under vitest it never mounts: four attempts (a Suspense boundary, an awaited act to
-flush the promise, both) left the DOM empty, so the page has no render test. Its routing decision
-is covered where it lives — `loginPathReturningTo` in `lib/return-path.ts` — but nothing asserts
-that the page calls it, or that it prints one error sentence instead of two (`ff8e1bd`).
-
-This is not specific to that page: every route component that unwraps `params` this way has the
-same hole, and the App Router hands them all a promise. Worth solving once, in the test setup,
-rather than per page.
-
-Recorded 2026-08-20.
 
 ---
 
