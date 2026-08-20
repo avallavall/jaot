@@ -120,6 +120,16 @@ export interface ModelProjectState {
   archived: boolean;
   setArchived: (archived: boolean) => void;
 
+  /** Set when the server refuses this model to this caller mid-session.
+   *
+   *  Somebody took them out of the workspace while the editor was open. The
+   *  load-time 403 was already handled; this is the same answer arriving later,
+   *  which nothing was watching for: the editor stayed on screen and the
+   *  autosave retried a write that can never succeed, every few seconds,
+   *  forever. */
+  accessLost: boolean;
+  setAccessLost: (accessLost: boolean) => void;
+
   /** True once the project has been read from the server, or immediately for a
    * model that has never been saved and has nothing to read.
    *
@@ -323,7 +333,9 @@ export function createModelProjectStore(init: ModelProjectInit) {
         setCanvasDisabled: (canvasDisabled) => set({ canvasDisabled }),
 
         archived: false,
+        accessLost: false,
         setArchived: (archived) => set({ archived }),
+        setAccessLost: (accessLost) => set({ accessLost }),
 
         projectLoaded: false,
         setProjectLoaded: (projectLoaded) => set({ projectLoaded }),

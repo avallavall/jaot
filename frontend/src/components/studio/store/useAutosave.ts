@@ -128,6 +128,16 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
               /* fall through to the error state below */
             }
           }
+          // 403 is not a transient failure and never becomes one: somebody took
+          // this caller out of the model's workspace while the editor was open.
+          // Retrying it forever wrote a refused request every few seconds and
+          // said nothing, so they kept typing into an editor that no longer
+          // saved. The provider swaps in the "no longer yours" page on this.
+          if ((err as { status?: number })?.status === 403) {
+            store.getState().setSaveState("error");
+            store.getState().setAccessLost(true);
+            return;
+          }
           store.getState().setSaveState("error");
           // Self-heal: retry with the latest in-memory state. A new edit replaces
           // this timer via the debounce path; unmount clears it.

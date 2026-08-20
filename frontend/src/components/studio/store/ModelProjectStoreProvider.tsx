@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useStore } from "zustand";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -203,6 +204,11 @@ export function ModelProjectStoreProvider({
     // not re-run the load (which would re-hydrate and drop unsaved in-memory edits).
   }, [modelId, activeWorkspaceId, store]);
 
+  // The load-time 403 is handled in the catch above. This is the one that
+  // arrives later, when somebody is removed while the editor is open: the
+  // autosave raises it on the first refused write.
+  const accessLost = useStore(store, (s) => s.accessLost);
+
   useCanvasBridge(store);
   useAutosave(store, modelId);
   useUnsavedGuard(store);
@@ -216,8 +222,8 @@ export function ModelProjectStoreProvider({
 
   // After the hooks, never before them: an early return above would change the
   // hook order between the loading render and this one.
-  if (missing) {
-    return <MissingModel reason={missing} />;
+  if (missing || accessLost) {
+    return <MissingModel reason={accessLost ? "denied" : missing!} />;
   }
 
   return (

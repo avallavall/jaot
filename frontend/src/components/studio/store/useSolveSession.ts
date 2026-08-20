@@ -143,6 +143,9 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
     if (!modelId || modelId === "new") return;
     if (status !== "idle") return;
     let cancelled = false;
+    // A box rather than a bare `let`: `check` is defined before the interval
+    // exists and has to be able to clear it.
+    const timer: { id?: ReturnType<typeof setInterval> } = {};
     const check = async () => {
       if (cancelled) return;
       if (typeof document !== "undefined" && document.hidden) return;
@@ -150,12 +153,25 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
       try {
         const execs = await api.getProjectExecutions(modelId, { limit: 1 }, workspaceIdRef.current);
         if (!cancelled) applyReconciledExecution(store, execs[0]);
-      } catch {
-        /* best-effort */
+      } catch (err: unknown) {
+        // A 403 on this model's own runs is not a hiccup: somebody took this
+        // caller out of the model's workspace while the page was open. It used
+        // to be swallowed as best-effort, so the poll asked again every seven
+        // seconds for as long as the tab stayed open and the editor kept
+        // pretending to work. This is the signal that arrives even when the
+        // user is only looking; the autosave raises the same flag when they
+        // type. The provider swaps in the "no longer yours" page on it.
+        if ((err as { status?: number })?.status === 403) {
+          cancelled = true;
+          if (timer.id) clearInterval(timer.id);
+          store.getState().setAccessLost(true);
+          return;
+        }
+        /* anything else is best-effort: the next tick may well succeed */
       }
     };
     check();
-    const interval = setInterval(check, 7000);
+    timer.id = setInterval(check, 7000);
     const onVisible = () => {
       if (typeof document !== "undefined" && !document.hidden) check();
     };
@@ -164,7 +180,7 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
     }
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (timer.id) clearInterval(timer.id);
       if (typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", onVisible);
       }
