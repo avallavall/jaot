@@ -2203,6 +2203,7 @@
       },
       "noComment": "Kein Kommentar",
       "noReason": "Kein Grund angegeben",
+      "reportedBy": "Gemeldet von {count, plural, one {# Person} other {# Personen}}",
       "visible": "Sichtbar",
       "hidden": "Ausgeblendet",
       "noReported": "Keine gemeldeten Bewertungen. Alles in Ordnung!",

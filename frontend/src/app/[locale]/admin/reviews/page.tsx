@@ -27,8 +27,20 @@ interface ReportedReview {
   rating: number;
   title?: string | null;
   comment?: string | null;
+  /** The newest reason. `reports` is the full record. */
   report_reason?: string | null;
+  /** How many separate people reported it. One person counts once, however
+   *  many times they pressed the button. */
+  report_count?: number;
+  reports?: ReviewReport[];
   is_visible: boolean;
+  created_at: string;
+}
+
+interface ReviewReport {
+  user_id: string;
+  user_name?: string | null;
+  reason?: string | null;
   created_at: string;
 }
 
@@ -160,7 +172,25 @@ export default function ReportedReviewsPage() {
                       {review.comment || <span className="text-muted-foreground italic">{t("noComment")}</span>}
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      {review.report_reason ? (
+                      {/* The cell used to show one sentence with no name on it,
+                          because the endpoint overwrote a single column on
+                          every report. It now says how many people complained
+                          and who, with every reason on hover. */}
+                      {review.reports && review.reports.length > 0 ? (
+                        <div className="space-y-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {t("reportedBy", { count: review.reports.length })}
+                          </Badge>
+                          <span
+                            className="text-sm truncate block"
+                            title={review.reports
+                              .map((r) => `${r.user_name ?? r.user_id}: ${r.reason ?? "—"}`)
+                              .join("\n")}
+                          >
+                            {review.reports[0].reason || t("noReason")}
+                          </span>
+                        </div>
+                      ) : review.report_reason ? (
                         <span className="text-sm truncate block" title={review.report_reason}>
                           {review.report_reason}
                         </span>

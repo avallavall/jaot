@@ -24,6 +24,7 @@ from app.models.optimization_model import (
     ModelCategory,
     ModelExecution,
     ModelReview,
+    ModelReviewReport,
     ModelStatus,
 )
 from app.models.organization import Organization, Plan
@@ -51,6 +52,7 @@ __all__ = [
     # Optimization Models
     "ModelExecution",
     "ModelReview",
+    "ModelReviewReport",
     "ModelCategory",
     "ModelStatus",
     "ExecutionStatus",

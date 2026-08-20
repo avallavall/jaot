@@ -2203,6 +2203,7 @@
       },
       "noComment": "Aucun commentaire",
       "noReason": "Aucun motif indiqué",
+      "reportedBy": "Signalé par {count, plural, one {# personne} other {# personnes}}",
       "visible": "Visible",
       "hidden": "Masqué",
       "noReported": "Aucun avis signalé. Tout est en ordre !",

@@ -2203,6 +2203,7 @@
       },
       "noComment": "Sin comentario",
       "noReason": "Sin motivo indicado",
+      "reportedBy": "Denunciada por {count, plural, one {# persona} other {# personas}}",
       "visible": "Visible",
       "hidden": "Oculta",
       "noReported": "No hay reseñas reportadas. ¡Todo limpio!",

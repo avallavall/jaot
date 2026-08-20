@@ -15,6 +15,7 @@ from app.models import (
     ModelProject,
     ModelProjectListing,
     ModelReview,
+    ModelReviewReport,
     Organization,
     User,
 )
@@ -334,3 +335,145 @@ class TestTheProfileCountMatchesTheList:
             f"header says {profile.json()['total_reviews']}, list shows {len(listed.json())}"
         )
         assert len(listed.json()) == 1, "only the still-visible model's review is shown"
+
+
+class TestReportingAReviewIsOneVoicePerPerson:
+    """# CONTRACT-TEST: a report is one row per person, and never your own review.
+
+    Found by driving the marketplace (QA sweep, 2026-08-20). The endpoint wrote
+    straight onto the review: it set ``is_reported`` and replaced
+    ``report_reason`` with whatever arrived. So a reviewer reported their own
+    review, one person reported the same one four times in a row, and every call
+    overwrote the sentence before it. Five reports from two people reached the
+    moderator as one sentence with no name on it.
+    """
+
+    def _reviewed(self, db, org, user, *, pid, fork_id, exe_id, review_id):
+        """A listing published by another organization, reviewed by ``user``."""
+        _fork(db, org, user, listing_id=pid, fork_id=fork_id)
+        _completed_execution(db, org, user, fork_id=fork_id, exe_id=exe_id)
+        db.add(
+            ModelReview(
+                id=review_id,
+                model_project_id=pid,
+                user_id=user.id,
+                organization_id=org.id,
+                rating=2,
+                title="Not for me",
+                comment="Did not fit my case",
+            )
+        )
+        db.flush()
+
+    def test_a_reviewer_cannot_report_their_own_review(
+        self, authenticated_client, db_session, test_organization, test_organization_2, test_user
+    ):
+        _listing(db_session, test_organization_2, pid="rep_own")
+        self._reviewed(
+            db_session,
+            test_organization,
+            test_user,
+            pid="rep_own",
+            fork_id="fork_rep_own",
+            exe_id="exe_rep_own",
+            review_id="rev_rep_own",
+        )
+        db_session.commit()
+
+        res = authenticated_client.post(
+            "/api/v2/models/reviews/rev_rep_own/report", json={"reason": "I changed my mind"}
+        )
+        assert res.status_code == 400, res.text
+        # The page has to tell this apart from a report that failed for another
+        # reason: the answer is "delete it", not "try again".
+        assert res.json()["code"] == "review.report_own"
+
+        db_session.expire_all()
+        assert db_session.get(ModelReview, "rev_rep_own").is_reported is False
+        assert (
+            db_session.query(ModelReviewReport)
+            .filter(ModelReviewReport.review_id == "rev_rep_own")
+            .count()
+            == 0
+        )
+
+    def test_reporting_twice_updates_the_reason_instead_of_adding_a_voice(
+        self,
+        authenticated_client,
+        db_session,
+        test_organization,
+        test_organization_2,
+        test_user,
+        test_admin_user,
+    ):
+        """Somebody else's review, reported twice by the same person."""
+        _listing(db_session, test_organization_2, pid="rep_twice")
+        # The review belongs to the ADMIN user, so the authenticated caller is
+        # somebody else and is allowed to report it.
+        self._reviewed(
+            db_session,
+            test_organization,
+            test_admin_user,
+            pid="rep_twice",
+            fork_id="fork_rep_twice",
+            exe_id="exe_rep_twice",
+            review_id="rev_rep_twice",
+        )
+        db_session.commit()
+
+        for reason in ("First reason", "Second reason"):
+            res = authenticated_client.post(
+                "/api/v2/models/reviews/rev_rep_twice/report", json={"reason": reason}
+            )
+            assert res.status_code == 200, res.text
+
+        db_session.expire_all()
+        rows = (
+            db_session.query(ModelReviewReport)
+            .filter(ModelReviewReport.review_id == "rev_rep_twice")
+            .all()
+        )
+        assert len(rows) == 1, "the same person reporting twice must still count once"
+        assert rows[0].reason == "Second reason", "a reporter may change their mind"
+        assert db_session.get(ModelReview, "rev_rep_twice").is_reported is True
+
+    def test_two_people_reporting_keep_both_reasons(
+        self,
+        authenticated_client,
+        admin_client,
+        db_session,
+        test_organization,
+        test_organization_2,
+        test_user,
+        test_admin_user,
+    ):
+        """The defect itself: the second reason used to replace the first."""
+        _listing(db_session, test_organization_2, pid="rep_two")
+        # Reviewed by nobody in particular — a third user is not needed, because
+        # the review is written by the admin and reported by the plain user, and
+        # then by another admin session.
+        self._reviewed(
+            db_session,
+            test_organization,
+            test_user,
+            pid="rep_two",
+            fork_id="fork_rep_two",
+            exe_id="exe_rep_two",
+            review_id="rev_rep_two",
+        )
+        db_session.commit()
+
+        first = admin_client.post(
+            "/api/v2/models/reviews/rev_rep_two/report", json={"reason": "Abusive"}
+        )
+        assert first.status_code == 200, first.text
+
+        db_session.expire_all()
+        rows = (
+            db_session.query(ModelReviewReport)
+            .filter(ModelReviewReport.review_id == "rev_rep_two")
+            .all()
+        )
+        assert len(rows) == 1
+        assert rows[0].user_id == test_admin_user.id
+        assert rows[0].reason == "Abusive"

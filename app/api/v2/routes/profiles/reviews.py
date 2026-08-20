@@ -21,6 +21,7 @@ from app.models import (
     ModelProject,
     ModelProjectListing,
     ModelReview,
+    ModelReviewReport,
     Organization,
     User,
 )
@@ -347,7 +348,18 @@ def report_review(
     db: DBSession,
     current_user: User = Depends(get_current_user),
 ) -> StatusResponse:
-    """Report a review as inappropriate."""
+    """Report a review as inappropriate. One voice per person.
+
+    This used to write straight onto the review: it set the flag and replaced
+    ``report_reason`` with whatever arrived. So a reviewer could report their
+    own review, one person could report the same one any number of times, and
+    when two people reported it the second reason replaced the first — the
+    moderator read one sentence with no way to tell whose it was, nor how many
+    people had complained.
+
+    Reporting again updates that person's reason instead of adding a voice: a
+    reporter who changes their mind still counts once.
+    """
     review = (
         db.query(ModelReview)
         .filter(
@@ -359,7 +371,36 @@ def report_review(
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
 
+    if review.user_id == current_user.id:
+        raise CodedHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot report your own review. Delete it instead.",
+            code="review.report_own",
+        )
+
+    existing = (
+        db.query(ModelReviewReport)
+        .filter(
+            ModelReviewReport.review_id == review_id,
+            ModelReviewReport.user_id == current_user.id,
+        )
+        .first()
+    )
+    if existing:
+        existing.reason = body.reason
+    else:
+        db.add(
+            ModelReviewReport(
+                review_id=review_id,
+                user_id=current_user.id,
+                organization_id=current_user.organization_id,
+                reason=body.reason,
+            )
+        )
+
     review.is_reported = True
+    # Kept in step with the rows so the moderation list, which reads this column,
+    # shows the newest complaint rather than a stale one.
     review.report_reason = body.reason
     db.commit()
 

@@ -129,11 +129,26 @@ class UserReviewResponse(BaseModel):
     created_at: datetime
 
 
-class ReportedReviewResponse(BaseModel):
-    """A review flagged for moderation.
+class ReviewReportResponse(BaseModel):
+    """One person's report of one review."""
 
-    A review carries a single report flag and a single reason — there is no
-    per-review report counter anywhere in the model.
+    user_id: str
+    user_name: str | None = None
+    reason: str | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ReportedReviewResponse(BaseModel):
+    """A review flagged for moderation, and who flagged it.
+
+    The review row carries one flag and one reason, and the endpoint used to
+    overwrite that reason on every call: one person could report the same review
+    any number of times, two people's reasons collapsed into the last one
+    written, and a moderator could not tell whose it was. ``reports`` is the
+    real record now; ``report_reason`` stays as the newest of them so the
+    existing list keeps reading.
     """
 
     id: str
@@ -145,6 +160,10 @@ class ReportedReviewResponse(BaseModel):
     title: str | None = None
     comment: str | None = None
     report_reason: str | None = None
+    #: How many separate people reported it. One person counts once, however
+    #: many times they pressed the button.
+    report_count: int = 0
+    reports: list[ReviewReportResponse] = Field(default_factory=list)
     is_visible: bool
     created_at: datetime
 

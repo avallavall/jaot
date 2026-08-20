@@ -2203,6 +2203,7 @@
       },
       "noComment": "No comment",
       "noReason": "No reason given",
+      "reportedBy": "Reported by {count, plural, one {# person} other {# people}}",
       "visible": "Visible",
       "hidden": "Hidden",
       "noReported": "No reported reviews. All clear!",

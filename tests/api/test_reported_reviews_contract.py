@@ -6,16 +6,29 @@ that consumes it was reading three fields the backend has never sent —
 which the endpoint really did omit. ``report_reasons.length`` on ``undefined``
 threw while rendering, so the queue crashed on the first flagged review.
 
-A review carries ONE report flag and ONE reason (``ModelReview.is_reported`` /
-``report_reason``). There is no counter anywhere in the model, so these tests
-assert the shape the moderator actually needs: the id that links to the
-listing, the single reason, and the visibility the toggle acts on.
+A review used to carry ONE report flag and ONE reason, and nothing else: the
+endpoint overwrote ``report_reason`` on every call, so one person could report
+the same review any number of times and two people's reasons collapsed into
+whichever was written last. The moderator read one sentence with no way to tell
+whose it was. ``model_review_reports`` holds one row per (review, person) now
+(2026-08-20), and the queue serves ``report_count`` and ``reports`` alongside
+the newest reason.
+
+The counter the page was reading all along therefore exists at last. It is
+spelled ``report_count``, and ``reports`` carries the reasons rather than the
+``report_reasons`` the page once guessed at.
 """
 
-from app.models import ModelCategory, ModelProject, ModelProjectListing, ModelReview
+from app.models import (
+    ModelCategory,
+    ModelProject,
+    ModelProjectListing,
+    ModelReview,
+    ModelReviewReport,
+)
 
 # CONTRACT-TEST: the moderation queue serves catalog_id + report_reason +
-# is_visible; a per-review report counter does not exist in the model.
+# is_visible + report_count + reports (who complained, and why).
 
 
 def _flagged_review(db, org, user, *, pid, review_id, reason, visible=True):
@@ -187,3 +200,101 @@ class TestVisibilityToggleShape:
         assert review.is_visible is False
         # Acting on a report clears the flag — the row leaves the queue.
         assert review.is_reported is False
+
+
+class TestTheQueueSaysWhoComplained:
+    """# CONTRACT-TEST: the moderator sees how many people reported, and which.
+
+    The review row's single reason answered neither question. Driving the app
+    showed the consequence (QA, 2026-08-20): five reports from two people, and
+    the queue row carried one sentence, the last one written.
+    """
+
+    @staticmethod
+    def _report(db, review_id, user, reason):
+        from app.shared.utils.id_generator import generate_id
+
+        db.add(
+            ModelReviewReport(
+                id=generate_id("rrp_"),
+                review_id=review_id,
+                user_id=user.id,
+                organization_id=user.organization_id,
+                reason=reason,
+            )
+        )
+        db.flush()
+
+    def test_the_row_counts_the_people_and_names_them(
+        self, admin_client, db_session, test_organization, test_admin_user, test_user
+    ):
+        _flagged_review(
+            db_session,
+            test_organization,
+            test_admin_user,
+            pid="mod_who",
+            review_id="rev_mod_who",
+            reason="Abusive",
+        )
+        self._report(db_session, "rev_mod_who", test_admin_user, "Abusive")
+        self._report(db_session, "rev_mod_who", test_user, "Spam link in the comment")
+        db_session.commit()
+
+        res = admin_client.get("/api/v2/admin/reviews/reported")
+        assert res.status_code == 200, res.text
+        item = next(i for i in res.json()["items"] if i["id"] == "rev_mod_who")
+
+        assert item["report_count"] == 2
+        reasons = {r["reason"] for r in item["reports"]}
+        assert reasons == {"Abusive", "Spam link in the comment"}
+        reporters = {r["user_id"] for r in item["reports"]}
+        assert reporters == {test_admin_user.id, test_user.id}
+
+    def test_a_review_nobody_reported_through_the_endpoint_counts_zero(
+        self, admin_client, db_session, test_organization, test_admin_user
+    ):
+        """The flag can be set without rows behind it — a review flagged before
+        the table existed. The count says zero rather than guessing one."""
+        _flagged_review(
+            db_session,
+            test_organization,
+            test_admin_user,
+            pid="mod_legacy",
+            review_id="rev_mod_legacy",
+            reason="Flagged the old way",
+        )
+        db_session.commit()
+
+        res = admin_client.get("/api/v2/admin/reviews/reported")
+        item = next(i for i in res.json()["items"] if i["id"] == "rev_mod_legacy")
+        assert item["report_count"] == 0
+        assert item["reports"] == []
+        assert item["report_reason"] == "Flagged the old way"
+
+    def test_deciding_the_review_answers_the_reports(
+        self, admin_client, db_session, test_organization, test_admin_user, test_user
+    ):
+        """Hiding or restoring a review is the decision the reports asked for.
+
+        Leaving the rows behind would let one answered complaint keep counting.
+        """
+        _flagged_review(
+            db_session,
+            test_organization,
+            test_admin_user,
+            pid="mod_decided",
+            review_id="rev_mod_decided",
+            reason="Abusive",
+        )
+        self._report(db_session, "rev_mod_decided", test_user, "Abusive")
+        db_session.commit()
+
+        res = admin_client.patch("/api/v2/admin/reviews/rev_mod_decided/visibility?visible=false")
+        assert res.status_code == 200, res.text
+
+        remaining = (
+            db_session.query(ModelReviewReport)
+            .filter(ModelReviewReport.review_id == "rev_mod_decided")
+            .count()
+        )
+        assert remaining == 0

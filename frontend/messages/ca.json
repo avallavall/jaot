@@ -2203,6 +2203,7 @@
       },
       "noComment": "Sense comentari",
       "noReason": "Sense motiu indicat",
+      "reportedBy": "Denunciada per {count, plural, one {# persona} other {# persones}}",
       "visible": "Visible",
       "hidden": "Ocult",
       "noReported": "No hi ha ressenyes reportades. Tot net!",

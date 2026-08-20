@@ -30,6 +30,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.db.base import Base
 from app.shared.utils.datetime_helpers import utcnow
+from app.shared.utils.id_generator import generate_id
 
 if TYPE_CHECKING:
     from app.models.organization import Organization
@@ -294,3 +295,49 @@ class ModelReview(Base):
 
     def __repr__(self) -> str:
         return f"<ModelReview(id={self.id}, model={self.model_project_id}, rating={self.rating})>"
+
+
+class ModelReviewReport(Base):
+    """One person's report of one review.
+
+    The review row carried a single ``is_reported`` flag and a single
+    ``report_reason``, and the endpoint overwrote that reason on every call. So
+    a reviewer could report their own review, one person could report the same
+    review any number of times, and when two people reported it the second
+    reason replaced the first. The moderator saw one sentence and could not tell
+    whose it was, nor how many people had complained (QA, 2026-08-20).
+
+    One row per (review, person) — enforced by the database, not by a
+    read-then-write check. Reporting again updates the reason rather than adding
+    a voice: a person who changes their mind still counts once.
+    """
+
+    __tablename__ = "model_review_reports"
+
+    id: Mapped[str] = mapped_column(
+        String(64), primary_key=True, default=lambda: generate_id("rrp_")
+    )
+    review_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("model_reviews.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # The reporter. CASCADE rather than SET NULL: with the row gone there is no
+    # "one per person" left to enforce, and a report nobody owns tells a
+    # moderator nothing.
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    organization_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (Index("ix_model_review_report_unique", "review_id", "user_id", unique=True),)
+
+    def __repr__(self) -> str:
+        return f"<ModelReviewReport(review={self.review_id}, by={self.user_id})>"

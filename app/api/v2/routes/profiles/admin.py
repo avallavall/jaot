@@ -4,12 +4,19 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
-from app.models import ModelProjectListing, ModelReview, Organization, User
+from app.models import (
+    ModelProjectListing,
+    ModelReview,
+    ModelReviewReport,
+    Organization,
+    User,
+)
 from app.schemas.common import StatusResponse
 from app.schemas.profile import (
     OrganizationVerificationResponse,
     ReportedReviewListResponse,
     ReportedReviewResponse,
+    ReviewReportResponse,
     ReviewVisibilityResponse,
 )
 from app.shared.utils.pagination import paginate_query
@@ -100,6 +107,25 @@ def get_reported_reviews(
         else {}
     )
 
+    # Who reported each one, in one query for the page. Asking per row would be
+    # a round trip per review, and this list is what a moderator reads first.
+    review_ids = [r.id for r in reviews]
+    reports_by_review: dict[str, list[ModelReviewReport]] = {}
+    # Hoisted: the comprehension below reads it whatever the page holds.
+    reporters: dict[str, User] = {}
+    if review_ids:
+        rows = (
+            db.query(ModelReviewReport)
+            .filter(ModelReviewReport.review_id.in_(review_ids))
+            .order_by(ModelReviewReport.created_at.desc())
+            .all()
+        )
+        reporter_ids = list({row.user_id for row in rows})
+        if reporter_ids:
+            reporters = {u.id: u for u in db.query(User).filter(User.id.in_(reporter_ids)).all()}
+        for row in rows:
+            reports_by_review.setdefault(row.review_id, []).append(row)
+
     items = []
     for r in reviews:
         user = users.get(r.user_id)
@@ -116,6 +142,18 @@ def get_reported_reviews(
                 title=r.title,
                 comment=r.comment,
                 report_reason=r.report_reason,
+                report_count=len(reports_by_review.get(r.id, [])),
+                reports=[
+                    ReviewReportResponse(
+                        user_id=row.user_id,
+                        user_name=(
+                            reporters.get(row.user_id).name if reporters.get(row.user_id) else None
+                        ),
+                        reason=row.reason,
+                        created_at=row.created_at,
+                    )
+                    for row in reports_by_review.get(r.id, [])
+                ],
                 is_visible=r.is_visible,
                 created_at=r.created_at,
             )
@@ -189,6 +227,12 @@ def toggle_review_visibility(
 
     review.is_visible = visible
     review.is_reported = False  # Clear report flag
+    # The reports asked for a decision and have just had one. Leaving the rows
+    # behind would put the review back in the queue the next time anybody counts
+    # them, and would let one old report stand for a complaint already answered.
+    db.query(ModelReviewReport).filter(ModelReviewReport.review_id == review.id).delete(
+        synchronize_session=False
+    )
     db.commit()
 
     return ReviewVisibilityResponse(status="updated", is_visible=visible)

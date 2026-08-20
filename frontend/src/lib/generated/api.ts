@@ -2543,7 +2543,17 @@ export interface paths {
         put?: never;
         /**
          * Report Review
-         * @description Report a review as inappropriate.
+         * @description Report a review as inappropriate. One voice per person.
+         *
+         *     This used to write straight onto the review: it set the flag and replaced
+         *     ``report_reason`` with whatever arrived. So a reviewer could report their
+         *     own review, one person could report the same one any number of times, and
+         *     when two people reported it the second reason replaced the first — the
+         *     moderator read one sentence with no way to tell whose it was, nor how many
+         *     people had complained.
+         *
+         *     Reporting again updates that person's reason instead of adding a voice: a
+         *     reporter who changes their mind still counts once.
          */
         post: operations["report_review_api_v2_models_reviews__review_id__report_post"];
         delete?: never;
@@ -9714,10 +9724,14 @@ export interface components {
         };
         /**
          * ReportedReviewResponse
-         * @description A review flagged for moderation.
+         * @description A review flagged for moderation, and who flagged it.
          *
-         *     A review carries a single report flag and a single reason — there is no
-         *     per-review report counter anywhere in the model.
+         *     The review row carries one flag and one reason, and the endpoint used to
+         *     overwrite that reason on every call: one person could report the same review
+         *     any number of times, two people's reasons collapsed into the last one
+         *     written, and a moderator could not tell whose it was. ``reports`` is the
+         *     real record now; ``report_reason`` stays as the newest of them so the
+         *     existing list keeps reading.
          */
         ReportedReviewResponse: {
             /** Catalog Id */
@@ -9737,8 +9751,15 @@ export interface components {
             model_name?: string | null;
             /** Rating */
             rating: number;
+            /**
+             * Report Count
+             * @default 0
+             */
+            report_count: number;
             /** Report Reason */
             report_reason?: string | null;
+            /** Reports */
+            reports?: components["schemas"]["ReviewReportResponse"][];
             /** Title */
             title?: string | null;
             /** User Id */
@@ -9817,6 +9838,23 @@ export interface components {
             };
             /** Total */
             total: number;
+        };
+        /**
+         * ReviewReportResponse
+         * @description One person's report of one review.
+         */
+        ReviewReportResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Reason */
+            reason?: string | null;
+            /** User Id */
+            user_id: string;
+            /** User Name */
+            user_name?: string | null;
         };
         /**
          * ReviewResponse
@@ -11840,6 +11878,7 @@ export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest']
 export type RestoreRequest = components['schemas']['RestoreRequest'];
 export type RestoreResponse = components['schemas']['RestoreResponse'];
 export type ReviewListResponse = components['schemas']['ReviewListResponse'];
+export type ReviewReportResponse = components['schemas']['ReviewReportResponse'];
 export type ReviewResponse = components['schemas']['ReviewResponse'];
 export type ReviewVisibilityResponse = components['schemas']['ReviewVisibilityResponse'];
 export type RevokeKeyResponse = components['schemas']['RevokeKeyResponse'];
