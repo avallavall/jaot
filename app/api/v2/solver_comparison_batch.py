@@ -35,7 +35,14 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session, defer
 
-from app.api.deps import CurrentOrg, CurrentUser, DBSession, enforce_org_rate_limit
+from app.api.deps import (
+    CurrentOrg,
+    CurrentUser,
+    DBSession,
+    enforce_org_rate_limit,
+    enforce_workspace_of,
+    workspace_ids_open_to,
+)
 from app.domains.dsl import JModelData, JModelError, compile_jmodel
 from app.domains.solver.queue_routing import COMPARISON_QUEUE
 from app.domains.solver.services.classify import classify
@@ -52,6 +59,7 @@ from app.models.solver_comparison import (
     ComparisonStatus,
     SolverComparison as Comparison,
 )
+from app.models.workspace import WorkspaceRole
 from app.schemas.solver_comparison import (
     ComparisonBatchDetail,
     ComparisonBatchListResponse,
@@ -120,7 +128,7 @@ def create_batch(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No solver names given."
         )
 
-    project = _project_or_404(db, payload.project_id, org)
+    project = _project_or_404(db, payload.project_id, org, user)
     source, version_id = _source_of(db, project, org, payload.version_id)
     datasets = _datasets_or_404(db, project, org, payload.dataset_ids)
 
@@ -177,7 +185,7 @@ def create_batch(
             logger.warning("Matrix %s: row %s could not be queued", batch_id, comparison.id)
             _abandon_row(db, comparison)
 
-    return _batch_detail(db, batch_id, org)
+    return _batch_detail(db, batch_id, org, user)
 
 
 def enqueue_preparation(db: Session, comparison: Comparison) -> None:
@@ -241,7 +249,7 @@ def _abandon_row(db: Session, comparison: Comparison) -> None:
 def list_batches(
     db: DBSession,
     org: CurrentOrg,
-    _user: CurrentUser,
+    user: CurrentUser,
     project_id: str | None = Query(default=None, description="Only this project's matrices."),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -251,6 +259,17 @@ def list_batches(
         Comparison.organization_id == org.id,
         Comparison.batch_id.isnot(None),
     )
+    # A list cannot ask the wall one row at a time, so it drops the matrices of
+    # every model filed in a workspace this caller is not in.
+    open_ids = workspace_ids_open_to(db, user, org)
+    if open_ids is not None:
+        walled = db.query(ModelProject.id).filter(
+            ModelProject.organization_id == org.id,
+            ModelProject.workspace_id.isnot(None),
+        )
+        if open_ids:
+            walled = walled.filter(ModelProject.workspace_id.notin_(open_ids))
+        groups = groups.filter(~Comparison.model_project_id.in_(walled))
     if project_id:
         groups = groups.filter(Comparison.model_project_id == project_id)
     groups = groups.group_by(Comparison.batch_id)
@@ -292,10 +311,10 @@ def get_batch(
     batch_id: str,
     db: DBSession,
     org: CurrentOrg,
-    _user: CurrentUser,
+    user: CurrentUser,
 ) -> ComparisonBatchDetail:
     """One matrix, whatever state it is in. This is what the page polls."""
-    return _batch_detail(db, batch_id, org)
+    return _batch_detail(db, batch_id, org, user)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -312,18 +331,18 @@ def cancel_batch(
     batch_id: str,
     db: DBSession,
     org: CurrentOrg,
-    _user: CurrentUser,
+    user: CurrentUser,
 ) -> ComparisonBatchDetail:
     """Stop every row that has not finished.
 
     A solve already inside a solver cannot be interrupted, so the run in flight
     finishes and nothing after it starts.
     """
-    members = _members_or_404(db, batch_id, org)
+    members = _members_or_404(db, batch_id, org, user, WorkspaceRole.SOLVER)
     for comparison in members:
         cancel_comparison_rows(db, comparison)
     db.commit()
-    return _batch_detail(db, batch_id, org)
+    return _batch_detail(db, batch_id, org, user)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -331,7 +350,14 @@ def cancel_batch(
 # ──────────────────────────────────────────────────────────────
 
 
-def _project_or_404(db: Session, project_id: str, org: Organization) -> ModelProject:
+def _project_or_404(
+    db: Session,
+    project_id: str,
+    org: Organization,
+    user: User | None,
+    role: WorkspaceRole = WorkspaceRole.SOLVER,
+) -> ModelProject:
+    """The org's project, behind its workspace. Building a matrix is solver work."""
     project = (
         db.query(ModelProject)
         .filter(ModelProject.id == project_id, ModelProject.organization_id == org.id)
@@ -339,6 +365,7 @@ def _project_or_404(db: Session, project_id: str, org: Organization) -> ModelPro
     )
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    enforce_workspace_of(db, project, user, org, role)
     return project
 
 
@@ -506,7 +533,14 @@ def _write_row(
 # ──────────────────────────────────────────────────────────────
 
 
-def _members_or_404(db: Session, batch_id: str, org: Organization) -> list[Comparison]:
+def _members_or_404(
+    db: Session,
+    batch_id: str,
+    org: Organization,
+    user: User | None,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+) -> list[Comparison]:
+    """Every row of one matrix, behind the workspace of the model it compared."""
     members = (
         # The snapshot is the biggest column in the table — 3.8 MB on a model of
         # 22,500 variables — and nothing on this path reads it. The grid polls
@@ -520,6 +554,14 @@ def _members_or_404(db: Session, batch_id: str, org: Organization) -> list[Compa
     )
     if not members:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comparison not found")
+    project_id = members[0].model_project_id
+    if project_id:
+        project = (
+            db.query(ModelProject)
+            .filter(ModelProject.id == project_id, ModelProject.organization_id == org.id)
+            .first()
+        )
+        enforce_workspace_of(db, project, user, org, role)
     return members
 
 
@@ -538,13 +580,19 @@ def _rows_of(db: Session, batch_ids: list[str], org: Organization) -> dict[str, 
     return grouped
 
 
-def _batch_detail(db: Session, batch_id: str, org: Organization) -> ComparisonBatchDetail:
+def _batch_detail(
+    db: Session,
+    batch_id: str,
+    org: Organization,
+    user: User | None,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+) -> ComparisonBatchDetail:
     """Shape a matrix into the grid the page renders.
 
     Two queries whatever the size of the grid: the page polls this every couple
     of seconds while it runs, and a query per row would multiply that by twelve.
     """
-    members = _members_or_404(db, batch_id, org)
+    members = _members_or_404(db, batch_id, org, user, role)
     executions = (
         # Same reason as above: every child carries its own copy of the problem
         # in ``input_data`` and the grid never shows it. Twelve rows of four

@@ -227,6 +227,15 @@ reason: deleting somebody else's nightly run is not a read.
 
 A row filed in no workspace is organization-level and unaffected.
 
+**A private loader is where this hides.** Three modules kept their own
+`_project_or_404` or `load_execution`, and each had to have the wall added
+separately; two were found by scanning for the shape rather than by driving the
+app. Before adding a fourth, check whether the shared one already fits.
+
+**An id being hard to guess is not a wall.** Four routes reach a run by its
+Celery task id, a UUID. The caller who started the solve is handed it, and the
+wall has to hold on its own.
+
 **Where the wall lives:** `app/api/deps.py` —
 `check_workspace_role`, `enforce_workspace_of`,
 `enforce_execution_workspace`, `workspace_ids_open_to`. It sits there rather

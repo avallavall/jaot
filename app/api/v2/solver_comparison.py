@@ -110,7 +110,7 @@ def create_comparison(
             detail="No solver names given.",
         )
 
-    problem, provenance = _resolve_problem(db, org, payload)
+    problem, provenance = _resolve_problem(db, org, user, payload)
 
     settings = payload.settings
     problem = build_comparison_problem(
@@ -293,6 +293,7 @@ def cancel_comparison(
 def _resolve_problem(
     db: Session,
     org: Organization,
+    user: User | None,
     payload: CreateComparisonRequest,
 ) -> tuple[OptimizationProblem, dict[str, str | None]]:
     """Return the problem to compare and where it came from.
@@ -322,6 +323,10 @@ def _resolve_problem(
     )
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    # Comparing a model reads it and spends the organization's quota, so it is
+    # solver work inside the model's workspace. Without this, anybody in the
+    # organization could start a comparison on a model they cannot open.
+    enforce_workspace_of(db, project, user, org, WorkspaceRole.SOLVER)
 
     version_id: str | None = None
     if payload.version_id:

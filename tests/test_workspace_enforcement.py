@@ -13,6 +13,7 @@ For viewer tests we get 403 directly.
 """
 
 import pytest
+from fastapi import HTTPException
 
 from app.models.organization import Organization
 from app.models.user import User
@@ -892,3 +893,194 @@ class TestATriggerAndAComparisonStandBehindTheWall:
             assert comparisons.status_code == 200, comparisons.text
             assert (trigger.id in triggers.text) is should_see
             assert (comparison.id in comparisons.text) is should_see
+
+
+class TestATaskIdAndAMatrixDoNotGoRoundTheWall:
+    """# CONTRACT-TEST: a Celery task id and a comparison matrix obey the wall.
+
+    Found by scanning for the shape rather than by driving (QA, 2026-08-20).
+    Four routes reach a run by its ``celery_task_id`` and filtered by
+    organization alone, so anybody in the organization could watch — and stop —
+    a solve of a model filed in a workspace they are not in. Two local copies of
+    ``_project_or_404`` had never had the wall added either, which left
+    ``POST /models/<id>/execute`` and ``/preview`` open, and every route of a
+    comparison matrix with them.
+
+    A UUID task id is hard to guess. That is not what makes it safe: the caller
+    who started the solve is handed it, and a wall that rests on an id staying
+    secret is not a wall.
+    """
+
+    @staticmethod
+    def _walled_run(db, ws, org):
+        from app.models.model_project import ModelProject
+        from app.models.optimization_model import ExecutionStatus, ModelExecution
+
+        problem = {
+            "name": "walled",
+            "variables": [{"name": "x", "type": "integer", "lower_bound": 0, "upper_bound": 4}],
+            "objective": {"sense": "maximize", "expression": "3*x"},
+            "constraints": [],
+        }
+        project = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org.id,
+            workspace_id=ws.id,
+            name="Filed in a workspace",
+            status="active",
+            draft_model_json=problem,
+        )
+        db.add(project)
+        db.flush()
+        execution = ModelExecution(
+            id=generate_id("exe_"),
+            organization_id=org.id,
+            model_project_id=project.id,
+            celery_task_id="11111111-2222-3333-4444-555555555555",
+            input_data=problem,
+            status=ExecutionStatus.RUNNING.value,
+        )
+        db.add(execution)
+        db.commit()
+        db.refresh(project)
+        db.refresh(execution)
+        return project, execution
+
+    @staticmethod
+    def _walled_matrix(db, project, org):
+        from app.models.solver_comparison import SolverComparison
+
+        batch_id = generate_id("cmb_")
+        rows = [
+            SolverComparison(
+                id=generate_id("cmp_"),
+                organization_id=org.id,
+                model_project_id=project.id,
+                problem_name="Filed in a workspace",
+                solver_names=[name],
+                status="completed",
+                time_limit_seconds=10.0,
+                gap_tolerance=0.0001,
+                batch_id=batch_id,
+                batch_position=i,
+            )
+            for i, name in enumerate(("scip", "highs"))
+        ]
+        db.add_all(rows)
+        db.commit()
+        return batch_id
+
+    def test_a_non_member_cannot_watch_or_stop_a_walled_solve_by_its_task_id(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        _, execution = self._walled_run(db_session, ws, org)
+        task = execution.celery_task_id
+        mock_auth(outsider)
+
+        reads = [f"/api/v2/solve/async/{task}", f"/api/v2/models/async/{task}"]
+        reached = [u for u in reads if client.get(u).status_code not in (403, 404)]
+        assert reached == [], f"these answered without asking the wall: {reached}"
+
+        stops = [f"/api/v2/solve/async/{task}/cancel", f"/api/v2/models/async/{task}/cancel"]
+        stopped = [u for u in stops if client.post(u, json={}).status_code not in (403, 404)]
+        assert stopped == [], f"these stopped somebody else's solve: {stopped}"
+
+        db_session.refresh(execution)
+        assert execution.status == "running"
+
+    def test_a_non_member_cannot_run_or_preview_a_walled_model(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """Running somebody else's model also spends the organization's quota."""
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        project, _ = self._walled_run(db_session, ws, org)
+        mock_auth(outsider)
+
+        assert (
+            client.post(f"/api/v2/models/{project.id}/execute", json={"input_data": {}}).status_code
+            == 403
+        )
+        assert (
+            client.post(f"/api/v2/models/{project.id}/preview", json={"input_data": {}}).status_code
+            == 403
+        )
+
+    def test_a_non_member_cannot_start_a_comparison_on_a_walled_model(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """Comparing reads the model and spends the organization's daily quota."""
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        project, _ = self._walled_run(db_session, ws, org)
+        mock_auth(outsider)
+
+        res = client.post(
+            "/api/v2/solvers/compare",
+            json={"project_id": project.id, "solver_names": ["scip"]},
+        )
+        assert res.status_code == 403, res.text
+
+    def test_a_non_member_reaches_no_part_of_a_walled_matrix(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, outsider, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+            enforcement_setup["viewer"],
+        )
+        project, _ = self._walled_run(db_session, ws, org)
+        batch_id = self._walled_matrix(db_session, project, org)
+
+        mock_auth(outsider)
+        assert client.get(f"/api/v2/solvers/compare/batches/{batch_id}").status_code in (403, 404)
+        assert client.post(
+            f"/api/v2/solvers/compare/batches/{batch_id}/cancel", json={}
+        ).status_code in (403, 404)
+        listing = client.get("/api/v2/solvers/compare/batches?limit=100")
+        assert listing.status_code == 200, listing.text
+        assert batch_id not in listing.text
+
+        # And the member it is there to serve still reaches all of it.
+        mock_auth(viewer)
+        assert client.get(f"/api/v2/solvers/compare/batches/{batch_id}").status_code == 200
+        inside = client.get("/api/v2/solvers/compare/batches?limit=100")
+        assert inside.status_code == 200, inside.text
+        assert batch_id in inside.text
+
+    def test_the_wall_lets_a_viewer_of_the_workspace_through(self, db_session, enforcement_setup):
+        """The wall must not shut out the people it is there to serve.
+
+        Asserted on the guard rather than on the route: both async routes reach
+        Celery straight after it, and the test container runs with no broker, so
+        a route-level call dies on the connection instead of on the wall. That
+        the routes then answer 200 for a member is measured by driving the real
+        app (frontend/.qa-run/scripts/crossuser-9.mjs).
+        """
+        from app.api.deps import enforce_execution_workspace
+
+        ws, org, viewer, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["viewer"],
+            enforcement_setup["non_member"],
+        )
+        _, execution = self._walled_run(db_session, ws, org)
+
+        enforce_execution_workspace(db_session, execution, viewer, org)
+
+        with pytest.raises(HTTPException) as refused:
+            enforce_execution_workspace(db_session, execution, outsider, org)
+        assert refused.value.status_code == 403

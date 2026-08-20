@@ -10,7 +10,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
-from app.api.deps import DBSession, OptionalRequireSolver, enforce_org_rate_limit
+from app.api.deps import (
+    DBSession,
+    OptionalRequireSolver,
+    enforce_execution_workspace,
+    enforce_org_rate_limit,
+)
 from app.api.v2._access import execution_or_404
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
@@ -27,6 +32,7 @@ from app.domains.solver.adapters.base import (
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.problem_validation import iter_problem_errors
 from app.models import ModelExecution, Organization
+from app.models.workspace import WorkspaceRole
 from app.schemas.optimization import (
     AsyncSolveCancelResponse,
     AsyncSolveEnvelope,
@@ -562,6 +568,10 @@ def get_async_solve_status(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found",
         )
+    # A run reached by its task id sits behind the same wall as the model it
+    # ran. The organization filter alone let anybody in the organization watch
+    # a solve of a model they cannot open.
+    enforce_execution_workspace(db, execution, getattr(request.state, "user", None), org)
 
     from celery.result import AsyncResult
 
@@ -664,6 +674,16 @@ def cancel_async_task(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"error": "forbidden", "message": "Task does not belong to your organization"},
         )
+    # Stopping a solve is solver work, and only inside the model's workspace:
+    # without this, anybody in the organization could stop a run of a model they
+    # cannot open.
+    enforce_execution_workspace(
+        db,
+        execution,
+        getattr(request.state, "user", None),
+        org,
+        WorkspaceRole.SOLVER,
+    )
 
     from celery.result import AsyncResult
 

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, defer
 from app.api.deps import (
     CurrentOrg,
     DBSession,
+    enforce_execution_workspace,
     enforce_workspace_of,
     workspace_ids_open_to,
 )
@@ -34,6 +35,7 @@ from app.domains.solver.services.template_engine import TemplateEngine, get_temp
 from app.models import ExecutionStatus, ModelExecution, Organization, User
 from app.models.model_project import ModelProject, ModelProjectListing
 from app.models.trigger import SolveTrigger
+from app.models.workspace import WorkspaceRole
 from app.schemas.model import (
     AsyncExecutionResponse,
     ExecuteModelRequest,
@@ -63,19 +65,30 @@ class PreviewRequest(BaseModel):
     input_data: dict[str, Any]
 
 
-def _project_or_404(db: Session, model_id: str, org_id: str) -> ModelProject:
-    """The org's active ModelProject, or 404 (identical detail cross-org — anti-oracle)."""
+def _project_or_404(
+    db: Session,
+    model_id: str,
+    org: Organization,
+    user: User | None,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+) -> ModelProject:
+    """The org's active ModelProject, behind its workspace, or 404/403.
+
+    404 keeps the identical detail cross-org (anti-oracle); 403 inside the
+    organization says why, the way every other walled route does.
+    """
     project = (
         db.query(ModelProject)
         .filter(
             ModelProject.id == model_id,
-            ModelProject.organization_id == org_id,
+            ModelProject.organization_id == org.id,
             ModelProject.status == "active",
         )
         .first()
     )
     if not project:
         raise HTTPException(status_code=404, detail="Model not found or inactive")
+    enforce_workspace_of(db, project, user, org, role)
     return project
 
 
@@ -108,10 +121,11 @@ def preview_model(
     body: PreviewRequest,
     db: DBSession,
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
     template_engine: TemplateEngine = Depends(get_template_engine),
 ) -> OptimizationProblem:
     """Render a generator-backed model and return the OptimizationProblem without solving."""
-    project = _project_or_404(db, model_id, current_user.organization_id)
+    project = _project_or_404(db, model_id, org, current_user, WorkspaceRole.SOLVER)
 
     template = _resolve_generator_template(db, project)
     if template is None:
@@ -140,6 +154,7 @@ def execute_model(
     body: ExecuteModelRequest,
     db: DBSession,
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
     solver: SolverService = Depends(get_solver_service),
     template_engine: TemplateEngine = Depends(get_template_engine),
     solver_name: str | None = Query(default=None, max_length=32),
@@ -161,7 +176,7 @@ def execute_model(
     202 + the async envelope (poll ``poll_url``). Sync ``def`` on purpose —
     the blocking wait belongs in the threadpool, never on the event loop.
     """
-    project = _project_or_404(db, model_id, current_user.organization_id)
+    project = _project_or_404(db, model_id, org, current_user, WorkspaceRole.SOLVER)
 
     org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
 
@@ -407,6 +422,7 @@ def get_async_execution_status(
     task_id: str,
     db: DBSession,
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
 ) -> dict[str, Any]:
     """Get the status of an async execution task."""
     from celery.result import AsyncResult
@@ -431,6 +447,9 @@ def get_async_execution_status(
             status_code=404,
             detail="Task not found or not authorized",
         )
+    # The tenant check above is not the whole answer: a run reached by its task
+    # id is behind the same wall as the model it ran.
+    enforce_execution_workspace(db, execution, current_user, org)
 
     result = AsyncResult(task_id, app=celery_app)
 
@@ -497,6 +516,7 @@ def cancel_model_execution(
     task_id: str,
     db: DBSession,
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
 ) -> ExecutionCancelResponse:
     """Cancel a running async model execution."""
     from celery.result import AsyncResult
@@ -518,6 +538,8 @@ def cancel_model_execution(
             detail="Execution not found or not authorized",
             code="execution.not_found",
         )
+    # Stopping a solve is solver work, and only inside the model's workspace.
+    enforce_execution_workspace(db, execution, current_user, org, WorkspaceRole.SOLVER)
 
     result = AsyncResult(task_id, app=celery_app)
 
