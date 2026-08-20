@@ -154,6 +154,8 @@
     "missing": {
       "title": "Aquest model ja no existeix",
       "body": "S'ha esborrat. Les execucions que en van sortir continuen al teu historial.",
+      "titledenied": "Ja no tens accés a aquest model",
+      "bodydenied": "És en un espai de treball del qual ja no ets membre. El que hagis escrit des d'aleshores no s'ha desat.",
       "backToModels": "Tornar als meus models",
       "seeRuns": "Veure les execucions"
     },
@@ -2702,6 +2704,7 @@
       "reviews": "Ressenyes",
       "reviewCount": "({count})",
       "writeReview": "Escriure una Ressenya",
+      "cannotReviewOwnModel": "Has publicat aquest model, així que no el pots ressenyar.",
       "writeYourReview": "Escriu la Teva Ressenya",
       "reviewRating": "Valoració",
       "reviewTitleLabel": "Títol (opcional)",
@@ -4668,6 +4671,9 @@
       },
       "listing": {
         "image_storage_off": "Aquesta instal·lació encara no pot desar imatges, així que els logotips i les captures no estan disponibles. La resta de la teva fitxa funciona. Demana a qui l'administra que configuri l'emmagatzematge d'imatges."
+      },
+      "review": {
+        "own_model": "No pots ressenyar un model que ha publicat la teva pròpia organització."
       }
     }
   },

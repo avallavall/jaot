@@ -154,6 +154,8 @@
     "missing": {
       "title": "Dieses Modell gibt es nicht mehr",
       "body": "Es wurde gelöscht. Die daraus entstandenen Läufe stehen weiter in Ihrem Verlauf.",
+      "titledenied": "Du hast keinen Zugriff mehr auf dieses Modell",
+      "bodydenied": "Es gehört zu einem Arbeitsbereich, in dem du kein Mitglied mehr bist. Was du seitdem getippt hast, wurde nicht gespeichert.",
       "backToModels": "Zurück zu meinen Modellen",
       "seeRuns": "Läufe ansehen"
     },
@@ -2702,6 +2704,7 @@
       "reviews": "Bewertungen",
       "reviewCount": "({count})",
       "writeReview": "Bewertung schreiben",
+      "cannotReviewOwnModel": "Du hast dieses Modell veröffentlicht, deshalb kannst du es nicht bewerten.",
       "writeYourReview": "Ihre Bewertung verfassen",
       "reviewRating": "Bewertung",
       "reviewTitleLabel": "Titel (optional)",
@@ -4668,6 +4671,9 @@
       },
       "listing": {
         "image_storage_off": "Diese Instanz kann noch keine Bilder speichern, deshalb sind Logos und Screenshots nicht verfügbar. Alles andere an deinem Eintrag funktioniert. Bitte die Person, die sie betreibt, den Bildspeicher einzurichten."
+      },
+      "review": {
+        "own_model": "Du kannst kein Modell bewerten, das deine eigene Organisation veröffentlicht hat."
       }
     }
   },

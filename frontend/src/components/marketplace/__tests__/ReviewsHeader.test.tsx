@@ -22,7 +22,7 @@ describe("the review control over a model's reviews", () => {
     const onWrite = vi.fn();
     const onSignIn = vi.fn();
     render(
-      <ReviewsHeader total={0} isAuthenticated={false} onWrite={onWrite} onSignIn={onSignIn} />
+      <ReviewsHeader total={0} isAuthenticated={false} isOwnModel={false} onWrite={onWrite} onSignIn={onSignIn} />
     );
 
     const button = screen.getByTestId(WRITE_REVIEW);
@@ -37,7 +37,7 @@ describe("the review control over a model's reviews", () => {
   it("opens the form for somebody who is signed in", () => {
     const onWrite = vi.fn();
     const onSignIn = vi.fn();
-    render(<ReviewsHeader total={3} isAuthenticated onWrite={onWrite} onSignIn={onSignIn} />);
+    render(<ReviewsHeader total={3} isAuthenticated isOwnModel={false} onWrite={onWrite} onSignIn={onSignIn} />);
 
     const button = screen.getByTestId(WRITE_REVIEW);
     expect(button.textContent).toContain("writeReview");
@@ -50,11 +50,31 @@ describe("the review control over a model's reviews", () => {
 
   it("counts the reviews once they have arrived, and not before", () => {
     const { rerender } = render(
-      <ReviewsHeader total={null} isAuthenticated onWrite={vi.fn()} onSignIn={vi.fn()} />
+      <ReviewsHeader total={null} isAuthenticated isOwnModel={false} onWrite={vi.fn()} onSignIn={vi.fn()} />
     );
     expect(screen.queryByText(/reviewCount/)).not.toBeInTheDocument();
 
-    rerender(<ReviewsHeader total={7} isAuthenticated onWrite={vi.fn()} onSignIn={vi.fn()} />);
+    rerender(<ReviewsHeader total={7} isAuthenticated isOwnModel={false} onWrite={vi.fn()} onSignIn={vi.fn()} />);
     expect(screen.getByText(/reviewCount/)).toBeInTheDocument();
+  });
+  // CONTRACT-TEST: the author of a model is not offered a form the server
+  // refuses. Both gates on a review — fork it, run it — are a minute's work on
+  // your own model, so this is the only thing standing between an author and
+  // five stars on their own listing.
+  it("offers the author of the model an explanation instead of the form", () => {
+    const onWrite = vi.fn();
+    render(
+      <ReviewsHeader
+        total={2}
+        isAuthenticated
+        isOwnModel
+        onWrite={onWrite}
+        onSignIn={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId(WRITE_REVIEW)).not.toBeInTheDocument();
+    expect(screen.getByText(/cannotReviewOwnModel/)).toBeInTheDocument();
+    expect(onWrite).not.toHaveBeenCalled();
   });
 });

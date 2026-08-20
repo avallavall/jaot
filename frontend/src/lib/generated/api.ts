@@ -2192,6 +2192,12 @@ export interface paths {
         /**
          * Create Review
          * @description Create a review for a model. The org must have used it (seeded fork + solved).
+         *
+         *     The author's own organization may not review it. The two gates below — a
+         *     fork of the listing, and a completed run of that fork — are both things an
+         *     author can do to their own model in a minute, so without this an author put
+         *     five stars on their own listing and the marketplace showed it as the
+         *     average.
          */
         post: operations["create_review_api_v2_models_catalog__catalog_id__reviews_post"];
         delete?: never;

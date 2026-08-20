@@ -154,6 +154,8 @@
     "missing": {
       "title": "This model no longer exists",
       "body": "It was deleted. Any run made from it is still in your run history.",
+      "titledenied": "You no longer have access to this model",
+      "bodydenied": "It belongs to a workspace you are not a member of any more. Anything you typed after that was not saved.",
       "backToModels": "Back to my models",
       "seeRuns": "See the runs"
     },
@@ -2731,6 +2733,7 @@
       "reviews": "Reviews",
       "reviewCount": "({count})",
       "writeReview": "Write a Review",
+      "cannotReviewOwnModel": "You published this model, so you cannot review it.",
       "writeYourReview": "Write Your Review",
       "reviewRating": "Rating",
       "reviewTitleLabel": "Title (optional)",
@@ -4668,6 +4671,9 @@
       },
       "listing": {
         "image_storage_off": "This instance cannot store images yet, so logos and screenshots are unavailable. Everything else about your listing works. Ask whoever runs it to set up image storage."
+      },
+      "review": {
+        "own_model": "You cannot review a model your own organization published."
       }
     }
   },

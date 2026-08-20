@@ -91,4 +91,21 @@ describe("a model the server answers 404 for", () => {
     expect(toast.error).toHaveBeenCalledWith("studio.loadFailed");
     expect(screen.queryByText("studio.missing.title")).not.toBeInTheDocument();
   });
+  // CONTRACT-TEST: a 403 means the model is there and is no longer yours —
+  // somebody removed you from its workspace. Without its own branch the push
+  // below lost the same race the 404 used to lose, so the editor stayed on
+  // screen autosaving into refusals, through a reload.
+  it("says the access is gone when the server answers 403", async () => {
+    getProject.mockRejectedValue({ status: 403 });
+
+    render(<ModelProjectStoreProvider modelId="mp_kicked">{WORKSPACE}</ModelProjectStoreProvider>);
+
+    await waitFor(() =>
+      expect(screen.getByText("studio.missing.titledenied")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("studio.missing.bodydenied")).toBeInTheDocument();
+    expect(screen.queryByText("the whole workbench")).not.toBeInTheDocument();
+    expect(screen.queryByText("studio.missing.title")).not.toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
 });

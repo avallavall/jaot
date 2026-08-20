@@ -154,6 +154,8 @@
     "missing": {
       "title": "Ce modèle n’existe plus",
       "body": "Il a été supprimé. Les exécutions qui en sont issues restent dans votre historique.",
+      "titledenied": "Vous n'avez plus accès à ce modèle",
+      "bodydenied": "Il appartient à un espace de travail dont vous n'êtes plus membre. Ce que vous avez tapé depuis n'a pas été enregistré.",
       "backToModels": "Retour à mes modèles",
       "seeRuns": "Voir les exécutions"
     },
@@ -2702,6 +2704,7 @@
       "reviews": "Avis",
       "reviewCount": "({count})",
       "writeReview": "Écrire un avis",
+      "cannotReviewOwnModel": "Vous avez publié ce modèle, vous ne pouvez donc pas l'évaluer.",
       "writeYourReview": "Rédigez votre avis",
       "reviewRating": "Note",
       "reviewTitleLabel": "Titre (facultatif)",
@@ -4668,6 +4671,9 @@
       },
       "listing": {
         "image_storage_off": "Cette instance ne peut pas encore stocker d'images, donc les logos et les captures ne sont pas disponibles. Tout le reste de votre fiche fonctionne. Demandez à la personne qui l'administre de configurer le stockage d'images."
+      },
+      "review": {
+        "own_model": "Vous ne pouvez pas évaluer un modèle publié par votre propre organisation."
       }
     }
   },

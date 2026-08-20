@@ -52,7 +52,7 @@ export function ModelProjectStoreProvider({
 
   // Set when the server answers 404 for this model: it was deleted, or the id
   // never existed. The workspace is not rendered at all in that case.
-  const [missing, setMissing] = useState(false);
+  const [missing, setMissing] = useState<"missing" | "denied" | null>(null);
 
   // Lazy one-time init (the provider is keyed by modelId, so a fresh model gets a
   // fresh store). useState — not useRef — so the store is not read during render.
@@ -181,7 +181,15 @@ export function ModelProjectStoreProvider({
         // `/solve/<id>/history` painted tabs and a live Solve button over a
         // model the server answers 404 for.
         if (status === 404) {
-          setMissing(true);
+          setMissing("missing");
+          return;
+        }
+        // 403 is the same shape with a different cause: the model is there and
+        // is no longer yours, because somebody took you out of its workspace.
+        // The push below loses the same race the 404 used to lose, so the
+        // editor stayed on screen autosaving into refusals, even after a reload.
+        if (status === 403) {
+          setMissing("denied");
           return;
         }
         toast.error(tRef.current("loadFailed"));
@@ -209,7 +217,7 @@ export function ModelProjectStoreProvider({
   // After the hooks, never before them: an early return above would change the
   // hook order between the loading render and this one.
   if (missing) {
-    return <MissingModel />;
+    return <MissingModel reason={missing} />;
   }
 
   return (

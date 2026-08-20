@@ -15,14 +15,20 @@ import { Button } from "@/components/ui/button";
  *
  * Runs outlive their model, which is why the second line says so: whoever
  * followed the link may only want the numbers, and those are still there.
+ *
+ * `reason="denied"` is the same page for a model that still exists and is no
+ * longer yours — somebody removed you from its workspace while you had it open.
+ * The server answers 403 to every call from that moment, and without this the
+ * editor stayed on screen, autosaving into refusals, through a reload.
  */
-export function MissingModel() {
+export function MissingModel({ reason = "missing" }: { reason?: "missing" | "denied" }) {
   const t = useTranslations("studio.missing");
+  const key = reason === "denied" ? "denied" : "";
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-6 text-center">
-      <h1 className="text-2xl font-semibold mb-3">{t("title")}</h1>
-      <p className="text-muted-foreground max-w-md mb-8">{t("body")}</p>
+      <h1 className="text-2xl font-semibold mb-3">{t(`title${key}`)}</h1>
+      <p className="text-muted-foreground max-w-md mb-8">{t(`body${key}`)}</p>
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link href="/studio">
           <Button>{t("backToModels")}</Button>

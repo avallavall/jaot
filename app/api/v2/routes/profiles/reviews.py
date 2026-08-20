@@ -10,7 +10,7 @@ seeded a fork ModelProject from the listing (``source_ref``) and completed an ex
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
@@ -31,6 +31,7 @@ from app.schemas.profile import (
     ReviewListResponse,
     ReviewResponse,
 )
+from app.shared.core.http_errors import CodedHTTPException
 from app.shared.utils.pagination import paginate_query
 
 logger = logging.getLogger(__name__)
@@ -147,8 +148,22 @@ def create_review(
     db: DBSession,
     current_user: User = Depends(get_current_user),
 ) -> ReviewResponse:
-    """Create a review for a model. The org must have used it (seeded fork + solved)."""
+    """Create a review for a model. The org must have used it (seeded fork + solved).
+
+    The author's own organization may not review it. The two gates below — a
+    fork of the listing, and a completed run of that fork — are both things an
+    author can do to their own model in a minute, so without this an author put
+    five stars on their own listing and the marketplace showed it as the
+    average.
+    """
     listing = _listing_or_404(db, catalog_id)
+
+    if listing.author_organization_id == current_user.organization_id:
+        raise CodedHTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot review a model your own organization published.",
+            code="review.own_model",
+        )
 
     existing = (
         db.query(ModelReview)

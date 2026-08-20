@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { api, ModelCatalogItem } from "@/lib/api";
-import { getErrorMessage, getErrorStatus } from "@/lib/errors";
+import { getErrorMessage, getErrorStatus, translateApiError } from "@/lib/errors";
 import { loginPathReturningTo } from "@/lib/return-path";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTemplateTranslation } from "@/hooks/useTemplateTranslation";
@@ -49,12 +49,15 @@ interface ReviewsResponse {
 export function ReviewsHeader({
   total,
   isAuthenticated,
+  isOwnModel,
   onWrite,
   onSignIn,
 }: {
   /** How many reviews there are, or null while they are still loading. */
   total: number | null;
   isAuthenticated: boolean;
+  /** The reader's organization published this model, so it cannot review it. */
+  isOwnModel: boolean;
   onWrite: () => void;
   onSignIn: () => void;
 }) {
@@ -65,24 +68,32 @@ export function ReviewsHeader({
       <h2 className="text-lg font-semibold">
         {t("reviews")} {total !== null && t("reviewCount", { count: total })}
       </h2>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={isAuthenticated ? onWrite : onSignIn}
-        data-testid="marketplace-write-review"
-      >
-        {isAuthenticated ? t("writeReview") : t("signInToReview")}
-      </Button>
+      {isOwnModel ? (
+        // Both gates on a review are things an author can do to their own model
+        // in a minute, so the server refuses this one; saying so here means the
+        // form is never offered for something that cannot be sent.
+        <p className="text-sm text-muted-foreground">{t("cannotReviewOwnModel")}</p>
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={isAuthenticated ? onWrite : onSignIn}
+          data-testid="marketplace-write-review"
+        >
+          {isAuthenticated ? t("writeReview") : t("signInToReview")}
+        </Button>
+      )}
     </div>
   );
 }
 
 export function ModelDetailClient({ modelId }: { modelId: string }) {
   const t = useTranslations("marketplace.detail");
+  const tError = useTranslations("errors.codes");
   const { day } = useDateFormat();
   const router = useRouter();
   const dialog = useDialog();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, organization } = useAuth();
   const tmpl = useTemplateTranslation(modelId);
 
   const [model, setModel] = useState<ModelCatalogItem | null>(null);
@@ -220,7 +231,11 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
       setReviewComment("");
       loadReviews();
     } catch (err) {
-      dialog.showError(getErrorMessage(err, t("failedToSubmitReview")));
+      // The API's `detail` is English by contract; a refusal that names itself
+      // is rendered from its code instead.
+      dialog.showError(
+        translateApiError(err, tError, getErrorMessage(err, t("failedToSubmitReview"))),
+      );
     } finally {
       setSubmittingReview(false);
     }
@@ -448,6 +463,9 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
         <ReviewsHeader
           total={reviews?.total ?? null}
           isAuthenticated={isAuthenticated}
+          isOwnModel={Boolean(
+            organization?.id && model?.author_organization_id === organization.id,
+          )}
           onWrite={() => setShowReviewForm(!showReviewForm)}
           onSignIn={() => router.push(loginPathReturningTo(`/marketplace/${modelId}`))}
         />

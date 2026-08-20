@@ -21,6 +21,13 @@ from app.models import (
 
 
 def _listing(db, org, *, pid) -> None:
+    """A published listing owned by ``org``.
+
+    ``author_organization_id`` is set, which a real listing always has: the
+    publish route writes it. It used to be left NULL here, and that made the
+    gate tests below describe a model with no author — the one shape where a
+    reviewer from the publishing organization is not the author's own.
+    """
     db.add(ModelProject(id=pid, organization_id=org.id, name="Proj " + pid, status="active"))
     db.flush()
     db.add(
@@ -37,6 +44,7 @@ def _listing(db, org, *, pid) -> None:
             version="1.0.0",
             status="published",
             is_public=True,
+            author_organization_id=org.id,
         )
     )
 
@@ -73,17 +81,17 @@ _REVIEW = {"rating": 5, "title": "Great", "comment": "Worked well"}
 
 class TestCreateReviewGate:
     def test_review_without_using_model_403(
-        self, authenticated_client, db_session, test_organization
+        self, authenticated_client, db_session, test_organization, test_organization_2
     ):
-        _listing(db_session, test_organization, pid="rev_no_fork")
+        _listing(db_session, test_organization_2, pid="rev_no_fork")
         db_session.commit()
         res = authenticated_client.post("/api/v2/models/catalog/rev_no_fork/reviews", json=_REVIEW)
         assert res.status_code == 403, res.text
 
     def test_review_forked_but_not_executed_403(
-        self, authenticated_client, db_session, test_organization, test_user
+        self, authenticated_client, db_session, test_organization, test_organization_2, test_user
     ):
-        _listing(db_session, test_organization, pid="rev_fork_only")
+        _listing(db_session, test_organization_2, pid="rev_fork_only")
         _fork(
             db_session,
             test_organization,
@@ -98,9 +106,9 @@ class TestCreateReviewGate:
         assert res.status_code == 403, res.text
 
     def test_review_after_using_model_200(
-        self, authenticated_client, db_session, test_organization, test_user
+        self, authenticated_client, db_session, test_organization, test_organization_2, test_user
     ):
-        _listing(db_session, test_organization, pid="rev_used")
+        _listing(db_session, test_organization_2, pid="rev_used")
         _fork(
             db_session,
             test_organization,
@@ -123,9 +131,9 @@ class TestCreateReviewGate:
         assert listing.avg_rating == 5.0
 
     def test_double_review_400(
-        self, authenticated_client, db_session, test_organization, test_user
+        self, authenticated_client, db_session, test_organization, test_organization_2, test_user
     ):
-        _listing(db_session, test_organization, pid="rev_dup")
+        _listing(db_session, test_organization_2, pid="rev_dup")
         _fork(
             db_session,
             test_organization,
@@ -152,6 +160,78 @@ class TestCreateReviewGate:
         assert "already reviewed" in res.json()["detail"].lower()
 
 
+class TestAnAuthorCannotRateTheirOwnModel:
+    """Found by driving the marketplace (QA sweep, 2026-08-20).
+
+    Both gates on a review — a fork of the listing, and a completed run of that
+    fork — are things an author can do to their own model in about a minute. So
+    the author adopted their own listing, solved the copy, wrote five stars, and
+    the marketplace showed that as the model's average rating.
+    """
+
+    def _used_by(self, db, org, user, *, pid, fork_id, exe_id):
+        _fork(db, org, user, listing_id=pid, fork_id=fork_id)
+        _completed_execution(db, org, user, fork_id=fork_id, exe_id=exe_id)
+
+    def test_the_publishing_organization_is_refused(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        # Published by the reviewer's own organization this time.
+        _listing(db_session, test_organization, pid="rev_own")
+        self._used_by(
+            db_session,
+            test_organization,
+            test_user,
+            pid="rev_own",
+            fork_id="fork_rev_own",
+            exe_id="exe_rev_own",
+        )
+        db_session.commit()
+
+        res = authenticated_client.post("/api/v2/models/catalog/rev_own/reviews", json=_REVIEW)
+        assert res.status_code == 403, res.text
+        # CONTRACT-TEST: the page has to tell this apart from "use it first" and
+        # "run it first", which ask the reader to go and do something.
+        assert res.json()["code"] == "review.own_model"
+
+        assert db_session.get(ModelProjectListing, "rev_own").avg_rating is None
+        assert (
+            db_session.query(ModelReview).filter(ModelReview.model_project_id == "rev_own").count()
+            == 0
+        )
+
+    def test_a_colleague_of_the_author_is_refused_too(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        # The rule is the organization, not the person: a second account inside
+        # the publishing organization is the same hand.
+        _listing(db_session, test_organization, pid="rev_own_colleague")
+        colleague = User(
+            id="usr_review_colleague",
+            email="colleague@review.test",
+            name="Colleague",
+            organization_id=test_organization.id,
+            is_active=True,
+        )
+        db_session.add(colleague)
+        db_session.flush()
+        self._used_by(
+            db_session,
+            test_organization,
+            colleague,
+            pid="rev_own_colleague",
+            fork_id="fork_rev_colleague",
+            exe_id="exe_rev_colleague",
+        )
+        db_session.commit()
+
+        res = authenticated_client.post(
+            "/api/v2/models/catalog/rev_own_colleague/reviews", json=_REVIEW
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["code"] == "review.own_model"
+
+
 class TestTheReviewSurvivesItsNotification:
     """The review is committed before the author is told about it. Ringing the
     bell is best-effort by design — but "best-effort" means the failure has to be
@@ -164,7 +244,13 @@ class TestTheReviewSurvivesItsNotification:
     # The reader saw an error for a review that was already stored, and retrying
     # answered "you have already reviewed this model".
     def test_a_failed_notification_does_not_500_a_review_that_was_saved(
-        self, authenticated_client, db_session, test_organization, test_user, monkeypatch
+        self,
+        authenticated_client,
+        db_session,
+        test_organization,
+        test_organization_2,
+        test_user,
+        monkeypatch,
     ):
         author_org = Organization(id="org_rev_author", name="Author Org", is_active=True)
         db_session.add(author_org)
@@ -178,7 +264,7 @@ class TestTheReviewSurvivesItsNotification:
                 is_active=True,
             )
         )
-        _listing(db_session, test_organization, pid="rev_notify")
+        _listing(db_session, test_organization_2, pid="rev_notify")
         db_session.flush()
         # A different org authors it, or there is nobody to notify.
         db_session.get(ModelProjectListing, "rev_notify").author_organization_id = author_org.id
@@ -218,10 +304,10 @@ class TestTheProfileCountMatchesTheList:
 
     # CONTRACT-TEST: profile review count == the reviews the profile shows.
     def test_withdrawn_model_leaves_the_profile_consistent(
-        self, client, db_session, test_organization, test_user
+        self, client, db_session, test_organization, test_organization_2, test_user
     ):
         for pid in ("prof_visible", "prof_gone"):
-            _listing(db_session, test_organization, pid=pid)
+            _listing(db_session, test_organization_2, pid=pid)
         db_session.flush()
         for pid in ("prof_visible", "prof_gone"):
             db_session.add(

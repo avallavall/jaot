@@ -154,6 +154,8 @@
     "missing": {
       "title": "Este modelo ya no existe",
       "body": "Se ha borrado. Las ejecuciones que salieron de él siguen en tu historial.",
+      "titledenied": "Ya no tienes acceso a este modelo",
+      "bodydenied": "Está en un espacio de trabajo del que ya no eres miembro. Lo que hayas escrito desde entonces no se ha guardado.",
       "backToModels": "Volver a mis modelos",
       "seeRuns": "Ver las ejecuciones"
     },
@@ -2702,6 +2704,7 @@
       "reviews": "Reseñas",
       "reviewCount": "({count})",
       "writeReview": "Escribir una reseña",
+      "cannotReviewOwnModel": "Publicaste este modelo, así que no puedes reseñarlo.",
       "writeYourReview": "Escribe tu reseña",
       "reviewRating": "Valoración",
       "reviewTitleLabel": "Título (opcional)",
@@ -4668,6 +4671,9 @@
       },
       "listing": {
         "image_storage_off": "Esta instalación todavía no puede guardar imágenes, así que los logotipos y las capturas no están disponibles. Todo lo demás de tu ficha funciona. Pídele a quien la administra que configure el almacenamiento de imágenes."
+      },
+      "review": {
+        "own_model": "No puedes reseñar un modelo que ha publicado tu propia organización."
       }
     }
   },
