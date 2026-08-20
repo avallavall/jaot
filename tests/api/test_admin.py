@@ -823,3 +823,56 @@ class TestAdminRequiresAuth:
             "/api/v2/admin/organizations", json={"name": "Hacked Org"}
         )
         assert response.status_code == 403
+
+
+class TestOrganizationEditsAreChecked:
+    """Found by driving the panel (QA sweep, 2026-08-20).
+
+    The organisation form took an empty name, a 500-character one and a negative
+    ceiling; and an administrator could switch off the organisation they are in.
+    """
+
+    def test_an_empty_name_is_refused(self, admin_client):
+        res = admin_client.post("/api/v2/admin/organizations", json={"name": ""})
+        assert res.status_code == 422, res.text
+
+    def test_a_name_longer_than_the_column_is_refused(self, admin_client):
+        res = admin_client.post("/api/v2/admin/organizations", json={"name": "x" * 500})
+        assert res.status_code == 422, res.text
+
+    def test_a_negative_plugin_ceiling_is_refused(self, admin_client):
+        res = admin_client.post(
+            "/api/v2/admin/organizations",
+            json={"name": "Negative Org", "max_private_plugins": -5},
+        )
+        assert res.status_code == 422, res.text
+
+    def test_an_admin_cannot_deactivate_its_own_organization(
+        self, admin_client, db_session, test_organization
+    ):
+        res = admin_client.patch(
+            f"/api/v2/admin/organizations/{test_organization.id}", json={"is_active": False}
+        )
+        assert res.status_code == 409, res.text
+        # CONTRACT-TEST: switching this column off now really cuts the people out,
+        # so the administrator pressing the button would lock themselves out of
+        # the panel they pressed it from.
+        assert res.json()["code"] == "admin.cannot_disable_own_org"
+        db_session.refresh(test_organization)
+        assert test_organization.is_active is True
+
+    def test_an_admin_cannot_delete_its_own_organization(
+        self, admin_client, db_session, test_organization
+    ):
+        res = admin_client.delete(f"/api/v2/admin/organizations/{test_organization.id}")
+        assert res.status_code == 409, res.text
+        db_session.refresh(test_organization)
+        assert test_organization.is_active is True
+
+    def test_another_organization_can_still_be_switched_off(
+        self, admin_client, db_session, test_organization_2
+    ):
+        res = admin_client.delete(f"/api/v2/admin/organizations/{test_organization_2.id}")
+        assert res.status_code == 204, res.text
+        db_session.refresh(test_organization_2)
+        assert test_organization_2.is_active is False

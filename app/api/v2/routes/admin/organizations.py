@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func
 
-from app.api.deps import DBSession
+from app.api.deps import AdminUser, DBSession
 from app.models import (
     APIKey,
     ModelExecution,
@@ -27,6 +27,7 @@ from app.schemas.admin import (
     UserResponse,
 )
 from app.services.platform_settings_service import PlatformSettingsService as PSS
+from app.shared.core.http_errors import CodedHTTPException
 from app.shared.utils.id_generator import generate_id
 from app.shared.utils.pagination import paginate_query
 
@@ -273,9 +274,28 @@ def create_organization(data: OrganizationCreate, db: DBSession) -> Organization
     return OrganizationResponse.model_validate(org)
 
 
+def _refuse_switching_off_your_own_organization(actor, org) -> None:
+    """An administrator cannot deactivate or delete the organization they are in.
+
+    Both switches are one column, and turning it off now really does cut the
+    organization's people out — including the administrator pressing the button,
+    who would be locked out of the panel they pressed it from.
+    """
+    if actor.organization_id != org.id:
+        return
+    raise CodedHTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=(
+            "You cannot deactivate or delete the organization you belong to. "
+            "Ask an administrator of another organization to do it."
+        ),
+        code="admin.cannot_disable_own_org",
+    )
+
+
 @router.patch("/organizations/{org_id}", response_model=OrganizationResponse)
 def update_organization(
-    org_id: str, data: OrganizationUpdate, db: DBSession
+    org_id: str, data: OrganizationUpdate, db: DBSession, actor: AdminUser
 ) -> OrganizationResponse:
     """Update organization."""
     org = db.query(Organization).filter(Organization.id == org_id).first()
@@ -283,6 +303,8 @@ def update_organization(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    if update_data.get("is_active") is False:
+        _refuse_switching_off_your_own_organization(actor, org)
     for key, value in update_data.items():
         setattr(org, key, value)
 
@@ -292,11 +314,12 @@ def update_organization(
 
 
 @router.delete("/organizations/{org_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_organization(org_id: str, db: DBSession) -> None:
+def delete_organization(org_id: str, db: DBSession, actor: AdminUser) -> None:
     """Delete organization (soft delete by setting is_active=False)."""
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
+    _refuse_switching_off_your_own_organization(actor, org)
     org.is_active = False
     db.commit()

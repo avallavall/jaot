@@ -42,6 +42,13 @@ def principal_from_jwt(db: Any, token: str | None) -> tuple[User, Organization] 
     org = db.query(Organization).filter(Organization.id == payload.get("org")).first()
     if not org:
         return None
+    # "Live" is what the docstring above always promised, and only the API-key
+    # path checked it. A browser session outlived both switches: an admin who
+    # deactivated an organization, or deleted a user (which is a soft delete),
+    # cut off that account's API keys and nothing else — the person kept
+    # reading, kept creating models and could sign in again.
+    if not user.is_active or not org.is_active:
+        return None
     return user, org
 
 

@@ -4667,7 +4667,8 @@
       "admin": {
         "email_taken": "Another account already uses that email address.",
         "cannot_demote_self": "You cannot remove your own administrator access. Ask another administrator to do it.",
-        "cannot_deactivate_self": "You cannot deactivate the account you are signed in with. Ask another administrator to do it."
+        "cannot_deactivate_self": "You cannot deactivate the account you are signed in with. Ask another administrator to do it.",
+        "cannot_disable_own_org": "You cannot deactivate or delete the organization you belong to. Ask an administrator of another organization to do it."
       },
       "listing": {
         "image_storage_off": "This instance cannot store images yet, so logos and screenshots are unavailable. Everything else about your listing works. Ask whoever runs it to set up image storage."

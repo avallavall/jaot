@@ -469,3 +469,35 @@ class TestTheSocketDoesNotSitOnAConnection:
         from app.api.v2.ws import _read_progress
 
         assert _read_progress("exe_does_not_exist") is None
+
+
+class TestASessionOnlyLivesWhileTheAccountDoes:
+    """A browser session must die with the account and with the organisation.
+
+    Found by driving the admin panel (QA sweep, 2026-08-20): only the API-key
+    path checked ``is_active``. Deactivating an organisation, or deleting a user
+    — which is a soft delete — cut off that account's API keys and nothing else.
+    The person kept reading, kept creating models, and could sign in again.
+    """
+
+    def test_a_deactivated_organization_stops_authenticating(self, db_session, user_a, org_a):
+        from app.services.auth.credentials import principal_from_jwt
+
+        token = JWTService.create_access_token(user_id=user_a.id, org_id=org_a.id)
+        assert principal_from_jwt(db_session, token) is not None
+
+        org_a.is_active = False
+        db_session.commit()
+
+        assert principal_from_jwt(db_session, token) is None
+
+    def test_a_deactivated_user_stops_authenticating(self, db_session, user_a, org_a):
+        from app.services.auth.credentials import principal_from_jwt
+
+        token = JWTService.create_access_token(user_id=user_a.id, org_id=org_a.id)
+        assert principal_from_jwt(db_session, token) is not None
+
+        user_a.is_active = False
+        db_session.commit()
+
+        assert principal_from_jwt(db_session, token) is None

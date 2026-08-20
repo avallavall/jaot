@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { useDialog } from "@/components/ui/dialog-custom";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -42,6 +42,7 @@ interface AdminOrganization {
 export default function OrganizationsPage() {
   const t = useTranslations("admin.organizations");
   const tc = useTranslations("common");
+  const tError = useTranslations("errors.codes");
   const dialog = useDialog();
   const [organizations, setOrganizations] = useState<AdminOrganization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,8 +83,10 @@ export default function OrganizationsPage() {
       });
       setIsCreateOpen(false);
       loadOrganizations();
-    } catch {
-      toast.error(t("operationFailed"));
+    } catch (err) {
+      // The panel said "operation failed" to every refusal, including the one
+      // that says you cannot switch off your own organisation.
+      toast.error(translateApiError(err, tError, t("operationFailed")));
     }
   };
 
@@ -91,8 +94,8 @@ export default function OrganizationsPage() {
     try {
       await api.admin.updateOrganization(orgId, { is_verified: !currentVerified });
       loadOrganizations();
-    } catch {
-      toast.error(t("operationFailed"));
+    } catch (err) {
+      toast.error(translateApiError(err, tError, t("operationFailed")));
     }
   };
 
@@ -106,8 +109,8 @@ export default function OrganizationsPage() {
       });
       setEditingOrg(null);
       loadOrganizations();
-    } catch {
-      toast.error(t("operationFailed"));
+    } catch (err) {
+      toast.error(translateApiError(err, tError, t("operationFailed")));
     }
   };
 
@@ -120,8 +123,8 @@ export default function OrganizationsPage() {
     try {
       await api.request(`/api/v2/admin/organizations/${orgId}`, { method: "DELETE" });
       loadOrganizations();
-    } catch {
-      toast.error(t("operationFailed"));
+    } catch (err) {
+      toast.error(translateApiError(err, tError, t("operationFailed")));
     }
   };
 

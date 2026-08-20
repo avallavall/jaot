@@ -19,9 +19,11 @@ class OrganizationCreate(BaseModel):
     the four plan tiers.
     """
 
-    name: str
+    # The panel took an empty name, a 500-character one and a negative ceiling,
+    # and wrote all three.
+    name: str = Field(..., min_length=1, max_length=255)
     ai_builder_enabled: bool = False
-    max_private_plugins: int = 5
+    max_private_plugins: int = Field(default=5, ge=0)
 
 
 class OrganizationUpdate(BaseModel):

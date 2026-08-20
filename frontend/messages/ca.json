@@ -4667,7 +4667,8 @@
       "admin": {
         "email_taken": "Un altre compte ja fa servir aquesta adreça de correu.",
         "cannot_demote_self": "No pots treure't el teu propi accés d'administrador. Demana-ho a un altre administrador.",
-        "cannot_deactivate_self": "No pots desactivar el compte amb què has iniciat la sessió. Demana-ho a un altre administrador."
+        "cannot_deactivate_self": "No pots desactivar el compte amb què has iniciat la sessió. Demana-ho a un altre administrador.",
+        "cannot_disable_own_org": "No pots desactivar ni esborrar l'organització a la qual pertanys. Demana-ho a un administrador d'una altra organització."
       },
       "listing": {
         "image_storage_off": "Aquesta instal·lació encara no pot desar imatges, així que els logotips i les captures no estan disponibles. La resta de la teva fitxa funciona. Demana a qui l'administra que configuri l'emmagatzematge d'imatges."
