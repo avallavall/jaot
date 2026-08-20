@@ -2417,7 +2417,7 @@ export interface paths {
         };
         /**
          * List All Executions
-         * @description List all executions for the organization.
+         * @description List all executions for the organization, minus what is behind a wall.
          */
         get: operations["list_all_executions_api_v2_models_executions_all_get"];
         put?: never;
@@ -2869,7 +2869,7 @@ export interface paths {
         };
         /**
          * Get Project Dataset
-         * @description Fetch a dataset with its full values.
+         * @description Fetch a dataset with its full values (workspace members only).
          */
         get: operations["get_project_dataset"];
         /**
@@ -3143,7 +3143,7 @@ export interface paths {
         };
         /**
          * Diff Project Versions
-         * @description Structural diff between two committed versions of a project.
+         * @description Structural diff between two committed versions (workspace members only).
          */
         get: operations["diff_project_versions"];
         put?: never;
@@ -3163,7 +3163,7 @@ export interface paths {
         };
         /**
          * Get Project Version
-         * @description Fetch a full committed version snapshot.
+         * @description Fetch a full committed version snapshot (workspace members only).
          */
         get: operations["get_project_version"];
         put?: never;

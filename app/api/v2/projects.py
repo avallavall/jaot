@@ -37,6 +37,7 @@ from app.api.deps import (
     OptionalRequireViewer,
     check_workspace_role,
     enforce_org_rate_limit,
+    enforce_project_workspace,
 )
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
@@ -120,26 +121,6 @@ class FromMarketplaceRequest(BaseModel):
 _ARCHIVED_DETAIL = "This model is archived. Restore it before making changes."
 
 
-def _enforce_project_workspace(
-    db: DBSession, project, user: User | None, org: Organization, role: WorkspaceRole
-) -> None:
-    """Hold the caller to their role in the workspace the PROJECT is filed in.
-
-    The ``OptionalRequire*`` dependencies read ``workspace_id`` from the query
-    string, and the caller owns the query string. So a viewer refused
-    ``PUT /projects/<id>/draft?workspace_id=<ws>`` with "You need editor role"
-    sent the same call without the parameter and got 200, and archived the model
-    with a bare ``DELETE /projects/<id>``. Every workspace role was decorative
-    for anybody in the organization. The project's own ``workspace_id`` column is
-    what decides, and nobody outside the server can change that.
-
-    A project filed in no workspace is org-level and unaffected.
-    """
-    if user is None or not getattr(project, "workspace_id", None):
-        return
-    check_workspace_role(db, user, org, project.workspace_id, role)
-
-
 def _project_or_404(
     db: DBSession,
     project_id: str,
@@ -150,7 +131,7 @@ def _project_or_404(
     project = svc.get_project_or_404(db, project_id, org.id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-    _enforce_project_workspace(db, project, user, org, role)
+    enforce_project_workspace(db, project, user, org, role)
     return project
 
 
@@ -919,10 +900,16 @@ def get_project_dataset(
     project_id: str,
     dataset_id: str,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireViewer,
 ) -> ModelProjectDataset:
-    """Fetch a dataset with its full values."""
+    """Fetch a dataset with its full values (workspace members only)."""
+    # The project is loaded only to enforce the workspace wall. This route used
+    # to check the organization alone, so somebody in the organization who is
+    # not in the workspace was refused the LIST of datasets and still got the
+    # full data_json of any one of them by its id.
+    _project_or_404(db, project_id, org, user)
     dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
     if dataset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
@@ -1057,9 +1044,19 @@ def list_project_versions(
     operation_id="get_project_version",
 )
 def get_project_version(
-    project_id: str, version_id: str, db: DBSession, org: CurrentOrg, _ws: OptionalRequireViewer
+    project_id: str,
+    version_id: str,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireViewer,
 ) -> ModelProjectVersion:
-    """Fetch a full committed version snapshot."""
+    """Fetch a full committed version snapshot (workspace members only)."""
+    # The project is loaded only to enforce the workspace wall. Checking the
+    # organization alone let anybody in it read a committed snapshot of a model
+    # filed inside a workspace they are not in, while the LIST of versions on
+    # the same project refused them.
+    _project_or_404(db, project_id, org, user)
     version = svc.get_version_or_404(db, project_id, version_id, org.id)
     if version is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
@@ -1072,9 +1069,16 @@ def get_project_version(
     operation_id="diff_project_versions",
 )
 def diff_project_versions(
-    project_id: str, a: str, b: str, db: DBSession, org: CurrentOrg, _ws: OptionalRequireViewer
+    project_id: str,
+    a: str,
+    b: str,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+    _ws: OptionalRequireViewer,
 ) -> VersionDiff:
-    """Structural diff between two committed versions of a project."""
+    """Structural diff between two committed versions (workspace members only)."""
+    _project_or_404(db, project_id, org, user)
     va = svc.get_version_or_404(db, project_id, a, org.id)
     vb = svc.get_version_or_404(db, project_id, b, org.id)
     if va is None or vb is None:

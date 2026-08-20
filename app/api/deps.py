@@ -255,6 +255,85 @@ def check_workspace_role(
     return member
 
 
+def enforce_project_workspace(
+    db: Session,
+    project,
+    user: User | None,
+    org: Organization,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+) -> None:
+    """Hold the caller to their role in the workspace the PROJECT is filed in.
+
+    The ``OptionalRequire*`` dependencies read ``workspace_id`` from the query
+    string, and the caller owns the query string. So a viewer refused
+    ``PUT /projects/<id>/draft?workspace_id=<ws>`` with "You need editor role"
+    sent the same call without the parameter and got 200, and archived the model
+    with a bare ``DELETE /projects/<id>``. Every workspace role was decorative
+    for anybody in the organization. The project's own ``workspace_id`` column is
+    what decides, and nobody outside the server can change that.
+
+    A project filed in no workspace is org-level and unaffected.
+    """
+    if user is None or project is None or not getattr(project, "workspace_id", None):
+        return
+    check_workspace_role(db, user, org, project.workspace_id, role)
+
+
+def enforce_execution_workspace(
+    db: Session,
+    execution,
+    user: User | None,
+    org: Organization,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+) -> None:
+    """A run sits behind the same wall as the model it ran.
+
+    Every execution route filtered by ``organization_id`` and stopped there, so
+    somebody in the organization who is not in the workspace could list a walled
+    model's runs, open one, read its exact analysis and its insights, and export
+    the whole problem — while the model itself answered 403. Anything reached
+    through a run's id has to ask the question the model asks.
+
+    A run with no project behind it (a one-off solve) is org-level and
+    unaffected.
+
+    Lives here rather than in ``app/api/v2/_access.py`` because the export and
+    insights routes are inside the solver domain, and the import contract lets a
+    domain route reach ``app.api.deps`` and nothing else of the API layer.
+    """
+    from app.models.model_project import ModelProject
+
+    project_id = getattr(execution, "model_project_id", None)
+    if user is None or not project_id:
+        return
+    project = (
+        db.query(ModelProject)
+        .filter(ModelProject.id == project_id, ModelProject.organization_id == org.id)
+        .first()
+    )
+    enforce_project_workspace(db, project, user, org, role)
+
+
+def workspace_ids_open_to(db: Session, user: User, org: Organization) -> set[str] | None:
+    """The workspaces this caller may read. ``None`` means every one of them.
+
+    For org-wide lists, which cannot ask the wall one row at a time. The owner of
+    the organization gets ``None`` because the owner bypass in
+    ``check_workspace_role`` already lets them into every workspace.
+    """
+    if getattr(org, "owner_user_id", None) == user.id:
+        return None
+    rows = (
+        db.query(WorkspaceMember.workspace_id)
+        .filter(
+            WorkspaceMember.user_id == user.id,
+            WorkspaceMember.organization_id == org.id,
+        )
+        .all()
+    )
+    return {row.workspace_id for row in rows}
+
+
 def require_workspace_role(minimum_role: WorkspaceRole) -> Callable[..., WorkspaceMember]:
     """Factory that returns a FastAPI dependency enforcing a minimum workspace role.
 

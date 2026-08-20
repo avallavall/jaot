@@ -9,7 +9,12 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, defer
 
-from app.api.deps import DBSession
+from app.api.deps import (
+    CurrentOrg,
+    DBSession,
+    enforce_project_workspace,
+    workspace_ids_open_to,
+)
 from app.api.v2._access import execution_or_404
 from app.api.v2._solver_limits import compute_celery_time_limits, resolve_solver_time_limit
 from app.api.v2.auth import get_current_user
@@ -559,6 +564,7 @@ def list_model_executions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
 ) -> ExecutionListResponse:
     """List execution history for a specific model (ModelProject)."""
     project = (
@@ -572,6 +578,11 @@ def list_model_executions(
 
     if not project:
         raise HTTPException(status_code=404, detail="Model not found")
+
+    # A run is behind the same wall as the model it ran. Without this the runs of
+    # a model filed in a workspace were listed to anybody in the organization,
+    # while the model itself answered 403.
+    enforce_project_workspace(db, project, current_user, org)
 
     # Typed column for new rows; the legacy org-model column still matches
     # historic executions because the P1.5 backfill preserved ids.
@@ -700,11 +711,24 @@ def list_all_executions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
 ) -> ExecutionListResponse:
-    """List all executions for the organization."""
+    """List all executions for the organization, minus what is behind a wall."""
     query = db.query(ModelExecution).filter(
         ModelExecution.organization_id == current_user.organization_id,
     )
+
+    # An org-wide list cannot ask the wall one row at a time, so it drops the
+    # runs of every model filed in a workspace this caller is not in.
+    open_ids = workspace_ids_open_to(db, current_user, org)
+    if open_ids is not None:
+        walled = db.query(ModelProject.id).filter(
+            ModelProject.organization_id == current_user.organization_id,
+            ModelProject.workspace_id.isnot(None),
+        )
+        if open_ids:
+            walled = walled.filter(ModelProject.workspace_id.notin_(open_ids))
+        query = query.filter(~ModelExecution.model_project_id.in_(walled))
 
     if status:
         query = query.filter(ModelExecution.status == status)
@@ -731,9 +755,10 @@ def get_execution(
     execution_id: str,
     db: DBSession,
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
 ) -> ModelExecutionResponse:
     """Get details of a specific execution."""
-    execution = execution_or_404(db, execution_id, current_user.organization_id)
+    execution = execution_or_404(db, execution_id, org, current_user)
     item = ModelExecutionResponse.model_validate(execution)
     # Same name resolution the list does — without it the detail page and the
     # printable report it generates showed "—" for a model the list names.

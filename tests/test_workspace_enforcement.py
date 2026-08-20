@@ -488,3 +488,227 @@ class TestTheRoleFollowsTheProjectNotTheQueryString:
             json={"dsl_source": "var x >= 0;\nmaximize x;\n"},
         )
         assert res.status_code == 200, res.text
+
+
+class TestADatasetIsBehindTheSameWallAsItsProject:
+    """# CONTRACT-TEST: reading one dataset by id obeys the workspace wall.
+
+    Every other dataset route loads the project through ``_project_or_404`` or
+    ``_writable_project_or_404``, which is what enforces the wall. The single-
+    dataset GET only checked the organization, so somebody in the organization
+    who is not in the workspace could read the full ``data_json`` of a scenario
+    filed inside it. The list of datasets refused them; one direct id did not.
+    """
+
+    @staticmethod
+    def _project_with_dataset(db, ws, org):
+        from app.models.model_project import ModelProject, ModelProjectDataset
+
+        project = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org.id,
+            workspace_id=ws.id,
+            name="Filed in a workspace",
+            status="active",
+        )
+        db.add(project)
+        db.flush()
+        dataset = ModelProjectDataset(
+            id=generate_id("mpd_"),
+            model_project_id=project.id,
+            organization_id=org.id,
+            name="Q4 volumes",
+            data_json={"demand": [120, 340, 90]},
+        )
+        db.add(dataset)
+        db.commit()
+        db.refresh(project)
+        db.refresh(dataset)
+        return project, dataset
+
+    def test_a_non_member_cannot_read_a_dataset_by_its_id(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        project, dataset = self._project_with_dataset(db_session, ws, org)
+        mock_auth(outsider)
+
+        listing = client.get(f"/api/v2/projects/{project.id}/datasets")
+        assert listing.status_code == 403, listing.text
+
+        # The same wall, reached by direct id instead of through the list.
+        direct = client.get(f"/api/v2/projects/{project.id}/datasets/{dataset.id}")
+        assert direct.status_code == 403, direct.text
+        assert "demand" not in direct.text
+
+    def test_a_viewer_of_the_workspace_still_reads_it(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """The wall must not shut out the people it is there to serve."""
+        ws, org, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["viewer"],
+        )
+        project, dataset = self._project_with_dataset(db_session, ws, org)
+        mock_auth(viewer)
+
+        res = client.get(f"/api/v2/projects/{project.id}/datasets/{dataset.id}")
+        assert res.status_code == 200, res.text
+        assert res.json()["data_json"] == {"demand": [120, 340, 90]}
+
+
+class TestARunIsBehindTheSameWallAsItsModel:
+    """# CONTRACT-TEST: everything reached through a run's id obeys the workspace wall.
+
+    Found by sweeping the wall route by route (QA, 2026-08-20). Every execution
+    route filtered by ``organization_id`` and stopped there, so somebody in the
+    organization who is not in the workspace could list a walled model's runs,
+    open one, read its exact analysis and its insights, and export the whole
+    problem — while the model itself answered 403 to the same caller. A version
+    read by its id and a version diff had the same hole.
+    """
+
+    @staticmethod
+    def _model_with_a_run(db, ws, org):
+        from app.models.model_project import ModelProject, ModelProjectVersion
+        from app.models.optimization_model import ExecutionStatus, ModelExecution
+
+        problem = {
+            "name": "walled",
+            "variables": [{"name": "x", "type": "integer", "lower_bound": 0, "upper_bound": 4}],
+            "objective": {"sense": "maximize", "expression": "3*x"},
+            "constraints": [],
+        }
+        project = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org.id,
+            workspace_id=ws.id,
+            name="Filed in a workspace",
+            status="active",
+        )
+        db.add(project)
+        db.flush()
+        version = ModelProjectVersion(
+            id=generate_id("mpv_"),
+            model_project_id=project.id,
+            organization_id=org.id,
+            sequence=1,
+            commit_summary="v1",
+            content_hash="hash_walled_run",
+            model_json=problem,
+        )
+        execution = ModelExecution(
+            id=generate_id("exe_"),
+            organization_id=org.id,
+            model_project_id=project.id,
+            input_data=problem,
+            result_data={"model": {"x": 4}, "objective_value": 12.0, "solver_status": "optimal"},
+            status=ExecutionStatus.COMPLETED.value,
+            solver_status="optimal",
+            objective_value=12.0,
+        )
+        db.add_all([version, execution])
+        db.commit()
+        for row in (project, version, execution):
+            db.refresh(row)
+        return project, version, execution
+
+    @staticmethod
+    def _routes(project, version, execution):
+        return [
+            f"/api/v2/projects/{project.id}/versions/{version.id}",
+            f"/api/v2/projects/{project.id}/versions/{version.id}/diff/{version.id}",
+            f"/api/v2/models/{project.id}/executions",
+            f"/api/v2/models/executions/{execution.id}",
+            f"/api/v2/models/executions/{execution.id}/exact-analysis",
+            f"/api/v2/solve/insights/{execution.id}",
+            f"/api/v2/solve/export/{execution.id}/json",
+        ]
+
+    def test_a_non_member_reaches_none_of_them(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        project, version, execution = self._model_with_a_run(db_session, ws, org)
+        mock_auth(outsider)
+
+        reached = [
+            url
+            for url in self._routes(project, version, execution)
+            if client.get(url).status_code not in (403, 404)
+        ]
+        assert reached == [], f"these answered without asking the wall: {reached}"
+
+    def test_a_viewer_of_the_workspace_reaches_all_of_them(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """The wall must not shut out the people it is there to serve."""
+        ws, org, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["viewer"],
+        )
+        project, version, execution = self._model_with_a_run(db_session, ws, org)
+        mock_auth(viewer)
+
+        refused = [
+            (url, res.status_code)
+            for url in self._routes(project, version, execution)
+            if (res := client.get(url)).status_code != 200
+        ]
+        assert refused == [], f"the wall shut a member out of: {refused}"
+
+    def test_the_org_wide_history_hides_a_walled_run(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """An org-wide list cannot ask the wall per row, so it must filter up front."""
+        ws, org, outsider, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+            enforcement_setup["viewer"],
+        )
+        _, _, execution = self._model_with_a_run(db_session, ws, org)
+        url = "/api/v2/models/executions/all?page_size=100"
+
+        mock_auth(outsider)
+        outside = client.get(url)
+        assert outside.status_code == 200, outside.text
+        assert execution.id not in outside.text
+
+        mock_auth(viewer)
+        inside = client.get(url)
+        assert inside.status_code == 200, inside.text
+        assert execution.id in inside.text
+
+    def test_a_run_that_belongs_to_no_model_stays_org_level(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """A one-off solve is filed in no workspace, so no wall applies to it."""
+        from app.models.optimization_model import ExecutionStatus, ModelExecution
+
+        org, outsider = enforcement_setup["org"], enforcement_setup["non_member"]
+        loose = ModelExecution(
+            id=generate_id("exe_"),
+            organization_id=org.id,
+            input_data={"name": "loose", "variables": [], "objective": {}, "constraints": []},
+            result_data={"model": {}, "objective_value": 0.0, "solver_status": "optimal"},
+            status=ExecutionStatus.COMPLETED.value,
+            solver_status="optimal",
+            objective_value=0.0,
+        )
+        db_session.add(loose)
+        db_session.commit()
+        mock_auth(outsider)
+
+        res = client.get(f"/api/v2/models/executions/{loose.id}")
+        assert res.status_code == 200, res.text

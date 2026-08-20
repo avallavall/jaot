@@ -317,8 +317,9 @@ def analyze_infeasibility(
 
     enforce_org_rate_limit(db, org)
 
-    # Load + enforce org ownership (404 hides the existence of other orgs' executions).
-    execution = execution_or_404(db, execution_id, org.id)
+    # Load + enforce org ownership and the workspace wall (404 hides the
+    # existence of other orgs' executions).
+    execution = execution_or_404(db, execution_id, org, getattr(request.state, "user", None))
 
     result_data = execution.result_data or {}
     if result_data.get("solver_status") != SolverStatus.INFEASIBLE.value:

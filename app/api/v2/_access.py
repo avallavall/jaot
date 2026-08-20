@@ -23,21 +23,35 @@ belongs to the bounded-context extraction, not here.)
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.deps import enforce_execution_workspace
 from app.models import ModelBuilderDocument, ModelExecution
+from app.models.organization import Organization
+from app.models.user import User
 from app.shared.core.http_errors import CodedHTTPException
 
 
-def execution_or_404(db: Session, execution_id: str, org_id: str) -> ModelExecution:
-    """Load an execution owned by ``org_id``, or raise 404.
+def execution_or_404(
+    db: Session,
+    execution_id: str,
+    org: Organization,
+    user: User | None,
+) -> ModelExecution:
+    """Load an execution owned by ``org``, behind its model's workspace, or raise.
 
     404 (not 403) on a foreign execution on purpose: telling a caller that an id
     exists but belongs to someone else is itself a leak.
+
+    ``user`` has no default on purpose. The organization filter alone let anybody
+    in the organization open a run of a model filed in a workspace they are not
+    in, and a default would let the next endpoint added inherit that silently —
+    the same way this function exists so the organization filter cannot be
+    forgotten.
     """
     execution = (
         db.query(ModelExecution)
         .filter(
             ModelExecution.id == execution_id,
-            ModelExecution.organization_id == org_id,
+            ModelExecution.organization_id == org.id,
         )
         .first()
     )
@@ -50,6 +64,7 @@ def execution_or_404(db: Session, execution_id: str, org_id: str) -> ModelExecut
             detail="Execution not found",
             code="execution.not_found",
         )
+    enforce_execution_workspace(db, execution, user, org)
     return execution
 
 

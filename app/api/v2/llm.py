@@ -26,7 +26,7 @@ from sse_starlette.sse import EventSourceResponse
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequestLocale
 from app.api.v2._access import execution_or_404
 from app.domains.solver import scenario_job
-from app.models import ModelExecution
+from app.models import ModelExecution, Organization, User
 from app.models.conversation_attachment import ConversationAttachment
 from app.models.llm_conversation import LLMConversation, LLMMessage
 from app.schemas.attachment import AttachmentResponse
@@ -725,7 +725,8 @@ async def send_message(
 
 def _resolve_explanation_context(
     db: Session,
-    org_id: str,
+    org: Organization,
+    user: User,
     body: ExplainSolutionRequest,
 ) -> tuple[
     dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None
@@ -743,7 +744,7 @@ def _resolve_explanation_context(
     saturated constraint as having headroom.
     """
     if body.execution_id:
-        execution = execution_or_404(db, body.execution_id, org_id)
+        execution = execution_or_404(db, body.execution_id, org, user)
         result_data = execution.result_data or {}
         # result_data follows OptimizationResult.to_result_data(): model (the
         # variable->value dict), objective_value, solver_status, variables,
@@ -857,7 +858,7 @@ async def explain_solution_endpoint(
     # Resolve what to explain (execution ownership enforced here) up front, so an
     # invalid execution_id fails cleanly.
     formulation, solution, sensitivity, payload_source = _resolve_explanation_context(
-        db, org.id, body
+        db, org, user, body
     )
     if not solution and not formulation:
         raise HTTPException(
@@ -914,7 +915,8 @@ async def explain_solution_endpoint(
 
 def _resolve_infeasibility_context(
     db: Session,
-    org_id: str,
+    org: Organization,
+    user: User,
     body: ExplainInfeasibilityRequest,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Resolve (formulation, infeasibility) for an explain-infeasibility request.
@@ -927,7 +929,7 @@ def _resolve_infeasibility_context(
     fields when no ``execution_id`` is supplied.
     """
     if body.execution_id:
-        execution = execution_or_404(db, body.execution_id, org_id)
+        execution = execution_or_404(db, body.execution_id, org, user)
         result_data = execution.result_data or {}
         infeasibility = result_data.get("infeasibility_analysis")
         return execution.input_data or None, infeasibility
@@ -995,7 +997,7 @@ async def explain_infeasibility_endpoint(
 
     # Resolve what to explain (execution ownership enforced here) up front, so an
     # invalid execution_id fails cleanly.
-    formulation, infeasibility = _resolve_infeasibility_context(db, org.id, body)
+    formulation, infeasibility = _resolve_infeasibility_context(db, org, user, body)
     if not formulation and not infeasibility:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -1462,7 +1464,7 @@ async def explain_execution_scenarios(
     The cache is keyed by the model that wrote the text, so asking for the other
     tier regenerates (and bills) while asking again for the same one does not.
     """
-    execution = execution_or_404(db, execution_id, org.id)
+    execution = execution_or_404(db, execution_id, org, user)
 
     job = execution.scenario_analysis or {}
     analysis = job.get("result") if job.get("status") == scenario_job.STATUS_COMPLETED else None

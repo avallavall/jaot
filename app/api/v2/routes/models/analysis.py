@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import DBSession
+from app.api.deps import CurrentOrg, DBSession
 from app.api.v2._access import execution_or_404
 from app.api.v2._solver_limits import compute_celery_time_limits
 from app.api.v2.auth import get_current_user
@@ -52,6 +52,7 @@ def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, n
     execution_id: str,
     db: DBSession,
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
 ) -> ExactAnalysis:
     """Exact, solution-based analysis of a completed execution (A3).
 
@@ -61,7 +62,7 @@ def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, n
     it re-parses every constraint — and a sync ``def`` so that re-parse (up to
     thousands of constraints) runs in the threadpool, never on the event loop.
     """
-    execution = execution_or_404(db, execution_id, current_user.organization_id)
+    execution = execution_or_404(db, execution_id, org, current_user)
 
     try:
         payload = load_execution_payload(execution.input_data, execution.result_data)
@@ -82,6 +83,7 @@ def start_execution_scenario_analysis(
     execution_id: str,
     db: DBSession,
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
 ) -> ScenarioAnalysisJob:
     """Queue the what-if batch for a completed execution (Sensitivity L2).
 
@@ -92,7 +94,7 @@ def start_execution_scenario_analysis(
     """
     # Validate what the batch would work on BEFORE claiming anything, so an
     # unanalysable execution is refused without leaving a "running" mark behind.
-    execution = execution_or_404(db, execution_id, current_user.organization_id)
+    execution = execution_or_404(db, execution_id, org, current_user)
 
     try:
         payload = load_execution_payload(execution.input_data, execution.result_data)
@@ -150,9 +152,10 @@ def get_execution_scenario_analysis(
     execution_id: str,
     db: DBSession,
     current_user: User = Depends(get_current_user),
+    org: CurrentOrg = None,
 ) -> ScenarioAnalysisJob:
     """Read the cached what-if batch of an execution (Sensitivity L2)."""
-    execution = execution_or_404(db, execution_id, current_user.organization_id)
+    execution = execution_or_404(db, execution_id, org, current_user)
 
     return _scenario_job_response(execution.scenario_analysis or {})
 

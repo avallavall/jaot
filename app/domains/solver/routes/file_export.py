@@ -77,7 +77,7 @@ def export_execution(  # sync ON PURPOSE -> threadpool (ADR-009): rebuilds the m
     """
     fmt = _validate_fmt(fmt, ALL_EXPORT_FORMATS)
 
-    execution = load_execution(db, execution_id, org.id)
+    execution = load_execution(db, execution_id, org, current_user)
     problem = parse_problem(execution)
     exporter = get_file_export_service()
 
