@@ -2224,6 +2224,8 @@
       "title": "Configuració",
       "subtitle": "Configuració de la plataforma i paràmetres del sistema",
       "systemInfo": "Informació del Sistema",
+      "solvers": "Solvers",
+      "solverUnavailable": "Instal·lat, ara mateix no respon",
       "healthy": "Saludable",
       "degraded": "Degradat",
       "platformVersion": "Versió de la Plataforma",

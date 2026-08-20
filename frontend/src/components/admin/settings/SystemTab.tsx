@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { AdminStats } from "@/lib/types";
+import type { AdminStats, SolverInfo } from "@/lib/types";
 import { useTranslations } from "next-intl";
 
 export interface HealthData {
@@ -24,6 +24,8 @@ interface SystemTabProps {
   health: HealthData | null;
   stats: AdminStats | null;
   loading: boolean;
+  /** Every solver this server registers. Null while it is still being read. */
+  solvers: SolverInfo[] | null;
 }
 
 function ResourceMeter({
@@ -63,7 +65,7 @@ function ResourceMeter({
   );
 }
 
-export function SystemTab({ health, stats, loading }: SystemTabProps) {
+export function SystemTab({ health, stats, loading, solvers }: SystemTabProps) {
   const t = useTranslations("admin.settings");
 
   const formatUptime = (seconds: number) => {
@@ -100,11 +102,34 @@ export function SystemTab({ health, stats, loading }: SystemTabProps) {
             )}
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{t("solver")}</p>
+            <p className="text-sm text-muted-foreground">{t("solvers")}</p>
             {loading ? (
               <Skeleton className="h-5 w-32 mt-1" />
+            ) : solvers && solvers.length > 0 ? (
+              // Every solver the server registers, and whether it can take work
+              // right now. A greyed name is installed but not answering — that
+              // is what Hexaly looks like when its worker is down.
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {solvers.map((solver) => (
+                  <Badge
+                    key={solver.name}
+                    variant={solver.available ? "default" : "outline"}
+                    className="text-xs font-medium"
+                    title={
+                      solver.available
+                        ? (solver.description ?? solver.name)
+                        : (solver.reason ?? t("solverUnavailable"))
+                    }
+                  >
+                    {solver.name}
+                    {solver.version ? ` ${solver.version}` : ""}
+                  </Badge>
+                ))}
+              </div>
             ) : (
-              <p className="font-medium">{health?.solver ?? "SCIP"}</p>
+              // The list could not be read. The health string is a plain list of
+              // names, so it still says more than nothing.
+              <p className="font-medium">{health?.solver ?? "\u2014"}</p>
             )}
           </div>
           <div>

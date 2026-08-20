@@ -199,6 +199,27 @@ async def health_check() -> HealthResponse:
     return await asyncio.get_running_loop().run_in_executor(_HEALTH_EXECUTOR, _collect_health)
 
 
+def _registered_solvers() -> str:
+    """The solvers this process has registered, newest answer every call.
+
+    This used to be the literal string "SCIP (universal)", written before the
+    platform took a second solver. The admin panel showed it as the whole truth
+    and named one of four. ``/health`` is public, so this stays a plain list of
+    names: which of them is up right now, and what each can express, is behind
+    ``GET /api/v2/solvers/available``.
+    """
+    # Imported here: importing the registry at module level puts pyscipopt on
+    # the import path of a public health endpoint (see the note above).
+    from app.domains.solver.adapters import registry  # noqa: PLC0415
+
+    try:
+        names = sorted(cap.name for cap in registry.list_available())
+    except Exception:  # pragma: no cover - health must never fail on this
+        logger.warning("Could not read the solver registry for /health", exc_info=True)
+        return "unknown"
+    return ", ".join(names) if names else "none registered"
+
+
 def _collect_health() -> HealthResponse:
     """The blocking half of /health. Runs on the health executor."""
     # interval=None is REQUIRED here, not a preference: interval=0.1 sleeps 100ms
@@ -220,7 +241,7 @@ def _collect_health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         version=APP_VERSION,
-        solver="SCIP (universal)",
+        solver=_registered_solvers(),
         system=SystemMetrics(
             cpu_percent=round(cpu_percent, 2),
             memory_percent=round(memory.percent, 2),

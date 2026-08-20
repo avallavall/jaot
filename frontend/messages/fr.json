@@ -2224,6 +2224,8 @@
       "title": "Paramètres",
       "subtitle": "Configuration de la plateforme et paramètres système",
       "systemInfo": "Informations système",
+      "solvers": "Solveurs",
+      "solverUnavailable": "Installé, ne répond pas pour le moment",
       "healthy": "Opérationnel",
       "degraded": "Dégradé",
       "platformVersion": "Version de la plateforme",

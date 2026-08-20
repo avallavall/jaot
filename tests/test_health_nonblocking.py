@@ -59,3 +59,37 @@ class TestHealthDoesNotBlock:
             resp = client.get("/api/v2/health")
             assert resp.status_code == 200
             assert resp.json()["status"] == "ok"
+
+
+class TestHealthNamesTheSolversItActuallyHas:
+    """# CONTRACT-TEST: /health reports the registry, not a literal string.
+
+    The field was hardcoded to "SCIP (universal)", written before the platform
+    took a second solver. It stayed that way through SCIP, HiGHS, CBC and GLPK,
+    and the admin panel printed it as the whole truth: one solver of four. No
+    test asserted on it, so nothing said it had gone stale.
+    """
+
+    def test_every_registered_solver_is_named(self, client, db_session):
+        from app.domains.solver.adapters import registry
+
+        registered = sorted(cap.name for cap in registry.list_available())
+        assert registered, "no solver registered — the rest of this proves nothing"
+
+        res = client.get("/api/v2/health")
+        assert res.status_code == 200, res.text
+        reported = res.json()["solver"]
+
+        missing = [name for name in registered if name not in reported]
+        assert missing == [], f"/health does not name {missing}: it says {reported!r}"
+
+    def test_the_field_is_not_a_hardcoded_string(self, client, db_session, monkeypatch):
+        """Emptying the registry must change the answer. A literal would not move."""
+        # `registry` is the singleton exported by the adapters package, not the
+        # module of the same name underneath it.
+        from app.domains.solver.adapters import registry
+
+        monkeypatch.setattr(registry, "list_available", lambda: [])
+        res = client.get("/api/v2/health")
+        assert res.status_code == 200, res.text
+        assert res.json()["solver"] == "none registered"

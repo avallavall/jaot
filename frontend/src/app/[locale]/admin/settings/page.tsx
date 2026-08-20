@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import type { RegistryEntry, SettingValue } from "@/lib/api";
-import type { AdminStats } from "@/lib/types";
+import type { AdminStats, SolverInfo } from "@/lib/types";
 import { useTranslations } from "next-intl";
 
 import { SystemTab } from "@/components/admin/settings/SystemTab";
@@ -44,6 +44,7 @@ const NON_SETTING_CATEGORIES = new Set(["secrets"]);
 export default function SettingsPage() {
   const t = useTranslations("admin.settings");
   const [health, setHealth] = useState<HealthData | null>(null);
+  const [solvers, setSolvers] = useState<SolverInfo[] | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,12 +77,18 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [healthData, statsData] = await Promise.all([
+        // The solver list is its own call: /health is public, so which solvers
+        // are installed and whether each is answering lives behind auth.
+        // allSettled, because a solver listing that fails must not blank the
+        // rest of the card.
+        const [healthResult, statsResult, solversResult] = await Promise.allSettled([
           api.request<HealthData>("/api/v2/health"),
           api.admin.getStats(),
+          api.getSolvers(),
         ]);
-        setHealth(healthData);
-        setStats(statsData);
+        if (healthResult.status === "fulfilled") setHealth(healthResult.value);
+        if (statsResult.status === "fulfilled") setStats(statsResult.value);
+        if (solversResult.status === "fulfilled") setSolvers(solversResult.value.solvers);
       } catch (err) {
         console.warn('Failed to load health data:', err);
       } finally {
@@ -232,7 +239,7 @@ export default function SettingsPage() {
           </TabsList>
 
           <TabsContent value="instance" className="space-y-6">
-            <SystemTab health={health} stats={stats} loading={loading} />
+            <SystemTab health={health} stats={stats} loading={loading} solvers={solvers} />
             <SettingsTab
               categories={["system", "app"]}
               categoryLabel={t("tabs.instance")}

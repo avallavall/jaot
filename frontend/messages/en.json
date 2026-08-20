@@ -2224,6 +2224,8 @@
       "title": "Settings",
       "subtitle": "Platform configuration and system settings",
       "systemInfo": "System Information",
+      "solvers": "Solvers",
+      "solverUnavailable": "Installed, not answering right now",
       "healthy": "Healthy",
       "degraded": "Degraded",
       "platformVersion": "Platform Version",

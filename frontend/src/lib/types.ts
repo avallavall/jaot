@@ -1217,6 +1217,8 @@ export interface SolverInfo {
   name: string;
   available: boolean;
   description?: string;
+  /** The solver's own version, e.g. "2.10.12". Absent when it will not say. */
+  version?: string | null;
   /** Present when available=false. */
   reason?: string;
   /** Seconds until re-check. */
