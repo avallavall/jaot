@@ -2837,6 +2837,8 @@
       "imageTooLarge": "La imatge ha de ser menor de 2MB",
       "invalidImageType": "Només s'accepten imatges JPEG, PNG i WebP",
       "uploadingImage": "Pujant imatge...",
+      "logoUploadFailed": "No s'ha pogut pujar el logotip.",
+      "logoRemoveFailed": "No s'ha pogut treure el logotip.",
       "editModelPage": "Editar pàgina del model",
       "editModelPageSubtitle": "Actualitza les imatges i seccions de contingut del teu model",
       "images": "Imatges",
@@ -4636,6 +4638,9 @@
         "email_taken": "Un altre compte ja fa servir aquesta adreça de correu.",
         "cannot_demote_self": "No pots treure't el teu propi accés d'administrador. Demana-ho a un altre administrador.",
         "cannot_deactivate_self": "No pots desactivar el compte amb què has iniciat la sessió. Demana-ho a un altre administrador."
+      },
+      "listing": {
+        "image_storage_off": "Aquesta instal·lació encara no pot desar imatges, així que els logotips i les captures no estan disponibles. La resta de la teva fitxa funciona. Demana a qui l'administra que configuri l'emmagatzematge d'imatges."
       }
     }
   },

@@ -2837,6 +2837,8 @@
       "imageTooLarge": "L'image doit faire moins de 2 Mo",
       "invalidImageType": "Seules les images JPEG, PNG et WebP sont acceptées",
       "uploadingImage": "Téléversement de l'image...",
+      "logoUploadFailed": "Le logo n'a pas pu être envoyé.",
+      "logoRemoveFailed": "Le logo n'a pas pu être retiré.",
       "editModelPage": "Modifier la Page du Modèle",
       "editModelPageSubtitle": "Mets à jour les images et sections de contenu de ton modèle",
       "images": "Images",
@@ -4636,6 +4638,9 @@
         "email_taken": "Un autre compte utilise déjà cette adresse e-mail.",
         "cannot_demote_self": "Vous ne pouvez pas retirer votre propre accès administrateur. Demandez-le à un autre administrateur.",
         "cannot_deactivate_self": "Vous ne pouvez pas désactiver le compte avec lequel vous êtes connecté. Demandez-le à un autre administrateur."
+      },
+      "listing": {
+        "image_storage_off": "Cette instance ne peut pas encore stocker d'images, donc les logos et les captures ne sont pas disponibles. Tout le reste de votre fiche fonctionne. Demandez à la personne qui l'administre de configurer le stockage d'images."
       }
     }
   },

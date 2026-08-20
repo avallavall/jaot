@@ -19,6 +19,7 @@ interface LogoUploadProps {
 
 export function LogoUpload({ modelId, logoUrl, onLogoChange, disabled }: LogoUploadProps) {
   const t = useTranslations("solve.publish");
+  const tError = useTranslations("errors.codes");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,13 +63,21 @@ export function LogoUpload({ modelId, logoUrl, onLogoChange, disabled }: LogoUpl
       });
 
       if (!res.ok) {
-        throw new Error(`Upload failed (${res.status})`);
+        // This route is called with fetch, not the api client, so the refusal has
+        // to be read here. Two of them mean different things to the author: the
+        // instance stores no images at all, or this file is not one.
+        const body = await res.json().catch(() => null);
+        const code = body?.code as string | undefined;
+        throw new Error(
+          code && tError.has(code) ? tError(code) : body?.detail || t("logoUploadFailed"),
+        );
       }
 
       const data = await res.json();
       onLogoChange(data.url);
-    } catch {
-      toast.error(t("uploadingImage"));
+    } catch (err) {
+      // It said "Uploading image..." — the progress label — on every failure.
+      toast.error(err instanceof Error ? err.message : t("logoUploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -80,7 +89,8 @@ export function LogoUpload({ modelId, logoUrl, onLogoChange, disabled }: LogoUpl
       await api.request(`/api/v2/models/catalog/${modelId}/logo`, { method: "DELETE" });
       onLogoChange(null);
     } catch {
-      toast.error(t("sectionsSaveFailed"));
+      // It named the sections, which this button does not touch.
+      toast.error(t("logoRemoveFailed"));
     }
   };
 

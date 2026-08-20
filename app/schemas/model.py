@@ -62,31 +62,44 @@ class ModelCatalogListResponse(BaseModel):
     categories: list[str] = []
 
 
+# Every visitor to a model's page downloads its sections, so an uncapped one is
+# a page nobody can open: a 5 MB overview was accepted and stored. Generous
+# enough for real prose — about twenty-five pages per section — and far above
+# the longest text any listing carries today.
+MAX_SECTION_CHARS = 50_000
+MAX_DESCRIPTION_CHARS = 10_000
+
+
 class PublishModelRequest(BaseModel):
     """Request to publish a model to the marketplace."""
 
     display_name: str = Field(..., min_length=1, max_length=255)
-    description: str = Field(..., min_length=10)
+    description: str = Field(..., min_length=10, max_length=MAX_DESCRIPTION_CHARS)
     short_description: str | None = Field(None, max_length=500)
     category: str = "general"
     tags: list[str] | None = None
     is_public: bool = True
     # Rich description sections
-    section_overview: str | None = None
-    section_features: str | None = None
-    section_how_it_works: str | None = None
-    section_example_io: str | None = None
-    section_changelog: str | None = None
+    section_overview: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+    section_features: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+    section_how_it_works: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+    section_example_io: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+    section_changelog: str | None = Field(None, max_length=MAX_SECTION_CHARS)
 
 
 class UpdateCatalogSectionsRequest(BaseModel):
     """Request to update rich description sections on a published model."""
 
-    section_overview: str | None = None
-    section_features: str | None = None
-    section_how_it_works: str | None = None
-    section_example_io: str | None = None
-    section_changelog: str | None = None
+    section_overview: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+    section_features: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+    section_how_it_works: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+    section_example_io: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+    section_changelog: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+
+    # A wrong field name must be a 422, never a silent no-op. `{"sections": {...}}`
+    # answered 200 with the listing unchanged, so a client with the wrong shape
+    # believed it had saved.
+    model_config = ConfigDict(extra="forbid")
 
 
 class ExecuteModelRequest(BaseModel):

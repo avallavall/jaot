@@ -36,6 +36,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A comparison now names any solver that still searched past the shared limit.** The row's Search time turns amber and a notice under the table says which solver and by how much, so extra time is never read as a fair loss.
 
 ### Security
+- **A logo or a screenshot has to be an image, not just claim to be one.** The check read the type the browser declared, so a text file named `logo.png` passed it and failed deeper in, reaching the author as an internal error. The size is also read from the upload before it is pulled into memory, instead of after.
 - **A workspace of another organisation answers 404 on every one of its pages.** The role check let the owner of any organisation through for any workspace id, because owning your own organisation was the whole test. The member, audit and invite lists answered 200 with an empty body instead of 404, and a new page under that path that filtered by workspace alone would have served another tenant's rows.
 - **An invitation cannot be accepted from another organisation.** It answered "Successfully joined workspace", put the outsider in the owner's member list, and then every page of that workspace answered 404. That is the path of an invited person with no account yet: signing up opens an organisation of their own.
 - **A model can no longer be created inside another organisation's workspace.** The workspace named in the request body was written to the row without any check; only the one in the query string was checked.
@@ -44,6 +45,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A password of one repeated letter is refused.** Signup showed a strength meter that scored twelve identical lowercase letters as "Weak" and then created the account anyway: the only rule anywhere was a length of twelve. Length is not variety, so a password now needs a capital, a digit or a symbol somewhere in it — checked on the server, where it counts, and in the form, so it is said before the round trip. Resetting a password follows the same rule.
 
 ### Fixed
+- **A listing's description sections have a ceiling.** A five-megabyte overview was accepted and stored, and every visitor to that model's page downloaded it.
+- **Saving sections with the wrong field name is refused instead of quietly doing nothing.** It answered success and changed no text.
+- **An instance that cannot store images says what that means for you.** Uploading a logo answered with the four settings an operator has to fill in, which the author of the model can do nothing about. Everything else about a listing works without images.
+- **A logo upload that fails says so.** The message was "Uploading image...", the progress label. Removing a logo that failed said "Failed to save sections", which is a different action.
 - **Archiving a model takes it off the marketplace.** A published model that its author archived stayed searchable, openable and copyable by anyone. Restoring the model does not publish it again: that stays the author's decision, one click, with the listing's history intact.
 - **The Webhook column of a trigger's run history holds a value.** Every attempt and the final outcome are recorded now; nothing wrote them before, so the column always read "—", the admin panel's delivery rate was computed from nothing, and a result that never arrived was invisible. The person who owns the trigger is told when delivery finally fails.
 - **Two clicks on the same invitation link no longer give an error.** The second one answered 500 with "Authentication service error"; it now says you are already a member.

@@ -2837,6 +2837,8 @@
       "imageTooLarge": "La imagen debe ser menor de 2MB",
       "invalidImageType": "Solo se aceptan imágenes JPEG, PNG y WebP",
       "uploadingImage": "Subiendo imagen...",
+      "logoUploadFailed": "No se ha podido subir el logotipo.",
+      "logoRemoveFailed": "No se ha podido quitar el logotipo.",
       "editModelPage": "Editar página del modelo",
       "editModelPageSubtitle": "Actualiza las imágenes y secciones de contenido de tu modelo",
       "images": "Imagenes",
@@ -4636,6 +4638,9 @@
         "email_taken": "Otra cuenta ya usa esa dirección de correo.",
         "cannot_demote_self": "No puedes quitarte tu propio acceso de administrador. Pídeselo a otro administrador.",
         "cannot_deactivate_self": "No puedes desactivar la cuenta con la que has iniciado sesión. Pídeselo a otro administrador."
+      },
+      "listing": {
+        "image_storage_off": "Esta instalación todavía no puede guardar imágenes, así que los logotipos y las capturas no están disponibles. Todo lo demás de tu ficha funciona. Pídele a quien la administra que configure el almacenamiento de imágenes."
       }
     }
   },

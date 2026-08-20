@@ -5,9 +5,11 @@ presentation of a ModelProject). Routes keep their historic ``/catalog/{id}``
 shape — the id IS the project id.
 """
 
+import io
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from PIL import Image as PILImage
 from sqlalchemy.orm import Session
 
 from app.api.deps import DBSession
@@ -22,6 +24,7 @@ from app.schemas.model import (
 )
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.storage_service import get_storage_service
+from app.shared.core.http_errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -54,36 +57,81 @@ def _get_listing_for_owner(
 
 
 def _validate_image(file: UploadFile) -> bytes:
-    """Validate content type and size, return raw bytes.
+    """Validate type, size and the bytes themselves, and return them.
 
     Sync so its callers can be sync ``def`` handlers (ADR-009): they upload to object
     storage through boto3, which is blocking network I/O, and on the event loop that
     stalled every other request for the duration of the upload. Reading the
     already-spooled multipart file directly is safe — Starlette buffers the upload
     before the handler runs.
+
+    Three checks, in the order that costs least:
+
+    * the type the client declared, which is the cheapest thing to refuse;
+    * the size, read from the spooled part BEFORE pulling it into memory — the
+      length used to be measured on bytes already read, so a 200 MB upload was
+      held in RAM only to be refused;
+    * the bytes really being an image. The declared type is whatever the client
+      wrote in the multipart header. A text file called ``logo.png`` passed the
+      first check, and Pillow raised on it inside the storage service, which
+      reached the author as a 500.
     """
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported image type '{file.content_type}'. Allowed: JPEG, PNG, WebP.",
         )
+
+    declared = file.size
+    if declared is not None and declared > MAX_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image too large ({declared} bytes). Maximum: {MAX_SIZE} bytes (2 MB).",
+        )
+
     content = file.file.read()
     if len(content) > MAX_SIZE:
         raise HTTPException(
             status_code=400,
             detail=f"Image too large ({len(content)} bytes). Maximum: {MAX_SIZE} bytes (2 MB).",
         )
+
+    try:
+        with PILImage.open(io.BytesIO(content)) as probe:
+            probe.verify()
+    except Exception as exc:  # noqa: BLE001 — Pillow raises many types for bad input
+        logger.info("Rejected an upload that is not a readable image: %s", exc)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This file is not a readable image, whatever its name says it is. "
+                "Send a JPEG, a PNG or a WebP."
+            ),
+        ) from exc
+
     return content
 
 
 def _get_storage():  # noqa: ANN202
-    """Get storage service, raise 503 if not configured."""
+    """Get storage service, raise 503 if not configured.
+
+    The service's own message is written for whoever runs the instance: it names
+    the four settings to fill in. It used to be handed to the author uploading a
+    logo, who can do nothing with it. It goes to the log; the author is told what
+    it means for them.
+    """
     try:
         return get_storage_service()
     except RuntimeError as exc:
-        raise HTTPException(
+        logger.warning("Image upload refused: %s", exc)
+        raise CodedHTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
+            detail=(
+                "This instance cannot store images yet, so logos and screenshots "
+                "are unavailable. Everything else about your listing works. Ask "
+                "whoever runs it to set up image storage."
+            ),
+            code="listing.image_storage_off",
         ) from exc
 
 

@@ -2837,6 +2837,8 @@
       "imageTooLarge": "Bild muss kleiner als 2 MB sein",
       "invalidImageType": "Nur JPEG-, PNG- und WebP-Bilder werden akzeptiert",
       "uploadingImage": "Bild wird hochgeladen...",
+      "logoUploadFailed": "Das Logo konnte nicht hochgeladen werden.",
+      "logoRemoveFailed": "Das Logo konnte nicht entfernt werden.",
       "editModelPage": "Modellseite bearbeiten",
       "editModelPageSubtitle": "Aktualisiere Bilder und Inhaltsabschnitte deines Modells",
       "images": "Bilder",
@@ -4636,6 +4638,9 @@
         "email_taken": "Ein anderes Konto benutzt diese E-Mail-Adresse bereits.",
         "cannot_demote_self": "Du kannst dir deinen eigenen Administratorzugang nicht entziehen. Bitte einen anderen Administrator darum.",
         "cannot_deactivate_self": "Du kannst das Konto, mit dem du angemeldet bist, nicht deaktivieren. Bitte einen anderen Administrator darum."
+      },
+      "listing": {
+        "image_storage_off": "Diese Instanz kann noch keine Bilder speichern, deshalb sind Logos und Screenshots nicht verfügbar. Alles andere an deinem Eintrag funktioniert. Bitte die Person, die sie betreibt, den Bildspeicher einzurichten."
       }
     }
   },
