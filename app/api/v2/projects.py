@@ -120,14 +120,47 @@ class FromMarketplaceRequest(BaseModel):
 _ARCHIVED_DETAIL = "This model is archived. Restore it before making changes."
 
 
-def _project_or_404(db: DBSession, project_id: str, org_id: str):
-    project = svc.get_project_or_404(db, project_id, org_id)
+def _enforce_project_workspace(
+    db: DBSession, project, user: User | None, org: Organization, role: WorkspaceRole
+) -> None:
+    """Hold the caller to their role in the workspace the PROJECT is filed in.
+
+    The ``OptionalRequire*`` dependencies read ``workspace_id`` from the query
+    string, and the caller owns the query string. So a viewer refused
+    ``PUT /projects/<id>/draft?workspace_id=<ws>`` with "You need editor role"
+    sent the same call without the parameter and got 200, and archived the model
+    with a bare ``DELETE /projects/<id>``. Every workspace role was decorative
+    for anybody in the organization. The project's own ``workspace_id`` column is
+    what decides, and nobody outside the server can change that.
+
+    A project filed in no workspace is org-level and unaffected.
+    """
+    if user is None or not getattr(project, "workspace_id", None):
+        return
+    check_workspace_role(db, user, org, project.workspace_id, role)
+
+
+def _project_or_404(
+    db: DBSession,
+    project_id: str,
+    org: Organization,
+    user: User | None = None,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+):
+    project = svc.get_project_or_404(db, project_id, org.id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    _enforce_project_workspace(db, project, user, org, role)
     return project
 
 
-def _writable_project_or_404(db: DBSession, project_id: str, org_id: str):
+def _writable_project_or_404(
+    db: DBSession,
+    project_id: str,
+    org: Organization,
+    user: User | None = None,
+    role: WorkspaceRole = WorkspaceRole.EDITOR,
+):
     """Load a project that may be changed, or refuse because it is archived.
 
     Archiving is this platform's soft delete, and nothing used to enforce it.
@@ -144,7 +177,7 @@ def _writable_project_or_404(db: DBSession, project_id: str, org_id: str):
     Reads are untouched. An archived project must stay fully readable, or the
     trash view could not show what is in it.
     """
-    project = _project_or_404(db, project_id, org_id)
+    project = _project_or_404(db, project_id, org, user, role)
     if project.status == "archived":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_ARCHIVED_DETAIL)
     return project
@@ -439,7 +472,7 @@ def publish_model_project(
     copying the model into a separate catalog row. Requires a committed version (the
     listing pins HEAD, never the dirty draft).
     """
-    project = _writable_project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org, user)
     try:
         listing = svc.publish_listing(db, project, author_org_id=org.id, req=body)
     except ProjectNotPublishableError as exc:
@@ -517,7 +550,7 @@ def _set_publication(
     published: bool,
 ) -> ModelCatalogResponse:
     """Shared body of un/republish: both differ only in the target status."""
-    project = _writable_project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org, user)
     try:
         listing = svc.set_listing_published(db, project, published=published)
     except svc.ListingNotFoundError as exc:
@@ -592,18 +625,18 @@ def list_model_projects(
 
 @router.get("/{project_id}", response_model=ProjectRead, operation_id="get_model_project")
 def get_model_project(
-    project_id: str, db: DBSession, org: CurrentOrg, _ws: OptionalRequireViewer
+    project_id: str, db: DBSession, user: CurrentUser, org: CurrentOrg, _ws: OptionalRequireViewer
 ) -> ModelProject:
     """Get a single ModelProject (metadata + draft + committed HEAD)."""
-    return _project_or_404(db, project_id, org.id)
+    return _project_or_404(db, project_id, org, user)
 
 
 @router.get("/{project_id}/stats", response_model=ModelStats, operation_id="get_model_stats")
 def get_model_stats(
-    project_id: str, db: DBSession, org: CurrentOrg, _ws: OptionalRequireViewer
+    project_id: str, db: DBSession, user: CurrentUser, org: CurrentOrg, _ws: OptionalRequireViewer
 ) -> ModelStats:
     """Live structural statistics + health score for the project's working draft."""
-    project = _project_or_404(db, project_id, org.id)
+    project = _project_or_404(db, project_id, org, user)
     return compute_cached(project.draft_model_json)
 
 
@@ -618,6 +651,7 @@ def get_model_stats(
 def list_project_executions(
     project_id: str,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireViewer,
     status_filter: str | None = Query(None, alias="status"),
@@ -634,7 +668,7 @@ def list_project_executions(
     ``/solve/async`` path the studio uses for live streaming) — so no solve
     entry point has to change (see the solve-contract-drift safeguard).
     """
-    _project_or_404(db, project_id, org.id)
+    _project_or_404(db, project_id, org, user)
     query = db.query(ModelExecution).filter(
         ModelExecution.organization_id == org.id,
         or_(
@@ -666,7 +700,7 @@ def update_model_project(
     pass. Everything else — a rename, a new description, a re-archive — is
     refused with the same message as every other write.
     """
-    project = _project_or_404(db, project_id, org.id)
+    project = _project_or_404(db, project_id, org, user, WorkspaceRole.EDITOR)
     if project.status == "archived" and body.status != "active":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_ARCHIVED_DETAIL)
     svc.update_meta(db, project, name=body.name, description=body.description, status=body.status)
@@ -693,7 +727,7 @@ def archive_model_project(
     (irreversible) — only allowed once the project is already archived, so a
     permanent delete is always a deliberate two-step action from the trash view.
     """
-    project = _project_or_404(db, project_id, org.id)
+    project = _project_or_404(db, project_id, org, user, WorkspaceRole.EDITOR)
     if permanent:
         if project.status != "archived":
             raise HTTPException(
@@ -740,7 +774,7 @@ def update_model_project_draft(
     if_match: str | None = Header(default=None, alias="If-Match"),
 ) -> ModelProject:
     """Replace the mutable HEAD draft (optimistic concurrency via ``If-Match``)."""
-    project = _writable_project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org, user)
     expected_lock: int | None = None
     if if_match is not None:
         try:
@@ -774,10 +808,10 @@ def update_model_project_draft(
     operation_id="list_project_datasets",
 )
 def list_project_datasets(
-    project_id: str, db: DBSession, org: CurrentOrg, _ws: OptionalRequireViewer
+    project_id: str, db: DBSession, user: CurrentUser, org: CurrentOrg, _ws: OptionalRequireViewer
 ) -> list[ModelProjectDataset]:
     """List a project's datasets (values omitted — fetch one for its data_json)."""
-    project = _project_or_404(db, project_id, org.id)
+    project = _project_or_404(db, project_id, org, user)
     return svc.list_datasets(db, project)
 
 
@@ -796,7 +830,7 @@ def create_project_dataset(
     _ws: OptionalRequireEditor,
 ) -> ModelProjectDataset:
     """Create a named dataset ("scenario") for the project."""
-    project = _writable_project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org, user)
     try:
         dataset = svc.create_dataset(
             db,
@@ -834,6 +868,7 @@ def create_project_dataset(
 def import_project_dataset(  # sync ON PURPOSE -> threadpool (ADR-009): parses the file
     project_id: str,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireEditor,
     file: UploadFile = File(...),
@@ -848,7 +883,7 @@ def import_project_dataset(  # sync ON PURPOSE -> threadpool (ADR-009): parses t
     """
     from app.services import dataset_import_service  # noqa: PLC0415
 
-    _project_or_404(db, project_id, org.id)
+    _project_or_404(db, project_id, org, user, WorkspaceRole.EDITOR)
     # Read the already-spooled upload directly: Starlette buffers it before the
     # handler runs, and parsing up to 16 MB of dataset is CPU-bound work that has no
     # business on the event loop (ADR-009).
@@ -909,7 +944,7 @@ def update_project_dataset(
     _ws: OptionalRequireEditor,
 ) -> ModelProjectDataset:
     """Update a dataset's name/description/values (only the provided fields)."""
-    _writable_project_or_404(db, project_id, org.id)
+    _writable_project_or_404(db, project_id, org, user)
     dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
     if dataset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
@@ -955,7 +990,7 @@ def delete_project_dataset(
     _ws: OptionalRequireEditor,
 ) -> None:
     """Delete a dataset (working data — no archive tier)."""
-    _writable_project_or_404(db, project_id, org.id)
+    _writable_project_or_404(db, project_id, org, user)
     dataset = svc.get_dataset_or_404(db, dataset_id, org.id, project_id=project_id)
     if dataset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
@@ -990,7 +1025,7 @@ def commit_model_version(
     _ws: OptionalRequireEditor,
 ) -> ModelProjectVersion:
     """Commit the current draft as an immutable, message-bearing version."""
-    project = _writable_project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org, user)
     version = svc.commit_version(db, project, user_id=user.id, summary=body.summary, body=body.body)
     db.commit()
     db.refresh(version)
@@ -1005,13 +1040,14 @@ def commit_model_version(
 def list_project_versions(
     project_id: str,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireViewer,
     skip: int = 0,
     limit: int = 50,
 ) -> list[ModelProjectVersion]:
     """List a project's committed versions (newest first)."""
-    _project_or_404(db, project_id, org.id)
+    _project_or_404(db, project_id, org, user)
     return svc.list_versions(db, project_id, org.id, skip=skip, limit=limit)
 
 
@@ -1061,7 +1097,7 @@ def restore_project_version(
     discard_draft: bool = Query(False),
 ) -> ModelProject:
     """Check a committed version out into the draft (history untouched)."""
-    project = _writable_project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org, user)
     version = svc.get_version_or_404(db, project_id, version_id, org.id)
     if version is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
@@ -1120,8 +1156,9 @@ def solve_model_project(  # def: blocks on the queued result in the threadpool (
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
+    user = getattr(request.state, "user", None)
 
-    project = _writable_project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org, user, WorkspaceRole.SOLVER)
 
     mpv_id: str | None = None
     if version_id:
@@ -1225,8 +1262,9 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
+    user = getattr(request.state, "user", None)
 
-    project = _writable_project_or_404(db, project_id, org.id)
+    project = _writable_project_or_404(db, project_id, org, user, WorkspaceRole.SOLVER)
     source = project.draft_dsl_source
     if not source or not source.strip():
         raise HTTPException(

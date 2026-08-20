@@ -341,3 +341,150 @@ class TestOrgOwnerBypass:
             json={"name": "Owner Updated"},
         )
         assert resp.status_code == 200, f"Owner got {resp.status_code}: {resp.text}"
+
+
+class TestTheRoleFollowsTheProjectNotTheQueryString:
+    """The workspace a project is FILED IN decides, not the one the caller names.
+
+    Found by driving the app (QA sweep, 2026-08-20). The ``OptionalRequire*``
+    dependencies read ``workspace_id`` from the query string, and the caller owns
+    the query string, so every workspace role was decorative for anybody in the
+    organization:
+
+        viewer -> PUT /projects/<id>/draft?workspace_id=<ws>  403 "need editor"
+        viewer -> PUT /projects/<id>/draft                    200, draft written
+        viewer -> DELETE /projects/<id>                       204, model archived
+    """
+
+    @staticmethod
+    def _project_in(db, ws, org):
+        from app.models.model_project import ModelProject
+
+        project = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org.id,
+            workspace_id=ws.id,
+            name="Filed in a workspace",
+            status="active",
+        )
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+        return project
+
+    def test_a_viewer_cannot_write_the_draft_by_dropping_the_parameter(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["viewer"],
+        )
+        project = self._project_in(db_session, ws, org)
+        mock_auth(viewer)
+
+        with_param = client.put(
+            f"/api/v2/projects/{project.id}/draft?workspace_id={ws.id}",
+            json={"dsl_source": "var x >= 0;\nmaximize x;\n"},
+        )
+        assert with_param.status_code == 403, with_param.text
+
+        # The same call, one query parameter shorter.
+        without = client.put(
+            f"/api/v2/projects/{project.id}/draft",
+            json={"dsl_source": "var x >= 0;\nmaximize x;\n"},
+        )
+        assert without.status_code == 403, without.text
+
+        db_session.refresh(project)
+        assert project.draft_dsl_source is None
+
+    def test_a_viewer_cannot_archive_the_model_by_dropping_the_parameter(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["viewer"],
+        )
+        project = self._project_in(db_session, ws, org)
+        mock_auth(viewer)
+
+        res = client.delete(f"/api/v2/projects/{project.id}")
+        assert res.status_code == 403, res.text
+        db_session.refresh(project)
+        assert project.status == "active"
+
+    def test_a_viewer_may_still_read_it(self, client, db_session, mock_auth, enforcement_setup):
+        ws, org, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["viewer"],
+        )
+        project = self._project_in(db_session, ws, org)
+        mock_auth(viewer)
+
+        assert client.get(f"/api/v2/projects/{project.id}").status_code == 200
+
+    def test_an_editor_writes_it_without_naming_the_workspace(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, editor = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["editor"],
+        )
+        project = self._project_in(db_session, ws, org)
+        mock_auth(editor)
+
+        res = client.put(
+            f"/api/v2/projects/{project.id}/draft",
+            json={"dsl_source": "var x >= 0;\nmaximize x;\n"},
+        )
+        assert res.status_code == 200, res.text
+
+    def test_somebody_who_is_in_no_workspace_at_all_is_refused(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        project = self._project_in(db_session, ws, org)
+        mock_auth(outsider)
+
+        # Same organization, not in the workspace: the model is filed somewhere
+        # they were never let into.
+        assert client.get(f"/api/v2/projects/{project.id}").status_code == 403
+        assert (
+            client.put(
+                f"/api/v2/projects/{project.id}/draft",
+                json={"dsl_source": "var x >= 0;\nmaximize x;\n"},
+            ).status_code
+            == 403
+        )
+
+    def test_a_project_in_no_workspace_is_untouched(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        from app.models.model_project import ModelProject
+
+        org, viewer = enforcement_setup["org"], enforcement_setup["viewer"]
+        loose = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org.id,
+            workspace_id=None,
+            name="Org-level model",
+            status="active",
+        )
+        db_session.add(loose)
+        db_session.commit()
+        mock_auth(viewer)
+
+        # Org-level access, the way it worked before workspaces existed.
+        res = client.put(
+            f"/api/v2/projects/{loose.id}/draft",
+            json={"dsl_source": "var x >= 0;\nmaximize x;\n"},
+        )
+        assert res.status_code == 200, res.text
