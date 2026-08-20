@@ -56,6 +56,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The frontend runs on Node 24.** It was on Node 20, which reached end of life on 2026-04-30 — so the image serving the site went four months without security patches, purely because nobody revisited the line since the first public commit. Nothing required Node 20: Next 16 asks for 20.9 or newer.
 
 ### Fixed
+- **An author's rating is the average of their reviews, not the average of their models' averages.** A model with one review counted as much as one with fifty, so a single five-star review on a new model pulled the whole author's headline up. The count printed under it ("from N reviews") also included reviews moderation had hidden, which the average left out — the sentence named a denominator that produced no part of the figure above it.
 - **The JSON editor points at the mistake on every browser, not just the newest Chrome.** When a scenario's JSON does not parse, the toast says which line and column to look at. That reading only understood the wording V8 uses from Node 24 onwards, so on Firefox, on Safari, and on any Chrome about a year old it fell back to "the JSON is not valid" and said nothing useful.
 
 - **The admin panel names every solver on the server, not one of them.** The System Information card read "SCIP (universal)", a fixed string written before the platform took a second solver. It now lists each solver with its version, and greys out one that is installed but not answering.

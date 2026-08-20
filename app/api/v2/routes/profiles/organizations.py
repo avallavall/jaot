@@ -46,21 +46,28 @@ def get_organization_public_profile(
     total_activations = sum(s.total_activations for s in models)
     total_executions = sum(s.total_executions for s in models)
 
-    # Count reviews for this org's models
+    # Both numbers come off the same rows, in one pass.
+    #
+    # The average used to be the mean of each listing's own ``avg_rating``, so a
+    # listing with one review weighed as much as one with fifty — a different
+    # figure from "the average rating of this author's work" whenever the review
+    # counts differ. And the count beside it did not filter ``is_visible``, so a
+    # review hidden by moderation was still in the denominator the card prints
+    # ("from N reviews") while being absent from the average above it.
     total_reviews = 0
-    if model_ids:
-        total_reviews = (
-            db.query(func.count(ModelReview.id))
-            .filter(ModelReview.model_project_id.in_(model_ids))
-            .scalar()
-            or 0
-        )
-
     avg_rating = None
-    if models:
-        ratings = [s.avg_rating for s in models if s.avg_rating is not None]
-        if ratings:
-            avg_rating = sum(ratings) / len(ratings)
+    if model_ids:
+        count, average = (
+            db.query(func.count(ModelReview.id), func.avg(ModelReview.rating))
+            .filter(
+                ModelReview.model_project_id.in_(model_ids),
+                ModelReview.is_visible == True,  # noqa: E712
+            )
+            .one()
+        )
+        total_reviews = count or 0
+        # ``func.avg`` returns Decimal on PostgreSQL; the schema wants a float.
+        avg_rating = float(average) if average is not None else None
 
     return OrganizationPublicProfile(
         id=org.id,
