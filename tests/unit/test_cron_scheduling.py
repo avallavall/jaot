@@ -533,3 +533,76 @@ class TestDisabledSkip:
             result = cron_fire_task(trigger_id=trigger.id)
         assert result["status"] == "skipped"
         assert result["reason"] == "disabled"
+
+
+class TestPausingAScheduleClearsItsNextRun:
+    """# CONTRACT-TEST: next_run_at follows whether the schedule runs at all.
+
+    Found by driving the scheduling tab (QA, 2026-08-20). ``next_run_at`` was
+    recomputed only when the expression or the timezone changed, so:
+
+    - pausing left the old instant in place, and the row went on naming a next
+      run for something that was not going to run
+    - resuming did not recompute it, so a schedule paused on Monday and resumed
+      on Friday advertised Tuesday — a time already past — until the trigger
+      next fired and the task recomputed it
+    """
+
+    def _schedule(self, db, org, user):
+        from app.services.schedule_service import create_schedule
+
+        doc = _make_real_doc(db, org, user)
+        ver = _make_real_version(db, doc)
+        trigger = _make_real_trigger(db, org, user, doc, ver)
+        db.commit()
+        schedule = create_schedule(db, trigger, "0 9 * * *", "UTC")
+        db.commit()
+        return schedule
+
+    def test_pausing_clears_it(self, db_session, test_organization, test_user):
+        from app.services.schedule_service import update_schedule
+
+        schedule = self._schedule(db_session, test_organization, test_user)
+        assert schedule.next_run_at is not None, "a live schedule has a next run"
+
+        update_schedule(db_session, schedule, is_enabled=False)
+        db_session.commit()
+        db_session.refresh(schedule)
+
+        assert schedule.is_enabled is False
+        assert schedule.next_run_at is None
+
+    def test_resuming_recomputes_it_from_now(self, db_session, test_organization, test_user):
+        from app.services.schedule_service import update_schedule
+        from app.shared.utils.datetime_helpers import utcnow
+
+        schedule = self._schedule(db_session, test_organization, test_user)
+        update_schedule(db_session, schedule, is_enabled=False)
+        db_session.commit()
+
+        # Whatever the row held while paused — the defect was that it held a
+        # stale instant — resuming must produce one in the future.
+        update_schedule(db_session, schedule, is_enabled=True)
+        db_session.commit()
+        db_session.refresh(schedule)
+
+        assert schedule.is_enabled is True
+        assert schedule.next_run_at is not None
+        assert schedule.next_run_at > utcnow(), (
+            f"resumed schedule points at {schedule.next_run_at}, which is in the past"
+        )
+
+    def test_an_update_that_changes_nothing_leaves_it_alone(
+        self, db_session, test_organization, test_user
+    ):
+        """Sending is_enabled=True on a schedule already enabled is not a change."""
+        from app.services.schedule_service import update_schedule
+
+        schedule = self._schedule(db_session, test_organization, test_user)
+        before = schedule.next_run_at
+
+        update_schedule(db_session, schedule, is_enabled=True)
+        db_session.commit()
+        db_session.refresh(schedule)
+
+        assert schedule.next_run_at == before

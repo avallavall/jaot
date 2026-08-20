@@ -241,6 +241,7 @@ def update_schedule(
         schedule.timezone = timezone_str
         expression_changed = True
 
+    enabled_changed = is_enabled is not None and is_enabled != schedule.is_enabled
     if is_enabled is not None:
         schedule.is_enabled = is_enabled
 
@@ -274,16 +275,26 @@ def update_schedule(
         logger.warning("Failed to sync Beat task for schedule %s: %s", schedule.id, exc)
         db.rollback()
 
-    # Recompute next_run_at if expression/timezone changed
-    if expression_changed:
-        try:
-            tz = ZoneInfo(schedule.timezone)
-            now = datetime.now(tz)
-            it = CronSim(schedule.cron_expression, now)
-            next_run = next(it)
-            schedule.next_run_at = next_run.astimezone(timezone.utc)
-        except (StopIteration, Exception):
+    # Recompute next_run_at when the expression, the timezone, or whether it runs
+    # at all has changed.
+    #
+    # Pausing used to leave the old instant in place, so the row still named a
+    # next run for something that was not going to run. Resuming was worse: the
+    # value was recomputed only by the expression changing or by the trigger
+    # firing, so a schedule paused on Monday and resumed on Friday advertised
+    # Tuesday — a time already past — until the next tick corrected it.
+    if expression_changed or enabled_changed:
+        if not schedule.is_enabled:
             schedule.next_run_at = None
+        else:
+            try:
+                tz = ZoneInfo(schedule.timezone)
+                now = datetime.now(tz)
+                it = CronSim(schedule.cron_expression, now)
+                next_run = next(it)
+                schedule.next_run_at = next_run.astimezone(timezone.utc)
+            except (StopIteration, Exception):
+                schedule.next_run_at = None
 
     return schedule
 
