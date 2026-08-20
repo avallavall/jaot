@@ -4621,11 +4621,17 @@
         "not_found": "Ce lien d’invitation n’est pas valide.",
         "revoked": "Cette invitation a été révoquée.",
         "expired": "Cette invitation a expiré. Demandez-en une nouvelle.",
-        "already_accepted": "Cette invitation a déjà été utilisée."
+        "already_accepted": "Cette invitation a déjà été utilisée.",
+        "other_organization": "Cette invitation concerne l'espace de travail d'une autre organisation. Connectez-vous avec un compte de cette organisation, ou demandez-leur d'inviter le compte que vous utilisez."
       },
       "projects": {
         "publish_needs_commit": "La publication épingle votre dernière version validée : la place de marché ne voit jamais votre brouillon de travail. Validez votre modèle dans l'espace de travail, puis revenez.",
         "publish_needs_own_change": "Ce modèle a été adopté depuis la place de marché et n'a pas changé depuis. Validez une modification qui vous est propre, puis publiez-le comme votre fiche."
+      },
+      "admin": {
+        "email_taken": "Un autre compte utilise déjà cette adresse e-mail.",
+        "cannot_demote_self": "Vous ne pouvez pas retirer votre propre accès administrateur. Demandez-le à un autre administrateur.",
+        "cannot_deactivate_self": "Vous ne pouvez pas désactiver le compte avec lequel vous êtes connecté. Demandez-le à un autre administrateur."
       }
     }
   },

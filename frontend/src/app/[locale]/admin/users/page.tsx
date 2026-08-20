@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { useDialog } from "@/components/ui/dialog-custom";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ interface AdminUser { id: string; name: string; email: string; organization_id: 
 export default function UsersPage() {
   const t = useTranslations("admin.users");
   const tc = useTranslations("common");
+  const tError = useTranslations("errors.codes");
   const dialog = useDialog();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [organizations, setOrganizations] = useState<AdminOrganizationSummary[]>([]);
@@ -96,8 +97,11 @@ export default function UsersPage() {
       });
       setIsCreateOpen(false);
       loadUsers();
-    } catch {
-      toast.error(t("operationFailed"));
+    } catch (err) {
+      // The three mutations swallowed the server's reason. An address already
+      // taken and "you cannot remove your own access" both read "operation
+      // failed", so the administrator learned nothing.
+      toast.error(translateApiError(err, tError, t("operationFailed")));
     }
   };
 
@@ -116,8 +120,8 @@ export default function UsersPage() {
       });
       setEditingUser(null);
       loadUsers();
-    } catch {
-      toast.error(t("operationFailed"));
+    } catch (err) {
+      toast.error(translateApiError(err, tError, t("operationFailed")));
     }
   };
 
@@ -130,8 +134,8 @@ export default function UsersPage() {
     try {
       await api.request(`/api/v2/admin/users/${userId}`, { method: "DELETE" });
       loadUsers();
-    } catch {
-      toast.error(t("operationFailed"));
+    } catch (err) {
+      toast.error(translateApiError(err, tError, t("operationFailed")));
     }
   };
 

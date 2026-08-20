@@ -4621,11 +4621,17 @@
         "not_found": "Dieser Einladungslink ist nicht gültig.",
         "revoked": "Diese Einladung wurde widerrufen.",
         "expired": "Diese Einladung ist abgelaufen. Bitten Sie um eine neue.",
-        "already_accepted": "Diese Einladung wurde bereits verwendet."
+        "already_accepted": "Diese Einladung wurde bereits verwendet.",
+        "other_organization": "Diese Einladung gehört zum Arbeitsbereich einer anderen Organisation. Melde dich mit einem Konto dieser Organisation an, oder bitte sie, das Konto einzuladen, das du benutzt."
       },
       "projects": {
         "publish_needs_commit": "Beim Veröffentlichen wird deine zuletzt committete Version festgeschrieben — den Arbeitsentwurf sieht der Marktplatz nie. Committe dein Modell im Arbeitsbereich und komm zurück.",
         "publish_needs_own_change": "Dieses Modell stammt aus dem Marktplatz und hat sich seitdem nicht geändert. Committe eine eigene Änderung und veröffentliche es dann als deinen Eintrag."
+      },
+      "admin": {
+        "email_taken": "Ein anderes Konto benutzt diese E-Mail-Adresse bereits.",
+        "cannot_demote_self": "Du kannst dir deinen eigenen Administratorzugang nicht entziehen. Bitte einen anderen Administrator darum.",
+        "cannot_deactivate_self": "Du kannst das Konto, mit dem du angemeldet bist, nicht deaktivieren. Bitte einen anderen Administrator darum."
       }
     }
   },

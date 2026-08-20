@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.common import NormalizedEmail
+
 
 class OrganizationCreate(BaseModel):
     """Create organization request.
@@ -56,7 +58,7 @@ class UserCreate(BaseModel):
 
     organization_id: str
     name: str
-    email: str | None = None
+    email: NormalizedEmail | None = None
     is_admin: bool = False
     can_build_plugins: bool = False
 
@@ -64,8 +66,14 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     """Update user request."""
 
+    # ``email`` is the same normalised type signup and login use. It was a plain
+    # ``str``, so the admin panel wrote "not an email", an empty string and a
+    # 3000-character line straight into the column — and an address in capitals,
+    # which the login lookup, done lowercased since the email-case fix, would
+    # never find again. A schema docstring is the public API description, so the
+    # story stays here in a comment.
     name: str | None = None
-    email: str | None = None
+    email: NormalizedEmail | None = None
     is_admin: bool | None = None
     can_build_plugins: bool | None = None
     is_active: bool | None = None

@@ -12,7 +12,7 @@ from starlette.requests import Request
 
 from app.api.v2.auth import get_current_user
 from app.models import Organization, User
-from app.models.workspace import WorkspaceMember, WorkspaceRole
+from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
 from app.shared.db.base import get_db
 
 # Re-exported so route modules take it from here with everything else, per the
@@ -170,6 +170,91 @@ _ROLE_ORDER = [
 ]
 
 
+def _assert_workspace_in_org(db: Session, workspace_id: str, org_id: str) -> None:
+    """Raise 404 unless the workspace belongs to this organization.
+
+    Both role dependencies below let the owner of an organization through
+    without a ``WorkspaceMember`` row. That shortcut only proves the caller owns
+    THEIR organization, so without this check the owner of organization B passed
+    the role gate for a workspace of organization A. Every route under
+    ``/{workspace_id}/`` whose own query filters by ``organization_id`` returned
+    an empty answer instead of a 404 (the members, audit and invite lists), and
+    any route added later that filtered by ``workspace_id`` alone would have
+    served another tenant's rows.
+
+    The 404 ``detail`` matches the one ``get_workspace_or_404`` uses, so the
+    answer for "belongs to another organization" and "does not exist" is the
+    same and cannot be used to find out which ids are real.
+    """
+    exists = (
+        db.query(Workspace.id)
+        .filter(Workspace.id == workspace_id, Workspace.organization_id == org_id)
+        .first()
+    )
+    if not exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found",
+        )
+
+
+def check_workspace_role(
+    db: Session,
+    user: User,
+    org: Organization,
+    workspace_id: str,
+    minimum_role: WorkspaceRole,
+) -> WorkspaceMember:
+    """Resolve the caller's membership of a workspace, or raise.
+
+    Raises 404 when the workspace is not this organization's, 403 when the
+    caller is not a member of it or holds a role below ``minimum_role``.
+
+    Both role dependencies below are thin wrappers over this. Call it directly
+    from a route that reads a ``workspace_id`` the dependencies cannot see —
+    one that arrives in the request body rather than in the path or the query
+    string.
+    """
+    _assert_workspace_in_org(db, workspace_id, org.id)
+
+    # Owner bypass: the owner of the organization has admin-equivalent
+    # permissions in every workspace of it, without a WorkspaceMember row.
+    if getattr(org, "owner_user_id", None) == user.id:
+        return WorkspaceMember(
+            workspace_id=workspace_id,
+            user_id=user.id,
+            organization_id=org.id,
+            role=WorkspaceRole.ADMIN.value,
+        )
+
+    member = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.workspace_id == workspace_id,
+            WorkspaceMember.user_id == user.id,
+            WorkspaceMember.organization_id == org.id,
+        )
+        .first()
+    )
+
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a member of this workspace",
+        )
+
+    member_role_idx = _ROLE_ORDER.index(member.role) if member.role in _ROLE_ORDER else -1
+    min_role_idx = _ROLE_ORDER.index(minimum_role.value)
+
+    if member_role_idx < min_role_idx:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"You need {minimum_role.value} role to perform this action",
+        )
+
+    return member
+
+
 def require_workspace_role(minimum_role: WorkspaceRole) -> Callable[..., WorkspaceMember]:
     """Factory that returns a FastAPI dependency enforcing a minimum workspace role.
 
@@ -183,9 +268,9 @@ def require_workspace_role(minimum_role: WorkspaceRole) -> Callable[..., Workspa
 
     Owner bypass:
         If org.owner_user_id == user.id, a virtual WorkspaceMember with
-        role="admin" is synthesized and returned without a DB lookup.
-        The org owner always has all permissions in every workspace without
-        needing an explicit WorkspaceMember row.
+        role="admin" is synthesized. The org owner always has all permissions in
+        every workspace OF ITS OWN ORGANIZATION without needing an explicit
+        WorkspaceMember row. A workspace of another organization answers 404.
 
     Args:
         minimum_role: Minimum WorkspaceRole required to proceed.
@@ -200,42 +285,7 @@ def require_workspace_role(minimum_role: WorkspaceRole) -> Callable[..., Workspa
         org: Annotated[Organization, Depends(get_current_organization)],
         db: Annotated[Session, Depends(get_db)],
     ) -> WorkspaceMember:
-        # Owner bypass: org owner has admin-equivalent permissions everywhere.
-        # They do not require a WorkspaceMember row.
-        if getattr(org, "owner_user_id", None) == user.id:
-            return WorkspaceMember(
-                workspace_id=workspace_id,
-                user_id=user.id,
-                organization_id=org.id,
-                role=WorkspaceRole.ADMIN.value,
-            )
-
-        member = (
-            db.query(WorkspaceMember)
-            .filter(
-                WorkspaceMember.workspace_id == workspace_id,
-                WorkspaceMember.user_id == user.id,
-                WorkspaceMember.organization_id == org.id,
-            )
-            .first()
-        )
-
-        if not member:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not a member of this workspace",
-            )
-
-        member_role_idx = _ROLE_ORDER.index(member.role) if member.role in _ROLE_ORDER else -1
-        min_role_idx = _ROLE_ORDER.index(minimum_role.value)
-
-        if member_role_idx < min_role_idx:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You need {minimum_role.value} role to perform this action",
-            )
-
-        return member
+        return check_workspace_role(db, user, org, workspace_id, minimum_role)
 
     return _dep
 
@@ -271,7 +321,8 @@ def optional_workspace_role(minimum_role: WorkspaceRole) -> Callable[..., Worksp
 
     Owner bypass:
         If org.owner_user_id == user.id and workspace_id is provided, a virtual
-        WorkspaceMember with role=admin is synthesized (owner bypass).
+        WorkspaceMember with role=admin is synthesized (owner bypass). A
+        workspace of another organization answers 404.
 
     Args:
         minimum_role: Minimum WorkspaceRole required when a workspace_id is provided.
@@ -289,43 +340,7 @@ def optional_workspace_role(minimum_role: WorkspaceRole) -> Callable[..., Worksp
         if workspace_id is None:
             # No workspace context — org-level access, no workspace role check.
             return None
-
-        # Owner bypass — synthesize a virtual admin member.
-        if getattr(org, "owner_user_id", None) == user.id:
-            return WorkspaceMember(
-                workspace_id=workspace_id,
-                user_id=user.id,
-                organization_id=org.id,
-                role=WorkspaceRole.ADMIN.value,
-            )
-
-        # DB membership lookup
-        member = (
-            db.query(WorkspaceMember)
-            .filter(
-                WorkspaceMember.workspace_id == workspace_id,
-                WorkspaceMember.user_id == user.id,
-                WorkspaceMember.organization_id == org.id,
-            )
-            .first()
-        )
-
-        if not member:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not a member of this workspace",
-            )
-
-        member_role_idx = _ROLE_ORDER.index(member.role) if member.role in _ROLE_ORDER else -1
-        min_role_idx = _ROLE_ORDER.index(minimum_role.value)
-
-        if member_role_idx < min_role_idx:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You need {minimum_role.value} role to perform this action",
-            )
-
-        return member
+        return check_workspace_role(db, user, org, workspace_id, minimum_role)
 
     return _dep
 

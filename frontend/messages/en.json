@@ -4621,11 +4621,17 @@
         "not_found": "This invitation link is not valid.",
         "revoked": "This invitation has been revoked.",
         "expired": "This invitation has expired. Ask for a new one.",
-        "already_accepted": "This invitation has already been used."
+        "already_accepted": "This invitation has already been used.",
+        "other_organization": "This invitation is for another organization's workspace. Sign in with an account of that organization, or ask them to invite the account you use."
       },
       "projects": {
         "publish_needs_commit": "Publishing pins your latest committed version — the marketplace never sees your working draft. Commit your model in the workspace, then come back.",
         "publish_needs_own_change": "This model was adopted from the marketplace and has not changed since. Commit a change of your own, then publish it as your listing."
+      },
+      "admin": {
+        "email_taken": "Another account already uses that email address.",
+        "cannot_demote_self": "You cannot remove your own administrator access. Ask another administrator to do it.",
+        "cannot_deactivate_self": "You cannot deactivate the account you are signed in with. Ask another administrator to do it."
       }
     }
   },

@@ -4621,11 +4621,17 @@
         "not_found": "Este enlace de invitación no es válido.",
         "revoked": "Esta invitación se ha revocado.",
         "expired": "Esta invitación ha caducado. Pide una nueva.",
-        "already_accepted": "Esta invitación ya se ha usado."
+        "already_accepted": "Esta invitación ya se ha usado.",
+        "other_organization": "Esta invitación es para el espacio de trabajo de otra organización. Inicia sesión con una cuenta de esa organización, o pídeles que inviten a la cuenta que usas."
       },
       "projects": {
         "publish_needs_commit": "Al publicar se fija tu última versión commiteada: el marketplace nunca ve tu borrador de trabajo. Commitea el modelo en el espacio de trabajo y vuelve.",
         "publish_needs_own_change": "Este modelo lo adoptaste del marketplace y no ha cambiado desde entonces. Commitea un cambio propio y publícalo como tu ficha."
+      },
+      "admin": {
+        "email_taken": "Otra cuenta ya usa esa dirección de correo.",
+        "cannot_demote_self": "No puedes quitarte tu propio acceso de administrador. Pídeselo a otro administrador.",
+        "cannot_deactivate_self": "No puedes desactivar la cuenta con la que has iniciado sesión. Pídeselo a otro administrador."
       }
     }
   },

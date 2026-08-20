@@ -513,6 +513,110 @@ class TestAdminUsers:
         assert deleted.is_active is False
 
 
+class TestAdminUserEditsAreChecked:
+    """What the admin panel is allowed to write into an account.
+
+    Found by driving the panel (QA sweep, 2026-08-20): the email field took
+    anything, an address another account already had gave a 500, and an
+    administrator could clear its own Admin tick and be locked out one request
+    later.
+    """
+
+    def test_an_email_that_is_not_one_is_refused(self, admin_client, db_session, test_user):
+        before = test_user.email
+        response = admin_client.patch(
+            f"/api/v2/admin/users/{test_user.id}", json={"email": "not an email"}
+        )
+        assert response.status_code == 422, response.text
+        db_session.refresh(test_user)
+        assert test_user.email == before
+
+    def test_an_address_in_capitals_is_stored_lowercased(self, admin_client, db_session, test_user):
+        # The login lookup is lowercased since the email-case fix, so an address
+        # stored with capitals is an account nobody can sign in to.
+        response = admin_client.patch(
+            f"/api/v2/admin/users/{test_user.id}", json={"email": "MiXeD.Case@Example.COM"}
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["email"] == "mixed.case@example.com"
+        db_session.refresh(test_user)
+        assert test_user.email == "mixed.case@example.com"
+
+    def test_an_address_another_account_has_answers_409_not_500(
+        self, admin_client, db_session, test_organization, test_user, test_admin_user
+    ):
+        response = admin_client.patch(
+            f"/api/v2/admin/users/{test_user.id}", json={"email": test_admin_user.email}
+        )
+        assert response.status_code == 409, response.text
+        # CONTRACT-TEST: this is the ordinary "that address is taken" answer. It
+        # used to reach the person as a 500 saying "internal error".
+        assert response.json()["code"] == "admin.email_taken"
+
+    def test_creating_a_second_account_on_a_taken_address_answers_409(
+        self, admin_client, test_organization, test_user
+    ):
+        response = admin_client.post(
+            "/api/v2/admin/users",
+            json={
+                "organization_id": test_organization.id,
+                "name": "Duplicate",
+                "email": test_user.email,
+            },
+        )
+        assert response.status_code == 409, response.text
+        assert response.json()["code"] == "admin.email_taken"
+
+    def test_an_admin_cannot_clear_its_own_admin_tick(
+        self, admin_client, db_session, test_admin_user
+    ):
+        response = admin_client.patch(
+            f"/api/v2/admin/users/{test_admin_user.id}", json={"is_admin": False}
+        )
+        assert response.status_code == 409, response.text
+        assert response.json()["code"] == "admin.cannot_demote_self"
+        db_session.refresh(test_admin_user)
+        assert test_admin_user.role == "admin"
+
+    def test_an_admin_cannot_deactivate_itself(self, admin_client, db_session, test_admin_user):
+        response = admin_client.patch(
+            f"/api/v2/admin/users/{test_admin_user.id}", json={"is_active": False}
+        )
+        assert response.status_code == 409, response.text
+        assert response.json()["code"] == "admin.cannot_deactivate_self"
+        db_session.refresh(test_admin_user)
+        assert test_admin_user.is_active is True
+
+    def test_an_admin_cannot_delete_its_own_account(
+        self, admin_client, db_session, test_admin_user
+    ):
+        response = admin_client.delete(f"/api/v2/admin/users/{test_admin_user.id}")
+        assert response.status_code == 409, response.text
+        db_session.refresh(test_admin_user)
+        assert test_admin_user.is_active is True
+
+    def test_an_admin_may_still_demote_somebody_else(
+        self, admin_client, db_session, test_organization
+    ):
+        other = User(
+            id="usr_other_admin",
+            name="Other Admin",
+            email="other-admin@example.com",
+            organization_id=test_organization.id,
+            role="admin",
+            is_active=True,
+        )
+        db_session.add(other)
+        db_session.commit()
+
+        response = admin_client.patch(
+            "/api/v2/admin/users/usr_other_admin", json={"is_admin": False}
+        )
+        assert response.status_code == 200, response.text
+        db_session.refresh(other)
+        assert other.role == "member"
+
+
 class TestAdminAPIKeys:
     """Tests for admin API key endpoints."""
 

@@ -35,6 +35,7 @@ from app.api.deps import (
     OptionalRequireEditor,
     OptionalRequireSolver,
     OptionalRequireViewer,
+    check_workspace_role,
     enforce_org_rate_limit,
 )
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
@@ -56,6 +57,7 @@ from app.models.model_project import (
     ModelProjectVersion,
 )
 from app.models.optimization_model import ModelExecution
+from app.models.workspace import WorkspaceRole
 from app.schemas.model import ModelCatalogResponse, PublishModelRequest
 from app.schemas.model_project import (
     CommitRequest,
@@ -164,7 +166,20 @@ def create_model_project(
     org: CurrentOrg,
     _ws: OptionalRequireSolver,
 ) -> ModelProject:
-    """Create a new blank ModelProject for the current organization."""
+    """Create a new blank ModelProject for the current organization.
+
+    A ``workspace_id`` in the body must be one of this organization's, and the
+    caller needs the solver role in it.
+    """
+    # ``OptionalRequireSolver`` reads workspace_id from the QUERY STRING. This
+    # route also takes one in the body, and nothing checked that one: a caller
+    # could name any workspace on the platform and the row was written with it.
+    # The project stayed in the caller's own organization, so no data of the
+    # other tenant was reachable through it, but the row pointed at another
+    # tenant's workspace and outlived that workspace being deleted.
+    if body.workspace_id is not None:
+        check_workspace_role(db, user, org, body.workspace_id, WorkspaceRole.SOLVER)
+
     project = svc.create_blank(
         db,
         org_id=org.id,

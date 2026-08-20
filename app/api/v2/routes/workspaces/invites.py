@@ -21,6 +21,7 @@ import secrets
 from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequireAdmin
 from app.api.v2.routes.workspaces._common import get_workspace_or_404
@@ -288,6 +289,24 @@ def accept_invite(
                 code="invite.already_accepted",
             )
 
+    # A workspace lives inside one organization and an account belongs to one
+    # organization, so an invite can only be accepted from inside the same one.
+    # Without this the accept answered "Successfully joined workspace", wrote a
+    # membership row that showed the outsider in the owner's member list, and
+    # then every call to that workspace answered 404 — both people misled. It is
+    # the path an invited person takes when they have no account yet: signing up
+    # opens an organization of their own.
+    if user.organization_id != invite.organization_id:
+        raise CodedHTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "This invite belongs to another organization's workspace. "
+                "Ask them to invite the account you are signed in with, or sign "
+                "in with an account of that organization."
+            ),
+            code="invite.other_organization",
+        )
+
     # Link invite: idempotent — check if user is already a member
     existing = (
         db.query(WorkspaceMember)
@@ -332,7 +351,31 @@ def accept_invite(
         metadata={"action": "accepted", "method": invite.method, "role": invite.role},
     )
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two clicks on the same link at the same moment: both passed the
+        # "already a member" read, both inserted, and the second hit
+        # uq_workspace_member. That surfaced as a 500 saying "Authentication
+        # service error". The row the other one wrote is the answer, so read it
+        # back and give the idempotent reply the second click deserved.
+        db.rollback()
+        existing = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == invite.workspace_id,
+                WorkspaceMember.user_id == user.id,
+            )
+            .first()
+        )
+        if existing is None:
+            raise
+        return InviteAcceptResponse(
+            message="You are already a member of this workspace",
+            workspace_id=invite.workspace_id,
+            role=existing.role,
+        )
+
     logger.info(
         "Invite accepted: user=%s workspace=%s role=%s method=%s",
         user.id,

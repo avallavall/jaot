@@ -644,6 +644,115 @@ class TestInviteFlows:
         assert resp2.status_code == 200
         assert "already a member" in resp2.json()["message"].lower()
 
+    def test_accept_from_another_organization_is_refused(
+        self, client, db_session, mock_auth, ws_setup
+    ):
+        """An account of another organization cannot join this workspace.
+
+        Found by driving the app with two browsers (QA sweep, 2026-08-20): the
+        accept answered "Successfully joined workspace", the outsider showed up
+        in the owner's member list, and every call to that workspace then
+        answered 404. It is the path of an invited person with no account yet:
+        signing up opens an organization of their own.
+        """
+        org = ws_setup["org"]
+        ws = ws_setup["ws"]
+        other_org = _make_org(db_session, "org_ws_outsider")
+        outsider = _make_user(db_session, other_org, "usr_outsider", "out@other.test", "Outsider")
+
+        plaintext = secrets.token_urlsafe(32)
+        invite = WorkspaceInvite(
+            id=generate_id("inv_"),
+            workspace_id=ws.id,
+            organization_id=org.id,
+            role="editor",
+            method=InviteMethod.LINK.value,
+            invitee_email=None,
+            token_hash=self._hash(plaintext),
+            created_by=ws_setup["owner"].id,
+            created_at=utcnow(),
+            expires_at=utcnow() + timedelta(days=7),
+            is_revoked=False,
+        )
+        db_session.add(invite)
+        db_session.commit()
+
+        mock_auth(outsider)
+        resp = client.post("/api/v2/workspaces/invites/accept", json={"token": plaintext})
+        assert resp.status_code == 403, resp.text
+        # CONTRACT-TEST: the refusal must be tellable apart from an expired or a
+        # revoked invite without parsing English — the three ask for different
+        # things, and only this one is about which account you are signed in as.
+        assert resp.json()["code"] == "invite.other_organization"
+
+        # ...and no membership row was written, so the owner's member list is unchanged.
+        assert (
+            db_session.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == ws.id,
+                WorkspaceMember.user_id == outsider.id,
+            )
+            .count()
+            == 0
+        )
+
+    def test_two_accepts_of_the_same_link_at_once(self, client, db_session, mock_auth, ws_setup):
+        """The second of two simultaneous accepts gets the idempotent answer, not a 500.
+
+        Both requests passed the "already a member" read before either wrote, so
+        the second insert hit uq_workspace_member. It surfaced to the person as
+        a 500 saying "Authentication service error".
+        """
+        org = ws_setup["org"]
+        ws = ws_setup["ws"]
+        acceptor = _make_user(db_session, org, "usr_double", "double@ws.test", "Double Click")
+
+        plaintext = secrets.token_urlsafe(32)
+        invite = WorkspaceInvite(
+            id=generate_id("inv_"),
+            workspace_id=ws.id,
+            organization_id=org.id,
+            role="solver",
+            method=InviteMethod.LINK.value,
+            invitee_email=None,
+            token_hash=self._hash(plaintext),
+            created_by=ws_setup["owner"].id,
+            created_at=utcnow(),
+            expires_at=utcnow() + timedelta(days=7),
+            is_revoked=False,
+        )
+        db_session.add(invite)
+        db_session.commit()
+
+        # The row the losing request collides with, written as if the winning
+        # one had committed between its read and its insert.
+        db_session.add(
+            WorkspaceMember(
+                id=generate_id("wkm_"),
+                workspace_id=ws.id,
+                user_id=acceptor.id,
+                organization_id=org.id,
+                role="solver",
+                joined_at=utcnow(),
+            )
+        )
+        db_session.commit()
+        db_session.expire_all()
+
+        mock_auth(acceptor)
+        resp = client.post("/api/v2/workspaces/invites/accept", json={"token": plaintext})
+        assert resp.status_code == 200, resp.text
+        assert "already a member" in resp.json()["message"].lower()
+        assert (
+            db_session.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == ws.id,
+                WorkspaceMember.user_id == acceptor.id,
+            )
+            .count()
+            == 1
+        )
+
     def test_list_pending_invites(self, client, db_session, mock_auth, ws_setup):
         """Admin sees exactly one pending invite with the seeded email and role."""
         owner = ws_setup["owner"]

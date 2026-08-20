@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.api.deps import DBSession
+from app.api.deps import AdminUser, DBSession
 from app.models import Organization, User
 from app.schemas.admin import (
     AdminPaginatedResponse,
@@ -10,6 +10,7 @@ from app.schemas.admin import (
     UserResponse,
     UserUpdate,
 )
+from app.shared.core.http_errors import CodedHTTPException
 from app.shared.utils.id_generator import generate_id
 from app.shared.utils.pagination import paginate_query
 
@@ -46,6 +47,63 @@ def list_users(
     )
 
 
+def _refuse_locking_yourself_out(
+    actor: User,
+    target: User,
+    *,
+    new_role: str | None,
+    new_is_active: bool | None,
+) -> None:
+    """Stop an administrator from taking away its own access.
+
+    Pressing Edit on your own row and clearing the Admin tick answered 200, and
+    the very next call answered 403 — the panel had just locked its own user
+    out, and only another administrator or the database could undo it. Same for
+    deactivating yourself.
+    """
+    if actor.id != target.id:
+        return
+    if new_role is not None and new_role != "admin":
+        raise CodedHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "You cannot remove your own administrator access. Ask another "
+                "administrator to do it."
+            ),
+            code="admin.cannot_demote_self",
+        )
+    if new_is_active is False:
+        raise CodedHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "You cannot deactivate the account you are signed in with. Ask "
+                "another administrator to do it."
+            ),
+            code="admin.cannot_deactivate_self",
+        )
+
+
+def _refuse_taken_email(db: DBSession, email: str | None, *, exclude_user_id: str | None) -> None:
+    """Answer 409 when another account already has that address.
+
+    The unique index made the commit raise, which reached the person as a 500
+    saying "internal error". The address being taken is an ordinary thing to
+    tell someone.
+    """
+    if not email:
+        return
+    query = db.query(User.id).filter(User.email == email)
+    if exclude_user_id:
+        query = query.filter(User.id != exclude_user_id)
+    if query.first():
+        raise CodedHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Another account already uses that email address.",
+            code="admin.email_taken",
+            params={"email": email},
+        )
+
+
 @router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(user_id: str, db: DBSession) -> UserResponse:
     """Get user by ID."""
@@ -61,6 +119,8 @@ def create_user(data: UserCreate, db: DBSession) -> UserResponse:
     org = db.query(Organization).filter(Organization.id == data.organization_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
+
+    _refuse_taken_email(db, data.email, exclude_user_id=None)
 
     role = "admin" if data.is_admin else "member"
 
@@ -79,7 +139,7 @@ def create_user(data: UserCreate, db: DBSession) -> UserResponse:
 
 
 @router.patch("/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: str, data: UserUpdate, db: DBSession) -> UserResponse:
+def update_user(user_id: str, data: UserUpdate, db: DBSession, actor: AdminUser) -> UserResponse:
     """Update user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -91,6 +151,15 @@ def update_user(user_id: str, data: UserUpdate, db: DBSession) -> UserResponse:
     if "is_admin" in update_data:
         update_data["role"] = "admin" if update_data.pop("is_admin") else "member"
 
+    _refuse_locking_yourself_out(
+        actor,
+        user,
+        new_role=update_data.get("role"),
+        new_is_active=update_data.get("is_active"),
+    )
+    if "email" in update_data:
+        _refuse_taken_email(db, update_data["email"], exclude_user_id=user.id)
+
     for key, value in update_data.items():
         setattr(user, key, value)
 
@@ -100,11 +169,12 @@ def update_user(user_id: str, data: UserUpdate, db: DBSession) -> UserResponse:
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: str, db: DBSession) -> None:
+def delete_user(user_id: str, db: DBSession, actor: AdminUser) -> None:
     """Delete user (soft delete)."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    _refuse_locking_yourself_out(actor, user, new_role=None, new_is_active=False)
     user.is_active = False
     db.commit()

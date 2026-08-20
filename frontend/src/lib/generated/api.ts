@@ -2761,6 +2761,9 @@ export interface paths {
         /**
          * Create Model Project
          * @description Create a new blank ModelProject for the current organization.
+         *
+         *     A ``workspace_id`` in the body must be one of this organization's, and the
+         *     caller needs the solver role in it.
          */
         post: operations["create_model_project"];
         delete?: never;
