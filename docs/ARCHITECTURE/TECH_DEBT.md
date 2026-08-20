@@ -143,12 +143,25 @@ The admin dashboard and the author-analytics page now share one query (`adoption
 those two agree. This counter is the third number, and it is the one on the marketplace card
 and the public organization profile — the number a visitor sees.
 
-Fixing it means deciding who owns the figure. Either the counter goes and both surfaces read
-the query, which costs a join on a hot listing page, or the counter stays and a backfill plus
-a recompute path keeps it honest. Both are a change with its own commit and its own tests, and
-the second one needs a rule for what to do with the legacy seeded values.
+**Decided 2026-08-20: the counter goes.** Every surface reads `adoption_query`, which is
+already the one definition of the word. It costs a join on the listing page, and in exchange the
+number cannot drift again and there is no backfill rule to invent for the seeded values.
 
-Recorded 2026-08-19, measured rather than estimated.
+What that means, mapped against the code as it stands:
+
+- `adoption_query` gains a batched sibling — count grouped by `ModelProject.source_ref` for a
+  set of listing ids — so a list page pays one query, not one per card.
+- `listing_to_catalog_response` takes the number as an argument instead of reading
+  `listing.total_activations`. Its ten call sites split into list callers (one batched query)
+  and single-listing callers (one count).
+- `author_listing_service` selects the count instead of the column, and
+  `profiles/organizations.py` sums the counted figure instead of the stored one.
+- The bump in `projects.py` (`create_from_marketplace`) goes.
+- A migration drops the column. It is irreversible for the seeded values, which were produced
+  by no event and are the reason the figure is wrong — so a backup before it, per the deploy
+  rule, and a line in the deploy plan.
+
+Not started. Recorded 2026-08-19, measured rather than estimated.
 
 ---
 
