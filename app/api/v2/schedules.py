@@ -13,9 +13,12 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from app.api.deps import CurrentOrg, CurrentUser, DBSession
+from app.api.deps import CurrentOrg, CurrentUser, DBSession, enforce_workspace_of
 from app.models.audit_log import AuditAction
+from app.models.organization import Organization
 from app.models.trigger import SolveTrigger
+from app.models.user import User
+from app.models.workspace import WorkspaceRole
 from app.schemas.schedule import (
     CronValidationResponse,
     ScheduleCreateRequest,
@@ -31,13 +34,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _get_trigger_or_404(db: DBSession, trigger_id: str, org_id: str) -> SolveTrigger:
-    """Fetch a trigger owned by the org or raise 404."""
+def _get_trigger_or_404(
+    db: DBSession,
+    trigger_id: str,
+    org: Organization,
+    user: User | None,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+) -> SolveTrigger:
+    """Fetch a trigger owned by the org, behind its own workspace, or raise.
+
+    A trigger carries a ``workspace_id`` of its own, and this checked only the
+    organization. So anybody in the organization could read a trigger filed in
+    a workspace they are not in, rename it, switch it off, and delete it —
+    while the model it fires answered 403 to the same caller. The list already
+    filtered by workspace; one direct id did not.
+
+    ``user`` has no default so the next route added cannot inherit that.
+    """
     trigger = (
         db.query(SolveTrigger)
         .filter(
             SolveTrigger.id == trigger_id,
-            SolveTrigger.organization_id == org_id,
+            SolveTrigger.organization_id == org.id,
         )
         .first()
     )
@@ -46,6 +64,7 @@ def _get_trigger_or_404(db: DBSession, trigger_id: str, org_id: str) -> SolveTri
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Trigger not found",
         )
+    enforce_workspace_of(db, trigger, user, org, role)
     return trigger
 
 
@@ -68,7 +87,7 @@ def create_schedule(
     Validates the cron expression and timezone, checks tier limits,
     and registers the schedule with Celery Beat.
     """
-    trigger = _get_trigger_or_404(db, trigger_id, org.id)
+    trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.EDITOR)
 
     if not trigger.is_enabled:
         raise HTTPException(
@@ -141,7 +160,7 @@ def get_schedule(
     org: CurrentOrg,
 ) -> ScheduleResponse:
     """Return the schedule attached to a trigger, or 404 if none exists."""
-    _get_trigger_or_404(db, trigger_id, org.id)
+    _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.VIEWER)
 
     schedule = schedule_service.get_schedule_by_trigger(db, trigger_id)
     if not schedule:
@@ -166,7 +185,7 @@ def update_schedule(
     org: CurrentOrg,
 ) -> ScheduleResponse:
     """Update the cron expression, timezone, or enabled state of a schedule."""
-    _get_trigger_or_404(db, trigger_id, org.id)
+    _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.EDITOR)
 
     schedule = schedule_service.get_schedule_by_trigger(db, trigger_id)
     if not schedule:
@@ -220,7 +239,7 @@ def delete_schedule(
     org: CurrentOrg,
 ) -> None:
     """Remove the schedule from a trigger and de-register from Celery Beat."""
-    trigger = _get_trigger_or_404(db, trigger_id, org.id)
+    trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.EDITOR)
 
     schedule = schedule_service.get_schedule_by_trigger(db, trigger_id)
     if not schedule:

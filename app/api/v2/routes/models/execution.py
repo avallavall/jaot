@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, defer
 from app.api.deps import (
     CurrentOrg,
     DBSession,
-    enforce_project_workspace,
+    enforce_workspace_of,
     workspace_ids_open_to,
 )
 from app.api.v2._access import execution_or_404
@@ -582,7 +582,7 @@ def list_model_executions(
     # A run is behind the same wall as the model it ran. Without this the runs of
     # a model filed in a workspace were listed to anybody in the organization,
     # while the model itself answered 403.
-    enforce_project_workspace(db, project, current_user, org)
+    enforce_workspace_of(db, project, current_user, org)
 
     # Typed column for new rows; the legacy org-model column still matches
     # historic executions because the P1.5 backfill preserved ids.

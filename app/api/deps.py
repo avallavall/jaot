@@ -255,14 +255,18 @@ def check_workspace_role(
     return member
 
 
-def enforce_project_workspace(
+def enforce_workspace_of(
     db: Session,
     project,
     user: User | None,
     org: Organization,
     role: WorkspaceRole = WorkspaceRole.VIEWER,
 ) -> None:
-    """Hold the caller to their role in the workspace the PROJECT is filed in.
+    """Hold the caller to their role in the workspace THE ROW is filed in.
+
+    Works on any row that carries a ``workspace_id`` column of its own — a
+    project, a trigger — and on any row a caller passes after resolving one,
+    which is what ``enforce_execution_workspace`` below does.
 
     The ``OptionalRequire*`` dependencies read ``workspace_id`` from the query
     string, and the caller owns the query string. So a viewer refused
@@ -311,7 +315,7 @@ def enforce_execution_workspace(
         .filter(ModelProject.id == project_id, ModelProject.organization_id == org.id)
         .first()
     )
-    enforce_project_workspace(db, project, user, org, role)
+    enforce_workspace_of(db, project, user, org, role)
 
 
 def workspace_ids_open_to(db: Session, user: User, org: Organization) -> set[str] | None:

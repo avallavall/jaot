@@ -23,7 +23,14 @@ from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import ValidationError
 from sqlalchemy.orm import Session, defer
 
-from app.api.deps import CurrentOrg, CurrentUser, DBSession, enforce_org_rate_limit
+from app.api.deps import (
+    CurrentOrg,
+    CurrentUser,
+    DBSession,
+    enforce_org_rate_limit,
+    enforce_workspace_of,
+    workspace_ids_open_to,
+)
 from app.domains.solver.queue_routing import COMPARISON_QUEUE
 from app.domains.solver.services.classify import classify
 from app.domains.solver.services.comparison_service import (
@@ -36,6 +43,8 @@ from app.domains.solver.services.comparison_service import (
 from app.models import ModelExecution, ModelProject, Organization, SolverComparison
 from app.models.audit_log import AuditAction
 from app.models.solver_comparison import DEFAULT_COMPARISON_THREADS, ComparisonStatus
+from app.models.user import User
+from app.models.workspace import WorkspaceRole
 from app.schemas.optimization import OptimizationProblem
 from app.schemas.solver_comparison import (
     ComparisonAgreement,
@@ -201,12 +210,23 @@ def create_comparison(
 def list_comparisons(
     db: DBSession,
     org: CurrentOrg,
-    _user: CurrentUser,
+    user: CurrentUser,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> ComparisonListResponse:
-    """This organization's comparisons, newest first."""
+    """This organization's comparisons, newest first, minus what is behind a wall."""
     base = db.query(SolverComparison).filter(SolverComparison.organization_id == org.id)
+    # A list cannot ask the wall per row, so it drops the comparisons of every
+    # model filed in a workspace this caller is not in.
+    open_ids = workspace_ids_open_to(db, user, org)
+    if open_ids is not None:
+        walled = db.query(ModelProject.id).filter(
+            ModelProject.organization_id == org.id,
+            ModelProject.workspace_id.isnot(None),
+        )
+        if open_ids:
+            walled = walled.filter(ModelProject.workspace_id.notin_(open_ids))
+        base = base.filter(~SolverComparison.model_project_id.in_(walled))
     total = base.count()
     rows = base.order_by(SolverComparison.created_at.desc()).limit(limit).offset(offset).all()
     return ComparisonListResponse(
@@ -232,10 +252,10 @@ def get_comparison(
     comparison_id: str,
     db: DBSession,
     org: CurrentOrg,
-    _user: CurrentUser,
+    user: CurrentUser,
 ) -> ComparisonDetail:
     """One comparison and its table, whatever state it is in."""
-    return _detail(db, _comparison_or_404(db, comparison_id, org))
+    return _detail(db, _comparison_or_404(db, comparison_id, org, user))
 
 
 # ──────────────────────────────────────────────────────────────
@@ -252,7 +272,7 @@ def cancel_comparison(
     comparison_id: str,
     db: DBSession,
     org: CurrentOrg,
-    _user: CurrentUser,
+    user: CurrentUser,
 ) -> ComparisonDetail:
     """Stop a comparison before its next solver starts.
 
@@ -260,7 +280,7 @@ def cancel_comparison(
     in flight finishes and the worker stops before the next one. Columns that
     never got their turn are marked cancelled.
     """
-    comparison = _comparison_or_404(db, comparison_id, org)
+    comparison = _comparison_or_404(db, comparison_id, org, user, WorkspaceRole.SOLVER)
     cancel_comparison_rows(db, comparison)
     db.commit()
     db.refresh(comparison)
@@ -400,7 +420,21 @@ def enqueue_comparison(db: Session, comparison: SolverComparison) -> None:
         ) from exc
 
 
-def _comparison_or_404(db: Session, comparison_id: str, org: Organization) -> SolverComparison:
+def _comparison_or_404(
+    db: Session,
+    comparison_id: str,
+    org: Organization,
+    user: User | None,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+) -> SolverComparison:
+    """One comparison of this org, behind the workspace of the model it compared.
+
+    This checked the organization alone, so anybody in it could open the table
+    of a comparison run on a model filed in a workspace they are not in — and
+    cancel it — while the model itself answered 403.
+
+    ``user`` has no default so the next route added cannot inherit that.
+    """
     comparison = (
         db.query(SolverComparison)
         .filter(
@@ -411,6 +445,16 @@ def _comparison_or_404(db: Session, comparison_id: str, org: Organization) -> So
     )
     if comparison is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comparison not found")
+    if comparison.model_project_id:
+        project = (
+            db.query(ModelProject)
+            .filter(
+                ModelProject.id == comparison.model_project_id,
+                ModelProject.organization_id == org.id,
+            )
+            .first()
+        )
+        enforce_workspace_of(db, project, user, org, role)
     return comparison
 
 

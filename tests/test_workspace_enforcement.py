@@ -712,3 +712,183 @@ class TestARunIsBehindTheSameWallAsItsModel:
 
         res = client.get(f"/api/v2/models/executions/{loose.id}")
         assert res.status_code == 200, res.text
+
+
+class TestATriggerAndAComparisonStandBehindTheWall:
+    """# CONTRACT-TEST: a trigger, its schedule and a comparison obey the wall.
+
+    Found by sweeping the wall route by route (QA, 2026-08-20). A trigger
+    carries a ``workspace_id`` of its own and the loader checked only the
+    organization, so anybody in the organization could read a trigger filed in
+    a workspace they are not in, rename it, switch it off, delete it, read and
+    delete its cron schedule — while the model it fires answered 403. A
+    comparison carries ``model_project_id`` and had the same hole, plus its
+    table and a cancel button.
+    """
+
+    @staticmethod
+    def _walled(db, ws, org):
+        from app.models.model_project import ModelProject, ModelProjectVersion
+        from app.models.solver_comparison import SolverComparison
+        from app.models.trigger import SolveTrigger, TriggerSchedule
+
+        problem = {
+            "name": "walled",
+            "variables": [{"name": "x", "type": "integer", "lower_bound": 0, "upper_bound": 4}],
+            "objective": {"sense": "maximize", "expression": "3*x"},
+            "constraints": [],
+        }
+        project = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org.id,
+            workspace_id=ws.id,
+            name="Filed in a workspace",
+            status="active",
+            draft_model_json=problem,
+        )
+        db.add(project)
+        db.flush()
+        version = ModelProjectVersion(
+            id=generate_id("mpv_"),
+            model_project_id=project.id,
+            organization_id=org.id,
+            sequence=1,
+            commit_summary="v1",
+            content_hash="hash_walled_trigger",
+            model_json=problem,
+        )
+        db.add(version)
+        db.flush()
+        trigger = SolveTrigger(
+            id=generate_id("trg_"),
+            organization_id=org.id,
+            workspace_id=ws.id,
+            name="Nightly re-plan",
+            model_project_id=project.id,
+            model_project_version_id=version.id,
+            trigger_secret="a" * 64,
+            webhook_url="https://example.com/hook",
+            is_enabled=True,
+            total_runs=0,
+        )
+        db.add(trigger)
+        db.flush()
+        schedule = TriggerSchedule(
+            id=generate_id("tsch_"),
+            trigger_id=trigger.id,
+            organization_id=org.id,
+            cron_expression="0 3 * * *",
+            timezone="UTC",
+            is_enabled=True,
+        )
+        comparison = SolverComparison(
+            id=generate_id("cmp_"),
+            organization_id=org.id,
+            model_project_id=project.id,
+            problem_name="Filed in a workspace",
+            solver_names=["scip", "highs"],
+            status="completed",
+            time_limit_seconds=10.0,
+            gap_tolerance=0.0001,
+        )
+        db.add_all([schedule, comparison])
+        db.commit()
+        for row in (project, trigger, schedule, comparison):
+            db.refresh(row)
+        return trigger, comparison
+
+    @staticmethod
+    def _reads(trigger, comparison):
+        return [
+            f"/api/v2/triggers/{trigger.id}",
+            f"/api/v2/triggers/{trigger.id}/runs",
+            f"/api/v2/triggers/{trigger.id}/schedule",
+            f"/api/v2/solvers/compare/{comparison.id}",
+        ]
+
+    def test_a_non_member_reads_none_of_them(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        trigger, comparison = self._walled(db_session, ws, org)
+        mock_auth(outsider)
+
+        reached = [
+            url
+            for url in self._reads(trigger, comparison)
+            if client.get(url).status_code not in (403, 404)
+        ]
+        assert reached == [], f"these answered without asking the wall: {reached}"
+
+    def test_a_non_member_cannot_rename_disable_or_delete_the_trigger(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """The reads leak; these change somebody else's automation."""
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        trigger, _ = self._walled(db_session, ws, org)
+        mock_auth(outsider)
+
+        assert (
+            client.patch(f"/api/v2/triggers/{trigger.id}", json={"name": "TAKEN"}).status_code
+            == 403
+        )
+        assert (
+            client.post(
+                f"/api/v2/triggers/{trigger.id}/toggle", json={"enabled": False}
+            ).status_code
+            == 403
+        )
+        assert client.delete(f"/api/v2/triggers/{trigger.id}/schedule").status_code == 403
+        assert client.delete(f"/api/v2/triggers/{trigger.id}").status_code == 403
+
+        db_session.refresh(trigger)
+        assert trigger.name == "Nightly re-plan"
+        assert trigger.is_enabled is True
+
+    def test_a_viewer_of_the_workspace_reads_all_of_them(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """The wall must not shut out the people it is there to serve."""
+        ws, org, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["viewer"],
+        )
+        trigger, comparison = self._walled(db_session, ws, org)
+        mock_auth(viewer)
+
+        refused = [
+            (url, res.status_code)
+            for url in self._reads(trigger, comparison)
+            if (res := client.get(url)).status_code != 200
+        ]
+        assert refused == [], f"the wall shut a member out of: {refused}"
+
+    def test_the_lists_leave_the_walled_rows_out(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """A list cannot ask the wall per row, so it must filter up front."""
+        ws, org, outsider, viewer = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+            enforcement_setup["viewer"],
+        )
+        trigger, comparison = self._walled(db_session, ws, org)
+
+        for who, should_see in ((outsider, False), (viewer, True)):
+            mock_auth(who)
+            triggers = client.get("/api/v2/triggers/")
+            comparisons = client.get("/api/v2/solvers/compare?limit=100")
+            assert triggers.status_code == 200, triggers.text
+            assert comparisons.status_code == 200, comparisons.text
+            assert (trigger.id in triggers.text) is should_see
+            assert (comparison.id in comparisons.text) is should_see

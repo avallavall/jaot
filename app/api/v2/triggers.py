@@ -19,7 +19,7 @@ import secrets
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import desc
+from sqlalchemy import desc, false, or_
 
 from app.api.deps import (
     CurrentOrg,
@@ -27,13 +27,18 @@ from app.api.deps import (
     DBSession,
     OptionalRequireEditor,
     OptionalRequireViewer,
+    enforce_workspace_of,
+    workspace_ids_open_to,
 )
 from app.api.v2._access import builder_document_or_404
 from app.models.audit_log import AuditAction
 from app.models.builder_document import ModelBuilderDocument
 from app.models.model_project import ModelProject
 from app.models.model_version import ModelVersion
+from app.models.organization import Organization
 from app.models.trigger import SolveTrigger, TriggerRun, TriggerSchedule
+from app.models.user import User
+from app.models.workspace import WorkspaceRole
 from app.schemas.trigger import (
     TriggerCreate,
     TriggerCreateResponse,
@@ -57,13 +62,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/triggers", tags=["triggers"])
 
 
-def _get_trigger_or_404(db: DBSession, trigger_id: str, org_id: str) -> SolveTrigger:
-    """Fetch a trigger owned by the org or raise 404."""
+def _get_trigger_or_404(
+    db: DBSession,
+    trigger_id: str,
+    org: Organization,
+    user: User | None,
+    role: WorkspaceRole = WorkspaceRole.VIEWER,
+) -> SolveTrigger:
+    """Fetch a trigger owned by the org, behind its own workspace, or raise.
+
+    A trigger carries a ``workspace_id`` of its own, and this checked only the
+    organization. So anybody in the organization could read a trigger filed in
+    a workspace they are not in, rename it, switch it off, and delete it —
+    while the model it fires answered 403 to the same caller. The list already
+    filtered by workspace; one direct id did not.
+
+    ``user`` has no default so the next route added cannot inherit that.
+    """
     trigger = (
         db.query(SolveTrigger)
         .filter(
             SolveTrigger.id == trigger_id,
-            SolveTrigger.organization_id == org_id,
+            SolveTrigger.organization_id == org.id,
         )
         .first()
     )
@@ -72,6 +92,7 @@ def _get_trigger_or_404(db: DBSession, trigger_id: str, org_id: str) -> SolveTri
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Trigger not found",
         )
+    enforce_workspace_of(db, trigger, user, org, role)
     return trigger
 
 
@@ -378,6 +399,7 @@ def create_trigger(
 )
 def list_triggers(
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     document_id: str | None = Query(default=None, description="Filter by document ID"),
     _ws: OptionalRequireViewer = None,
@@ -387,6 +409,17 @@ def list_triggers(
     Optionally filter by document_id.
     """
     query = db.query(SolveTrigger).filter(SolveTrigger.organization_id == org.id)
+    # A list cannot ask the wall one row at a time, so it drops every trigger
+    # filed in a workspace this caller is not in. Without this the list named
+    # them, and the page linked to a detail view that answers 403.
+    open_ids = workspace_ids_open_to(db, user, org)
+    if open_ids is not None:
+        query = query.filter(
+            or_(
+                SolveTrigger.workspace_id.is_(None),
+                SolveTrigger.workspace_id.in_(open_ids) if open_ids else false(),
+            )
+        )
     if document_id:
         query = query.filter(SolveTrigger.document_id == document_id)
 
@@ -404,11 +437,12 @@ def list_triggers(
 def get_trigger(
     trigger_id: str,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireViewer = None,
 ) -> dict[str, Any]:
     """Return a single trigger by ID (must belong to current organization)."""
-    trigger = _get_trigger_or_404(db, trigger_id, org.id)
+    trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.VIEWER)
     return _trigger_to_response(
         trigger,
         _model_names(db, [trigger]).get(trigger.id),
@@ -430,7 +464,7 @@ def update_trigger(
     _ws: OptionalRequireEditor = None,
 ) -> dict[str, Any]:
     """Partially update a trigger. version_id is NOT updatable."""
-    trigger = _get_trigger_or_404(db, trigger_id, org.id)
+    trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.EDITOR)
 
     updates = body.model_dump(exclude_unset=True)
     for field, value in updates.items():
@@ -476,7 +510,7 @@ def delete_trigger(
     _ws: OptionalRequireEditor = None,
 ) -> None:
     """Hard-delete a trigger and all its runs (via CASCADE)."""
-    trigger = _get_trigger_or_404(db, trigger_id, org.id)
+    trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.EDITOR)
     log_action(
         db=db,
         organization_id=org.id,
@@ -500,11 +534,12 @@ def toggle_trigger(
     trigger_id: str,
     body: TriggerToggleRequest,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireEditor = None,
 ) -> dict[str, Any]:
     """Set is_enabled for a trigger."""
-    trigger = _get_trigger_or_404(db, trigger_id, org.id)
+    trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.EDITOR)
     trigger.is_enabled = body.enabled
     trigger.updated_at = utcnow()
     db.commit()
@@ -617,12 +652,13 @@ def fire_trigger(
 def list_runs(
     trigger_id: str,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ) -> dict[str, Any]:
     """Return paginated run history for a trigger, newest first."""
-    _get_trigger_or_404(db, trigger_id, org.id)
+    _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.VIEWER)
 
     query = (
         db.query(TriggerRun)
@@ -646,10 +682,11 @@ def get_run(
     trigger_id: str,
     run_id: str,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
 ) -> TriggerRun:
     """Return full details for a single run including result_data and override_data."""
-    _get_trigger_or_404(db, trigger_id, org.id)
+    _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.VIEWER)
 
     run = (
         db.query(TriggerRun)
@@ -686,7 +723,7 @@ def rerun(
     Authentication is via org API key (user already authenticated). No trigger
     secret is required since the user is already authenticated via the org.
     """
-    trigger = _get_trigger_or_404(db, trigger_id, org.id)
+    trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.SOLVER)
 
     original_run = (
         db.query(TriggerRun)

@@ -199,13 +199,15 @@ parameter and got 200.
 
 Two rules come out of that, and both have produced defects:
 
-1. **Load the row and read its own `workspace_id`.** `enforce_project_workspace`
+1. **Load the row and read its own `workspace_id`.** `enforce_workspace_of`
    in `app/api/deps.py` does this, and `_project_or_404` /
    `_writable_project_or_404` in `app/api/v2/projects.py` call it on every
    route that loads a model. An identifier that arrives in the body is a value
    to check, never an authority.
 2. **Anything reached through a child id asks the same question.** A scenario, a
-   committed version and a run are behind the wall of the model they belong to.
+   committed version, a run and a solver comparison are behind the wall of the
+   model they belong to. A trigger and its cron schedule carry a `workspace_id`
+   of their own, which `enforce_workspace_of` reads directly.
    Filtering by `organization_id` alone is not enough: the list of scenarios
    refused a non-member while one scenario by its id handed back every value.
    `execution_or_404` (`app/api/v2/_access.py`) and `load_execution`
@@ -215,12 +217,18 @@ Two rules come out of that, and both have produced defects:
 
 An org-wide list cannot ask per row. `workspace_ids_open_to` returns the
 workspaces the caller may read (`None` for the organization owner, who enters
-all of them), and the list filters the walled rows out before paginating.
+all of them), and the list filters the walled rows out before paginating. Four
+lists do this: the run history, the triggers, the comparisons and the models. A
+list that names a row whose page answers 403 is its own defect.
+
+**Reads are viewer work, changes are editor work, and anything that starts a
+solve is solver work.** `_get_trigger_or_404` takes the minimum role for that
+reason: deleting somebody else's nightly run is not a read.
 
 A row filed in no workspace is organization-level and unaffected.
 
 **Where the wall lives:** `app/api/deps.py` —
-`check_workspace_role`, `enforce_project_workspace`,
+`check_workspace_role`, `enforce_workspace_of`,
 `enforce_execution_workspace`, `workspace_ids_open_to`. It sits there rather
 than in `app/api/v2/_access.py` because the export and insights routes are
 inside the solver domain, and the import contract lets a domain route reach
@@ -238,4 +246,4 @@ inside the solver domain, and the import contract lets a domain route reach
 | Celery Queue Routing | `queue_routing.py` + `solve_tasks.py` | Dynamic queue per solver |
 | Shim Architecture | *(removed — `app/core/` gone)* | Backward compat during refactor (resolved) |
 | Coded refusal | `app/shared/core/http_errors.py` + `errors.codes` messages | English on the wire, the reader's language on screen |
-| Workspace wall | `app/api/deps.py` (`enforce_project_workspace`, `enforce_execution_workspace`) | The row's own workspace decides, never the query string |
+| Workspace wall | `app/api/deps.py` (`enforce_workspace_of`, `enforce_execution_workspace`) | The row's own workspace decides, never the query string |

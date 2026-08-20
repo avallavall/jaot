@@ -3846,7 +3846,7 @@ export interface paths {
         };
         /**
          * List Comparisons
-         * @description This organization's comparisons, newest first.
+         * @description This organization's comparisons, newest first, minus what is behind a wall.
          */
         get: operations["list_solver_comparisons"];
         put?: never;

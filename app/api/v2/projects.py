@@ -37,7 +37,7 @@ from app.api.deps import (
     OptionalRequireViewer,
     check_workspace_role,
     enforce_org_rate_limit,
-    enforce_project_workspace,
+    enforce_workspace_of,
 )
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
@@ -131,7 +131,7 @@ def _project_or_404(
     project = svc.get_project_or_404(db, project_id, org.id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-    enforce_project_workspace(db, project, user, org, role)
+    enforce_workspace_of(db, project, user, org, role)
     return project
 
 
