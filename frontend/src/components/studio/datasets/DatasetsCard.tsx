@@ -172,7 +172,10 @@ export function DatasetsCard() {
       // Never interpolate the engine's own message. Its one useful shape quotes
       // the broken text back at whoever typed it, in English, inside whatever
       // language the page is in. The position is the part a reader can act on.
-      const parseError = describeJsonError(err);
+      // The text goes with it: the engines that report a byte offset instead of
+      // a line and column cannot be read without it, and which engine the
+      // reader is on is not something this knows.
+      const parseError = describeJsonError(err, editor.text);
       toast.error(
         parseError.kind === "positioned"
           ? t("datasetInvalidJsonAt", { line: parseError.line!, column: parseError.column! })

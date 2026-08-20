@@ -7,20 +7,32 @@
  *   Unexpected token 'a', "{"sets": [a,b,c }" is not valid JSON
  *
  * That sentence went straight into a toast inside a Spanish page. The only part
- * of it a reader can act on is WHERE the text stopped making sense, and V8 does
- * give that in most cases, so this pulls it out and leaves the wording to the
- * caller's own translations.
+ * of it a reader can act on is WHERE the text stopped making sense, so this
+ * pulls that out and leaves the wording to the caller's own translations.
  *
- * Measured on V8 (node 24, and the same engine in Chromium):
+ * **Every engine words this differently, and the same engine changed its mind.**
+ * The first version of this file read one shape — the one V8 produces from
+ * node 24 onwards — and returned "unknown" for everything else. Which meant it
+ * worked on the machine it was written on and nowhere else: CI runs node 20,
+ * the production image is `node:20-alpine`, and a reader's browser may be
+ * Firefox or a Chrome a year old. All four shapes below are handled now:
  *
- *   {"a": 1,}       Expected double-quoted property name in JSON at position 8 (line 1 column 9)
- *   {               Expected property name or '}' in JSON at position 1 (line 1 column 2)
- *   {"a" 1}         Expected ':' after property name in JSON at position 5 (line 1 column 6)
- *   [1,2,           Unexpected end of JSON input
- *   {"sets": [a,b,c }   Unexpected token 'a', "…" is not valid JSON
+ *   V8, node 24+ / recent Chromium
+ *     {"a": 1,}     Expected double-quoted property name in JSON at position 8 (line 1 column 9)
+ *   V8, node 20 / older Chromium — a byte offset and no line
+ *     {"a": 1,}     Unexpected token } in JSON at position 8
+ *   SpiderMonkey (Firefox) — a line and column, without the parentheses
+ *     {"a": 1,}     JSON.parse: expected double-quoted property name at line 1 column 9 of the JSON data
+ *   JavaScriptCore (Safari) — no position at all
+ *     {"a": 1,}     JSON Parse error: Expected '"'
  *
- * The last two carry no position, and the two cases mean different things to a
- * reader: text that stops early is usually a bracket left open.
+ * A byte offset becomes a line and a column only if the caller hands over the
+ * text it tried to parse. Without it the offset says nothing a reader can use,
+ * so the answer is "unknown" rather than a number pointing into thin air.
+ *
+ * Two failures carry no position on any engine, and they mean different things:
+ * text that stops early is almost always a bracket left open, and saying so is
+ * more use than "invalid".
  */
 
 export type JsonErrorKind = "positioned" | "truncated" | "unknown";
@@ -33,20 +45,58 @@ export interface JsonError {
   column: number | null;
 }
 
-const POSITION_RE = /\(line (\d+) column (\d+)\)/;
+/** V8 from node 24: "… at position 8 (line 1 column 9)". */
+const PARENS_RE = /\(line (\d+) column (\d+)\)/;
+/** SpiderMonkey: "… at line 1 column 9 of the JSON data". */
+const BARE_RE = /\bat line (\d+) column (\d+)/;
+/** V8 before node 24: "… in JSON at position 8" — an offset into the text. */
+const OFFSET_RE = /\bat position (\d+)/;
 
-export function describeJsonError(err: unknown): JsonError {
+const UNKNOWN: JsonError = { kind: "unknown", line: null, column: null };
+
+/** Where offset `n` falls in `source`, counted the way every engine counts: 1-based. */
+function locate(source: string, n: number): JsonError {
+  // Past the end means the text ran out rather than went wrong somewhere.
+  if (n > source.length) return { kind: "truncated", line: null, column: null };
+  const upTo = source.slice(0, n);
+  const lastBreak = upTo.lastIndexOf("\n");
+  return {
+    kind: "positioned",
+    line: (upTo.match(/\n/g)?.length ?? 0) + 1,
+    column: n - lastBreak,
+  };
+}
+
+/**
+ * @param err    whatever `JSON.parse` threw.
+ * @param source the text it was given. Only needed on the engines that report a
+ *               byte offset instead of a line and column, but pass it always —
+ *               which engine the reader is on is not something the caller knows.
+ */
+export function describeJsonError(err: unknown, source?: string): JsonError {
   const message = err instanceof Error ? err.message : String(err);
 
-  const match = POSITION_RE.exec(message);
-  if (match) {
-    return { kind: "positioned", line: Number(match[1]), column: Number(match[2]) };
-  }
-  // "Unexpected end of JSON input" — the text ran out mid-value. Worth saying on
-  // its own, because the fix is almost always a bracket or a quote left open,
-  // and there is no position to point at.
-  if (/end of (?:JSON )?input/i.test(message)) {
+  // "Unexpected end of JSON input" — the text ran out mid-value. Checked before
+  // the position shapes because node 24 gives this one an offset too, and a
+  // bracket left open is worth its own sentence.
+  if (/end of (?:JSON )?input|end of data|Unexpected EOF/i.test(message)) {
     return { kind: "truncated", line: null, column: null };
   }
-  return { kind: "unknown", line: null, column: null };
+
+  const parens = PARENS_RE.exec(message);
+  if (parens) {
+    return { kind: "positioned", line: Number(parens[1]), column: Number(parens[2]) };
+  }
+
+  const bare = BARE_RE.exec(message);
+  if (bare) {
+    return { kind: "positioned", line: Number(bare[1]), column: Number(bare[2]) };
+  }
+
+  const offset = OFFSET_RE.exec(message);
+  if (offset && typeof source === "string") {
+    return locate(source, Number(offset[1]));
+  }
+
+  return UNKNOWN;
 }
