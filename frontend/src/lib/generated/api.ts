@@ -10820,12 +10820,23 @@ export interface components {
             description: string | null;
             /** Document Id */
             document_id: string | null;
+            /**
+             * Has Active Schedule
+             * @description Whether an enabled cron schedule exists for this trigger
+             * @default false
+             */
+            has_active_schedule: boolean;
             /** Id */
             id: string;
             /** Is Enabled */
             is_enabled: boolean;
             /** Last Fired At */
             last_fired_at: string | null;
+            /**
+             * Model Name
+             * @description Name of the model this trigger fires
+             */
+            model_name?: string | null;
             /** Model Project Id */
             model_project_id?: string | null;
             /** Model Project Version Id */
@@ -10926,12 +10937,23 @@ export interface components {
             description: string | null;
             /** Document Id */
             document_id: string | null;
+            /**
+             * Has Active Schedule
+             * @description Whether an enabled cron schedule exists for this trigger
+             * @default false
+             */
+            has_active_schedule: boolean;
             /** Id */
             id: string;
             /** Is Enabled */
             is_enabled: boolean;
             /** Last Fired At */
             last_fired_at: string | null;
+            /**
+             * Model Name
+             * @description Name of the model this trigger fires
+             */
+            model_name?: string | null;
             /** Model Project Id */
             model_project_id?: string | null;
             /** Model Project Version Id */

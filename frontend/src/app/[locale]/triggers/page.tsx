@@ -59,24 +59,15 @@ export default function TriggersPage() {
   const [triggers, setTriggers] = useState<SolveTrigger[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<Record<string, boolean>>({});
-  const [scheduledTriggerIds, setScheduledTriggerIds] = useState<Set<string>>(new Set());
 
   const loadTriggers = useCallback(async () => {
     setLoading(true);
     try {
+      // The list says which triggers are scheduled. Asking the schedule
+      // endpoint once per row cost one request per trigger, and each 404 —
+      // the normal answer for an unscheduled one — logged a console error.
       const data = await api.triggers.list(undefined, activeWorkspaceId ?? undefined);
       setTriggers(data);
-      // Check which triggers have active schedules
-      const scheduleChecks = await Promise.allSettled(
-        data.map((trig) => api.schedules.get(trig.id))
-      );
-      const scheduledIds = new Set<string>();
-      scheduleChecks.forEach((result, i) => {
-        if (result.status === "fulfilled" && result.value.is_enabled) {
-          scheduledIds.add(data[i].id);
-        }
-      });
-      setScheduledTriggerIds(scheduledIds);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("loadError"));
     } finally {
@@ -229,7 +220,7 @@ export default function TriggersPage() {
                     >
                       {trigger.is_enabled ? t("enabled") : t("disabled")}
                     </Badge>
-                    {scheduledTriggerIds.has(trigger.id) && (
+                    {trigger.has_active_schedule && (
                       <Badge variant="outline" className="shrink-0 gap-1">
                         <Clock className="w-3 h-3" />
                         {t("scheduled")}

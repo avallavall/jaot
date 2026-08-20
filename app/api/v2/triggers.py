@@ -30,8 +30,10 @@ from app.api.deps import (
 )
 from app.api.v2._access import builder_document_or_404
 from app.models.audit_log import AuditAction
+from app.models.builder_document import ModelBuilderDocument
+from app.models.model_project import ModelProject
 from app.models.model_version import ModelVersion
-from app.models.trigger import SolveTrigger, TriggerRun
+from app.models.trigger import SolveTrigger, TriggerRun, TriggerSchedule
 from app.schemas.trigger import (
     TriggerCreate,
     TriggerCreateResponse,
@@ -175,7 +177,64 @@ def _verify_project_version(db: Any, body: TriggerCreate, org_id: str) -> None:
         )
 
 
-def _trigger_to_response(trigger: SolveTrigger) -> dict[str, Any]:
+def _model_names(db: DBSession, triggers: list[SolveTrigger]) -> dict[str, str]:
+    """Map trigger id to the name of the model it fires.
+
+    Two queries for the whole page, one per kind of source. Asking row by row
+    turned a list of 50 triggers into 50 round trips.
+    """
+    project_ids = {t.model_project_id for t in triggers if t.model_project_id}
+    document_ids = {t.document_id for t in triggers if t.document_id}
+    names: dict[str, str] = {}
+    if project_ids:
+        rows = (
+            db.query(ModelProject.id, ModelProject.name)
+            .filter(ModelProject.id.in_(project_ids))
+            .all()
+        )
+        names.update({row.id: row.name for row in rows})
+    if document_ids:
+        rows = (
+            db.query(ModelBuilderDocument.id, ModelBuilderDocument.name)
+            .filter(ModelBuilderDocument.id.in_(document_ids))
+            .all()
+        )
+        names.update({row.id: row.name for row in rows})
+    return {
+        t.id: names[key]
+        for t in triggers
+        if (key := t.model_project_id or t.document_id) and key in names
+    }
+
+
+def _scheduled_trigger_ids(db: DBSession, triggers: list[SolveTrigger]) -> set[str]:
+    """Return which of these triggers have an enabled cron schedule, in one query.
+
+    The list page used to call GET /triggers/<id>/schedule per row. Every
+    unscheduled trigger answered 404, which is the normal answer and still
+    printed an error in the browser console.
+
+    A disabled schedule counts as no schedule here, because that is what the
+    badge in the list has always meant.
+    """
+    if not triggers:
+        return set()
+    rows = (
+        db.query(TriggerSchedule.trigger_id)
+        .filter(
+            TriggerSchedule.trigger_id.in_([t.id for t in triggers]),
+            TriggerSchedule.is_enabled.is_(True),
+        )
+        .all()
+    )
+    return {row.trigger_id for row in rows}
+
+
+def _trigger_to_response(
+    trigger: SolveTrigger,
+    model_name: str | None = None,
+    has_active_schedule: bool = False,
+) -> dict[str, Any]:
     """Build response dict with masked secret prefixes."""
     return {
         "id": trigger.id,
@@ -188,6 +247,8 @@ def _trigger_to_response(trigger: SolveTrigger) -> dict[str, Any]:
         "version_id": trigger.version_id,
         "model_project_id": trigger.model_project_id,
         "model_project_version_id": trigger.model_project_version_id,
+        "model_name": model_name,
+        "has_active_schedule": has_active_schedule,
         "trigger_secret_prefix": _mask_secret(trigger.trigger_secret),
         "override_schema": trigger.override_schema,
         "webhook_url": trigger.webhook_url,
@@ -305,7 +366,7 @@ def create_trigger(
 
     logger.info("Created trigger %s for org %s", trigger.id, org.id)
 
-    response_data = _trigger_to_response(trigger)
+    response_data = _trigger_to_response(trigger, _model_names(db, [trigger]).get(trigger.id))
     response_data["trigger_secret"] = plaintext_secret
     return response_data
 
@@ -330,7 +391,9 @@ def list_triggers(
         query = query.filter(SolveTrigger.document_id == document_id)
 
     triggers = query.order_by(desc(SolveTrigger.created_at)).all()
-    return [_trigger_to_response(t) for t in triggers]
+    names = _model_names(db, triggers)
+    scheduled = _scheduled_trigger_ids(db, triggers)
+    return [_trigger_to_response(t, names.get(t.id), t.id in scheduled) for t in triggers]
 
 
 @router.get(
@@ -346,7 +409,11 @@ def get_trigger(
 ) -> dict[str, Any]:
     """Return a single trigger by ID (must belong to current organization)."""
     trigger = _get_trigger_or_404(db, trigger_id, org.id)
-    return _trigger_to_response(trigger)
+    return _trigger_to_response(
+        trigger,
+        _model_names(db, [trigger]).get(trigger.id),
+        trigger.id in _scheduled_trigger_ids(db, [trigger]),
+    )
 
 
 @router.patch(
@@ -389,7 +456,11 @@ def update_trigger(
     )
     db.commit()
     db.refresh(trigger)
-    return _trigger_to_response(trigger)
+    return _trigger_to_response(
+        trigger,
+        _model_names(db, [trigger]).get(trigger.id),
+        trigger.id in _scheduled_trigger_ids(db, [trigger]),
+    )
 
 
 @router.delete(
@@ -439,7 +510,11 @@ def toggle_trigger(
     db.commit()
     db.refresh(trigger)
     logger.info("Trigger %s toggled to enabled=%s", trigger_id, body.enabled)
-    return _trigger_to_response(trigger)
+    return _trigger_to_response(
+        trigger,
+        _model_names(db, [trigger]).get(trigger.id),
+        trigger.id in _scheduled_trigger_ids(db, [trigger]),
+    )
 
 
 @router.post(

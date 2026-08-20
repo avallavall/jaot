@@ -112,6 +112,14 @@ class TriggerResponse(BaseModel):
     version_id: str | None
     model_project_id: str | None = None
     model_project_version_id: str | None = None
+    # The id alone told the reader nothing. The name comes from the studio
+    # project or the builder document, whichever pair is set, and is None when
+    # that model has been deleted.
+    model_name: str | None = Field(default=None, description="Name of the model this trigger fires")
+    has_active_schedule: bool = Field(
+        default=False,
+        description="Whether an enabled cron schedule exists for this trigger",
+    )
     trigger_secret_prefix: str = Field(
         ..., description="First 8 characters of the SHA-256 hash for identification"
     )

@@ -1019,6 +1019,11 @@ export interface SolveTrigger {
   version_id: string | null;
   model_project_id?: string | null;
   model_project_version_id?: string | null;
+  /** Name of the model this fires. Null once that model is deleted. */
+  model_name?: string | null;
+  /** True when an enabled cron schedule exists. The list reads this instead of
+   *  asking the schedule endpoint once per row. */
+  has_active_schedule?: boolean;
   workspace_id?: string | null;
   override_schema: _OverrideField[] | null;
   webhook_url: string;

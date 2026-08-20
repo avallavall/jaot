@@ -271,9 +271,17 @@ function TriggerDetailPageInner() {
                   {/* A studio trigger carries model_project_id and leaves
                       document_id null — reading only the latter rendered two
                       permanently blank rows, so the page never named the model
-                      it fires. */}
-                  <div className="text-sm font-mono break-all flex-1">
-                    {trigger.model_project_id ?? trigger.document_id ?? "—"}
+                      it fires. The name comes from the API; the id stays
+                      underneath it, because that is what a support request
+                      needs to quote. model_name is null when the model was
+                      deleted, and then the id is all there is. */}
+                  <div className="flex-1 min-w-0">
+                    {trigger.model_name && (
+                      <div className="text-sm font-medium break-words">{trigger.model_name}</div>
+                    )}
+                    <div className="text-xs font-mono break-all text-muted-foreground">
+                      {trigger.model_project_id ?? trigger.document_id ?? "—"}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-start gap-4 px-4 py-3">

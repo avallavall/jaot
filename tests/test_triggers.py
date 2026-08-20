@@ -1232,3 +1232,149 @@ class TestWebhookAddressIsCheckedAtTheDoor:
 
         db_session.refresh(trigger)
         assert trigger.webhook_url == "https://example.com/webhook"
+
+
+class TestTheListNamesTheModelAndItsSchedule:
+    """# CONTRACT-TEST: the trigger list carries the model name and the schedule flag.
+
+    The page showed `Model: mp_19e7…` and nothing else, because the response
+    only carried the id. To draw the "scheduled" badge it then called
+    GET /triggers/<id>/schedule once per row, and every unscheduled trigger
+    answered 404 — the normal answer — which logged an error in the browser
+    console. Both facts now come with the list itself.
+    """
+
+    def _schedule(self, db: Session, trigger: SolveTrigger, *, is_enabled: bool = True):
+        from app.models.trigger import TriggerSchedule
+
+        schedule = TriggerSchedule(
+            id=generate_id("tsch_"),
+            trigger_id=trigger.id,
+            organization_id=trigger.organization_id,
+            cron_expression="0 3 * * *",
+            timezone="UTC",
+            is_enabled=is_enabled,
+        )
+        db.add(schedule)
+        db.commit()
+        return schedule
+
+    def test_the_list_names_a_builder_model_and_a_studio_model(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        doc = _create_doc(db_session, test_organization, test_user, name="Cutting stock")
+        ver = _create_version(db_session, doc)
+        _create_trigger(db_session, test_organization, test_user, doc, ver, name="From builder")
+        project, version = _create_studio_project(db_session, test_organization)
+        db_session.add(
+            SolveTrigger(
+                id=generate_id("trg_"),
+                organization_id=test_organization.id,
+                created_by=test_user.id,
+                name="From studio",
+                model_project_id=project.id,
+                model_project_version_id=version.id,
+                trigger_secret=_hash(secrets.token_hex(16)),
+                webhook_url="https://example.com/webhook",
+                is_enabled=True,
+                total_runs=0,
+            )
+        )
+        db_session.commit()
+
+        response = authenticated_client.get(_triggers_url("/"))
+        assert response.status_code == 200, response.text
+        by_name = {t["name"]: t for t in response.json()}
+        assert by_name["From builder"]["model_name"] == "Cutting stock"
+        assert by_name["From studio"]["model_name"] == project.name
+
+    def test_a_single_trigger_carries_the_name_too(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        doc = _create_doc(db_session, test_organization, test_user, name="Shift roster")
+        ver = _create_version(db_session, doc)
+        trigger, _ = _create_trigger(db_session, test_organization, test_user, doc, ver)
+
+        response = authenticated_client.get(_triggers_url(f"/{trigger.id}"))
+        assert response.status_code == 200, response.text
+        assert response.json()["model_name"] == "Shift roster"
+
+    def test_only_an_enabled_schedule_marks_a_trigger_as_scheduled(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        """The badge has always meant "runs on its own", so a paused schedule
+        must not light it up."""
+        doc = _create_doc(db_session, test_organization, test_user)
+        ver = _create_version(db_session, doc)
+        bare, _ = _create_trigger(db_session, test_organization, test_user, doc, ver, name="Bare")
+        running, _ = _create_trigger(db_session, test_organization, test_user, doc, ver, name="On")
+        paused, _ = _create_trigger(db_session, test_organization, test_user, doc, ver, name="Off")
+        self._schedule(db_session, running, is_enabled=True)
+        self._schedule(db_session, paused, is_enabled=False)
+
+        response = authenticated_client.get(_triggers_url("/"))
+        assert response.status_code == 200, response.text
+        flags = {t["name"]: t["has_active_schedule"] for t in response.json()}
+        assert flags["On"] is True
+        assert flags["Off"] is False
+        assert flags["Bare"] is False
+        assert bare.id and paused.id  # the rows are real, not stubs
+
+    def test_the_list_costs_the_same_number_of_queries_whatever_its_length(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        """This is the defect itself: the page grew one round trip per row.
+
+        Counting SELECTs is the only way to see it — the response body looks
+        identical either way.
+        """
+        from sqlalchemy import event
+        from sqlalchemy.engine import Engine
+
+        doc = _create_doc(db_session, test_organization, test_user)
+        ver = _create_version(db_session, doc)
+
+        def count_selects() -> int:
+            seen = []
+
+            def record(conn, cursor, statement, params, context, executemany):
+                if statement.lstrip().upper().startswith("SELECT"):
+                    seen.append(statement)
+
+            # Listening on the Engine class catches whichever engine the test
+            # harness swapped in, without the test having to know its name.
+            event.listen(Engine, "before_cursor_execute", record)
+            try:
+                response = authenticated_client.get(_triggers_url("/"))
+                assert response.status_code == 200, response.text
+            finally:
+                event.remove(Engine, "before_cursor_execute", record)
+            return len(seen)
+
+        _create_trigger(db_session, test_organization, test_user, doc, ver, name="One")
+        with_one = count_selects()
+
+        for i in range(6):
+            _create_trigger(db_session, test_organization, test_user, doc, ver, name=f"More{i}")
+        with_seven = count_selects()
+
+        assert with_seven == with_one, (
+            f"the list ran {with_seven} SELECTs for 7 triggers and {with_one} for 1 — "
+            "it is asking per row again"
+        )
