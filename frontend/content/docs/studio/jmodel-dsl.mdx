@@ -154,11 +154,11 @@ Generation runs under the same guardrails as the AI assistant: content moderatio
 
 ## API
 
-The lens is backed by the `/api/v2/dsl/*` endpoints (feature-gated like the lens itself; all require authentication):
+The lens is backed by the `/api/v2/dsl/*` endpoints. All require authentication:
 
 ```text
-GET  /api/v2/dsl/status      # is the JModel feature enabled on this instance
 POST /api/v2/dsl/compile     # source (+ optional dataset) → grounded problem, or a structured error
+POST /api/v2/dsl/inspect     # source → the sets, params and variable families it declares
 POST /api/v2/dsl/latex       # parse-only symbolic-math rendering (the Math split pane)
 POST /api/v2/dsl/deground    # flat problem → JModel draft, or null when none round-trips
 POST /api/v2/dsl/generate    # description/screenshots/PDF → compile-verified JModel source

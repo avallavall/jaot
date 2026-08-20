@@ -45,6 +45,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A password of one repeated letter is refused.** Signup showed a strength meter that scored twelve identical lowercase letters as "Weak" and then created the account anyway: the only rule anywhere was a length of twelve. Length is not variety, so a password now needs a capital, a digit or a symbol somewhere in it — checked on the server, where it counts, and in the form, so it is said before the round trip. Resetting a password follows the same rule.
 
 ### Fixed
+- **The template gallery names its categories in your language.** Twenty-eight of the thirty-four read as machine identifiers — `advertising_media`, `cutting_packing`, `water_management` — in all five languages, including on the first card of the page.
+- **The Usage Limits page describes the limits that exist.** It listed per-endpoint quotas that were never implemented, a sign-in limit off by three times, a password-reset endpoint under a name the API does not use, and caps under the setting names of the plan tiers removed a year ago. Every cap ships off; the page now says so, says what each limit counts, and names the setting that changes it.
+- **Three endpoints the documentation named do not exist.** `POST /api/v2/import/preview` is under `/solve`, `GET /api/v2/dsl/status` went when JModel stopped being optional, and `POST /api/v2/auth/password-reset` is `forgot-password`. Every one of the seventy-seven routes the documentation names now answers.
+- **The template gallery says how many categories there are.** It said eleven; there are thirty-four.
 - **A listing's description sections have a ceiling.** A five-megabyte overview was accepted and stored, and every visitor to that model's page downloaded it.
 - **Saving sections with the wrong field name is refused instead of quietly doing nothing.** It answered success and changed no text.
 - **An instance that cannot store images says what that means for you.** Uploading a logo answered with the four settings an operator has to fill in, which the author of the model can do nothing about. Everything else about a listing works without images.

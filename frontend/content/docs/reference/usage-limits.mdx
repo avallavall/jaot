@@ -15,16 +15,22 @@ instance administrator via the admin panel (`platform_settings`).
 API requests are rate-limited per organization to ensure fair usage across all
 tenants.
 
-### Per-Endpoint Limits
+### The limits, and what each one counts
 
-| Endpoint | Limit (per minute) | Limit (per day) |
-|----------|-------------------|-----------------|
-| `POST /api/v2/solve` | 60 | 10,000 |
-| `POST /api/v2/models/*/execute` | 60 | 10,000 |
-| `GET /api/v2/models/*` | 120 | 50,000 |
-| `POST /api/v2/auth/login` | 10 | 1,000 |
-| `POST /api/v2/auth/password-reset` | 3/hour | -- |
-| All other endpoints | 120 | 50,000 |
+One limit covers every endpoint. The three below it are separate guards on the
+doors an unauthenticated visitor can knock on, and they count something other
+than the organization.
+
+| What is limited | Per minute | Per day | Counted per | Setting |
+|-----------------|-----------|---------|-------------|---------|
+| Every API request | 120 | 50,000 | organization | `instance_rate_limit_per_minute`, `instance_rate_limit_per_day` |
+| Signing in | 30 | 300 | client IP address | `AUTH_LOGIN_RATE_LIMIT_PER_MINUTE`, `AUTH_LOGIN_RATE_LIMIT_PER_DAY` |
+| Signing up | 10 | 50 | client IP address | `AUTH_SIGNUP_RATE_LIMIT_PER_MINUTE`, `AUTH_SIGNUP_RATE_LIMIT_PER_DAY` |
+| Asking for a password reset | -- | 3 per hour | email address | `AUTH_PASSWORD_RESET_RATE_LIMIT_PER_HOUR` |
+
+The sign-in budget is shared by everyone behind the same connection, because it
+counts the network address rather than the account: it is there to slow down
+somebody guessing passwords.
 
 ### Rate Limit Headers
 
@@ -41,12 +47,18 @@ the window shown in `X-RateLimit-Reset`.
 
 ## Solve Quotas and Caps
 
+Every cap ships **off**: `0` means no ceiling. An operator running a public
+instance sets real numbers; a private one usually leaves them alone.
+
 | Cap | Default | Setting |
 |-----|---------|---------|
-| Solves per day | 100,000 | `plan_*_max_daily_solves` |
-| Max solve wall time | 24 h (default 300 s per solve) | `plan_*_max_solve_time_seconds` |
-| Max variables per problem | 10,000,000 | `plan_*_max_variables` |
-| Request body size | 50 MB | server config |
+| Solves per day | 0 (no ceiling) | `instance_max_daily_solves` |
+| Ceiling on one solve | 0 (no ceiling) | `instance_max_solve_time_seconds` |
+| Variables in one problem | 0 (no ceiling) | `instance_max_variables` |
+| Cron schedules | 0 (no ceiling) | `instance_max_cron_schedules` |
+| Request body size | 0 (no ceiling) | `MAX_REQUEST_BODY_MB` in the environment |
+
+A solve asking for longer than the ceiling is clamped to it, not refused.
 
 A solve that exceeds its time limit is stopped by the solver first, then by the
 worker's kill switch; abandoned runs are reconciled by a background sweep, so

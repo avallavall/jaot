@@ -51,7 +51,7 @@ Queue one problem against several solvers.
 
 Give exactly one of `problem` and `project_id`. Thread count is not a request field: HiGHS fixes its thread count on the first solve of a worker process, so the platform sets one value for every comparison and reports it back in `settings.threads`.
 
-To compare a file you have on disk, parse it first with `POST /api/v2/import/preview` and send the parsed problem as `problem`. The file itself is never stored.
+To compare a file you have on disk, parse it first with `POST /api/v2/solve/import/preview` and send the parsed problem as `problem`. The file itself is never stored.
 
 ### Examples
 
