@@ -246,3 +246,129 @@ class TestWebhookTask:
                     url="https://example.com/webhook",
                     payload={"event": "test"},
                 )
+
+
+class TestWebhookOutcomeIsRecorded:
+    """Every attempt and the final verdict land on the TriggerRun.
+
+    Found by driving the app (QA sweep, 2026-08-20): ``webhook_attempts`` and
+    ``webhook_delivered`` were columns nobody ever wrote. The Run History table
+    has a Webhook column that reads them, so it always showed "—", and the admin
+    panel's webhook delivery rate was a ratio over an empty set.
+    """
+
+    @staticmethod
+    def _run(db, org, user):
+        from app.models.trigger import SolveTrigger, TriggerRun
+        from app.shared.utils.datetime_helpers import utcnow
+        from app.shared.utils.id_generator import generate_id
+
+        trigger = SolveTrigger(
+            id=generate_id("trg_"),
+            organization_id=org.id,
+            created_by=user.id,
+            name="Webhook outcome",
+            trigger_secret="hash",
+            webhook_url="https://example.com/webhook",
+            is_enabled=True,
+            total_runs=0,
+            created_at=utcnow(),
+            updated_at=utcnow(),
+        )
+        db.add(trigger)
+        db.flush()
+        run = TriggerRun(
+            id=generate_id("trun_"),
+            trigger_id=trigger.id,
+            organization_id=org.id,
+            status="completed",
+            webhook_attempts=0,
+            created_at=utcnow(),
+        )
+        db.add(run)
+        db.commit()
+        return trigger, run
+
+    def test_a_delivered_webhook_is_recorded_on_the_run(
+        self, db_session, test_organization, test_user
+    ):
+        from app.tasks.webhook_tasks import deliver_webhook_task
+
+        _, run = self._run(db_session, test_organization, test_user)
+
+        with patch("app.tasks.webhook_tasks.deliver_webhook", return_value=True):
+            result = deliver_webhook_task(
+                url="https://example.com/webhook",
+                payload={"event": "test"},
+                run_id=run.id,
+            )
+        assert result["status"] == "delivered"
+
+        db_session.expire_all()
+        db_session.refresh(run)
+        assert run.webhook_attempts == 1
+        assert run.webhook_delivered is True
+
+    def test_an_attempt_that_still_has_retries_left_counts_without_a_verdict(
+        self, db_session, test_organization, test_user
+    ):
+        from app.tasks.webhook_tasks import deliver_webhook_task
+
+        _, run = self._run(db_session, test_organization, test_user)
+
+        with patch("app.tasks.webhook_tasks.deliver_webhook", return_value=False):
+            with pytest.raises(Exception, match="Webhook delivery failed"):
+                deliver_webhook_task(
+                    url="https://example.com/webhook",
+                    payload={"event": "test"},
+                    run_id=run.id,
+                )
+
+        db_session.expire_all()
+        db_session.refresh(run)
+        assert run.webhook_attempts == 1
+        # Still trying: a verdict now would read as "never arrived" while a retry
+        # is still queued.
+        assert run.webhook_delivered is None
+
+    def test_the_last_attempt_writes_the_verdict_and_tells_the_owner(
+        self, db_session, test_organization, test_user
+    ):
+        from app.models.notification import Notification
+        from app.tasks.webhook_tasks import deliver_webhook_task
+
+        trigger, run = self._run(db_session, test_organization, test_user)
+
+        # The worker's own state on the final try, so the task takes the branch
+        # a fourth failure takes in production.
+        deliver_webhook_task.push_request(retries=deliver_webhook_task.max_retries)
+        try:
+            with patch("app.tasks.webhook_tasks.deliver_webhook", return_value=False):
+                with pytest.raises(Exception, match="Webhook delivery failed"):
+                    deliver_webhook_task(
+                        url="https://example.com/webhook",
+                        payload={"event": "test"},
+                        run_id=run.id,
+                    )
+        finally:
+            deliver_webhook_task.pop_request()
+
+        db_session.expire_all()
+        db_session.refresh(run)
+        assert run.webhook_attempts == 1
+        assert run.webhook_delivered is False
+
+        notes = (
+            db_session.query(Notification).filter(Notification.user_id == trigger.created_by).all()
+        )
+        assert any("Webhook delivery failed" in (n.title or "") for n in notes), (
+            "the person who owns the trigger is never told the result did not arrive"
+        )
+
+    def test_without_a_run_id_nothing_is_written_and_nothing_breaks(self):
+        # cron_tasks sends an auto_disabled webhook that belongs to no run.
+        from app.tasks.webhook_tasks import deliver_webhook_task
+
+        with patch("app.tasks.webhook_tasks.deliver_webhook", return_value=True):
+            result = deliver_webhook_task(url="https://example.com/webhook", payload={"event": "t"})
+        assert result["status"] == "delivered"

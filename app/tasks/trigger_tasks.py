@@ -366,7 +366,7 @@ def _deliver_webhook(
             },
         )
         deliver_webhook_task.apply_async(
-            args=[str(trigger.webhook_url), payload, trigger.webhook_secret],
+            args=[str(trigger.webhook_url), payload, trigger.webhook_secret, run.id],
         )
         logger.debug("Queued webhook %s for trigger run %s", event_type, run.id)
     except Exception as exc:

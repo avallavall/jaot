@@ -1152,3 +1152,83 @@ class TestTriggersOnStudioModels:
             },
         )
         assert response.status_code == 404
+
+
+class TestWebhookAddressIsCheckedAtTheDoor:
+    """A webhook the server will never call is refused while it can still be fixed.
+
+    Found by driving the app (QA sweep, 2026-08-20): the form took
+    ``http://192.168.18.113:8080/hook`` and ``http://169.254.169.254/...``, the
+    run said "completed", and ``deliver_webhook`` dropped the payload with one
+    line in the server log. Nobody using the app could learn that.
+    """
+
+    def test_a_private_address_is_refused_with_a_code(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        doc = _create_doc(db_session, test_organization, test_user)
+        ver = _create_version(db_session, doc)
+
+        response = authenticated_client.post(
+            _triggers_url("/"),
+            json={
+                "name": "LAN hook",
+                "document_id": doc.id,
+                "version_id": ver.id,
+                # A literal address, so the check never depends on DNS.
+                "webhook_url": "http://192.168.18.113:8080/hook",
+            },
+        )
+        assert response.status_code == 422, response.text
+        body = response.json()
+        # CONTRACT-TEST: this refusal is about the ADDRESS, not about the shape of
+        # the URL, and the form has to tell them apart to point at the right field.
+        assert body["code"] == "trigger.webhook_url_unreachable"
+        assert body["params"]["address"] == "192.168.18.113"
+
+    def test_the_loopback_address_of_the_server_is_refused(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        doc = _create_doc(db_session, test_organization, test_user)
+        ver = _create_version(db_session, doc)
+
+        response = authenticated_client.post(
+            _triggers_url("/"),
+            json={
+                "name": "The API itself",
+                "document_id": doc.id,
+                "version_id": ver.id,
+                "webhook_url": "http://127.0.0.1:8001/api/v2/admin/settings/values",
+            },
+        )
+        assert response.status_code == 422, response.text
+        assert response.json()["code"] == "trigger.webhook_url_unreachable"
+
+    def test_editing_a_trigger_cannot_move_its_webhook_to_a_private_address(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        doc = _create_doc(db_session, test_organization, test_user)
+        ver = _create_version(db_session, doc)
+        trigger, _ = _create_trigger(db_session, test_organization, test_user, doc, ver)
+
+        response = authenticated_client.patch(
+            _triggers_url(f"/{trigger.id}"),
+            json={"webhook_url": "http://10.0.0.5/hook"},
+        )
+        assert response.status_code == 422, response.text
+        assert response.json()["code"] == "trigger.webhook_url_unreachable"
+
+        db_session.refresh(trigger)
+        assert trigger.webhook_url == "https://example.com/webhook"

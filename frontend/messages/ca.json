@@ -16,6 +16,7 @@
     "myModelsEmpty": "Els teus models apareixeran aquí. Crea'n un de nou per començar.",
     "archiveModel": "Arxiva el model",
     "modelArchived": "S'ha arxivat «{name}»",
+    "modelArchivedWithdrawn": "S'ha arxivat «{name}» i s'ha retirat del marketplace. Torna a publicar-lo quan vulguis que hi torni a ser.",
     "archiveError": "No s'ha pogut arxivar el model. Torna-ho a provar.",
     "undo": "Desfés",
     "viewActive": "Actius",
@@ -3494,7 +3495,7 @@
       "enabled": "Activat",
       "disabled": "Desactivat",
       "scheduled": "Programat",
-      "runs": "{count} execucions",
+      "runs": "{count, plural, one {# execució} other {# execucions}}",
       "lastFired": "Últim disparat: {date}",
       "created": "Creat: {date}",
       "version": "Versió: {id}",
@@ -4627,6 +4628,9 @@
       "projects": {
         "publish_needs_commit": "En publicar es fixa la teva darrera versió commitejada: el marketplace mai no veu el teu esborrany de treball. Commiteja el model a l'espai de treball i torna.",
         "publish_needs_own_change": "Aquest model el vas adoptar del marketplace i no ha canviat des de llavors. Commiteja un canvi propi i publica'l com la teva fitxa."
+      },
+      "trigger": {
+        "webhook_url_unreachable": "El servidor no pot arribar a aquesta adreça de webhook: apunta a {address}, una adreça privada, de loopback o d'enllaç local. Fes servir una URL pública."
       },
       "admin": {
         "email_taken": "Un altre compte ja fa servir aquesta adreça de correu.",

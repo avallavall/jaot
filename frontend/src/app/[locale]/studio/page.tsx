@@ -144,11 +144,16 @@ export default function StudioHomePage() {
     setProjects((prev) => (prev ? [...items, ...prev] : prev));
 
   // Archive (active -> archived) with an Undo that restores it.
+  //
+  // Archiving also withdraws the model from the marketplace, because an archived
+  // model refuses every write and could never be updated again. Undo restores the
+  // model and NOT the listing, so a published model gets a message that says so.
   const archive = async (p: ProjectListItem) => {
     drop(new Set([p.id]));
     try {
       await api.archiveProject(p.id, ws);
-      toast.success(t("modelArchived", { name: p.name || t("untitled") }), {
+      const key = p.listing_status === "published" ? "modelArchivedWithdrawn" : "modelArchived";
+      toast.success(t(key, { name: p.name || t("untitled") }), {
         action: {
           label: t("undo"),
           onClick: () => {

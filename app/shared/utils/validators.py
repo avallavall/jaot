@@ -34,6 +34,31 @@ def _resolve_hostname(hostname: str) -> list[str]:
     return ips
 
 
+def blocked_url_target(url: str) -> str | None:
+    """Return the blocked address a URL points at, or None.
+
+    The strict check below refuses three different things: a URL with no
+    hostname, a hostname that will not resolve, and a hostname that resolves
+    into a range the server refuses to call. Only the third is a settled fact
+    about the address. A name that does not resolve right now may resolve in an
+    hour, so a form that saves a webhook must not refuse it on that ground —
+    while the delivery step, which has to decide there and then, must.
+    """
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if not hostname:
+        return None
+    try:
+        ips = _resolve_hostname(hostname)
+    except ValueError:
+        return None
+    for ip_str in ips:
+        ip = ipaddress.ip_address(ip_str)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            return ip_str
+    return None
+
+
 def validate_url_not_private(url: str) -> None:
     """Validate that a URL does not resolve to a private/internal IP.
 

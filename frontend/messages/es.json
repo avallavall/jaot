@@ -16,6 +16,7 @@
     "myModelsEmpty": "Tus modelos aparecerán aquí. Crea uno nuevo para empezar.",
     "archiveModel": "Archivar modelo",
     "modelArchived": "Se archivó «{name}»",
+    "modelArchivedWithdrawn": "Se archivó «{name}» y se retiró del marketplace. Vuelve a publicarlo cuando quieras que esté allí otra vez.",
     "archiveError": "No se pudo archivar el modelo. Inténtalo de nuevo.",
     "undo": "Deshacer",
     "viewActive": "Activos",
@@ -3494,7 +3495,7 @@
       "enabled": "Activado",
       "disabled": "Desactivado",
       "scheduled": "Programado",
-      "runs": "{count} ejecuciones",
+      "runs": "{count, plural, one {# ejecución} other {# ejecuciones}}",
       "lastFired": "Último disparo: {date}",
       "created": "Creado: {date}",
       "version": "Versión: {id}",
@@ -4627,6 +4628,9 @@
       "projects": {
         "publish_needs_commit": "Al publicar se fija tu última versión commiteada: el marketplace nunca ve tu borrador de trabajo. Commitea el modelo en el espacio de trabajo y vuelve.",
         "publish_needs_own_change": "Este modelo lo adoptaste del marketplace y no ha cambiado desde entonces. Commitea un cambio propio y publícalo como tu ficha."
+      },
+      "trigger": {
+        "webhook_url_unreachable": "El servidor no puede llegar a esta dirección de webhook: apunta a {address}, una dirección privada, de loopback o de enlace local. Usa una URL pública."
       },
       "admin": {
         "email_taken": "Otra cuenta ya usa esa dirección de correo.",

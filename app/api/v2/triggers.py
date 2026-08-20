@@ -44,6 +44,7 @@ from app.schemas.trigger import (
 )
 from app.services import trigger_service
 from app.services.audit_service import log_action
+from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -104,6 +105,35 @@ def _mask_secret(value: str | None, length: int = 8) -> str | None:
     if not value:
         return None
     return value[:length] + "..."
+
+
+def _reject_undeliverable_webhook(url: str) -> None:
+    """Refuse a webhook address the delivery step will never call.
+
+    ``deliver_webhook`` drops the payload when the host resolves to a private,
+    loopback, link-local or reserved address. That check only ran once the run
+    was already over: the form took ``http://192.168.1.20/hook``, the run said
+    "completed", and the result went nowhere with nothing said. This is the same
+    rule applied where the person can still fix it.
+
+    A hostname that does not resolve is NOT refused here. It may resolve by the
+    time the trigger fires, and a form that rejects a webhook because DNS was
+    down for a moment would be worse than the problem.
+    """
+    from app.shared.utils.validators import blocked_url_target  # noqa: PLC0415
+
+    blocked = blocked_url_target(url)
+    if blocked is None:
+        return
+    raise CodedHTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail=(
+            f"This webhook address cannot be reached from the server: it resolves to "
+            f"{blocked}, a private, loopback or link-local address. Use a public URL."
+        ),
+        code="trigger.webhook_url_unreachable",
+        params={"address": blocked},
+    )
 
 
 def _verify_project_version(db: Any, body: TriggerCreate, org_id: str) -> None:
@@ -232,6 +262,7 @@ def create_trigger(
 
     # Convert HttpUrl to string for storage
     webhook_url_str = str(body.webhook_url)
+    _reject_undeliverable_webhook(webhook_url_str)
 
     now = utcnow()
     override_schema_data = (
@@ -341,6 +372,7 @@ def update_trigger(
             continue
         if field == "webhook_url" and value is not None:
             value = str(value)
+            _reject_undeliverable_webhook(value)
         if field == "override_schema" and value is not None:
             value = [f.model_dump() if hasattr(f, "model_dump") else f for f in value]
         setattr(trigger, field, value)

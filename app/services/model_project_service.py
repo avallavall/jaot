@@ -175,6 +175,8 @@ def update_meta(
     if status is not None and status != project.status:
         project.status = status
         project.archived_at = utcnow() if status == "archived" else None
+        if status == "archived":
+            withdraw_listing_on_archive(db, project)
     db.flush()
     db.refresh(project)
     return project
@@ -555,10 +557,40 @@ def diff_versions(a: ModelProjectVersion, b: ModelProjectVersion) -> VersionDiff
     )
 
 
+def withdraw_listing_on_archive(db: Session, project: ModelProject) -> ModelProjectListing | None:
+    """Take a published listing off the marketplace because its project was archived.
+
+    An archived project refuses every write, so its listing could never be
+    updated again, and the author had put the model away. Until this existed the
+    listing stayed on the marketplace: a visitor searched, opened the detail page
+    and copied the model of somebody who thought it was gone. Archiving is the
+    only way to a permanent delete, so the window was not an edge case.
+
+    Only a ``published`` listing is touched. A ``draft`` or ``deprecated`` one is
+    already absent from every catalog surface, and moving it would be the widening
+    :func:`set_listing_published` refuses. Restoring the project does NOT put the
+    listing back: the author publishes again, one click, with the rollups intact.
+    """
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(
+            ModelProjectListing.model_project_id == project.id,
+            ModelProjectListing.status == STATUS_PUBLISHED,
+        )
+        .first()
+    )
+    if listing is None:
+        return None
+    listing.status = STATUS_UNPUBLISHED
+    db.flush()
+    return listing
+
+
 def archive_project(db: Session, project: ModelProject) -> ModelProject:
-    """Soft-delete a project (status=archived)."""
+    """Soft-delete a project (status=archived) and withdraw its listing."""
     project.status = "archived"
     project.archived_at = utcnow()
+    withdraw_listing_on_archive(db, project)
     db.flush()
     db.refresh(project)
     return project

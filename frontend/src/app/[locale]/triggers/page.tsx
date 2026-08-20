@@ -242,10 +242,9 @@ export default function TriggersPage() {
                     </p>
                   )}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <span>
-                      <span className="font-medium">{trigger.total_runs}</span>{" "}
-                      {t("runs", { count: trigger.total_runs })}
-                    </span>
+                    {/* The count lives inside the message, which also makes it
+                        agree in number. Printing it here too read "1 1 runs". */}
+                    <span>{t("runs", { count: trigger.total_runs })}</span>
                     {trigger.last_fired_at && (
                       <span>{t("lastFired", { date: formatDate(trigger.last_fired_at, t, day) })}</span>
                     )}

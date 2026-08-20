@@ -16,6 +16,7 @@
     "myModelsEmpty": "Your models will appear here. Create a new one to get started.",
     "archiveModel": "Archive model",
     "modelArchived": "Archived \"{name}\"",
+    "modelArchivedWithdrawn": "Archived \"{name}\" and withdrawn it from the marketplace. Publish it again when you want it back there.",
     "archiveError": "Couldn't archive the model. Please try again.",
     "undo": "Undo",
     "viewActive": "Active",
@@ -3494,7 +3495,7 @@
       "enabled": "Enabled",
       "disabled": "Disabled",
       "scheduled": "Scheduled",
-      "runs": "{count} runs",
+      "runs": "{count, plural, one {# run} other {# runs}}",
       "lastFired": "Last fired: {date}",
       "created": "Created: {date}",
       "version": "Version: {id}",
@@ -4627,6 +4628,9 @@
       "projects": {
         "publish_needs_commit": "Publishing pins your latest committed version — the marketplace never sees your working draft. Commit your model in the workspace, then come back.",
         "publish_needs_own_change": "This model was adopted from the marketplace and has not changed since. Commit a change of your own, then publish it as your listing."
+      },
+      "trigger": {
+        "webhook_url_unreachable": "This webhook address cannot be reached from the server: it resolves to {address}, a private, loopback or link-local address. Use a public URL."
       },
       "admin": {
         "email_taken": "Another account already uses that email address.",

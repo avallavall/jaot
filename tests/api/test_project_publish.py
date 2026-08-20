@@ -171,3 +171,79 @@ class TestProjectPublish:
 
         res = authenticated_client.post("/api/v2/projects/proj_pub_adopt_mod/publish", json=_BODY)
         assert res.status_code == 200, res.text
+
+
+class TestArchiveWithdrawsListing:
+    """Archiving a published project takes its listing off the marketplace.
+
+    Found by driving the app with two browsers (QA sweep, 2026-08-20): a model
+    archived from My models stayed searchable, openable and copyable by anyone.
+    An archived project refuses every write, so its listing could never be
+    updated again, and archiving is the only road to a permanent delete.
+    """
+
+    def test_archive_withdraws_a_published_listing(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        _committed_project(db_session, test_organization, test_user, pid="proj_arch_pub")
+        body = {**_BODY, "display_name": "uniquearchivewithdraw"}
+        assert (
+            authenticated_client.post(
+                "/api/v2/projects/proj_arch_pub/publish", json=body
+            ).status_code
+            == 200
+        )
+
+        assert authenticated_client.delete("/api/v2/projects/proj_arch_pub").status_code == 204
+
+        db_session.expire_all()
+        assert db_session.get(ModelProjectListing, "proj_arch_pub").status == "unpublished"
+        res = authenticated_client.get("/api/v2/models/catalog?search=uniquearchivewithdraw")
+        assert "proj_arch_pub" not in [i["id"] for i in res.json()["items"]]
+        assert authenticated_client.get("/api/v2/models/catalog/proj_arch_pub").status_code == 404
+
+    def test_archive_by_patch_withdraws_it_too(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        # The list view archives with PATCH status, the workbench with DELETE.
+        # Both are the same action to the person doing it.
+        _committed_project(db_session, test_organization, test_user, pid="proj_arch_patch")
+        authenticated_client.post("/api/v2/projects/proj_arch_patch/publish", json=_BODY)
+
+        res = authenticated_client.patch(
+            "/api/v2/projects/proj_arch_patch", json={"status": "archived"}
+        )
+        assert res.status_code == 200, res.text
+
+        db_session.expire_all()
+        assert db_session.get(ModelProjectListing, "proj_arch_patch").status == "unpublished"
+
+    def test_restoring_does_not_publish_it_again(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        # Putting a model back on the marketplace is the author's call, never a
+        # side effect of restoring it.
+        _committed_project(db_session, test_organization, test_user, pid="proj_arch_restore")
+        authenticated_client.post("/api/v2/projects/proj_arch_restore/publish", json=_BODY)
+        authenticated_client.delete("/api/v2/projects/proj_arch_restore")
+
+        res = authenticated_client.patch(
+            "/api/v2/projects/proj_arch_restore", json={"status": "active"}
+        )
+        assert res.status_code == 200, res.text
+
+        db_session.expire_all()
+        assert db_session.get(ModelProjectListing, "proj_arch_restore").status == "unpublished"
+
+    def test_archiving_a_never_published_project_is_unaffected(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        _committed_project(db_session, test_organization, test_user, pid="proj_arch_nolisting")
+
+        assert (
+            authenticated_client.delete("/api/v2/projects/proj_arch_nolisting").status_code == 204
+        )
+
+        db_session.expire_all()
+        assert db_session.get(ModelProjectListing, "proj_arch_nolisting") is None
+        assert db_session.get(ModelProject, "proj_arch_nolisting").status == "archived"

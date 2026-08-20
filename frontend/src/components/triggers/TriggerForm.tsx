@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
+import { translateApiError } from "@/lib/errors";
 import type {
   CreateTriggerRequest,
   OverrideField,
@@ -42,6 +43,7 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
   const canEdit = useWorkspacePermission("editor");
   const roleName = useRoleDisplayName();
   const t = useTranslations("triggers.form");
+  const tError = useTranslations("errors.codes");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
@@ -148,7 +150,12 @@ export function TriggerForm({ onSuccess, workspaceId }: TriggerFormProps) {
       toast.success(t("createdSuccess"));
       onSuccess(result.id, result.trigger_secret);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("createError"));
+      // The API's `detail` is English by contract. A refusal that names
+      // itself, like a webhook address the server cannot reach, is
+      // rendered from its code instead.
+      toast.error(
+        translateApiError(err, tError, err instanceof Error ? err.message : t("createError")),
+      );
     } finally {
       setSubmitting(false);
     }

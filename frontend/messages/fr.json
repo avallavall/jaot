@@ -16,6 +16,7 @@
     "myModelsEmpty": "Vos modèles apparaîtront ici. Créez-en un nouveau pour commencer.",
     "archiveModel": "Archiver le modèle",
     "modelArchived": "« {name} » archivé",
+    "modelArchivedWithdrawn": "« {name} » archivé et retiré de la marketplace. Publiez-le à nouveau quand vous voulez qu'il y revienne.",
     "archiveError": "Impossible d'archiver le modèle. Veuillez réessayer.",
     "undo": "Annuler",
     "viewActive": "Actifs",
@@ -3494,7 +3495,7 @@
       "enabled": "Activé",
       "disabled": "Désactivé",
       "scheduled": "Planifié",
-      "runs": "{count} exécutions",
+      "runs": "{count, plural, one {# exécution} other {# exécutions}}",
       "lastFired": "Dernier déclenchement : {date}",
       "created": "Créé le : {date}",
       "version": "Version : {id}",
@@ -4627,6 +4628,9 @@
       "projects": {
         "publish_needs_commit": "La publication épingle votre dernière version validée : la place de marché ne voit jamais votre brouillon de travail. Validez votre modèle dans l'espace de travail, puis revenez.",
         "publish_needs_own_change": "Ce modèle a été adopté depuis la place de marché et n'a pas changé depuis. Validez une modification qui vous est propre, puis publiez-le comme votre fiche."
+      },
+      "trigger": {
+        "webhook_url_unreachable": "Le serveur ne peut pas joindre cette adresse de webhook : elle pointe vers {address}, une adresse privée, de loopback ou de lien local. Utilisez une URL publique."
       },
       "admin": {
         "email_taken": "Un autre compte utilise déjà cette adresse e-mail.",
