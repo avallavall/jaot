@@ -9,10 +9,10 @@
  * **The first version of this file parsed the real engine and asserted on the
  * one wording it happened to produce.** That reads as thorough and is not: it
  * tests whichever engine runs the suite. Written on node 24, it went red on CI,
- * which runs node 20 — and node 20 is what the production image ships and what
- * the older half of the browsers out there are close to. The failure was real:
- * `describeJsonError` returned "unknown" for every parse error on any engine
- * but the author's.
+ * which ran node 20 at the time. The failure was real, and outlived the runtime
+ * bump that followed: `describeJsonError` returned "unknown" for every parse
+ * error on any engine but the author's — and the engine that decides here is
+ * the READER's browser, not the one this suite runs on.
  *
  * So the wordings below are written out rather than parsed. Each one is a real
  * message from a real engine, and the last block still asks the engine at hand
@@ -37,7 +37,7 @@ describe("describeJsonError across the engines a reader may be on", () => {
     expect(e).toEqual({ kind: "positioned", line: 1, column: 9 });
   });
 
-  it("reads V8 from node 20, which gives only a byte offset", () => {
+  it("reads V8 before node 24, which gives only a byte offset", () => {
     const e = describeJsonError(
       asError("Unexpected token } in JSON at position 8"),
       '{"a": 1,}',

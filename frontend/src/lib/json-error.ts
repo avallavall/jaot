@@ -13,13 +13,14 @@
  * **Every engine words this differently, and the same engine changed its mind.**
  * The first version of this file read one shape — the one V8 produces from
  * node 24 onwards — and returned "unknown" for everything else. Which meant it
- * worked on the machine it was written on and nowhere else: CI runs node 20,
- * the production image is `node:20-alpine`, and a reader's browser may be
- * Firefox or a Chrome a year old. All four shapes below are handled now:
+ * worked on the machine it was written on and nowhere else. The build has since
+ * moved to node 24, but that is not what makes this safe: the parsing happens
+ * in the READER's browser, which may be Firefox, or Safari, or a Chrome a year
+ * old. All four shapes below are handled:
  *
  *   V8, node 24+ / recent Chromium
  *     {"a": 1,}     Expected double-quoted property name in JSON at position 8 (line 1 column 9)
- *   V8, node 20 / older Chromium — a byte offset and no line
+ *   V8, before node 24 / older Chromium — a byte offset and no line
  *     {"a": 1,}     Unexpected token } in JSON at position 8
  *   SpiderMonkey (Firefox) — a line and column, without the parentheses
  *     {"a": 1,}     JSON.parse: expected double-quoted property name at line 1 column 9 of the JSON data

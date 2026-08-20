@@ -1,4 +1,11 @@
-FROM node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d28360ec71132750ec8 AS base
+# Node 24 (Krypton), active LTS until 2028-04-30.
+#
+# This said node:20 from the first public commit and nobody revisited it. Node
+# 20 reached end of life on 2026-04-30, so the image serving production went
+# four months without security patches — and V8's own wording changes between
+# majors, which shipped a JSON-error reader that only worked on the author's
+# machine (see src/lib/json-error.ts). CI pins the same major.
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS base
 
 FROM base AS deps
 WORKDIR /app

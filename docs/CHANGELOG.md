@@ -52,6 +52,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **An administrator cannot remove its own access.** Clearing your own Admin tick answered 200 and the next request answered 403; only another administrator or the database could undo it. Deactivating and deleting your own account are refused the same way.
 - **A password of one repeated letter is refused.** Signup showed a strength meter that scored twelve identical lowercase letters as "Weak" and then created the account anyway: the only rule anywhere was a length of twelve. Length is not variety, so a password now needs a capital, a digit or a symbol somewhere in it — checked on the server, where it counts, and in the form, so it is said before the round trip. Resetting a password follows the same rule.
 
+### Changed
+- **The frontend runs on Node 24.** It was on Node 20, which reached end of life on 2026-04-30 — so the image serving the site went four months without security patches, purely because nobody revisited the line since the first public commit. Nothing required Node 20: Next 16 asks for 20.9 or newer.
+
 ### Fixed
 - **The JSON editor points at the mistake on every browser, not just the newest Chrome.** When a scenario's JSON does not parse, the toast says which line and column to look at. That reading only understood the wording V8 uses from Node 24 onwards, so on Firefox, on Safari, and on any Chrome about a year old it fell back to "the JSON is not valid" and said nothing useful.
 
