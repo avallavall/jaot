@@ -32,6 +32,14 @@ jobs:
       # by pre-commit only, and a hook can be skipped.
       - run: ruff check app/ infra/ scripts/ deploy/ tests/
       - run: ruff format --check app/ infra/ scripts/ deploy/ tests/
+      # The 7 domain boundary contracts. They ran in pre-commit only, and a hook
+      # can be skipped — so README.md and docs/ARCHITECTURE/OVERVIEW.md both
+      # claimed a CI gate that did not exist. Same version bound as the hook.
+      # No app dependencies needed: grimp builds the import graph by parsing the
+      # source, it never executes an import. Measured: 690 files, 3644 edges,
+      # identical result with and without requirements.txt installed.
+      - run: pip install "import-linter>=2.1"
+      - run: lint-imports
 
   # Supply-chain + static security gates. These existed in the Woodpecker pipeline
   # and were lost in the migration to GitHub Actions — nobody deleted them on

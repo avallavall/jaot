@@ -12,6 +12,10 @@ is the one holding you back.
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
 [![Solvers](https://img.shields.io/badge/solvers-SCIP%20%C2%B7%20HiGHS%20%C2%B7%20CBC%20%C2%B7%20GLPK-orange.svg)](#built-with)
 
+**Live demo → [jaot.io](https://jaot.io)** — the reference deployment, running the
+same images you can build from this repo. Browse the marketplace and the docs
+without an account; solving needs one.
+
 [Quickstart](#quickstart) · [Architecture](#architecture) ·
 [Development](#development) · [Documentation](#documentation) ·
 [License](#license)
@@ -108,7 +112,7 @@ a private one need not.
 
 ### Integrate and operate
 
-- **MCP server** — 30 curated tools for AI agents over the Model Context
+- **MCP server** — 34 curated tools for AI agents over the Model Context
   Protocol: an agent can author a versioned model, solve it, and ask what is
   saturated, why a model is infeasible, or what one more unit is worth.
 - **REST API v2** — every capability of the UI is an endpoint, authenticated with
@@ -135,8 +139,10 @@ cp .env.example .env   # includes first-run admin credentials — change the pas
 docker compose up -d   # migrates, seeds the catalog, creates your admin on first boot
 ```
 
-This brings up PostgreSQL, RabbitMQ, Redis, Qdrant, the API (port 8001), the
-Celery worker and beat, and the frontend (port 3000).
+This brings up PostgreSQL, RabbitMQ, Redis, Qdrant, the API (port 8001), two
+Celery workers (the general one and the solver-comparison one), Celery beat, and
+the frontend (port 3000). Both ports bind to `127.0.0.1` only, so nothing is
+exposed to your network until you put a reverse proxy in front.
 
 Then check what still needs configuring (SMTP, AI key…):
 
@@ -178,32 +184,42 @@ Full setup guide (Claude Code, Claude Desktop, opencode, OpenAI Responses API) �
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────┐
-│  Next.js 16 frontend  (5 locales)             │
-└───────────────┬──────────────────────────────┘
-                │ REST + SSE + WebSocket
-┌───────────────▼──────────────────────────────┐
-│  FastAPI (Python 3.12)                        │
-│  auth · solve · studio · LLM/RAG ·            │
-│  marketplace · triggers · MCP server          │
-└──┬─────────┬──────────┬──────────┬────────────┘
-   │         │          │          │
-┌──▼──┐ ┌────▼────┐ ┌──▼──┐ ┌─────▼─────┐ ┌────────────┐
-│ Pg  │ │RabbitMQ │ │Redis│ │  Qdrant   │ │ Anthropic  │
-│ 18  │ │+ Celery │ │     │ │ (RAG)     │ │ Claude API │
-└─────┘ │ workers │ └─────┘ └───────────┘ └────────────┘
-        │ SCIP /  │
-        │ HiGHS / │
-        │ CBC /   │
-        │ GLPK /  │
-        │ Hexaly  │
-        └─────────┘
+```mermaid
+flowchart TB
+    BROWSER["Browser<br/>Next.js 16 · React 19 · 5 locales"]
+    AGENT["AI agent<br/>MCP client"]
+    SCRIPT["Script or service<br/>Bearer API key"]
+
+    API["<b>FastAPI</b> · Python 3.12 · :8001<br/>REST /api/v2 · MCP /mcp · WebSocket /ws<br/>auth · solve · studio · marketplace · LLM/RAG · triggers"]
+
+    BROWSER -->|"REST + SSE + WebSocket"| API
+    AGENT -->|"MCP, Streamable HTTP"| API
+    SCRIPT -->|"REST"| API
+
+    subgraph STORES["State"]
+        direction LR
+        PG[("PostgreSQL 18<br/>every tenant, one schema")]
+        REDIS[("Redis<br/>cache · rate limits")]
+        QDRANT[("Qdrant<br/>RAG · 290 docs · 384-dim")]
+    end
+
+    API --> PG
+    API --> REDIS
+    API --> QDRANT
+    API -.->|"opt-in, budgeted"| CLAUDE["Anthropic Claude API"]
+
+    API -->|"enqueue a solve"| MQ["RabbitMQ<br/>one queue per solver"]
+    MQ --> WORKERS["Celery workers"]
+    WORKERS --> ADAPTERS["<b>SolverAdapter protocol</b><br/>app/domains/solver/adapters<br/>SCIP · HiGHS · CBC · GLPK<br/>Hexaly, profile-gated"]
+    WORKERS -.->|"writes the run"| PG
 ```
 
-A **modular monolith**: the solver is the first extracted bounded context
-(`app/domains/solver/`), behind a `SolverAdapter` protocol enforced by
-import-linter contracts. Adding a solver means writing one adapter — see
+A **modular monolith**: one process, one database, boundaries enforced in code.
+Two bounded contexts are extracted so far — the solver (`app/domains/solver/`,
+behind a `SolverAdapter` protocol) and the JModel compiler (`app/domains/dsl/`,
+which may import `app.schemas` and nothing else). Seven `import-linter`
+contracts fail the build if an import crosses a boundary. Adding a solver means
+writing one adapter — see
 [docs/ARCHITECTURE/OVERVIEW.md](docs/ARCHITECTURE/OVERVIEW.md).
 
 ---
@@ -211,15 +227,30 @@ import-linter contracts. Adding a solver means writing one adapter — see
 ## Development
 
 ```bash
-pytest                            # backend tests — real PostgreSQL, no mocked DB
-ruff check app/ infra/ scripts/ deploy/ tests/   # backend lint (100-char lines)
-lint-imports                      # domain boundary contracts
+pip install -r requirements.txt -r requirements-dev.txt
+pip install "ruff==0.16.3" "import-linter>=2.1"   # the versions CI pins
 
-cd frontend
+pytest                            # backend tests — real PostgreSQL, no mocked DB
+ruff check app/ infra/ scripts/ deploy/ tests/    # backend lint (100-char lines)
+ruff format --check app/ infra/ scripts/ deploy/ tests/   # CI runs this too
+lint-imports                      # the 7 domain boundary contracts
+
+cd frontend                       # Node 24
+npm ci
 npm run lint                      # frontend lint
 npm run test                      # unit tests (vitest)
+npm run build                     # the real frontend gate — see the note below
 npm run test:e2e                  # end-to-end (playwright, against a prod-like build)
 ```
+
+`npm run build` catches errors that `tsc` and `eslint` do not, so run it before
+you open a PR. Its `prebuild` step overwrites `frontend/src/lib/generated/api.ts`
+from whatever API container is running on port 8001. Start the current API first,
+or the generated types go stale under you.
+
+`ruff` and `lint-imports` run twice: as pre-commit hooks
+(`.pre-commit-config.yaml`) and as CI steps, because a hook can be skipped with
+`--no-verify`. Both places pin the same versions.
 
 Database migrations:
 

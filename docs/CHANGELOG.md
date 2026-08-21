@@ -35,6 +35,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ### Added
 - **A comparison now names any solver that still searched past the shared limit.** The row's Search time turns amber and a notice under the table says which solver and by how much, so extra time is never read as a fair loss.
 
+### Changed
+- **The README says where to try JAOT without installing it, and draws its architecture instead of typing it in box characters.** Both architecture diagrams are Mermaid now, so they render as pictures on GitHub.
+- **Documented claims were re-counted against the code.** The MCP tool count, the number of containers a production host runs, the size of the search index behind the AI assistant, and the list of background task modules were all out of date. So was the description of the solver contract, which still named a method removed a phase ago.
+
+### Fixed
+- **The deploy guide's log and troubleshooting commands name services that exist.** They told you to tail `celery_worker`, which production does not have — each solver runs its own worker — so anyone following the guide got an error instead of logs.
+- **The domain boundary contracts are checked by CI.** They ran only as a pre-commit hook, which anyone can skip with `--no-verify`, while the README and the architecture overview both said the build enforced them.
+
 ### Security
 - **A browser session ends when the account or the organisation is switched off.** Only the API-key path checked that both were live. Deactivating an organisation, or deleting a user — which is a soft delete — cut off that account's keys and nothing else: the person kept reading, kept creating models, and could sign in again. An administrator who pressed either button believed they had cut somebody off.
 - **An administrator cannot switch off the organisation they belong to.** Now that the switch works, pressing it on your own row would lock you out of the panel you pressed it from.

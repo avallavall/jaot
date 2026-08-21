@@ -8,7 +8,7 @@
 
 ## Services
 
-Production runs **24 containers** (plus 1 one-shot `migrate`) across four Docker networks (`frontend`, `backend`, `monitoring`, `plausible_backend`). The Hexaly worker (`celery_worker_hexaly`) is profile-gated and only runs on deployments with a Hexaly platform license.
+`deploy/docker-compose.prod.yml` defines **28 services** across four Docker networks (`frontend`, `backend`, `monitoring`, `plausible_backend`). Two are profile-gated and do not start with a plain `up -d`: the one-shot `migrate` runner and the Hexaly worker (`celery_worker_hexaly`, only on deployments holding a Hexaly platform licence). So a normal production host runs **26 long-running containers**.
 
 ### Application
 
@@ -17,7 +17,7 @@ Production runs **24 containers** (plus 1 one-shot `migrate`) across four Docker
 | `postgres` | jaot_prod_postgres | 5432 (internal) | PostgreSQL 18 — primary database |
 | `redis` | jaot_prod_redis | 6379 (internal) | Cache and rate limiting |
 | `rabbitmq` | jaot_prod_rabbitmq | 15672 (localhost) | Message broker (management UI on 15672) |
-| `qdrant` | jaot_prod_qdrant | 6333 (internal) | Qdrant vector DB for RAG (384-dim, 186 docs indexed) |
+| `qdrant` | jaot_prod_qdrant | 6333 (internal) | Qdrant vector DB for RAG (384-dim, 290 docs indexed) |
 | `api` | jaot_prod_api | 8001 (internal) | FastAPI backend, 4 Uvicorn workers |
 | `celery_worker_default` | jaot_prod_celery_default | -- | Default queue (`jaot_default`): email, webhooks, cron (256 MB) |
 | `celery_worker_scip` | jaot_prod_celery_scip | -- | SCIP solver queue (`solve_scip`) — 3 GB |
@@ -235,21 +235,27 @@ A migration may DROP or RENAME when that is the right change, but a rollback onl
 ## Local Development (without Docker)
 
 ```bash
-# Start only infrastructure dependencies
-docker-compose up -d postgres rabbitmq redis
+# Start only the infrastructure dependencies.
+# Include qdrant, or RAG silently degrades and the AI assistant loses its grounding.
+docker compose up -d postgres rabbitmq redis qdrant
 
 # Backend
+cp .env.example .env          # DATABASE_URL etc. already point at localhost
 source venv/bin/activate
 pip install -r requirements.txt
 alembic -c infra/alembic.ini upgrade head
 python scripts/ensure_admin_api_key.py
-python run.py
+python run.py                 # http://localhost:8001
 ```
 
+`run.py` applies pending migrations itself when `DEBUG=True`, which is what
+`.env.example` sets. With `DEBUG=False` it skips them and you must run the
+`migrate` container instead.
+
 ```bash
-# Frontend
+# Frontend — Node 24
 cd frontend
-npm install
+npm ci
 npm run dev   # http://localhost:3000
 ```
 
@@ -258,9 +264,12 @@ npm run dev   # http://localhost:3000
 ## Logs and Diagnostics
 
 ```bash
-# Tail logs for a specific service
+# Tail logs for a specific service.
+# There is no service called "celery_worker" in production — each solver gets
+# its own queue-bound worker. Use the exact name from the Services table.
 docker compose -f deploy/docker-compose.prod.yml logs -f api
-docker compose -f deploy/docker-compose.prod.yml logs -f celery_worker
+docker compose -f deploy/docker-compose.prod.yml logs -f celery_worker_default
+docker compose -f deploy/docker-compose.prod.yml logs -f celery_worker_scip
 docker compose -f deploy/docker-compose.prod.yml logs -f prometheus
 
 # Shell into a container
@@ -290,10 +299,15 @@ docker compose -f deploy/docker-compose.prod.yml logs postgres
 docker compose -f deploy/docker-compose.prod.yml exec postgres psql -U jaot -d jaot -c "\dt"
 ```
 
-**Celery does not process tasks:**
+**Celery does not process tasks:** find out which queue is stuck first. A solve
+sits in `solve_scip`, `solve_highs`, `solve_cbc`, `solve_glpk` or `solve_compare`;
+everything else sits in `jaot_default`.
 ```bash
-docker compose -f deploy/docker-compose.prod.yml logs celery_worker
-# Check RabbitMQ management UI at http://localhost:15672
+docker compose -f deploy/docker-compose.prod.yml logs celery_worker_default
+docker compose -f deploy/docker-compose.prod.yml logs celery_worker_scip
+# Queue depth per queue
+docker compose -f deploy/docker-compose.prod.yml exec rabbitmq rabbitmqctl list_queues name messages consumers
+# Or the RabbitMQ management UI at http://localhost:15672
 ```
 
 **Frontend does not connect to API** — The production frontend uses `API_PROXY_URL=http://api:8001` and Caddy proxies browser requests from the same origin. Verify Caddy is healthy and the `frontend` network is intact.

@@ -6,6 +6,8 @@ migration (ADR-001). See `docs/BOUNDED_CONTEXTS.md` for the full map.
 ## Current residents
 
 - **`solver/`** — BC1, extracted 2026-04-13 (Phase 3). Blueprint for future extractions.
+- **`dsl/`** — BC1b, the JModel compiler. Pure: its `dsl-domain-pure` contract lets it
+  import `app.schemas` and nothing else.
 
 Everything else still lives in flat `app/services/` and migrates here phase by phase.
 
@@ -31,7 +33,7 @@ app/domains/<name>/
 2. **Cross-domain calls go through explicit interfaces.** Protocols + adapters for sync
    dependencies; fire-and-forget events for the rest. See
    `docs/BOUNDED_CONTEXTS.md` § "Cross-context call rules".
-3. **`import-linter` contracts are law.** `pyproject.toml` lists 6 KEPT contracts. Never
+3. **`import-linter` contracts are law.** `pyproject.toml` lists 7 KEPT contracts. Never
    add an import that breaks them — extend the contract with justification instead.
 4. **Migration preserves behavior.** When extracting a domain, use `sys.modules` shims so
    existing importers keep working. Zero-behavior-change is the acceptance criterion.
