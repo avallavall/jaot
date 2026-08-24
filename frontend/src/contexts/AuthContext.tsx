@@ -18,6 +18,17 @@ function isSessionRejection(error: unknown): boolean {
 }
 
 /**
+ * Only the server saying "this workspace is not yours" is final.
+ *
+ * A workspace of another organisation, or one that was deleted, answers 404 on
+ * every one of its pages; being refused it answers 403. A 429, a 5xx or a
+ * dropped connection say nothing about it.
+ */
+function isWorkspaceRejection(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 403 || error.status === 404);
+}
+
+/**
  * Read the current session, retrying failures that say nothing about it.
  *
  * A 429 (a rate-limit window the user happened to fill by navigating quickly),
@@ -257,8 +268,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else if (isAdmin) {
             setWorkspaceRole("admin");
           }
-        } catch {
-          // Saved workspace no longer accessible — clear it and auto-select.
+        } catch (error) {
+          // Discard the saved workspace only when the server says it is gone or
+          // refused. Every failure used to land here, so a 429 or a dropped
+          // connection deleted the choice from localStorage and switched the
+          // user to a different workspace without saying so — and the next
+          // model they created was filed in the wrong one.
+          if (!isWorkspaceRejection(error)) return;
           localStorage.removeItem("jaot_active_workspace");
           setActiveWorkspaceIdState(null);
           await autoSelectWorkspace(userId, isAdmin);

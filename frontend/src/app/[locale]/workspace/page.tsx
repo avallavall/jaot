@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
@@ -11,7 +10,7 @@ import {
   Store, Wrench, ClipboardList, Building2,
   Bell, Webhook, Activity,
 } from "lucide-react";
-import type { ModelExecution, SolveTrigger, UserInfo } from "@/lib/types";
+import type { ModelExecution, SolveTrigger } from "@/lib/types";
 import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface DashboardStats {
@@ -21,39 +20,41 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, user, organization } = useAuth();
   const t = useTranslations("workspace");
   const { day } = useDateFormat();
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // The name and the admin flag come from AuthProvider, which has already read
+  // and validated the session; this page also sits behind ProtectedRoute. It
+  // used to ask /auth/me again and send the visitor to /login from a catch that
+  // covered every failure — so a 429, which somebody reaches just by navigating
+  // quickly, threw a signed-in user off their own dashboard.
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [info, executions, triggers, notifications] = await Promise.all([
-          api.getMe(),
+        const [executions, triggers, notifications] = await Promise.all([
           api.getAllExecutions({ page_size: "5" }).catch(() => ({ items: [] as ModelExecution[] })),
           api.triggers.list().catch(() => [] as SolveTrigger[]),
           api.getUnreadCount().catch(() => ({ unread_count: 0 })),
         ]);
 
-        setUserInfo(info);
         setStats({
           activeTriggers: triggers.length,
           unreadNotifications: notifications.unread_count,
           recentExecutions: executions.items,
         });
       } catch {
-        router.push("/login");
+        // Each call above already falls back on its own. The page shows the
+        // figures it has rather than moving anybody.
+        setStats({ activeTriggers: 0, unreadNotifications: 0, recentExecutions: [] });
       } finally {
         setLoading(false);
       }
     }
 
     loadDashboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -72,17 +73,13 @@ export default function DashboardPage() {
     );
   }
 
-  if (!userInfo) {
-    return null;
-  }
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
           <p className="text-muted-foreground mt-1">
-            {userInfo.organization_name}
+            {organization?.name}
           </p>
         </div>
         <Button variant="outline" onClick={logout}>
@@ -165,7 +162,7 @@ export default function DashboardPage() {
             <div className="flex justify-center mb-2"><Building2 className="w-6 h-6 text-primary" /></div>
             <div className="text-sm font-medium">{t("dashboard.organizationProfile")}</div>
           </Link>
-          {userInfo.is_admin && (
+          {user?.is_admin && (
             <Link href="/admin" className="p-4 border rounded-lg hover:bg-muted/50 transition-colors text-center">
               <div className="flex justify-center mb-2"><Wrench className="w-6 h-6 text-primary" /></div>
               <div className="text-sm font-medium">{t("dashboard.adminPanel")}</div>

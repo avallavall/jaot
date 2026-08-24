@@ -42,6 +42,9 @@ vi.mock("@/lib/api", () => ({
     isAuthenticated: vi.fn(),
     clearApiKey: vi.fn(),
     getApiKey: vi.fn(),
+    getWorkspace: vi.fn(),
+    listMembers: vi.fn(),
+    listWorkspaces: vi.fn(),
   },
 }));
 
@@ -382,6 +385,63 @@ describe("AuthContext", () => {
       expect(screen.getByTestId("session-ended").textContent).toBe("ended");
       expect(localStorage.getItem("jaot_api_key")).toBeNull();
       expect(push).not.toHaveBeenCalled();
+    });
+  });
+
+  // CONTRACT-TEST: only the server saying the workspace is gone discards it
+  //
+  // The same confusion as the session one, one level down. Every failure landed
+  // in the same catch, so a 429 or a dropped connection deleted the workspace
+  // the user had chosen and silently switched them to another one. The next
+  // model they created was filed in the wrong workspace.
+  describe("the workspace the user chose", () => {
+    beforeEach(() => {
+      localStorage.setItem("jaot_api_key", "ok_live");
+      localStorage.setItem("jaot_active_workspace", "ws_1");
+      vi.mocked(api.getApiKey).mockReturnValue("ok_live");
+      vi.mocked(api.getMe).mockResolvedValue(mockMe);
+    });
+
+    it("survives a failure that says nothing about it", async () => {
+      vi.mocked(api.getWorkspace).mockRejectedValue(new ApiError(503, "Service Unavailable"));
+      vi.mocked(api.listMembers).mockRejectedValue(new ApiError(503, "Service Unavailable"));
+
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId("loading").textContent).toBe("ready"),
+      );
+
+      expect(localStorage.getItem("jaot_active_workspace")).toBe("ws_1");
+      // Nothing went looking for a different workspace to switch to.
+      expect(vi.mocked(api.listWorkspaces)).not.toHaveBeenCalled();
+    });
+
+    it("is discarded when the server says it is gone", async () => {
+      vi.mocked(api.getWorkspace).mockRejectedValue(new ApiError(404, "Not Found"));
+      vi.mocked(api.listMembers).mockRejectedValue(new ApiError(404, "Not Found"));
+      vi.mocked(api.listWorkspaces).mockResolvedValue({
+        items: [],
+      } as unknown as Awaited<ReturnType<typeof api.listWorkspaces>>);
+
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId("loading").textContent).toBe("ready"),
+      );
+
+      await waitFor(() =>
+        expect(localStorage.getItem("jaot_active_workspace")).toBeNull(),
+      );
+      expect(vi.mocked(api.listWorkspaces)).toHaveBeenCalled();
     });
   });
 });
