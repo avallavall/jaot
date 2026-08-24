@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class ModelCatalogResponse(BaseModel):
@@ -172,8 +172,18 @@ class ModelExecutionResponse(ExecutionSummaryResponse):
     Served by the detail endpoint, where the payloads are the point.
     """
 
-    input_data: dict[str, Any]
+    #: Read from the row's ``problem_data`` first, falling back to the raw
+    #: column. A column of a solver comparison stores no copy of the problem —
+    #: it solves the parent's snapshot, and ``problem_data`` is what knows that.
+    #: The alias lives here rather than at the call sites because
+    #: ``model_validate(execution)`` binds by field NAME: a route that shaped its
+    #: response that way silently answered with an empty problem, and neither a
+    #: type checker nor a grep for ``.input_data`` could find it.
+    input_data: dict[str, Any] = Field(validation_alias=AliasChoices("problem_data", "input_data"))
     result_data: dict[str, Any] | None = None
+
+    # `populate_by_name` so the explicit constructor can still pass `input_data=`.
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class ExecutionListResponse(BaseModel):

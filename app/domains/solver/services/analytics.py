@@ -12,7 +12,7 @@ from datetime import timedelta
 from types import MappingProxyType
 from typing import Any, Literal
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models import ModelExecution
 from app.shared.utils.datetime_helpers import utcnow
@@ -234,6 +234,11 @@ def compare_executions(
     """
     rows = (
         db.query(ModelExecution)
+        # A column of a comparison holds no problem of its own and would read it
+        # off its parent one row at a time. Only the two sizes below are wanted,
+        # and the parent already stores them as integers — so the parent is
+        # loaded once for the whole batch and the snapshot is never touched.
+        .options(selectinload(ModelExecution.comparison))
         .filter(
             ModelExecution.id.in_(execution_ids),
             ModelExecution.organization_id == org_id,
@@ -249,14 +254,17 @@ def compare_executions(
         if not exe:
             continue
 
-        # Extract problem size from the problem this run solved. A column of a
-        # comparison holds no copy of its own — `problem_data` reads the parent's
-        # snapshot, which is the same bytes it used to be handed.
-        input_data = exe.problem_data
-        variables = input_data.get("variables")
-        constraints = input_data.get("constraints")
-        num_vars = len(variables) if isinstance(variables, list) else None
-        num_cons = len(constraints) if isinstance(constraints, list) else None
+        # Problem size. A comparison records both as integers when it snapshots
+        # the problem, so a column of one is answered without reading a 3.8 MB
+        # blob to call len() on two of its keys.
+        if exe.comparison is not None:
+            num_vars = exe.comparison.variable_count
+            num_cons = exe.comparison.constraint_count
+        else:
+            variables = exe.input_data.get("variables") if exe.input_data else None
+            constraints = exe.input_data.get("constraints") if exe.input_data else None
+            num_vars = len(variables) if isinstance(variables, list) else None
+            num_cons = len(constraints) if isinstance(constraints, list) else None
 
         # Extract gap from result_data (safely handle non-numeric values)
         result_data = exe.result_data or {}

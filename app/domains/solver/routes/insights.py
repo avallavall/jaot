@@ -55,7 +55,7 @@ def get_execution_insights(
     execution = load_execution(db, execution_id, org, current_user)
 
     input_data = execution.problem_data
-    if not input_data or not isinstance(input_data, dict):
+    if not input_data:
         return InsightsResponse(execution_id=execution_id, insights=[])
 
     try:

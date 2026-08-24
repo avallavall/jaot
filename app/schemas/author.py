@@ -62,7 +62,9 @@ class AuthorListingRow(BaseModel):
     is_public: bool
     version: str
     logo_url: str | None = None
-    total_activations: int
+    #: Counted, not stored — the listing row carries no such column, so the
+    #: default is what validating a row gives you and the service fills it in.
+    total_activations: int = 0
     total_executions: int
     avg_rating: float | None = None
     success_rate: float | None = None

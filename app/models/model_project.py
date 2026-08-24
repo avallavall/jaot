@@ -334,13 +334,8 @@ class ModelProjectListing(Base):
     )
     is_official: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
-    # Statistics (rollups mirrored from the catalog).
-    #
-    # There is no `total_activations` here. It was a stored counter bumped when
-    # somebody forked the listing, and nothing ever recomputed it: on the
-    # development database it read 66 against the 6 that `adoption_query`
-    # counts, and the stored one was what a marketplace card showed. Adoptions
-    # are counted off the fork rows now — see `adoption_counts`.
+    # Statistics (rollups mirrored from the catalog). Adoptions are NOT here:
+    # they are counted off the fork rows — see `adoption_query`.
     total_executions: Mapped[int] = mapped_column(Integer, default=0)
     # Raw tallies the two derived figures below are computed from. Kept as
     # counters so concurrent workers can bump them in one atomic UPDATE — a

@@ -383,10 +383,8 @@ def create_from_marketplace(
     except Exception:
         logger.debug("Failed to log analytics event", exc_info=True)
 
-    # The source listing, read here because the notification below is its only
-    # consumer (source_ref is the resolved id). It used to be fetched before the
-    # commit, where the adoption counter needed it; that counter is gone, and
-    # counting adoptions off the fork rows is what replaced it.
+    # The source listing (source_ref is the resolved id). Only the author
+    # notification below reads it.
     listing = (
         db.query(ModelProjectListing)
         .filter(ModelProjectListing.model_project_id == project.source_ref)

@@ -13,12 +13,8 @@ upload is throwaway (owner decision, 2026-08-14) and lives only in this row, so
 deleting the comparison deletes the problem with it.
 
 The snapshot lives here and nowhere else. Each child used to store it again in
-its own ``input_data``, which multiplied it by the number of solvers asked for:
-3.8 MB as JSON on an assignment model of 22,500 binary variables, so one matrix
-row of four solvers wrote about 19 MB of the same bytes. Consumers read
-``ModelExecution.problem_data``, which falls back to this row — never
-``input_data`` directly. Rows written before that keep their own copy and it is
-still what they return.
+its own ``input_data``; ``ModelExecution.problem_data`` documents what that cost
+and is what every consumer reads — never ``input_data`` directly.
 """
 
 from __future__ import annotations

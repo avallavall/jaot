@@ -21,12 +21,12 @@ from app.schemas.model import (
     ModelCatalogResponse,
 )
 from app.services import favorites_service
-from app.services.author_analytics_service import (
-    AuthorAnalyticsService,
-    adoption_count,
-    adoption_counts,
+from app.services.author_analytics_service import AuthorAnalyticsService, adoption_count
+from app.services.marketplace_fusion import (
+    MARKETPLACE_VISIBLE,
+    listing_to_catalog_response,
+    listings_to_catalog_responses,
 )
-from app.services.marketplace_fusion import MARKETPLACE_VISIBLE, listing_to_catalog_response
 from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -201,14 +201,8 @@ def list_catalog_models(
         else {}
     )
 
-    # One query for the whole page. Counting per card would run one per row.
-    adoptions = adoption_counts(db, [s.model_project_id for s in models])
-
     items = []
-    for s in models:
-        item = listing_to_catalog_response(
-            s, total_activations=adoptions.get(s.model_project_id, 0)
-        )
+    for s, item in zip(models, listings_to_catalog_responses(db, models), strict=True):
         if s.author_organization_id:
             author_org = orgs.get(s.author_organization_id)
             if author_org:

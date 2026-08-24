@@ -180,9 +180,7 @@ def insert_comparison_child(
         execution_id=generate_id("exe_"),
         organization_id=comparison.organization_id,
         celery_task_id="",
-        # No copy of the problem here. Every column solves the parent's
-        # snapshot, and `ModelExecution.problem_data` reads it from there — a
-        # copy per column multiplied a 3.8 MB problem by the number of solvers.
+        # No copy of the problem here — see `ModelExecution.problem_data`.
         input_data={},
         solver_name=entry.solver_name,
         executed_by_user_id=user.id if user is not None else None,

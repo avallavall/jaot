@@ -7,11 +7,14 @@ public ``ModelCatalogResponse`` wire shape the frontend + API/MCP consumers expe
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from sqlalchemy import Float, case, cast
 from sqlalchemy.orm import Session
 
 from app.models import ModelProjectListing
 from app.schemas.model import ModelCatalogResponse
+from app.services.author_analytics_service import adoption_counts
 from app.shared.constants.listing_status import STATUS_PUBLISHED
 
 # The one definition of "this listing is on the marketplace". Every surface that
@@ -70,6 +73,24 @@ def record_listing_execution(
     )
 
 
+def listings_to_catalog_responses(
+    db: Session, listings: Sequence[ModelProjectListing]
+) -> list[ModelCatalogResponse]:
+    """Map a page of listings, counting every adoption in one query.
+
+    Use this wherever more than one listing is rendered. The singular below
+    takes the count as an argument, which a caller rendering a list can satisfy
+    one card at a time — fifty cards, fifty queries. Batching is not something a
+    call site should have to remember.
+    """
+    rows = list(listings)
+    adoptions = adoption_counts(db, [row.model_project_id for row in rows])
+    return [
+        listing_to_catalog_response(row, total_activations=adoptions.get(row.model_project_id, 0))
+        for row in rows
+    ]
+
+
 def listing_to_catalog_response(
     listing: ModelProjectListing, *, total_activations: int
 ) -> ModelCatalogResponse:
@@ -78,11 +99,9 @@ def listing_to_catalog_response(
     ``author_name`` / ``author_verified`` stay at their defaults; the endpoint fills them
     from the author org just as it does for a catalog row.
 
-    ``total_activations`` is passed in rather than read off the listing. It used
-    to be a stored counter that nothing recomputed, and it had drifted two orders
-    of magnitude from the query that defines the word: 66 stored against 6
-    counted. Callers count it with ``adoption_count`` for one listing, or
-    ``adoption_counts`` for a page of them.
+    ``total_activations`` is passed in rather than read off the listing — see
+    ``adoption_query`` for why there is no column to read. Callers count it with
+    ``adoption_count`` for one listing, or ``adoption_counts`` for a page.
     """
     return ModelCatalogResponse(
         id=listing.model_project_id,

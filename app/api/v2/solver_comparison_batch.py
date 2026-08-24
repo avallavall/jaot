@@ -594,9 +594,9 @@ def _batch_detail(
     """
     members = _members_or_404(db, batch_id, org, user, role)
     executions = (
-        # Same reason as above: every child carries its own copy of the problem
-        # in ``input_data`` and the grid never shows it. Twelve rows of four
-        # solvers is another ~180 MB a tick.
+        # Same reason as above: a column written before D-32 carries a full copy
+        # of the problem in ``input_data``, and the grid never shows it. Twelve
+        # rows of four solvers is another ~180 MB a tick.
         db.query(ModelExecution)
         .options(defer(ModelExecution.input_data))
         .filter(ModelExecution.comparison_id.in_([m.id for m in members]))

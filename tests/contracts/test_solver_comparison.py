@@ -205,6 +205,32 @@ def test_a_column_that_carries_its_own_copy_still_reads_it(
     assert child.problem_data == own_copy
 
 
+# CONTRACT-TEST: the execution detail endpoint answers with the problem, not {}.
+#
+# The response is shaped with `model_validate(execution)`, which binds by field
+# NAME and so read the raw column straight past `problem_data`. A column of a
+# comparison stores {} there, so the detail page and the printable report it
+# generates came back with no problem at all — and neither a type checker nor a
+# grep for `.input_data` could find it, because the read happens inside pydantic.
+def test_the_detail_endpoint_answers_with_the_problem_for_a_column(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+) -> None:
+    detail = _create(authenticated_client)
+    child = (
+        db_session.query(ModelExecution)
+        .filter(ModelExecution.comparison_id == detail["id"])
+        .first()
+    )
+    assert child is not None
+    assert child.input_data == {}
+
+    body = authenticated_client.get(f"/api/v2/models/executions/{child.id}")
+    assert body.status_code == 200, body.text
+    assert body.json()["input_data"]["variables"], "the column answered with no problem"
+
+
 # CONTRACT-TEST: the thread count is the platform's to set, never the caller's.
 # HiGHS sizes one scheduler per worker process on its first solve, so a
 # per-request count could not be honoured on the second comparison and would

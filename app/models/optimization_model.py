@@ -232,8 +232,8 @@ class ModelExecution(Base):
         column solves the parent's snapshot byte for byte — that is the point of
         the snapshot — and storing it again multiplied it by the number of
         solvers asked for. Measured on an assignment model the size the owner
-        runs (150x150, 22,500 binary variables): 3.8 MB as JSON, so one matrix
-        row of four solvers wrote about 19 MB of the same bytes five times.
+        runs (150x150, 22,500 binary variables): 3.8 MB as JSON, so a row of
+        four solvers held the same problem five times, about 19 MB.
 
         Rows written before this carry their copy, and it is returned as it
         always was. Nothing had to be rewritten to read them.

@@ -33,7 +33,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 _APP_ROUTES = _REPO_ROOT / "frontend" / "src" / "app" / "[locale]"
 
 
-def _adopt(db, listing, *, org_id: str):
+def _adopt(db, listing, *, org_id: str, draft_model_json: dict | None = None):
     """Somebody seeds a fork from a listing. That row IS the adoption.
 
     There is no counter to bump any more: every screen counts these rows, so a
@@ -46,6 +46,7 @@ def _adopt(db, listing, *, org_id: str):
         status="active",
         source_type="marketplace",
         source_ref=listing.model_project_id,
+        draft_model_json=draft_model_json,
     )
     db.add(project)
     db.flush()
@@ -195,16 +196,12 @@ class TestWithdrawListing:
         """
         listing = _publish(db_session, org_id=test_organization.id)
         db_session.flush()
-        fork = ModelProject(
-            id=generate_id("mp_"),
-            organization_id=test_organization_2.id,
-            name="Adopted model",
-            status="active",
-            source_type="marketplace",
-            source_ref=listing.model_project_id,
+        fork = _adopt(
+            db_session,
+            listing,
+            org_id=test_organization_2.id,
             draft_model_json={"variables": [], "constraints": []},
         )
-        db_session.add(fork)
         db_session.commit()
 
         authenticated_client.post(f"/api/v2/projects/{listing.model_project_id}/unpublish")

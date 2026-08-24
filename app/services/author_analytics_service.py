@@ -127,21 +127,37 @@ def adoption_query(
     return q
 
 
-def adoption_counts(db: Session, listing_ids: Sequence[str]) -> dict[str, int]:
-    """How many adoptions each of these listings has, in one query.
+def adoption_counts(
+    db: Session,
+    listing_ids: Sequence[str] | None = None,
+    *,
+    author_org_id: str | None = None,
+    since: datetime | None = None,
+) -> dict[str, int]:
+    """How many adoptions each listing has, keyed by listing id, in one query.
 
-    Same definition as :func:`adoption_query`, grouped by listing. A catalogue
-    page renders up to fifty cards, so counting one card at a time would run
-    fifty queries; this runs one. Listings with no adoption are absent from the
-    result — callers default to 0.
+    The only grouped form of :func:`adoption_query`. A catalogue page renders up
+    to fifty cards, so counting one card at a time would run fifty queries; this
+    runs one. Listings with no adoption are absent from the result — callers
+    default to 0.
+
+    Args:
+        listing_ids: Narrow to these listings. ``None`` means every listing the
+            other arguments allow; an empty sequence means none, and returns {}.
+        author_org_id: Narrow to listings written by this organization.
+        since: Only adoptions created on or after this moment.
     """
-    ids = list(listing_ids)
-    if not ids:
-        return {}
+    if listing_ids is not None:
+        ids = list(listing_ids)
+        if not ids:
+            return {}
+    else:
+        ids = None
+    q = adoption_query(db, author_org_id=author_org_id, since=since)
+    if ids is not None:
+        q = q.filter(ModelProjectListing.model_project_id.in_(ids))
     rows = (
-        adoption_query(db)
-        .filter(ModelProjectListing.model_project_id.in_(ids))
-        .with_entities(
+        q.with_entities(
             ModelProjectListing.model_project_id.label("listing_id"),
             func.count().label("adoptions"),
         )
@@ -336,18 +352,9 @@ class AuthorAnalyticsService:
         view_rows = view_q.group_by(ModelViewEvent.model_project_id).all()
         views_map = {r.model_project_id: r.views for r in view_rows}
 
-        # Activations per model (keyed by the forked listing's project id — the
-        # same id space as views, since a fork's source_ref IS the listing id)
-        activation_rows = (
-            self._base_activation_query(org_id, since)
-            .with_entities(
-                ModelProject.source_ref,
-                func.count().label("activations"),
-            )
-            .group_by(ModelProject.source_ref)
-            .all()
-        )
-        activations_map = {r.source_ref: r.activations for r in activation_rows}
+        # Activations per model, keyed by the forked listing's project id — the
+        # same id space as views, since a fork's source_ref IS the listing id.
+        activations_map = adoption_counts(self.db, author_org_id=org_id, since=since)
 
         all_model_ids = set(views_map.keys()) | set(activations_map.keys())
         if not all_model_ids:

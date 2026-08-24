@@ -465,7 +465,8 @@ def _comparison_or_404(
 
 def _detail(db: Session, comparison: SolverComparison) -> ComparisonDetail:
     """Shape one comparison into the table the UI renders."""
-    # ``input_data`` is this comparison's problem copied onto every column —
+    # ``input_data`` is deferred: it is empty for every column written since
+    # D-32, and rows written before it still carry a full copy of the problem —
     # 3.8 MB apiece on a real model — and the table never shows it. The page
     # polls this every two seconds while the run is live.
     children = (

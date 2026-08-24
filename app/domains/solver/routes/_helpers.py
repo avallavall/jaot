@@ -43,13 +43,13 @@ def load_execution(
 
 
 def parse_problem(execution: ModelExecution) -> OptimizationProblem:
-    """Reconstruct OptimizationProblem from stored input_data.
+    """Reconstruct OptimizationProblem from the problem this run solved.
 
     Raises:
-        HTTPException 422 if input_data is missing or invalid.
+        HTTPException 422 if the problem is missing or invalid.
     """
     input_data = execution.problem_data
-    if not input_data or not isinstance(input_data, dict):
+    if not input_data:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Execution has no stored problem data.",
