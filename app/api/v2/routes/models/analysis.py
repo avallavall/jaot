@@ -65,7 +65,7 @@ def get_execution_exact_analysis(  # sync ON PURPOSE -> threadpool (CPU-bound, n
     execution = execution_or_404(db, execution_id, org, current_user)
 
     try:
-        payload = load_execution_payload(execution.input_data, execution.result_data)
+        payload = load_execution_payload(execution.problem_data, execution.result_data)
     except ExecutionPayloadError as exc:
         return ExactAnalysis(computed=False, note=exc.reason)
 
@@ -97,7 +97,7 @@ def start_execution_scenario_analysis(
     execution = execution_or_404(db, execution_id, org, current_user)
 
     try:
-        payload = load_execution_payload(execution.input_data, execution.result_data)
+        payload = load_execution_payload(execution.problem_data, execution.result_data)
     except ExecutionPayloadError as exc:
         raise HTTPException(status_code=422, detail=exc.reason) from exc
 

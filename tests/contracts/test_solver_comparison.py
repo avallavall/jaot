@@ -145,13 +145,64 @@ def test_every_solver_receives_identical_settings(
     )
     assert len(children) == 2
     for child in children:
-        options = child.input_data["options"]
+        options = child.problem_data["options"]
         assert options["time_limit_seconds"] == 12.0
         assert options["gap_tolerance"] == 0.01
         assert options["threads"] == DEFAULT_COMPARISON_THREADS
         # Chatter costs time, and one solver logging while another does not
         # would land in the seconds column.
         assert options["verbose"] is False
+
+
+# CONTRACT-TEST: a column of a comparison stores no copy of the problem.
+#
+# Every column solves the parent's snapshot byte for byte — that is what makes a
+# comparison a comparison. Storing it again on each column multiplied it by the
+# number of solvers: measured at 3.8 MB as JSON on an assignment model of 22,500
+# binary variables, so one matrix row of four solvers wrote about 19 MB of the
+# same bytes. `problem_data` reads the parent's, so every consumer still sees
+# the problem, and rows written before this keep returning their own copy.
+def test_a_column_holds_no_copy_of_the_problem(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+) -> None:
+    detail = _create(authenticated_client)
+
+    comparison = (
+        db_session.query(SolverComparison).filter(SolverComparison.id == detail["id"]).one()
+    )
+    children = (
+        db_session.query(ModelExecution).filter(ModelExecution.comparison_id == detail["id"]).all()
+    )
+    assert len(children) == 2
+    for child in children:
+        assert child.input_data == {}, "the column wrote its own copy again"
+        # And the problem is still readable off the column, from the parent.
+        assert child.problem_data == comparison.problem_data
+        assert child.problem_data["variables"]
+
+
+# CONTRACT-TEST: a column written before the copy was dropped still reads.
+def test_a_column_that_carries_its_own_copy_still_reads_it(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+) -> None:
+    detail = _create(authenticated_client)
+    child = (
+        db_session.query(ModelExecution)
+        .filter(ModelExecution.comparison_id == detail["id"])
+        .first()
+    )
+    assert child is not None
+
+    # What every row on disk looked like before this change.
+    own_copy = {"name": "older row", "variables": [], "constraints": [], "objective": None}
+    child.input_data = own_copy
+    db_session.flush()
+
+    assert child.problem_data == own_copy
 
 
 # CONTRACT-TEST: the thread count is the platform's to set, never the caller's.

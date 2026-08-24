@@ -34,6 +34,7 @@ from app.shared.utils.id_generator import generate_id
 
 if TYPE_CHECKING:
     from app.models.organization import Organization
+    from app.models.solver_comparison import SolverComparison
     from app.models.user import User
 
 
@@ -214,10 +215,34 @@ class ModelExecution(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    comparison: Mapped[SolverComparison | None] = relationship(
+        "SolverComparison", lazy="select", viewonly=True
+    )
+
     __table_args__ = (
         Index("ix_model_exec_org_created", "organization_id", "created_at"),
         Index("ix_model_exec_status_created", "status", "created_at"),
     )
+
+    @property
+    def problem_data(self) -> dict[str, Any]:
+        """The problem this run solved. Read this, never ``input_data``.
+
+        A column of a solver comparison does not carry its own copy. Every
+        column solves the parent's snapshot byte for byte — that is the point of
+        the snapshot — and storing it again multiplied it by the number of
+        solvers asked for. Measured on an assignment model the size the owner
+        runs (150x150, 22,500 binary variables): 3.8 MB as JSON, so one matrix
+        row of four solvers wrote about 19 MB of the same bytes five times.
+
+        Rows written before this carry their copy, and it is returned as it
+        always was. Nothing had to be rewritten to read them.
+        """
+        if self.input_data:
+            return self.input_data
+        if self.comparison is not None:
+            return self.comparison.problem_data or {}
+        return {}
 
     def __repr__(self) -> str:
         return f"<ModelExecution(id={self.id}, status={self.status})>"

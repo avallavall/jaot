@@ -54,7 +54,7 @@ def get_execution_insights(
     """Generate auto-insights for a completed execution."""
     execution = load_execution(db, execution_id, org, current_user)
 
-    input_data = execution.input_data
+    input_data = execution.problem_data
     if not input_data or not isinstance(input_data, dict):
         return InsightsResponse(execution_id=execution_id, insights=[])
 

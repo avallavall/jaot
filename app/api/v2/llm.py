@@ -758,11 +758,12 @@ def _resolve_explanation_context(
         sensitivity = result_data.get("sensitivity")
         # Hand back the raw payload rather than the analysis: computing it re-parses
         # every constraint, so the caller runs it off the event loop (ADR-009).
+        problem_data = execution.problem_data
         return (
-            execution.input_data or None,
+            problem_data or None,
             solution,
             sensitivity,
-            (execution.input_data, execution.result_data),
+            (problem_data, execution.result_data),
         )
 
     return body.formulation, body.solution, body.sensitivity, None
@@ -924,7 +925,7 @@ def _resolve_infeasibility_context(
     ``execution_id`` takes precedence: the ModelExecution is loaded and org
     ownership enforced (404 if missing or owned by another org — never leak the
     existence of another org's execution). The formulation is the persisted
-    ``input_data`` and the IIS comes from ``result_data.infeasibility_analysis``
+    problem and the IIS comes from ``result_data.infeasibility_analysis``
     (may be absent → heuristic explanation). Falls back to the inline request
     fields when no ``execution_id`` is supplied.
     """
@@ -932,7 +933,7 @@ def _resolve_infeasibility_context(
         execution = execution_or_404(db, body.execution_id, org, user)
         result_data = execution.result_data or {}
         infeasibility = result_data.get("infeasibility_analysis")
-        return execution.input_data or None, infeasibility
+        return execution.problem_data or None, infeasibility
 
     return body.formulation, body.infeasibility
 
@@ -1532,7 +1533,7 @@ async def explain_execution_scenarios(
             model=model,
             max_tokens=PSS.get_int(db, "LLM_MAX_TOKENS"),
             analysis=analysis,
-            formulation=execution.input_data if isinstance(execution.input_data, dict) else None,
+            formulation=execution.problem_data or None,
             locale=locale,
         )
     except Exception as exc:

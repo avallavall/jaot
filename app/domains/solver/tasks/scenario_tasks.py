@@ -55,7 +55,7 @@ def scenario_analysis_async(
             raise ValueError(f"Execution {execution_id} not found")
 
         try:
-            payload = load_execution_payload(execution.input_data, execution.result_data)
+            payload = load_execution_payload(execution.problem_data, execution.result_data)
         except ExecutionPayloadError as exc:
             _persist(db, execution, analysis=ScenarioAnalysis(computed=False, note=exc.reason))
             return {"status": "success", "execution_id": execution_id, "computed": False}

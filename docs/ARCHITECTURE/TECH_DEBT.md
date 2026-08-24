@@ -12,7 +12,6 @@ Ordered by benefit ÷ effort.
 | D-28 | `fastapi<0.137.0` is pinned around a fragility of ours, not around FastAPI | Silent: the app would boot "healthy" with 228 routes missing | A bounded investigation |
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
-| D-32 | A comparison stores its compiled problem once per cell | Measured: 3.8 MB per copy on a 22,500-variable model, so one matrix row of four solvers writes 19 MB | Medium: it is what every consumer reads the problem off |
 
 ---
 
@@ -97,37 +96,6 @@ the wrong place for open debt.
 
 ---
 
-## D-32 · A comparison stores its problem once per cell
-
-A comparison stores its compiled problem twice: once on the parent, which is what the worker
-solves, and once on each child execution, because every existing consumer (exact analysis,
-exports, what-if re-solves) reads the problem off `ModelExecution.input_data`. With one
-comparison that is one extra copy per solver. A matrix multiplies it by the number of datasets.
-
-Measured on 2026-08-17, against an assignment model of the size the owner actually runs
-(150×150, 22,500 binary variables, 300 constraints):
-
-| | |
-|---|---|
-| Compiled problem, as JSON | 3.8 MB |
-| Compile + validate + classify, per dataset | ~1.0 s |
-| Written by one row of four solvers | ~19 MB |
-| `model_executions` on the development database | 131 MB |
-
-**The half of this that hurt is fixed.** Launching a matrix used to do all of that inside the
-request — 28 seconds and 57 MB for three datasets, and about 112 seconds for twelve, past
-Cloudflare's 100-second ceiling, which would have reported a failure for a matrix that was
-running. The compiling and the writing moved onto the worker, one row at a time, and the same
-launch now answers in 2.3 seconds.
-
-What is left is the size. Whether a child execution needs its own copy of a snapshot its parent
-already holds is a question about those consumers, and changing it is a change with its own
-commit and its own tests.
-
-Recorded 2026-08-17, measured rather than estimated. Latency half closed the same day.
-
----
-
 ## Closed
 
 Full reasoning in the commit that closed each one, and in the CHANGELOG.
@@ -162,6 +130,7 @@ Full reasoning in the commit that closed each one, and in the CHANGELOG.
 | D-26 | Contract-release: legacy tables + 6 FK columns + 6 credit columns dropped, `access_count` → integer; found reviews had lost their uniqueness guarantee | ✅ `20260801_contract_release` |
 | D-30 | The shared rate limiter takes a `cost`, so a comparison the quota cannot cover is refused without spending any of it | ✅ 2026-08-19 |
 | D-33 | The stored adoption counter dropped; every surface counts through `adoption_query`, with an index for the join | ✅ `20260824_drop_total_activations` |
+| D-32 | A comparison's columns stopped copying its problem; `ModelExecution.problem_data` reads the parent's snapshot. Cleared 59 MB of a 216 MB table on the development database | ✅ `20260824_comparison_copies` |
 
 **The 2026-04-18 comparative audit** (58% essential / 42% accidental complexity, the LOC
 tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in

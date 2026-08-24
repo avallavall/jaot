@@ -407,7 +407,7 @@ def _shape_model_execution_response(
         id=execution.id,
         model_project_id=execution.model_project_id,
         organization_model_id=execution.organization_model_id,
-        input_data=execution.input_data or {},
+        input_data=execution.problem_data,
         origin=execution.origin,
         source_kind=execution.source_kind,
         source_id=execution.source_id,

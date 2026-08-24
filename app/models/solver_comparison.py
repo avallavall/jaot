@@ -12,10 +12,13 @@ different problems. The snapshot is also what makes an uploaded file work: the
 upload is throwaway (owner decision, 2026-08-14) and lives only in this row, so
 deleting the comparison deletes the problem with it.
 
-The snapshot is stored twice — here and in each child's ``input_data``. That is
-deliberate. Every existing consumer (exact analysis, exports, what-if re-solves)
-reads the problem off ``ModelExecution.input_data``, and a child that pointed at
-its parent instead would break all of them.
+The snapshot lives here and nowhere else. Each child used to store it again in
+its own ``input_data``, which multiplied it by the number of solvers asked for:
+3.8 MB as JSON on an assignment model of 22,500 binary variables, so one matrix
+row of four solvers wrote about 19 MB of the same bytes. Consumers read
+``ModelExecution.problem_data``, which falls back to this row — never
+``input_data`` directly. Rows written before that keep their own copy and it is
+still what they return.
 """
 
 from __future__ import annotations
@@ -81,8 +84,7 @@ class SolverComparison(Base):
     )
 
     # ── What is being compared ────────────────────────────────────────────
-    # The snapshot every child solves. See the module docstring for why it is
-    # held here as well as on each child.
+    # The snapshot every child solves, held only here. See the module docstring.
     #
     # Empty until the worker has compiled it, and only ever for a matrix row. A
     # matrix compiles one problem per dataset, and doing that inside the launch

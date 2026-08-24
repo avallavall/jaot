@@ -48,7 +48,7 @@ def parse_problem(execution: ModelExecution) -> OptimizationProblem:
     Raises:
         HTTPException 422 if input_data is missing or invalid.
     """
-    input_data = execution.input_data
+    input_data = execution.problem_data
     if not input_data or not isinstance(input_data, dict):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

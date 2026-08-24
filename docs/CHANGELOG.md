@@ -38,6 +38,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ### Changed
 - **The README says where to try JAOT without installing it, and draws its architecture instead of typing it in box characters.** Both architecture diagrams are Mermaid now, so they render as pictures on GitHub.
 - **Documented claims were re-counted against the code.** The MCP tool count, the number of containers a production host runs, the size of the search index behind the AI assistant, and the list of background task modules were all out of date. So was the description of the solver contract, which still named a method removed a phase ago.
+- **A solver comparison stores the problem it compares once, not once per solver.** Every column of the table solves the same problem, and each was keeping its own copy of it: about 19 MB written for one row of four solvers on a model of 22,500 variables. The comparison keeps it, the columns read it from there, and comparisons already stored give their copies back — 59 MB of a 216 MB table on the development database.
 - **The number of adoptions on a marketplace card is counted, not stored.** It was a counter bumped when somebody took a model and recomputed by nothing: it read 66 where the real answer was 6, and that was the figure a visitor saw. Every screen now counts the same way the author dashboard and the admin panel already did, so the three agree. It means "how many teams have this model" — an adopter who deletes their copy takes their adoption with them.
 
 ### Fixed

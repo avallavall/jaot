@@ -343,7 +343,7 @@ def analyze_infeasibility(
     # plus internal underscore-prefixed markers (auto-route reason),
     # which Pydantic ignores. A malformed/legacy payload yields a clean 422.
     try:
-        problem = OptimizationProblem.model_validate(execution.input_data or {})
+        problem = OptimizationProblem.model_validate(execution.problem_data)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

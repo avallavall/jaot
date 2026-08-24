@@ -249,8 +249,10 @@ def compare_executions(
         if not exe:
             continue
 
-        # Extract problem size from input_data
-        input_data = exe.input_data or {}
+        # Extract problem size from the problem this run solved. A column of a
+        # comparison holds no copy of its own — `problem_data` reads the parent's
+        # snapshot, which is the same bytes it used to be handed.
+        input_data = exe.problem_data
         variables = input_data.get("variables")
         constraints = input_data.get("constraints")
         num_vars = len(variables) if isinstance(variables, list) else None
