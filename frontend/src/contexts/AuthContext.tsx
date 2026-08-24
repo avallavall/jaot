@@ -6,10 +6,9 @@ import {
   useEffect,
   useState,
   useCallback,
-  useRef,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type { PlanLimits, WorkspaceRole } from "@/lib/types";
 
@@ -29,7 +28,7 @@ function isSessionRejection(error: unknown): boolean {
 async function getMeWithRetry(attempts = 3): Promise<Awaited<ReturnType<typeof api.getMe>>> {
   for (let attempt = 1; ; attempt++) {
     try {
-      return await api.getMe();
+      return await api.getMe({ probeSession: true });
     } catch (error) {
       if (isSessionRejection(error) || attempt >= attempts) throw error;
       await new Promise((resolve) => setTimeout(resolve, 400 * 2 ** (attempt - 1)));
@@ -61,6 +60,8 @@ interface AuthState {
   activeWorkspaceName: string | null;
   workspaceRole: WorkspaceRole | null;
   isOwner: boolean;
+  /** True once a session ran out under the user, so the login page can say so. */
+  sessionEnded: boolean;
   login: (apiKey: string) => Promise<void>;
   loginWithEmail: (
     email: string,
@@ -88,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [workspaceRole, setWorkspaceRole] = useState<WorkspaceRole | null>(
     null,
   );
+  const [sessionEnded, setSessionEnded] = useState(false);
 
   const isAuthenticated = !!user;
 
@@ -108,10 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("jaot_permissions");
     localStorage.removeItem("jaot_active_workspace");
   }, []);
-
-  const pathname = usePathname();
-  const pathnameRef = useRef(pathname);
-  pathnameRef.current = pathname;
 
   const logout = useCallback(async () => {
     try {
@@ -220,22 +218,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user?.id, isOwner],
   );
 
-  // Validate existing session (API key or JWT cookie) and restore workspace on mount.
   // A session that ran out is a fact the whole app has to act on once. The API
   // client says so when a 401 survives its refresh, and this is what listens:
-  // clear what is left of the session and go to the login page. Before it, each
+  // drop what is left of the session and record that it ended. Before it, each
   // screen answered on its own — the executions page said "No executions yet"
   // to somebody whose session had simply expired.
+  //
+  // It does NOT navigate. Sending every listener to /login logged out the home
+  // page, the marketplace and the docs, which are for people with no session at
+  // all: an anonymous visitor landed on /login?expired=1 and could not read a
+  // word about JAOT without an account. ProtectedRoute owns the redirect — it
+  // wraps exactly the pages that need a session, and it carries the page the
+  // visitor was on so signing in finishes the navigation.
   useEffect(() => {
     const onExpired = () => {
-      if (pathnameRef.current?.includes("/login")) return;
       clearAuth();
-      router.push("/login?expired=1");
+      setSessionEnded(true);
     };
     window.addEventListener("jaot:session-expired", onExpired);
     return () => window.removeEventListener("jaot:session-expired", onExpired);
-  }, [clearAuth, router]);
+  }, [clearAuth]);
 
+  // Validate existing session (API key or JWT cookie) and restore workspace on mount.
   useEffect(() => {
     const restoreWorkspace = async (userId: string, isAdmin: boolean) => {
       const savedWorkspaceId = localStorage.getItem("jaot_active_workspace");
@@ -376,6 +380,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activeWorkspaceName,
         workspaceRole,
         isOwner,
+        sessionEnded,
         login,
         loginWithEmail,
         logout,

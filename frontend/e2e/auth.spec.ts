@@ -114,4 +114,32 @@ test.describe("Authentication", () => {
       await context.close();
     });
   });
+
+  /**
+   * The other half of "Protected routes", and the half that was missing.
+   *
+   * These pages are what somebody reads before deciding to sign up. On
+   * 2026-08-24 all three sent an anonymous visitor to /login?expired=1:
+   * AuthProvider asks /auth/me on every page load, and the 401 a visitor with
+   * no cookie gets was read as "your session expired". The redirect happens in
+   * the browser, so curl still answered 200 and the QA sweep saw nothing.
+   */
+  test.describe("Public routes", () => {
+    for (const path of ["/", "/marketplace", "/docs/getting-started/introduction"]) {
+      test(`unauthenticated access to ${path} stays on the page`, async ({ browser }) => {
+        const context = await browser.newContext({ storageState: undefined });
+        const page = await context.newPage();
+
+        await page.goto(path);
+        // Give the session probe time to answer and, if it were still wrong,
+        // to redirect. A same-tick assertion would pass on the broken build.
+        await page.waitForTimeout(3_000);
+
+        await expect(page).not.toHaveURL(/\/login/);
+        await expect(page.locator("#main-content")).toBeVisible();
+
+        await context.close();
+      });
+    }
+  });
 });

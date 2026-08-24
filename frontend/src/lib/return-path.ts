@@ -12,6 +12,9 @@
 /** Query parameter carrying the post-login destination. */
 export const RETURN_PARAM = "next";
 
+/** Query parameter that tells the login page a session ran out under the user. */
+export const EXPIRED_PARAM = "expired";
+
 /** Where a signed-in user lands when there is nothing to return to. */
 export function defaultLandingPath(isAdmin: boolean | undefined): string {
   return isAdmin ? "/admin" : "/studio";
@@ -38,9 +41,22 @@ export function safeReturnPath(
   return candidate;
 }
 
-/** Build the login URL that remembers where the visitor was heading. */
-export function loginPathReturningTo(pathname: string, search = ""): string {
+/**
+ * Build the login URL that remembers where the visitor was heading.
+ *
+ * `expired` adds the flag the login page reads to say why they are there. It is
+ * set only when a session ran out under somebody who had one; an anonymous
+ * visitor who simply opened a protected page is not told their session expired.
+ */
+export function loginPathReturningTo(
+  pathname: string,
+  search = "",
+  expired = false,
+): string {
   const target = `${pathname}${search}`;
-  if (safeReturnPath(target, "") === "") return "/login";
-  return `/login?${RETURN_PARAM}=${encodeURIComponent(target)}`;
+  const query = new URLSearchParams();
+  if (safeReturnPath(target, "") !== "") query.set(RETURN_PARAM, target);
+  if (expired) query.set(EXPIRED_PARAM, "1");
+  const qs = query.toString();
+  return qs ? `/login?${qs}` : "/login";
 }

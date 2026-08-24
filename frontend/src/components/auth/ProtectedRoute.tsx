@@ -14,7 +14,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, sessionEnded } = useAuth();
   const router = useRouter();
   const pathname = usePathname(); // locale-free — the router re-applies the prefix
   const t = useTranslations("auth");
@@ -29,14 +29,20 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
       // useSearchParams: this component wraps every protected page, and the hook
       // would force a Suspense boundary (and dynamic rendering) on all of them.
       // Inside an effect there is always a browser.
-      router.push(loginPathReturningTo(pathname, window.location.search));
+      //
+      // This is the ONLY place a missing session sends anybody to /login. The
+      // component wraps exactly the pages that need one, so a visitor reading
+      // the home page, the marketplace or the docs is never moved.
+      router.push(
+        loginPathReturningTo(pathname, window.location.search, sessionEnded),
+      );
       return;
     }
 
     if (requireAdmin && !user?.is_admin) {
       router.push("/studio");
     }
-  }, [isAuthenticated, isLoading, requireAdmin, user, router, pathname]);
+  }, [isAuthenticated, isLoading, requireAdmin, user, router, pathname, sessionEnded]);
 
   if (isLoading) {
     return (

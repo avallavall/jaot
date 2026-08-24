@@ -358,6 +358,36 @@ describe("a request whose session has ended", () => {
     expect(expired).not.toHaveBeenCalled();
     window.removeEventListener("jaot:session-expired", expired);
   });
+
+  // CONTRACT-TEST: a probe for a session never reports one as ended
+  //
+  // AuthProvider asks /auth/me on every page load, including the home page, the
+  // marketplace and the docs. For a visitor who never signed in the answer is
+  // 401, and turning that into "your session expired" sent every anonymous
+  // reader to /login — nobody could find out what JAOT is without registering.
+  it("says nothing when a probe finds no session at all", async () => {
+    const expired = vi.fn();
+    window.addEventListener("jaot:session-expired", expired);
+
+    vi.spyOn(global, "fetch").mockResolvedValue(reply(401));
+
+    await expect(api.getMe({ probeSession: true })).rejects.toThrow();
+
+    expect(expired).not.toHaveBeenCalled();
+    window.removeEventListener("jaot:session-expired", expired);
+  });
+
+  it("still reports the same /me 401 when it is not a probe", async () => {
+    const expired = vi.fn();
+    window.addEventListener("jaot:session-expired", expired);
+
+    vi.spyOn(global, "fetch").mockResolvedValue(reply(401));
+
+    await expect(api.getMe()).rejects.toThrow();
+
+    expect(expired).toHaveBeenCalledTimes(1);
+    window.removeEventListener("jaot:session-expired", expired);
+  });
 });
 
 /**

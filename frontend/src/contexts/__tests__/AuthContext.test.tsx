@@ -5,6 +5,24 @@ import React from "react";
 import { AuthProvider, useAuth } from "../AuthContext";
 import type { UserInfo } from "@/lib/types";
 
+// A router spy that survives between calls. The shared setup (src/test/setup.tsx)
+// builds a new mock router on every useRouter(), so it can never answer the
+// question these tests ask: did anything navigate?
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push,
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+  redirect: vi.fn(),
+}));
+
 // Mock the api module. ApiError is a real class here because AuthContext uses
 // `instanceof` on it to tell "your session is gone" apart from "the request
 // happened to fail".
@@ -40,12 +58,13 @@ const mockMe: UserInfo = {
 };
 
 function TestConsumer() {
-  const { user, isAuthenticated, isLoading, login, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, sessionEnded, login, logout } = useAuth();
   return (
     <div>
       <span data-testid="loading">{isLoading ? "loading" : "ready"}</span>
       <span data-testid="auth">{isAuthenticated ? "authed" : "anon"}</span>
       <span data-testid="user">{user?.name ?? "none"}</span>
+      <span data-testid="session-ended">{sessionEnded ? "ended" : "intact"}</span>
       <button onClick={() => login("ok_test_key")}>Login</button>
       <button onClick={logout}>Logout</button>
     </div>
@@ -303,6 +322,66 @@ describe("AuthContext", () => {
         expect(screen.getByTestId("loading").textContent).toBe("ready"),
       );
       expect(vi.mocked(api.getMe)).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // CONTRACT-TEST: no session is not the same as a session that ended
+  //
+  // Reproduced in production on 2026-08-24: opening jaot.io, /marketplace or
+  // /docs with no cookie landed on /login?expired=1. AuthProvider probes
+  // /auth/me on every page load; the 401 an anonymous visitor gets was being
+  // read as "your session expired", and the provider redirected from anywhere.
+  // Nobody could read what JAOT is without registering first.
+  describe("a visitor who never signed in", () => {
+    it("probes for a session instead of announcing one ended", async () => {
+      vi.mocked(api.getApiKey).mockReturnValue(null);
+      vi.mocked(api.getMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId("loading").textContent).toBe("ready"),
+      );
+      expect(screen.getByTestId("auth").textContent).toBe("anon");
+      expect(screen.getByTestId("session-ended").textContent).toBe("intact");
+      expect(vi.mocked(api.getMe)).toHaveBeenCalledWith({ probeSession: true });
+      expect(push).not.toHaveBeenCalled();
+    });
+  });
+
+  // CONTRACT-TEST: the provider records a session ending, it never navigates
+  //
+  // ProtectedRoute owns the redirect, because it wraps exactly the pages that
+  // need a session. A provider that pushed /login on its own moved people off
+  // the public pages too.
+  describe("a session that ends under the user", () => {
+    it("clears the session and says so without moving anybody", async () => {
+      localStorage.setItem("jaot_api_key", "ok_live");
+      vi.mocked(api.getApiKey).mockReturnValue("ok_live");
+      vi.mocked(api.getMe).mockResolvedValue(mockMe);
+
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId("auth").textContent).toBe("authed"),
+      );
+
+      act(() => {
+        window.dispatchEvent(new CustomEvent("jaot:session-expired"));
+      });
+
+      expect(screen.getByTestId("auth").textContent).toBe("anon");
+      expect(screen.getByTestId("session-ended").textContent).toBe("ended");
+      expect(localStorage.getItem("jaot_api_key")).toBeNull();
+      expect(push).not.toHaveBeenCalled();
     });
   });
 });

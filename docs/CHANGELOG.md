@@ -40,6 +40,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Documented claims were re-counted against the code.** The MCP tool count, the number of containers a production host runs, the size of the search index behind the AI assistant, and the list of background task modules were all out of date. So was the description of the solver contract, which still named a method removed a phase ago.
 
 ### Fixed
+- **Anybody can read the home page, the marketplace and the docs without an account.** A visitor with no session, or one whose session had run out, was sent to the login screen from every page in the site, so nobody could find out what JAOT is without registering first. Only a page that needs a session redirects now, and signing in returns you to the page you asked for.
 - **The deploy guide's log and troubleshooting commands name services that exist.** They told you to tail `celery_worker`, which production does not have — each solver runs its own worker — so anyone following the guide got an error instead of logs.
 - **The domain boundary contracts are checked by CI.** They ran only as a pre-commit hook, which anyone can skip with `--no-verify`, while the README and the architecture overview both said the build enforced them.
 

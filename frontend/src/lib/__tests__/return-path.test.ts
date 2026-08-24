@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  EXPIRED_PARAM,
   RETURN_PARAM,
   defaultLandingPath,
   loginPathReturningTo,
@@ -51,6 +52,17 @@ describe("loginPathReturningTo", () => {
 
   it("does not bother carrying a destination it would refuse anyway", () => {
     expect(loginPathReturningTo("/login", "")).toBe("/login");
+  });
+
+  // The login page shows "your session expired" off this flag. An anonymous
+  // visitor who opened a protected page never had a session, so they must not
+  // be told one ended.
+  it("says the session expired only when one did", () => {
+    expect(loginPathReturningTo("/studio", "")).toBe(`/login?${RETURN_PARAM}=%2Fstudio`);
+    expect(loginPathReturningTo("/studio", "", true)).toBe(
+      `/login?${RETURN_PARAM}=%2Fstudio&${EXPIRED_PARAM}=1`,
+    );
+    expect(loginPathReturningTo("/login", "", true)).toBe(`/login?${EXPIRED_PARAM}=1`);
   });
 });
 

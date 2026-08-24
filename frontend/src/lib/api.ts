@@ -418,13 +418,21 @@ export type RequestOptions = RequestInit & {
    * Off for every other endpoint.
    */
   resolveAsync?: boolean;
+  /**
+   * This request only asks whether a session exists. "No" is an answer here, not
+   * an event: someone who never signed in has no session to lose. A 401 on a
+   * probe never fires `jaot:session-expired`, so an anonymous reader of the home
+   * page, the marketplace or the docs is left where they are.
+   */
+  probeSession?: boolean;
 };
 
 async function request<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { params, _retried, retry, resolveAsync, ...fetchOptions } = options;
+  const { params, _retried, retry, resolveAsync, probeSession, ...fetchOptions } =
+    options;
   const url = buildUrl(path, params);
 
   const headers: Record<string, string> = {
@@ -533,7 +541,7 @@ async function request<T>(
           // executions page told a logged-out user "No executions yet", which
           // reads as "your work is gone", and the studio kept the whole
           // logged-in shell up with a Retry button that could only fail.
-          if (typeof window !== "undefined") {
+          if (typeof window !== "undefined" && !probeSession) {
             window.dispatchEvent(new CustomEvent("jaot:session-expired"));
           }
         }
@@ -694,8 +702,8 @@ export const api = {
     }
   },
 
-  getMe(): Promise<UserInfo> {
-    return request("/api/v2/auth/me");
+  getMe(options?: RequestOptions): Promise<UserInfo> {
+    return request("/api/v2/auth/me", options);
   },
 
   async loginWithEmail(

@@ -21,7 +21,12 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { translateApiError } from "@/lib/errors";
-import { RETURN_PARAM, defaultLandingPath, safeReturnPath } from "@/lib/return-path";
+import {
+  EXPIRED_PARAM,
+  RETURN_PARAM,
+  defaultLandingPath,
+  safeReturnPath,
+} from "@/lib/return-path";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,7 +57,9 @@ export default function LoginPage() {
   // `window` for the same reason the redirect above does.
   const [sessionExpired, setSessionExpired] = useState(false);
   useEffect(() => {
-    setSessionExpired(new URLSearchParams(window.location.search).get("expired") === "1");
+    setSessionExpired(
+      new URLSearchParams(window.location.search).get(EXPIRED_PARAM) === "1",
+    );
   }, []);
 
   // Somebody invited who has no account yet arrives here with ?next=/join/…
