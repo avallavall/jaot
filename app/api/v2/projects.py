@@ -85,6 +85,7 @@ from app.schemas.optimization import (
 )
 from app.services import model_project_service as svc
 from app.services.audit_service import log_action
+from app.services.author_analytics_service import adoption_count
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.model_project_service import ProjectConflictError, ProjectNotPublishableError
 from app.services.model_stats_service import compute_cached
@@ -340,8 +341,9 @@ def create_from_marketplace(
     its example input; a static community model ignores it (its pinned version is copied).
 
     This is THE "use a marketplace model" path (P1.5 fusion — the legacy activate
-    flow collapsed into it), so the adoption side-effects live here: the listing's
-    activation counter and the author notification.
+    flow collapsed into it). The fork row it writes IS the adoption: nothing is
+    counted up here, and every screen counts these rows instead. What is left as
+    a side-effect is the notification to the author.
     """
     project = _seed_from_template(
         db,
@@ -362,17 +364,6 @@ def create_from_marketplace(
         target_name=project.name,
     )
 
-    # Adoption side-effects on the source listing (source_ref is the resolved id).
-    # SQL-expression assignment → an atomic UPDATE (no lost increments when two
-    # orgs fork the same listing concurrently).
-    listing = (
-        db.query(ModelProjectListing)
-        .filter(ModelProjectListing.model_project_id == project.source_ref)
-        .first()
-    )
-    if listing is not None:
-        listing.total_activations = ModelProjectListing.total_activations + 1
-
     db.commit()
     db.refresh(project)
 
@@ -391,6 +382,16 @@ def create_from_marketplace(
         )
     except Exception:
         logger.debug("Failed to log analytics event", exc_info=True)
+
+    # The source listing, read here because the notification below is its only
+    # consumer (source_ref is the resolved id). It used to be fetched before the
+    # commit, where the adoption counter needed it; that counter is gone, and
+    # counting adoptions off the fork rows is what replaced it.
+    listing = (
+        db.query(ModelProjectListing)
+        .filter(ModelProjectListing.model_project_id == project.source_ref)
+        .first()
+    )
 
     if (
         listing is not None
@@ -475,7 +476,9 @@ def publish_model_project(
     )
     db.commit()
     db.refresh(listing)
-    response = listing_to_catalog_response(listing)
+    response = listing_to_catalog_response(
+        listing, total_activations=adoption_count(db, listing.model_project_id)
+    )
     response.author_name = org.name
     response.author_verified = org.is_verified
     return response
@@ -549,7 +552,9 @@ def _set_publication(
     )
     db.commit()
     db.refresh(listing)
-    response = listing_to_catalog_response(listing)
+    response = listing_to_catalog_response(
+        listing, total_activations=adoption_count(db, listing.model_project_id)
+    )
     # `org` is the CurrentOrg dependency — already loaded, so re-selecting it here
     # only costs a round trip.
     response.author_name = org.name

@@ -70,11 +70,19 @@ def record_listing_execution(
     )
 
 
-def listing_to_catalog_response(listing: ModelProjectListing) -> ModelCatalogResponse:
+def listing_to_catalog_response(
+    listing: ModelProjectListing, *, total_activations: int
+) -> ModelCatalogResponse:
     """Map a listing to the exact ``ModelCatalogResponse`` wire shape (id = project id).
 
     ``author_name`` / ``author_verified`` stay at their defaults; the endpoint fills them
     from the author org just as it does for a catalog row.
+
+    ``total_activations`` is passed in rather than read off the listing. It used
+    to be a stored counter that nothing recomputed, and it had drifted two orders
+    of magnitude from the query that defines the word: 66 stored against 6
+    counted. Callers count it with ``adoption_count`` for one listing, or
+    ``adoption_counts`` for a page of them.
     """
     return ModelCatalogResponse(
         id=listing.model_project_id,
@@ -98,7 +106,7 @@ def listing_to_catalog_response(listing: ModelProjectListing) -> ModelCatalogRes
         version=listing.version,
         is_official=listing.is_official,
         is_featured=listing.is_featured,
-        total_activations=listing.total_activations,
+        total_activations=total_activations,
         total_executions=listing.total_executions,
         avg_execution_time_ms=listing.avg_execution_time_ms,
         success_rate=listing.success_rate,

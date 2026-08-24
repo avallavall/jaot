@@ -14,11 +14,14 @@ from __future__ import annotations
 from sqlalchemy.orm import Session, load_only
 
 from app.models import ModelProjectListing, ModelReview, User
-from app.schemas.author import AuthorReviewRow, AuthorReviewsResponse
+from app.schemas.author import AuthorListingRow, AuthorReviewRow, AuthorReviewsResponse
+from app.services.author_analytics_service import adoption_counts
 from app.shared.utils.pagination import paginate_query
 
-# Exactly the fields `AuthorListingRow` declares. Add one there, add it here, or
-# the panel reads an unloaded attribute and pays a SELECT per row for it.
+# Every field `AuthorListingRow` declares EXCEPT `total_activations`, which is no
+# longer a column: it is counted below. Add a field to the schema and add it
+# here, or the panel reads an unloaded attribute and pays a SELECT per row for
+# it. `_COUNTED_FIELDS` names what must NOT appear in this tuple.
 _LISTING_ROW_COLUMNS = (
     ModelProjectListing.display_name,
     ModelProjectListing.short_description,
@@ -27,7 +30,6 @@ _LISTING_ROW_COLUMNS = (
     ModelProjectListing.is_public,
     ModelProjectListing.version,
     ModelProjectListing.logo_url,
-    ModelProjectListing.total_activations,
     ModelProjectListing.total_executions,
     ModelProjectListing.avg_rating,
     ModelProjectListing.success_rate,
@@ -35,15 +37,16 @@ _LISTING_ROW_COLUMNS = (
     ModelProjectListing.updated_at,
 )
 
+# Fields of `AuthorListingRow` that are computed, not read off the row.
+_COUNTED_FIELDS = frozenset({"total_activations"})
 
-def list_my_listings(db: Session, *, org_id: str) -> list[ModelProjectListing]:
-    """Everything this organization has published, whatever state it is in.
 
-    Only the columns :class:`AuthorListingRow` serializes are read. The default
-    entity load also pulled the five ``section_*`` markdown documents, the three
-    generator JSON blobs (``input_schema``, ``input_fields``, ``example_input``)
-    and both descriptions — kilobytes per row that this panel never renders, on
-    a query with no upper bound on rows.
+def load_my_listing_rows(db: Session, *, org_id: str) -> list[ModelProjectListing]:
+    """The ORM rows behind :func:`list_my_listings`, newest first.
+
+    Separate from the mapping above so the column set stays testable: the whole
+    point of the ``load_only`` is what it does NOT read, and that is invisible
+    once the rows have been turned into response objects.
     """
     return (
         db.query(ModelProjectListing)
@@ -52,6 +55,35 @@ def list_my_listings(db: Session, *, org_id: str) -> list[ModelProjectListing]:
         .order_by(ModelProjectListing.updated_at.desc())
         .all()
     )
+
+
+def list_my_listings(db: Session, *, org_id: str) -> list[AuthorListingRow]:
+    """Everything this organization has published, whatever state it is in.
+
+    Only the columns :class:`AuthorListingRow` serializes are read. The default
+    entity load also pulled the five ``section_*`` markdown documents, the three
+    generator JSON blobs (``input_schema``, ``input_fields``, ``example_input``)
+    and both descriptions — kilobytes per row that this panel never renders, on
+    a query with no upper bound on rows.
+
+    Adoptions are counted, not read: the column that used to hold them was a
+    stored counter nothing recomputed, and the author was shown a number an
+    order of magnitude off what the marketplace query returns. One extra query
+    covers every row of the panel.
+    """
+    listings = load_my_listing_rows(db, org_id=org_id)
+    adoptions = adoption_counts(db, [row.model_project_id for row in listings])
+    # Read off the schema rather than field by field. A hand-written constructor
+    # needs three edits to add one field, and forgetting this one is silent —
+    # every row would report the field's default instead of failing.
+    read_fields = [f for f in AuthorListingRow.model_fields if f not in _COUNTED_FIELDS]
+    return [
+        AuthorListingRow(
+            **{field: getattr(row, field) for field in read_fields},
+            total_activations=adoptions.get(row.model_project_id, 0),
+        )
+        for row in listings
+    ]
 
 
 def list_reviews_received(

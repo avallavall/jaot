@@ -25,11 +25,31 @@ from app.models import (
 )
 from app.models.audit_log import AuditAction, AuditLog
 from app.models.model_view_event import ModelViewEvent
+from app.services.author_analytics_service import adoption_count
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _APP_ROUTES = _REPO_ROOT / "frontend" / "src" / "app" / "[locale]"
+
+
+def _adopt(db, listing, *, org_id: str):
+    """Somebody seeds a fork from a listing. That row IS the adoption.
+
+    There is no counter to bump any more: every screen counts these rows, so a
+    test that wants a non-zero adoption number has to create one.
+    """
+    project = ModelProject(
+        id=generate_id("mp_"),
+        organization_id=org_id,
+        name="Adopted copy",
+        status="active",
+        source_type="marketplace",
+        source_ref=listing.model_project_id,
+    )
+    db.add(project)
+    db.flush()
+    return project
 
 
 def _publish(db, *, org_id: str, pid: str | None = None, status: str = "published"):
@@ -55,7 +75,6 @@ def _publish(db, *, org_id: str, pid: str | None = None, status: str = "publishe
         status=status,
         is_public=True,
         author_organization_id=org_id,
-        total_activations=7,
         total_executions=11,
         published_at=utcnow(),
     )
@@ -92,10 +111,13 @@ class TestWithdrawListing:
         assert all(m["id"] != pid for m in listed["items"])
 
     def test_republish_puts_it_back_with_its_rollups_intact(
-        self, authenticated_client, client, db_session, published
+        self, authenticated_client, client, db_session, published, test_organization_2
     ):
         """The whole point of a reversible withdrawal: nothing is lost."""
         pid = published.model_project_id
+        _adopt(db_session, published, org_id=test_organization_2.id)
+        _adopt(db_session, published, org_id=test_organization_2.id)
+        db_session.commit()
 
         authenticated_client.post(f"/api/v2/projects/{pid}/unpublish")
         resp = authenticated_client.post(f"/api/v2/projects/{pid}/republish")
@@ -109,8 +131,10 @@ class TestWithdrawListing:
             .one()
         )
         assert restored.status == "published"
-        assert restored.total_activations == 7
         assert restored.total_executions == 11
+        # Adoptions come back too. They are counted off the fork rows, which a
+        # withdrawal never touched, so the card reads the same as before.
+        assert adoption_count(db_session, pid) == 2
         assert restored.published_at is not None
 
     def test_unpublish_is_idempotent(self, authenticated_client, published):
@@ -406,7 +430,28 @@ class TestMyListings:
         by_id = {row["model_project_id"]: row for row in resp.json()}
         assert by_id[live.model_project_id]["status"] == "published"
         assert by_id[gone.model_project_id]["status"] == "unpublished"
-        assert by_id[live.model_project_id]["total_activations"] == 7
+
+    def test_the_panel_counts_adoptions_instead_of_reading_a_counter(
+        self, authenticated_client, db_session, test_organization, test_organization_2
+    ):
+        """The author sees the number the marketplace shows, counted the same way.
+
+        The column this row used to read was bumped on a fork and nothing ever
+        recomputed it: 66 stored against 6 counted on the development database.
+        Two forks by another organization read as two, and the author forking
+        their own listing does not count at all — or the word would not mean
+        what it says.
+        """
+        mine = _publish(db_session, org_id=test_organization.id)
+        _adopt(db_session, mine, org_id=test_organization_2.id)
+        _adopt(db_session, mine, org_id=test_organization_2.id)
+        _adopt(db_session, mine, org_id=test_organization.id)
+        db_session.commit()
+
+        resp = authenticated_client.get("/api/v2/author/listings")
+        assert resp.status_code == 200
+        row = next(r for r in resp.json() if r["model_project_id"] == mine.model_project_id)
+        assert row["total_activations"] == 2
 
     def test_does_not_leak_other_orgs_listings(
         self, authenticated_client, db_session, test_organization_2
@@ -432,7 +477,7 @@ class TestMyListings:
         db_session.commit()
         db_session.expire_all()
 
-        rows = author_listing_service.list_my_listings(db_session, org_id=test_organization.id)
+        rows = author_listing_service.load_my_listing_rows(db_session, org_id=test_organization.id)
         unloaded = inspect(rows[0]).unloaded
         assert {
             "description",
@@ -444,7 +489,7 @@ class TestMyListings:
         } <= unloaded
         # And every field the response promises IS there, without a second query.
         assert "display_name" not in unloaded
-        assert "total_activations" not in unloaded
+        assert "total_executions" not in unloaded
 
 
 class TestReviewsReceived:

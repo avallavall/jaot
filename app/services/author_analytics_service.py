@@ -10,6 +10,7 @@ are excluded so the metric keeps its "someone else adopted my model" meaning.
 """
 
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 
 from sqlalchemy import func
@@ -84,11 +85,20 @@ def adoption_query(
     This lives at module level because it used to live in three places at once.
     The admin dashboard counted every project tagged ``source_type="marketplace"``
     with no join and no exclusion, this service applied both, and the listings
-    carry a stored ``total_activations`` counter bumped on a third rule. All
+    carried a stored ``total_activations`` counter bumped on a third rule. All
     three were shown to an admin under the word "adoption", two orders of
     magnitude apart: 112, 6 and 66 on the development database. The 112 was the
     worst of them — 105 of those projects carry ``source_ref = NULL``, so they
-    record no source at all and were never an adoption of anything.
+    record no source at all and were never an adoption of anything. The stored
+    counter is gone; this is the only definition left.
+
+    It counts the fork rows that exist right now, so it is "how many teams have
+    this model" and not "how many times it was ever taken". An adopter who
+    deletes their copy takes their adoption with them, and the figure goes down.
+    That is the same number the author dashboard and the admin panel have shown
+    since they were unified on this query, and the marketplace card now agrees
+    with them. The immutable tally lives in the ``marketplace.activate``
+    analytics events, which nothing displays.
 
     Args:
         author_org_id: Narrow to listings written by this organization.
@@ -115,6 +125,35 @@ def adoption_query(
     if since is not None:
         q = q.filter(ModelProject.created_at >= since)
     return q
+
+
+def adoption_counts(db: Session, listing_ids: Sequence[str]) -> dict[str, int]:
+    """How many adoptions each of these listings has, in one query.
+
+    Same definition as :func:`adoption_query`, grouped by listing. A catalogue
+    page renders up to fifty cards, so counting one card at a time would run
+    fifty queries; this runs one. Listings with no adoption are absent from the
+    result — callers default to 0.
+    """
+    ids = list(listing_ids)
+    if not ids:
+        return {}
+    rows = (
+        adoption_query(db)
+        .filter(ModelProjectListing.model_project_id.in_(ids))
+        .with_entities(
+            ModelProjectListing.model_project_id.label("listing_id"),
+            func.count().label("adoptions"),
+        )
+        .group_by(ModelProjectListing.model_project_id)
+        .all()
+    )
+    return {row.listing_id: row.adoptions for row in rows}
+
+
+def adoption_count(db: Session, listing_id: str) -> int:
+    """How many adoptions one listing has. See :func:`adoption_counts`."""
+    return adoption_counts(db, [listing_id]).get(listing_id, 0)
 
 
 class AuthorAnalyticsService:

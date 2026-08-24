@@ -111,7 +111,7 @@ def get_analytics_funnel(
 def list_my_listings(
     db: DBSession,
     current_user: User = Depends(get_current_user),
-) -> list[ModelProjectListing]:
+) -> list[AuthorListingRow]:
     """List everything my organization has published, whatever its state.
 
     Includes withdrawn (``unpublished``) listings — this is the author's own

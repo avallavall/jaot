@@ -27,6 +27,7 @@ from app.models import (
 )
 from app.models.builder_document import ModelBuilderDocument
 from app.models.model_version import ModelVersion
+from app.services.author_analytics_service import adoption_count
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 
@@ -116,7 +117,6 @@ def listed_project(db_session: Session) -> ModelProjectListing:
         is_public=True,
         is_official=True,
         author_organization_id=author.id,
-        total_activations=0,
         total_executions=0,
     )
     db_session.add(listing)
@@ -236,12 +236,8 @@ class TestConcurrentModelFork:
                 source_ref=listing_id,
             )
             session.add(fork)
-            # Adoption counter bump — same statement the from-marketplace route runs.
-            session.query(ModelProjectListing).filter(
-                ModelProjectListing.model_project_id == listing_id
-            ).update(
-                {ModelProjectListing.total_activations: ModelProjectListing.total_activations + 1}
-            )
+            # The fork row IS the adoption. Nothing is incremented: the number a
+            # marketplace card shows is counted off these rows.
             session.commit()
             results.put(("success", org_id, fork.id))
         except Exception as exc:
@@ -259,7 +255,12 @@ class TestConcurrentModelFork:
         listed_project: ModelProjectListing,
     ):
         """Two orgs fork the same published listing: both get their own project
-        and the adoption counter absorbs both bumps without corruption."""
+        and both are counted as adoptions.
+
+        This used to check that a stored counter absorbed two concurrent bumps.
+        The counter is gone, and the invariant it stood for is stronger now:
+        what a card shows is counted off the fork rows themselves, so two
+        concurrent forks read as two whatever order they land in."""
         results: queue.Queue = queue.Queue()
         Session = sessionmaker(bind=db_engine)
         listing_id = listed_project.model_project_id
@@ -290,7 +291,7 @@ class TestConcurrentModelFork:
         assert len(successes) == 2
         assert successes[org_a.id] != successes[org_b.id]
 
-        # Verify in DB: one fork per org, counter absorbed both increments
+        # Verify in DB: one fork per org, and both are counted
         fresh = Session()
         for org_id in (org_a.id, org_b.id):
             forks = (
@@ -303,12 +304,8 @@ class TestConcurrentModelFork:
                 .all()
             )
             assert len(forks) == 1
-        counter = (
-            fresh.query(ModelProjectListing.total_activations)
-            .filter(ModelProjectListing.model_project_id == listing_id)
-            .scalar()
-        )
-        assert counter == 2, f"Adoption counter lost an increment: {counter}"
+        counted = adoption_count(fresh, listing_id)
+        assert counted == 2, f"Two concurrent forks counted as {counted}"
         fresh.close()
 
     def test_same_org_can_fork_twice(

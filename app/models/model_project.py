@@ -124,6 +124,12 @@ class ModelProject(Base):
         Index("ix_model_projects_organization_id", "organization_id"),
         Index("ix_model_projects_org_status", "organization_id", "status"),
         Index("ix_model_projects_org_updated", "organization_id", "updated_at"),
+        # Adoptions are counted off these rows on every public marketplace
+        # request — the catalogue list, a model page, an author profile. The
+        # count joins `source_ref` to the listing id and filters `source_type`,
+        # and without this it is a sequential scan of every project on the
+        # platform on an unauthenticated route.
+        Index("ix_model_projects_source", "source_type", "source_ref"),
     )
 
     @property
@@ -328,8 +334,13 @@ class ModelProjectListing(Base):
     )
     is_official: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
-    # Statistics (rollups mirrored from the catalog)
-    total_activations: Mapped[int] = mapped_column(Integer, default=0)
+    # Statistics (rollups mirrored from the catalog).
+    #
+    # There is no `total_activations` here. It was a stored counter bumped when
+    # somebody forked the listing, and nothing ever recomputed it: on the
+    # development database it read 66 against the 6 that `adoption_query`
+    # counts, and the stored one was what a marketplace card showed. Adoptions
+    # are counted off the fork rows now — see `adoption_counts`.
     total_executions: Mapped[int] = mapped_column(Integer, default=0)
     # Raw tallies the two derived figures below are computed from. Kept as
     # counters so concurrent workers can bump them in one atomic UPDATE — a

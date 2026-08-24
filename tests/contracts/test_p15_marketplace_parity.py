@@ -165,7 +165,6 @@ def _make_listing(db, org, *, pid, **ov):
         "status": "published",
         "is_official": False,
         "is_public": True,
-        "total_activations": 0,
         "total_executions": 0,
         "is_featured": False,
     }

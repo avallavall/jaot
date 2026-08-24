@@ -21,7 +21,11 @@ from app.schemas.model import (
     ModelCatalogResponse,
 )
 from app.services import favorites_service
-from app.services.author_analytics_service import AuthorAnalyticsService
+from app.services.author_analytics_service import (
+    AuthorAnalyticsService,
+    adoption_count,
+    adoption_counts,
+)
 from app.services.marketplace_fusion import MARKETPLACE_VISIBLE, listing_to_catalog_response
 from app.shared.utils.request_helpers import get_client_ip
 
@@ -197,9 +201,14 @@ def list_catalog_models(
         else {}
     )
 
+    # One query for the whole page. Counting per card would run one per row.
+    adoptions = adoption_counts(db, [s.model_project_id for s in models])
+
     items = []
     for s in models:
-        item = listing_to_catalog_response(s)
+        item = listing_to_catalog_response(
+            s, total_activations=adoptions.get(s.model_project_id, 0)
+        )
         if s.author_organization_id:
             author_org = orgs.get(s.author_organization_id)
             if author_org:
@@ -252,7 +261,9 @@ def get_catalog_model(
     if not listing:
         raise HTTPException(status_code=404, detail="Model not found")
 
-    response = listing_to_catalog_response(listing)
+    response = listing_to_catalog_response(
+        listing, total_activations=adoption_count(db, listing.model_project_id)
+    )
 
     if listing.author_organization_id:
         author_org = (

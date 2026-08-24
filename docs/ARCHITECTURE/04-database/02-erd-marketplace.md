@@ -60,7 +60,6 @@ erDiagram
     MODEL_PROJECT_LISTING : string author_organization_id (fk)
     MODEL_PROJECT_LISTING : string generator_type "nullable — generator facet (officials)"
     MODEL_PROJECT_LISTING : json input_schema "nullable"
-    MODEL_PROJECT_LISTING : int total_activations "adoptions (forks)"
     MODEL_PROJECT_LISTING : int total_executions
     MODEL_PROJECT_LISTING : float avg_rating "auto-computed rollup"
     MODEL_PROJECT_LISTING : int view_count
@@ -105,8 +104,11 @@ erDiagram
   committed version** publicly. Officials (the 102 template seeds) carry a *generator facet*
   (`generator_type` + `input_schema`); community listings are static snapshots.
 - **Adoption, not sales**: "Use in studio" forks the listing into the adopter's org
-  (`ModelProject.source_type='marketplace'`, `source_ref=listing id`) and bumps
-  `total_activations` atomically.
+  (`ModelProject.source_type='marketplace'`, `source_ref=listing id`). That fork row IS the
+  adoption — there is no counter on the listing. Every screen counts these rows through
+  `adoption_counts`, so the number cannot drift from its own definition. The listing used to
+  carry a stored `total_activations`, bumped here and recomputed nowhere: it read 66 against
+  the 6 the query returns, and the stored one was what a marketplace card showed.
 - **Reviews**: keyed on `model_project_id`, gated anti-spam (reviewer's org must have a fork
   + a completed execution); `avg_rating` rolls up onto the listing.
 - **Ratings** (formulation): tied to LLM conversations, not executions. Feedback on

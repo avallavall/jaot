@@ -13,7 +13,6 @@ Ordered by benefit ÷ effort.
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
 | D-32 | A comparison stores its compiled problem once per cell | Measured: 3.8 MB per copy on a 22,500-variable model, so one matrix row of four solvers writes 19 MB | Medium: it is what every consumer reads the problem off |
-| D-33 | `ModelProjectListing.total_activations` is a stored counter nobody recomputes, and it disagrees with the query that now defines an adoption | Measured: 66 stored against 6 counted, and the stored one is what a marketplace card shows | Needs a backfill and a decision about who owns the number |
 
 ---
 
@@ -129,42 +128,6 @@ Recorded 2026-08-17, measured rather than estimated. Latency half closed the sam
 
 ---
 
-## D-33 · The stored adoption counter nobody recomputes
-
-`ModelProjectListing.total_activations` is a denormalized counter, bumped by one when someone
-adopts a listing (`app/api/v2/projects.py`, in `create_from_marketplace`). Nothing ever
-decrements it, nothing recomputes it, and it applies neither of the rules the counted adoption
-applies: it bumps for the author adopting their own listing, and it was seeded from the legacy
-catalogue during the P1.5 backfill with values no event produced.
-
-On the development database, 2026-08-19: **66 stored against 6 counted.**
-
-The admin dashboard and the author-analytics page now share one query (`adoption_query`), so
-those two agree. This counter is the third number, and it is the one on the marketplace card
-and the public organization profile — the number a visitor sees.
-
-**Decided 2026-08-20: the counter goes.** Every surface reads `adoption_query`, which is
-already the one definition of the word. It costs a join on the listing page, and in exchange the
-number cannot drift again and there is no backfill rule to invent for the seeded values.
-
-What that means, mapped against the code as it stands:
-
-- `adoption_query` gains a batched sibling — count grouped by `ModelProject.source_ref` for a
-  set of listing ids — so a list page pays one query, not one per card.
-- `listing_to_catalog_response` takes the number as an argument instead of reading
-  `listing.total_activations`. Its ten call sites split into list callers (one batched query)
-  and single-listing callers (one count).
-- `author_listing_service` selects the count instead of the column, and
-  `profiles/organizations.py` sums the counted figure instead of the stored one.
-- The bump in `projects.py` (`create_from_marketplace`) goes.
-- A migration drops the column. It is irreversible for the seeded values, which were produced
-  by no event and are the reason the figure is wrong — so a backup before it, per the deploy
-  rule, and a line in the deploy plan.
-
-Not started. Recorded 2026-08-19, measured rather than estimated.
-
----
-
 ## Closed
 
 Full reasoning in the commit that closed each one, and in the CHANGELOG.
@@ -198,6 +161,7 @@ Full reasoning in the commit that closed each one, and in the CHANGELOG.
 | D-25 | Admission bounded to the pool, `pool_timeout` 30s→5s, health off the queue, pool gauges + alerts | ✅ 2026-08-01 (step 4 → D-27) |
 | D-26 | Contract-release: legacy tables + 6 FK columns + 6 credit columns dropped, `access_count` → integer; found reviews had lost their uniqueness guarantee | ✅ `20260801_contract_release` |
 | D-30 | The shared rate limiter takes a `cost`, so a comparison the quota cannot cover is refused without spending any of it | ✅ 2026-08-19 |
+| D-33 | The stored adoption counter dropped; every surface counts through `adoption_query`, with an index for the join | ✅ `20260824_drop_total_activations` |
 
 **The 2026-04-18 comparative audit** (58% essential / 42% accidental complexity, the LOC
 tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in

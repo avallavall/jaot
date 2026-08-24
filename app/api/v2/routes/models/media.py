@@ -22,6 +22,7 @@ from app.schemas.model import (
     ScreenshotUploadResponse,
     UpdateCatalogSectionsRequest,
 )
+from app.services.author_analytics_service import adoption_count
 from app.services.marketplace_fusion import listing_to_catalog_response
 from app.services.storage_service import get_storage_service
 from app.shared.core.http_errors import CodedHTTPException
@@ -263,4 +264,6 @@ def update_sections(
     db.commit()
     db.refresh(model)
 
-    return listing_to_catalog_response(model)
+    return listing_to_catalog_response(
+        model, total_activations=adoption_count(db, model.model_project_id)
+    )

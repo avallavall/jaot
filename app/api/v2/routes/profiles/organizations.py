@@ -9,6 +9,7 @@ from app.models import ModelProjectListing, ModelReview, Organization, User
 from app.schemas.common import StatusResponse
 from app.schemas.model import ModelCatalogResponse
 from app.schemas.profile import OrganizationPublicProfile, UpdateOrgProfileRequest
+from app.services.author_analytics_service import adoption_counts
 from app.services.marketplace_fusion import MARKETPLACE_VISIBLE, listing_to_catalog_response
 
 router = APIRouter(tags=["organizations"])
@@ -43,7 +44,9 @@ def get_organization_public_profile(
 
     model_ids = [s.model_project_id for s in models]
     total_models = len(models)
-    total_activations = sum(s.total_activations for s in models)
+    # Counted, not read off a stored counter that nothing recomputed. One query
+    # for every listing this author has on the marketplace.
+    total_activations = sum(adoption_counts(db, model_ids).values())
     total_executions = sum(s.total_executions for s in models)
 
     # Both numbers come off the same rows, in one pass.
@@ -203,9 +206,13 @@ def get_organization_models(
         .all()
     )
 
+    adoptions = adoption_counts(db, [s.model_project_id for s in models])
+
     items = []
     for s in models:
-        item = listing_to_catalog_response(s)
+        item = listing_to_catalog_response(
+            s, total_activations=adoptions.get(s.model_project_id, 0)
+        )
         item.author_name = org.name
         item.author_verified = org.is_verified
         items.append(item)

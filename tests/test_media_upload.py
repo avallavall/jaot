@@ -75,7 +75,6 @@ def owned_listing(db_session: Session, test_organization) -> ModelProjectListing
         status="published",
         is_public=True,
         author_organization_id=test_organization.id,
-        total_activations=0,
         total_executions=0,
     )
     db_session.add(listing)

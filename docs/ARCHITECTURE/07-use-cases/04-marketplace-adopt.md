@@ -44,7 +44,7 @@ sequenceDiagram
         API->>DB: copy pinned version's model_json
     end
     API->>DB: CREATE ModelProject(org_id=adopter, source_type='marketplace', source_ref=listing_id) + auto v1 commit
-    API->>DB: UPDATE listing SET total_activations = total_activations + 1 (atomic SQL expression)
+    Note over DB: The fork row IS the adoption — nothing is counted up on the listing
     API->>Frontend: 201 {project_id}
     Frontend->>Frontend: Redirect to /studio/{project_id}/build
 

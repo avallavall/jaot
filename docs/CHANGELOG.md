@@ -38,6 +38,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ### Changed
 - **The README says where to try JAOT without installing it, and draws its architecture instead of typing it in box characters.** Both architecture diagrams are Mermaid now, so they render as pictures on GitHub.
 - **Documented claims were re-counted against the code.** The MCP tool count, the number of containers a production host runs, the size of the search index behind the AI assistant, and the list of background task modules were all out of date. So was the description of the solver contract, which still named a method removed a phase ago.
+- **The number of adoptions on a marketplace card is counted, not stored.** It was a counter bumped when somebody took a model and recomputed by nothing: it read 66 where the real answer was 6, and that was the figure a visitor saw. Every screen now counts the same way the author dashboard and the admin panel already did, so the three agree. It means "how many teams have this model" — an adopter who deletes their copy takes their adoption with them.
 
 ### Fixed
 - **A slow moment no longer throws you off your own dashboard.** The page checked who you were a second time and sent you to the login screen whenever that check failed, for any reason — including a rate limit you reach just by navigating quickly.
