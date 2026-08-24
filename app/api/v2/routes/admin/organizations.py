@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func
+from sqlalchemy.orm import load_only
 
 from app.api.deps import AdminUser, DBSession
 from app.models import (
@@ -180,6 +181,21 @@ def get_organization_overview(org_id: str, db: DBSession) -> OrganizationOvervie
 
     recent_executions = (
         db.query(ModelExecution)
+        # Seven scalars are rendered below. The default entity load also pulled
+        # each run's compiled problem and whole solution — 113 kB per row on
+        # average on the development database — for a panel that shows neither.
+        .options(
+            load_only(
+                ModelExecution.status,
+                ModelExecution.solver_name,
+                ModelExecution.execution_time_ms,
+                ModelExecution.objective_value,
+                ModelExecution.model_project_id,
+                ModelExecution.organization_model_id,
+                ModelExecution.executed_by_user_id,
+                ModelExecution.created_at,
+            )
+        )
         .filter(ModelExecution.organization_id == org_id)
         .order_by(ModelExecution.created_at.desc())
         .limit(20)

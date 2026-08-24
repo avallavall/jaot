@@ -710,6 +710,13 @@ def _attach_model_names(
     if mp_ids:
         rows = (
             db.query(ModelProject)
+            # Two values are read off each row: the name, and the creator's name
+            # through the relationship. The working copy of every model came
+            # with them — deferred, since the relationship still has to load.
+            .options(
+                defer(ModelProject.draft_model_json),
+                defer(ModelProject.draft_canvas_json),
+            )
             .filter(
                 ModelProject.id.in_(mp_ids),
                 ModelProject.organization_id == organization_id,

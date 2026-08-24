@@ -26,7 +26,7 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, ValidationError
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.api.deps import (
     CurrentOrg,
@@ -653,15 +653,28 @@ def list_project_executions(
     entry point has to change (see the solve-contract-drift safeguard).
     """
     _project_or_404(db, project_id, org, user)
-    query = db.query(ModelExecution).filter(
-        ModelExecution.organization_id == org.id,
-        or_(
-            ModelExecution.model_project_id == project_id,
-            and_(
-                ModelExecution.source_kind == "model_project",
-                ModelExecution.source_id == project_id,
+    # `ProjectExecutionItem` is a compact row by design — no payloads. The query
+    # loaded them anyway: 113 kB per row on average on the development database,
+    # so the studio's reconcile-on-open pulled about 11 MB at the top limit of
+    # 100 to read a status, a task id and an objective value.
+    query = (
+        db.query(ModelExecution)
+        .options(
+            defer(ModelExecution.input_data),
+            defer(ModelExecution.result_data),
+            defer(ModelExecution.progress_data),
+            defer(ModelExecution.scenario_analysis),
+        )
+        .filter(
+            ModelExecution.organization_id == org.id,
+            or_(
+                ModelExecution.model_project_id == project_id,
+                and_(
+                    ModelExecution.source_kind == "model_project",
+                    ModelExecution.source_id == project_id,
+                ),
             ),
-        ),
+        )
     )
     if status_filter:
         query = query.filter(ModelExecution.status == status_filter)

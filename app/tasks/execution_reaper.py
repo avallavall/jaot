@@ -38,7 +38,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.domains.solver import execution_writer
 from app.models import ExecutionStatus, ModelExecution, SolverComparison
@@ -277,6 +277,17 @@ def reap_stale_executions(db: Session) -> dict[str, Any]:
 
     candidates = (
         db.query(ModelExecution)
+        # The sweep reads four fields per row and writes a handful more. Without
+        # this it loaded the whole entity, payloads included: 113 kB per row on
+        # average on the development database, so a full sweep of 500 read about
+        # 55 MB to decide whether a run had gone quiet. Deferred, not
+        # `load_only`, so every scalar the writers touch stays loaded.
+        .options(
+            defer(ModelExecution.input_data),
+            defer(ModelExecution.result_data),
+            defer(ModelExecution.progress_data),
+            defer(ModelExecution.scenario_analysis),
+        )
         .filter(
             ModelExecution.status.in_(
                 [ExecutionStatus.PENDING.value, ExecutionStatus.RUNNING.value]
