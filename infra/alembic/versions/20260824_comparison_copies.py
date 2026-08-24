@@ -17,6 +17,15 @@ this was written: 286 of 286 on the development database, 0 different. The
 condition is in the statement anyway, so a row that somehow differs keeps its
 own copy and ``problem_data`` keeps returning it.
 
+**The table does not shrink when this runs.** Measured on the development
+database: the columns went from 59 MB to 858 bytes, and
+``pg_total_relation_size('model_executions')`` still read 216 MB, with 216 dead
+tuples waiting. Postgres marks the old row versions dead and reuses the space
+for new rows; the file only shrinks back to the operating system under
+``VACUUM FULL``, which takes an exclusive lock. So: this frees the space for the
+table to grow into, not for the disk. Check ``n_dead_tup`` in
+``pg_stat_user_tables``, not the file size, or it looks like nothing happened.
+
 The revision id is short on purpose: alembic's ``version_num`` column is
 ``varchar(32)``, and a longer one fails every test setup with
 ``StringDataRightTruncation`` rather than anything that names the cause.
