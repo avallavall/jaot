@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.models import (
     APIKey,
@@ -60,8 +60,24 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
     }
 
     # Model projects (the single model entity post-fusion; legacy org-model rows
-    # were backfilled into projects with the same id, so this covers them too)
-    projects = db.query(ModelProject).filter_by(organization_id=org.id).all()
+    # were backfilled into projects with the same id, so this covers them too).
+    #
+    # Only the five fields written below are read. The default entity load also
+    # pulled `draft_model_json` and `draft_canvas_json` — the whole working copy
+    # of every model — to emit an id, a name, a status and a date.
+    projects = (
+        db.query(ModelProject)
+        .options(
+            load_only(
+                ModelProject.name,
+                ModelProject.status,
+                ModelProject.source_type,
+                ModelProject.created_at,
+            )
+        )
+        .filter_by(organization_id=org.id)
+        .all()
+    )
     models_data = [
         {
             "id": p.id,
@@ -73,8 +89,27 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
         for p in projects
     ]
 
-    # Executions
-    executions = db.query(ModelExecution).filter_by(organization_id=org.id).all()
+    # Executions.
+    #
+    # Same reason, and this is where it hurt: the default load pulled every
+    # run's `input_data` and `result_data` — the compiled problem and the whole
+    # solution — for four scalars. Measured on the development database against
+    # an organization with 1,253 runs: 128 MB read into memory to write 252 KB
+    # of ids and dates, and the request took 19.5 seconds. There is no upper
+    # bound on rows here, and there must not be: a data export is all of it.
+    executions = (
+        db.query(ModelExecution)
+        .options(
+            load_only(
+                ModelExecution.model_project_id,
+                ModelExecution.organization_model_id,
+                ModelExecution.status,
+                ModelExecution.created_at,
+            )
+        )
+        .filter_by(organization_id=org.id)
+        .all()
+    )
     executions_data = [
         {
             "id": e.id,

@@ -160,6 +160,71 @@ class TestDataExport:
             assert "key_hash" not in ak
             assert "plaintext" not in ak
 
+    # CONTRACT-TEST: the export never reads the payloads it does not write.
+    #
+    # It writes four scalars per run, and the default entity load pulled every
+    # run's `input_data` and `result_data` with them — the compiled problem and
+    # the whole solution. Measured on the development database against an
+    # organization with 1,253 runs: 128 MB read to write 252 KB, and the request
+    # took 19.5 seconds. There is no upper bound on rows and there must not be,
+    # so the only thing holding the cost down is what each row loads.
+    def test_the_export_does_not_read_the_payloads_it_never_writes(
+        self, db_session, test_user, test_organization
+    ):
+        from sqlalchemy import event
+
+        from app.models import ModelExecution
+        from app.services.gdpr_service import export_user_data
+
+        project = ModelProject(
+            id="mp_gdpr_load",
+            organization_id=test_organization.id,
+            name="Heavy project",
+            status="active",
+            draft_model_json={"variables": [{"name": "x"}]},
+        )
+        db_session.add(project)
+        db_session.flush()
+        db_session.add(
+            ModelExecution(
+                id="exe_gdpr_load",
+                organization_id=test_organization.id,
+                model_project_id=project.id,
+                status="completed",
+                input_data={"variables": [{"name": "x"}]},
+                result_data={"objective_value": 1.0},
+            )
+        )
+        db_session.commit()
+        db_session.expire_all()
+
+        # Ask the database what it was actually sent. Inspecting the objects
+        # afterwards cannot answer this: the session hands the same instances
+        # back and refreshes what it needs, so everything reads as loaded.
+        seen: list[str] = []
+
+        def record(conn, cursor, statement, params, context, executemany):
+            seen.append(statement)
+
+        event.listen(db_session.bind, "before_cursor_execute", record)
+        try:
+            data = export_user_data(db_session, test_user, test_organization)
+        finally:
+            event.remove(db_session.bind, "before_cursor_execute", record)
+
+        for column in ("input_data", "result_data"):
+            assert not any(f"model_executions.{column}" in q for q in seen), (
+                f"the export selected model_executions.{column}, which it never writes"
+            )
+        for column in ("draft_model_json", "draft_canvas_json"):
+            assert not any(f"model_projects.{column}" in q for q in seen), (
+                f"the export selected model_projects.{column}, which it never writes"
+            )
+
+        # And it still says everything it promised.
+        assert any(m["id"] == "mp_gdpr_load" for m in data["models"])
+        assert any(e["id"] == "exe_gdpr_load" for e in data["executions"])
+
 
 class TestAccountDeletion:
     """DELETE /api/v2/user/account"""
