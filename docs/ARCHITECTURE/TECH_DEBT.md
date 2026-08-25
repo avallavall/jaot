@@ -37,6 +37,10 @@ state does not survive transaction pooling the way it survives a session) and `p
 Not urgent while the platform is quiet, and the gauges from D-25 now say when it stops being
 quiet: watch `jaot_db_pool_checked_out / jaot_db_pool_capacity`.
 
+⏸️ **Left open on purpose** (owner, 2026-08-26, asked again while closing D-28 and D-29). The
+platform is still quiet, so PgBouncer would add a container in the path of every query for no
+measured gain. The gauges above are the trigger.
+
 ---
 
 ## Closed
