@@ -107,8 +107,9 @@ celery_app.conf.beat_schedule = {
         "schedule": _DAILY_SECONDS,
         "options": {"queue": _GENERIC_QUEUE},
     },
-    # W1/F-01 — mark stale pending/running ModelExecutions failed and refund
-    # pre-paid credits idempotently (app/tasks/execution_reaper.py).
+    # W1/F-01 + D-36 — settle stale pending/running rows so history stops
+    # claiming they are still going: ModelExecutions, and the TriggerRuns whose
+    # 'pending' blocks their own cron schedule (app/tasks/execution_reaper.py).
     "reap-stale-executions": {
         "task": "reap_stale_executions",
         "schedule": _REAPER_INTERVAL_SECONDS,

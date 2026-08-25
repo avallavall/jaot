@@ -30,6 +30,12 @@ however long other comparisons are queued in front. Judged by its own age it
 looks exactly like the lost task this reaper exists to clean up. It is judged by
 its PARENT's age and its parent's own time budget instead — see
 ``_comparison_still_alive``.
+
+The same sweep also settles stale ``TriggerRun`` rows (D-36). There the stakes
+are higher than a wrong-looking history row: ``cron_fire_task`` refuses to fire
+while any run of that trigger is 'pending' or 'running', so one run nobody will
+ever finish stops that schedule for good — and every later tick records
+``skipped_overlap``, which is what normal overlap protection looks like.
 """
 
 from __future__ import annotations
@@ -43,6 +49,7 @@ from sqlalchemy.orm import Session, defer
 from app.domains.solver import execution_writer
 from app.models import ExecutionStatus, ModelExecution, SolverComparison
 from app.models.solver_comparison import ComparisonStatus
+from app.models.trigger import TriggerRun
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.core.celery_app import celery_app
 from app.shared.db.session import SessionLocal
@@ -322,12 +329,90 @@ def reap_stale_executions(db: Session) -> dict[str, Any]:
     return summary
 
 
+def _reap_one_trigger_run(db: Session, run: Any, now: datetime, threshold: int) -> str:
+    """Settle one stale trigger run. Returns 'failed' or 'skipped'.
+
+    Judged by age alone, and it is the only evidence there is: a ``TriggerRun``
+    stores no Celery task id, so there is no backend to ask. It does not need
+    one. ``trigger_solve_task`` moves the run to 'running' as its first act, so
+    a run still 'pending' past the pending threshold never reached a worker at
+    all, and one still 'running' past the running threshold (48 hours by
+    default) is a solve nobody is going to see the end of.
+
+    No webhook and no notification go out. The reaper knows the run stopped, not
+    what happened to it, and the same is true of every ``ModelExecution`` it
+    settles. What it restores is the history and the schedule.
+    """
+    age_seconds = (now - run.created_at).total_seconds()
+    if age_seconds <= threshold:
+        return "skipped"
+
+    run.error_message = (
+        f"Reaped: stuck in '{run.status}' for {int(age_seconds)}s "
+        f"(limit {threshold}s) — the task was lost or its worker was killed."
+    )
+    run.status = "failed"
+    run.completed_at = now
+    return "failed"
+
+
+def reap_stale_trigger_runs(db: Session) -> dict[str, Any]:
+    """Sweep stale pending/running ``TriggerRun`` rows. Commits per row.
+
+    Runs after the execution sweep on purpose: they share a session, and a
+    poisoned row must not take the rest of the sweep down with it.
+    """
+    pending_max = PSS.get_int(db, "EXECUTION_REAPER_PENDING_MAX_SECONDS")
+    running_max = PSS.get_int(db, "EXECUTION_REAPER_RUNNING_MAX_SECONDS")
+    now = utcnow()
+    min_age = min(pending_max, running_max)
+
+    candidates = (
+        db.query(TriggerRun)
+        # `result_data` holds a whole solver result on a settled run. This sweep
+        # reads a status and a timestamp, and the rows it looks at have not
+        # written one yet — but a deferred column cannot surprise a later reader.
+        .options(defer(TriggerRun.result_data), defer(TriggerRun.override_data))
+        .filter(
+            TriggerRun.status.in_(["pending", "running"]),
+            TriggerRun.created_at < now - timedelta(seconds=min_age),
+        )
+        .order_by(TriggerRun.created_at)
+        .limit(_MAX_ROWS_PER_SWEEP)
+        .all()
+    )
+
+    summary: dict[str, Any] = {"scanned": len(candidates), "failed": 0, "skipped": 0, "errors": 0}
+
+    for run in candidates:
+        threshold = running_max if run.status == "running" else pending_max
+        try:
+            outcome = _reap_one_trigger_run(db, run, now, threshold)
+            db.commit()
+            summary[outcome] += 1
+        except Exception as exc:
+            db.rollback()
+            summary["errors"] += 1
+            logger.error("Reaper failed on trigger run %s: %s", run.id, exc, exc_info=True)
+
+    if summary["failed"] or summary["errors"]:
+        logger.info("Trigger run reaper sweep: %s", summary)
+    return summary
+
+
 @celery_app.task(bind=True, name="reap_stale_executions", acks_late=True)  # type: ignore[misc]
 def reap_stale_executions_task(self: Any) -> dict[str, Any]:
-    """Thin Celery wrapper — owns the session lifecycle, delegates to the impl."""
+    """Thin Celery wrapper — owns the session lifecycle, delegates to the impls.
+
+    Both sweeps ride one beat tick and one session. They are separate functions
+    because they settle different tables, and a failure in either is contained
+    per row, so neither can stop the other from running.
+    """
     db = SessionLocal()
     try:
-        return reap_stale_executions(db)
+        executions = reap_stale_executions(db)
+        trigger_runs = reap_stale_trigger_runs(db)
+        return {**executions, "trigger_runs": trigger_runs}
     except Exception as exc:
         logger.error("Execution reaper task failed: %s", exc, exc_info=True)
         raise
@@ -337,5 +422,6 @@ def reap_stale_executions_task(self: Any) -> dict[str, Any]:
 
 __all__ = [
     "reap_stale_executions",
+    "reap_stale_trigger_runs",
     "reap_stale_executions_task",
 ]
