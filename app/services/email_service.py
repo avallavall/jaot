@@ -15,6 +15,7 @@ Usage:
 """
 
 import logging
+import re
 import smtplib
 import time
 from abc import ABC, abstractmethod
@@ -26,6 +27,9 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
+
+# Anything that could close a header and open another one.
+_HEADER_BREAK = re.compile("[\r\n]+")
 
 # F8: lazy reconfigure TTL. Email-related PlatformSettings (EMAIL_BACKEND,
 # SMTP_HOST/PORT/USER/PASSWORD, SMTP_USE_TLS, EMAIL_FROM) are edited by operators
@@ -65,6 +69,31 @@ class EmailBackend(ABC):
     ) -> bool:
         """Send an email. Returns True on success."""
         ...
+
+
+def _header(value: str) -> str:
+    """One header value, with anything that would start a second one removed.
+
+    The public contact form puts a visitor's own words into two headers:
+    ``Reply-To: {name} <{email}>`` and ``Subject: [JAOT Contact] {subject}``.
+    The schema validates the address and bounds the lengths, and its note called
+    header injection handled on that basis — but ``EmailStr`` only covers the
+    address half of that Reply-To. The display name beside it, and the subject,
+    had no constraint at all.
+
+    Nothing was ever injected: Python refuses to serialise a header holding an
+    embedded newline. It raises ``HeaderParseError`` instead, which escaped a
+    method documented as returning a bool, and then escaped ``send_contact_email``,
+    whose ``except`` names SMTP errors and nothing else. Celery marked the task
+    failed with no retry, the row kept ``status = "queued"``, ``last_error``
+    stayed empty and no admin alert went out — the message was dropped and
+    nobody was told.
+
+    Applied to every header rather than to the two the contact form fills: the
+    rule belongs to the header, not to one caller. The words are kept, so a
+    reply still reaches a person with a strange name in it.
+    """
+    return _HEADER_BREAK.sub(" ", value).strip()
 
 
 class ConsoleBackend(EmailBackend):
@@ -122,12 +151,19 @@ class SMTPBackend(EmailBackend):
         from_email: str | None = None,
         reply_to: str | None = None,
     ) -> bool:
+        # Cleaned once, up here, because the envelope below has to carry the
+        # same values as the headers. `sendmail` writes its arguments straight
+        # into RCPT TO and MAIL FROM, so a line break there opens a second SMTP
+        # command rather than a second header.
+        sender = _header(from_email or self.default_from)
+        recipient = _header(to)
+
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = from_email or self.default_from
-        msg["To"] = to
+        msg["Subject"] = _header(subject)
+        msg["From"] = sender
+        msg["To"] = recipient
         if reply_to:
-            msg["Reply-To"] = reply_to
+            msg["Reply-To"] = _header(reply_to)
 
         msg.attach(MIMEText(html, "html"))
 
@@ -142,9 +178,9 @@ class SMTPBackend(EmailBackend):
             if self.username:
                 server.login(self.username, self._password)
 
-            server.sendmail(msg["From"], [to], msg.as_string())
+            server.sendmail(sender, [recipient], msg.as_string())
             server.quit()
-            logger.info(f"Email sent to {to}: {subject}")
+            logger.info(f"Email sent to {recipient}: {subject}")
             return True
         except smtplib.SMTPAuthenticationError:
             logger.error(f"SMTP authentication failed for {self.host} (credentials masked)")

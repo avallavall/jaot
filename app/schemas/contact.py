@@ -20,7 +20,12 @@ class ContactCreate(BaseModel):
       body's `Locale: <code>` header line. Bounded to 8 chars (e.g. "es-ES").
 
     T-09-03 (reply-to header injection): EmailStr validates address shape at
-    the schema layer — malformed values raise 422 before persistence.
+    the schema layer — malformed values raise 422 before persistence. That is
+    half of the header. The Reply-To sent is ``{name} <{email}>``, and ``name``
+    has no shape at all beyond a length; so does ``subject``, which becomes the
+    Subject header. Both are cleaned where the header is built, in
+    ``email_service._header``, which is the one place that covers every field
+    and every caller.
     """
 
     name: str = Field(min_length=1, max_length=120)
