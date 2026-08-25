@@ -16,6 +16,7 @@ from typing import Any
 
 from app.services.webhook_service import deliver_webhook
 from app.shared.core.celery_app import celery_app
+from app.shared.utils.validators import blocked_url_target
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +52,14 @@ def _record_attempt(run_id: str | None, *, delivered: bool | None) -> None:
         db.close()
 
 
-def _notify_delivery_failed(run_id: str | None, url: str) -> None:
-    """Tell the person who owns the trigger that the result never arrived."""
+def _notify_delivery_failed(run_id: str | None, url: str, reason: str | None = None) -> None:
+    """Tell the person who owns the trigger that the result never arrived.
+
+    ``reason`` replaces the "after N attempts" sentence when the attempts are
+    not the story — an address the server refuses to call is settled on the
+    first look, and counting to four before saying so tells the owner to check
+    their endpoint when the endpoint was never contacted.
+    """
     if not run_id:
         return
     from app.models import NotificationType  # noqa: PLC0415
@@ -73,7 +80,8 @@ def _notify_delivery_failed(run_id: str | None, url: str) -> None:
             organization_id=trigger.organization_id,
             notification_type=NotificationType.SYSTEM,
             title="Webhook delivery failed",
-            message=(
+            message=reason
+            or (
                 f"The result of '{trigger.name}' could not be delivered to {url} "
                 f"after {run.webhook_attempts} attempts. The run itself finished; "
                 f"only the delivery failed."
@@ -124,6 +132,31 @@ def deliver_webhook_task(
         run_id: The TriggerRun this delivery belongs to, so the attempt count and
             the outcome are written where the Run History table reads them.
     """
+    # An address the server will not call is a settled answer, not a bad
+    # moment: waiting cannot change where a hostname resolves to. Retried like
+    # a timeout it spent four attempts over seven minutes and then told the
+    # owner their endpoint had not answered — while nothing had ever been sent
+    # to it. Same rule the create form applies, from the same function, asked
+    # here for a different decision: whether to try again.
+    #
+    # A hostname that does not resolve is deliberately NOT settled. It may
+    # resolve by the next attempt, which is what the retries are for.
+    blocked = blocked_url_target(url)
+    if blocked is not None:
+        _record_attempt(run_id, delivered=False)
+        logger.warning("Webhook for %s points at %s — refusing to deliver", url, blocked)
+        _notify_delivery_failed(
+            run_id,
+            url,
+            reason=(
+                f"The result could not be sent to {url}: that address resolves to "
+                f"{blocked}, which is private, loopback or link-local, so the server "
+                f"will not call it. The run itself finished. Point the webhook at a "
+                f"public address to receive it."
+            ),
+        )
+        return {"status": "refused", "url": url, "address": blocked}
+
     # Celery re-raises the original exception instead of MaxRetriesExceededError
     # whenever ``retry(exc=...)`` is given one, so the last try has to be
     # recognised by counting, not by catching.
