@@ -68,6 +68,10 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
         if active_cron_run:
             run = trigger_service.create_run(db, trigger, None, "skipped_overlap")
             run.source = "cron"
+            # This tick is spent either way, so the stored next_run_at has to
+            # move with it. Skipping this left the schedule advertising a next
+            # run in the past until some later tick happened to fire.
+            _update_next_run(schedule)
             db.commit()
             logger.info(
                 "cron_fire_task: overlap skip for trigger %s (active run %s)",
@@ -139,7 +143,7 @@ def _increment_failure_counter(db: Any, schedule: Any, trigger: Any) -> None:
                     PeriodicTaskChanged,
                 )
 
-                beat_task = db.query(PeriodicTask).get(schedule.beat_task_id)
+                beat_task = db.get(PeriodicTask, schedule.beat_task_id)
                 if beat_task:
                     beat_task.enabled = False
                 PeriodicTaskChanged.update_from_session(db)
@@ -152,6 +156,7 @@ def _increment_failure_counter(db: Any, schedule: Any, trigger: Any) -> None:
 
         try:
             from app.services.webhook_service import build_webhook_payload  # noqa: PLC0415
+            from app.shared.db.after_commit import queue_after_commit  # noqa: PLC0415
             from app.tasks.webhook_tasks import deliver_webhook_task  # noqa: PLC0415
 
             payload = build_webhook_payload(
@@ -164,7 +169,13 @@ def _increment_failure_counter(db: Any, schedule: Any, trigger: Any) -> None:
                     "consecutive_failures": schedule.consecutive_failures,
                 },
             )
-            deliver_webhook_task.delay(
+            # On the commit, not here: the caller still has to write
+            # is_enabled=False and the failure count, and this webhook announces
+            # exactly that. Sent early it could report a schedule as disabled
+            # while the transaction that disabled it went on to roll back.
+            queue_after_commit(
+                db,
+                deliver_webhook_task,
                 str(trigger.webhook_url),
                 payload,
                 trigger.webhook_secret,

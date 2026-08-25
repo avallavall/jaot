@@ -152,8 +152,9 @@ class TestCeleryTaskEnqueue:
         assert run.status == "pending"
         assert run.override_data == override_data
 
-        # Verify _queue_solve_task was called with correct args
-        mock_queue_solve.assert_called_once_with(run.id, trigger.id, override_data)
+        # Verify _queue_solve_task was called with correct args. It takes the
+        # session now: the job is queued from `after_commit`, not from the call.
+        mock_queue_solve.assert_called_once_with(db_session, run.id, trigger.id, override_data)
 
     @patch("app.services.trigger_service._queue_validation_failed_webhook")
     @patch("app.services.trigger_service._queue_solve_task")
@@ -174,7 +175,7 @@ class TestCeleryTaskEnqueue:
         db_session.commit()
 
         assert error is None
-        mock_queue_solve.assert_called_once_with(run.id, trigger.id, None)
+        mock_queue_solve.assert_called_once_with(db_session, run.id, trigger.id, None)
 
     @patch("app.services.trigger_service._queue_validation_failed_webhook")
     @patch("app.services.trigger_service._queue_solve_task")

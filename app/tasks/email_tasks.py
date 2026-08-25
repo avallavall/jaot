@@ -159,12 +159,11 @@ def schedule_onboarding_sequence(
     """
     Schedule the full onboarding email sequence for a new user.
 
-    Called once when a user signs up. Schedules 5 emails:
-        Day 0  — immediately
-        Day 1  — 24 hours later
-        Day 3  — 72 hours later
-        Day 7  — 168 hours later
-        Day 14 — 336 hours later
+    Called once when a user signs up. Schedules whatever days
+    ``ONBOARDING_SEQUENCE`` holds — today 0, 1, 3 and 14, each ``day`` days
+    after signup, with day 0 given a 5-second delay so the row it describes is
+    committed first. The list is read from the sequence rather than repeated
+    here: this docstring used to promise a Day 7 email nobody ever wrote.
     """
     day_offsets = sorted(ONBOARDING_SEQUENCE.keys())
 

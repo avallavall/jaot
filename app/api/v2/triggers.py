@@ -748,6 +748,12 @@ def rerun(
 
     # Reuse original override_data (skip trigger_secret validation)
     run, error = trigger_service.fire_trigger(db, trigger, original_run.override_data)
+    # `fire_trigger` flushes and leaves the commit here, and `get_db` closes the
+    # session without one. Without this line the new run, the bumped counters
+    # and the queued solve were all rolled back on the way out, while the
+    # response still handed back a run id and status="pending". Every rerun
+    # reported success and did nothing.
+    db.commit()
 
     if error:
         raise HTTPException(

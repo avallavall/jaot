@@ -1,8 +1,9 @@
 """
 Webhook delivery service for outbound event notifications.
 
-Sends HTTP POST requests to organization-configured webhook URLs
-when async jobs complete, credits change, etc.
+Sends HTTP POST requests to organization-configured webhook URLs when a
+trigger run settles: completed, failed, validation-failed, or its schedule
+auto-disabled. Every payload is built by ``build_webhook_payload``.
 
 Webhook payloads are signed with HMAC-SHA256 using the organization's
 webhook_secret, delivered via the X-Jaot-Signature header.
@@ -101,59 +102,3 @@ def deliver_webhook(
     except (httpx.HTTPError, OSError) as e:
         logger.error(f"Webhook delivery error to {url}: {e}")
         return False
-
-
-def execution_completed_event(
-    organization_id: str,
-    execution_id: str,
-    model_name: str,
-    status: str,
-    objective_value: float | None = None,
-    execution_time_ms: int | None = None,
-) -> dict[str, Any]:
-    """Build an execution.completed webhook payload."""
-    return build_webhook_payload(
-        event_type="execution.completed",
-        organization_id=organization_id,
-        data={
-            "execution_id": execution_id,
-            "model_name": model_name,
-            "status": status,
-            "objective_value": objective_value,
-            "execution_time_ms": execution_time_ms,
-        },
-    )
-
-
-def execution_failed_event(
-    organization_id: str,
-    execution_id: str,
-    model_name: str,
-    error_message: str,
-) -> dict[str, Any]:
-    """Build an execution.failed webhook payload."""
-    return build_webhook_payload(
-        event_type="execution.failed",
-        organization_id=organization_id,
-        data={
-            "execution_id": execution_id,
-            "model_name": model_name,
-            "error_message": error_message,
-        },
-    )
-
-
-def credits_low_event(
-    organization_id: str,
-    current_balance: int,
-    threshold: int,
-) -> dict[str, Any]:
-    """Build a credits.low webhook payload."""
-    return build_webhook_payload(
-        event_type="credits.low",
-        organization_id=organization_id,
-        data={
-            "current_balance": current_balance,
-            "threshold": threshold,
-        },
-    )

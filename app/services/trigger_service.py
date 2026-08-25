@@ -131,7 +131,10 @@ def create_run(
     """Create a TriggerRun record and update trigger counters.
 
     Increments trigger.total_runs and updates trigger.last_fired_at.
-    Commits the new run and the updated trigger in a single transaction.
+
+    Flushes, and leaves the commit to the caller — the run and the counters
+    belong to whatever transaction fired the trigger. This docstring used to
+    claim it committed, which is how ``rerun`` shipped without one.
 
     Args:
         db: Database session.
@@ -198,7 +201,7 @@ def fire_trigger(
         run = create_run(db, trigger, override_data, "validation_failed", error=error)
 
         # Queue webhook to notify owner of the validation failure
-        _queue_validation_failed_webhook(trigger, run, error)
+        _queue_validation_failed_webhook(db, trigger, run, error)
 
         logger.warning("Trigger %s validation failed: %s (run=%s)", trigger.id, error, run.id)
         return run, error
@@ -206,59 +209,69 @@ def fire_trigger(
     # Validation passed — create pending run and queue Celery task
     run = create_run(db, trigger, override_data, "pending")
 
-    _queue_solve_task(run.id, trigger.id, override_data)
+    _queue_solve_task(db, run.id, trigger.id, override_data)
 
     logger.info("Trigger %s fired — queued solve for run %s", trigger.id, run.id)
     return run, None
 
 
 def _queue_solve_task(
+    db: Session,
     run_id: str,
     trigger_id: str,
     override_data: dict[str, Any] | None,
 ) -> None:
-    """Queue the Celery trigger_solve_task.
+    """Queue the Celery trigger_solve_task, once the run row is committed.
+
+    ``create_run`` flushes and leaves the commit to the caller, so a job queued
+    here reached a worker that owns a different connection and could not see the
+    run yet. The worker answered ``run_not_found`` and stopped, and the row it
+    could not find stayed ``pending`` for good — which the cron overlap check
+    reads as "still running", so that schedule never fired again.
 
     Import is deferred to avoid circular imports (tasks import services).
     """
-    try:
-        from app.tasks.trigger_tasks import trigger_solve_task  # noqa: PLC0415
+    from app.shared.db.after_commit import queue_after_commit  # noqa: PLC0415
+    from app.tasks.trigger_tasks import trigger_solve_task  # noqa: PLC0415
 
-        trigger_solve_task.delay(run_id, trigger_id, override_data)
-        logger.debug("Queued trigger_solve_task for run %s", run_id)
-    except Exception as exc:
-        # Celery may not be running in test environments; log and continue
-        logger.warning("Failed to queue trigger_solve_task for run %s: %s", run_id, exc)
+    queue_after_commit(db, trigger_solve_task, run_id, trigger_id, override_data)
+    logger.debug("Queued trigger_solve_task for run %s (on commit)", run_id)
 
 
 def _queue_validation_failed_webhook(
+    db: Session,
     trigger: SolveTrigger,
     run: TriggerRun,
     error: str,
 ) -> None:
-    """Queue a webhook notification for validation failures."""
-    try:
-        from app.services.webhook_service import build_webhook_payload  # noqa: PLC0415
-        from app.tasks.webhook_tasks import deliver_webhook_task  # noqa: PLC0415
+    """Queue a webhook notification for validation failures, once committed.
 
-        payload = build_webhook_payload(
-            event_type="trigger.execution.validation_failed",
-            organization_id=trigger.organization_id,
-            data={
-                "run_id": run.id,
-                "trigger_id": trigger.id,
-                "error": error,
-            },
-        )
-        deliver_webhook_task.delay(
-            str(trigger.webhook_url),
-            payload,
-            trigger.webhook_secret,
-            run.id,
-        )
-        logger.debug("Queued validation_failed webhook for trigger %s run %s", trigger.id, run.id)
-    except Exception as exc:
-        logger.warning("Failed to queue validation_failed webhook for run %s: %s", run.id, exc)
+    ``deliver_webhook_task`` writes the attempt count onto the run, so it has
+    the same problem as the solve task: a delivery that starts before the run
+    exists cannot record anything against it.
+    """
+    from app.services.webhook_service import build_webhook_payload  # noqa: PLC0415
+    from app.shared.db.after_commit import queue_after_commit  # noqa: PLC0415
+    from app.tasks.webhook_tasks import deliver_webhook_task  # noqa: PLC0415
+
+    payload = build_webhook_payload(
+        event_type="trigger.execution.validation_failed",
+        organization_id=trigger.organization_id,
+        data={
+            "run_id": run.id,
+            "trigger_id": trigger.id,
+            "error": error,
+        },
+    )
+    queue_after_commit(
+        db,
+        deliver_webhook_task,
+        str(trigger.webhook_url),
+        payload,
+        trigger.webhook_secret,
+        run.id,
+    )
+    logger.debug("Queued validation_failed webhook for trigger %s run %s", trigger.id, run.id)
 
 
 # SERVICE CLASS (namespace for backwards-compat imports)

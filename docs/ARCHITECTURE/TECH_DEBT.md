@@ -12,6 +12,7 @@ Ordered by benefit ÷ effort.
 | D-28 | `fastapi<0.137.0` is pinned around a fragility of ours, not around FastAPI | Silent: the app would boot "healthy" with 228 routes missing | A bounded investigation |
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
 | D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
+| D-36 | Nothing reaps a stale `TriggerRun`, and the cron overlap check reads one as "still running" | One killed worker stops that schedule for good, silently | Extend the existing reaper |
 
 ---
 
@@ -93,6 +94,29 @@ makes the choice explicit. Worth extracting when that fourth caller shows up, no
 
 Recorded 2026-08-13. It had been sitting in an internal QA note since 2026-08-01, which is
 the wrong place for open debt.
+
+---
+
+## D-36 · A `TriggerRun` that nobody finishes is nobody's job
+
+`reap_stale_executions` sweeps `ModelExecution` rows stuck in `pending` or `running`, asks the
+Celery backend what actually happened to each, and settles them. `TriggerRun` has no equivalent.
+
+`trigger_solve_task` runs with `max_retries=0` behind a broad `except` that marks its run
+failed, so the ordinary paths are covered. A worker killed outright — OOM, a container
+replaced mid-solve — is not: the run keeps `status="pending"` with nobody left to change it.
+
+That would be a cosmetic row in the history, except `cron_fire_task` refuses to start while
+any run of the same trigger is `pending` or `running`. So a single killed worker stops that
+schedule permanently, and says nothing: every later tick records `skipped_overlap` and looks
+like normal overlap protection.
+
+The fix is to extend the existing reaper rather than write a second one — `TriggerRun` already
+carries the timestamps, and the run's `execution_id` points at a `ModelExecution` the reaper
+settles anyway, which is the state to copy across.
+
+Found 2026-08-25, while fixing the race that used to *cause* those stale rows (a solve queued
+before its run was committed). That cause is gone; this is the failure mode that survives it.
 
 ---
 

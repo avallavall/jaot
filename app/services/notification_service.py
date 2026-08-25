@@ -294,28 +294,13 @@ class NotificationService:
         slow or down costs the request nothing, and ``email_sent`` still means
         the message actually went.
         """
-        from sqlalchemy import event
-
+        from app.shared.db.after_commit import queue_after_commit
         from app.tasks.email_tasks import send_notification_email
 
-        notification_id = notification.id
-
-        def _queue(_session: object) -> None:
-            # Queued from `after_commit`, not here: this service flushes and
-            # leaves the commit to its caller, so the row is not visible to
-            # another connection yet. A worker that picked the job up first
-            # would look for a notification that does not exist and drop the
-            # email. A caller that rolls back queues nothing, which is right.
-            try:
-                send_notification_email.delay(notification_id=notification_id)
-            except Exception:
-                # No broker, or it refused the job. The in-app notification is
-                # already written, so this is a lost email, not a lost event.
-                logger.warning(
-                    "Could not queue the email for notification %s",
-                    notification_id,
-                    exc_info=True,
-                )
-
-        event.listen(self.db, "after_commit", _queue, once=True)
+        # Queued from `after_commit`, not here: this service flushes and leaves
+        # the commit to its caller, so the row is not visible to another
+        # connection yet. A worker that picked the job up first would look for a
+        # notification that does not exist and drop the email. A caller that
+        # rolls back queues nothing, which is right.
+        queue_after_commit(self.db, send_notification_email, notification_id=notification.id)
         return True

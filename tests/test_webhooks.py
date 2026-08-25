@@ -19,10 +19,7 @@ import pytest
 from app.services.webhook_service import (
     _sign_payload,
     build_webhook_payload,
-    credits_low_event,
     deliver_webhook,
-    execution_completed_event,
-    execution_failed_event,
 )
 
 
@@ -188,41 +185,6 @@ class TestDelivery:
             call_kwargs = mock_client.post.call_args
             headers = call_kwargs.kwargs.get("headers", {})
             assert headers["X-Jaot-Event"] == "execution.completed"
-
-
-class TestEventBuilders:
-    def test_execution_completed_event(self):
-        event = execution_completed_event(
-            organization_id="org_123",
-            execution_id="exe_456",
-            model_name="Knapsack",
-            status="optimal",
-            objective_value=1800.0,
-            execution_time_ms=247,
-        )
-        assert event["event"] == "execution.completed"
-        assert event["data"]["execution_id"] == "exe_456"
-        assert event["data"]["objective_value"] == 1800.0
-
-    def test_execution_failed_event(self):
-        event = execution_failed_event(
-            organization_id="org_123",
-            execution_id="exe_789",
-            model_name="VRP",
-            error_message="Timeout exceeded",
-        )
-        assert event["event"] == "execution.failed"
-        assert event["data"]["error_message"] == "Timeout exceeded"
-
-    def test_credits_low_event(self):
-        event = credits_low_event(
-            organization_id="org_123",
-            current_balance=5,
-            threshold=10,
-        )
-        assert event["event"] == "credits.low"
-        assert event["data"]["current_balance"] == 5
-        assert event["data"]["threshold"] == 10
 
 
 class TestWebhookTask:
