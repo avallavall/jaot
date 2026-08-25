@@ -15,6 +15,7 @@ from datetime import timedelta
 from typing import Any
 
 from app.config import settings
+from app.services import email_layout
 from app.services.email_service import EmailService
 from app.services.onboarding_emails import (
     ONBOARDING_SEQUENCE,
@@ -66,7 +67,11 @@ def send_onboarding_email(
             to=user_email,
             subject=subject,
             html=html,
-            reply_to="founders@jaot.io",
+            # The address the rest of the platform publishes — the footer of
+            # every email, the privacy and terms pages, the help menu.
+            # `founders@jaot.io` appeared here and in one email body, and
+            # nowhere else in the product.
+            reply_to=email_layout.SUPPORT_EMAIL,
         )
 
         if success:

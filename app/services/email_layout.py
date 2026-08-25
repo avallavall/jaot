@@ -52,7 +52,8 @@ SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
 
 #: Where a reader replies or asks for help. The rest of the platform uses this
 #: address (the footer of every email, the privacy and terms pages, the help
-#: menu); ``founders@jaot.io`` appeared in one email only and nowhere else.
+#: menu). ``founders@jaot.io`` was in two places and nowhere else in the
+#: product: one email body, and the ``Reply-To`` the onboarding sequence set.
 SUPPORT_EMAIL = "support@jaot.io"
 
 #: Public site root. Kept here so no email builds a URL by hand.

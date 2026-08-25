@@ -126,6 +126,34 @@ def test_feedback_goes_to_the_support_address() -> None:
     assert f"mailto:{email_layout.SUPPORT_EMAIL}" in html
 
 
+# CONTRACT-TEST: "reply to this email" has to be true, and land somewhere real.
+#
+# The sender is noreply@jaot.io, so a reply only works because the sequence
+# sets a Reply-To. It pointed at founders@jaot.io, an address that existed in
+# exactly two places in the whole product and nowhere a reader could see.
+def test_a_reply_reaches_the_address_the_platform_publishes() -> None:
+    import inspect
+
+    from app.tasks import email_tasks
+
+    # The function still names the old address in the comment explaining why
+    # it changed, so this checks the argument, not the absence of a word.
+    source = inspect.getsource(email_tasks.send_onboarding_email)
+    assert "reply_to=email_layout.SUPPORT_EMAIL" in source
+    assert 'reply_to="founders@jaot.io"' not in source
+
+
+# CONTRACT-TEST: the day-14 email does not promise whose inbox it reaches.
+#
+# It said the reply went "directly to our founder's inbox", in seventeen
+# languages, while the Reply-To went to a shared address.
+@pytest.mark.parametrize("locale", _LOCALES)
+def test_the_reply_line_promises_nobody_in_particular(locale: str) -> None:
+    _, html = ONBOARDING_SEQUENCE[14](user_name="Ada", locale=locale)
+    for word in ("founder", "fundador", "fondateur", "Gründer"):
+        assert word not in html, f"day14 ({locale}) still names a role: {word}"
+
+
 # CONTRACT-TEST: a name somebody chose cannot become markup in somebody's inbox.
 #
 # A notification about an execution names the model, and a model is named by
