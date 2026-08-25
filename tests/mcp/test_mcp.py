@@ -276,13 +276,19 @@ def test_operation_ids_set(openapi_schema):
 # ---- AI-04: llms.txt discovery document ----
 
 
-def test_llms_txt(mcp_app):
-    """llms.txt route is registered in the app."""
-    well_known_routes = [
-        r.path for r in mcp_app.routes if hasattr(r, "path") and ".well-known" in str(r.path)
-    ]
-    assert any("llms.txt" in p for p in well_known_routes), (
-        f"No llms.txt route found. Routes: {well_known_routes}"
+def test_llms_txt(mcp_client):
+    """The llms.txt discovery path answers, and points at the canonical copy.
+
+    This asked the app's ``routes`` list whether the path was registered. That
+    list is private structure: FastAPI 0.137 stopped copying an included
+    router's routes into it and stored a lazy include record instead, so the
+    path vanished from the list while the endpoint kept answering. Ask the app.
+    """
+    resp = mcp_client.get("/.well-known/llms.txt", follow_redirects=False)
+
+    assert resp.status_code == 301, f"llms.txt does not redirect: got {resp.status_code}"
+    assert resp.headers["location"].endswith("/llms.txt"), (
+        f"llms.txt redirects somewhere else: {resp.headers['location']}"
     )
 
 
@@ -297,14 +303,16 @@ def test_llms_txt_content():
 # ---- AI-05: llms-full.txt comprehensive documentation ----
 
 
-def test_llms_full_txt(mcp_app):
-    """llms-full.txt route is registered in the app."""
-    well_known_routes = [
-        r.path for r in mcp_app.routes if hasattr(r, "path") and ".well-known" in str(r.path)
-    ]
-    assert any("llms-full.txt" in p for p in well_known_routes), (
-        f"No llms-full.txt route found. Routes: {well_known_routes}"
-    )
+def test_llms_full_txt(mcp_client):
+    """The llms-full.txt discovery path answers with the document itself.
+
+    Same reason as ``test_llms_txt``: a request proves what the routes list
+    only used to imply.
+    """
+    resp = mcp_client.get("/.well-known/llms-full.txt", follow_redirects=False)
+
+    assert resp.status_code == 200, f"llms-full.txt does not answer: got {resp.status_code}"
+    assert "JAOT" in resp.text, "llms-full.txt answered with something else"
 
 
 def test_llms_full_txt_content():
