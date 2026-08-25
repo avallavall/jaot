@@ -15,8 +15,8 @@ caller would force every caller to maintain its own.
 from __future__ import annotations
 
 import logging
-import time
-from threading import Lock
+
+from app.shared.utils.ttl_probe import TTLProbe
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,13 @@ logger = logging.getLogger(__name__)
 # state does not change on sub-second scales.
 _HEXALY_PROBE_CACHE_SECONDS = 15.0
 _HEXALY_PROBE_TIMEOUT_SECONDS = 0.5
-_hexaly_probe_cache: tuple[float, bool, str | None] | None = None
-_hexaly_probe_lock = Lock()
+
+#: ``wait``: the broadcast is capped at 500 ms, so a caller that finds one
+#: running is better off waiting for its answer than serving a stale one.
+_hexaly_probe = TTLProbe[tuple[bool, str | None]](
+    ttl_seconds=_HEXALY_PROBE_CACHE_SECONDS,
+    on_contention="wait",
+)
 
 
 def _probe_hexaly_worker() -> tuple[bool, str | None]:
@@ -43,48 +48,28 @@ def _probe_hexaly_worker() -> tuple[bool, str | None]:
     failures are swallowed into a ``degraded`` message — infrastructure
     probes must never raise from this layer.
 
-    Uses double-checked locking: the fast path reads the cache without taking
-    the lock (CPython tuple assignment is atomic under the GIL), so warm
-    readers do not serialize on ``_hexaly_probe_lock``. The lock is only
-    acquired when the cache is empty or expired, and a re-check inside the
-    lock prevents the cache-stampede hole where N concurrent requests all
-    see "cache empty" and all fire their own broker broadcast.
+    A caller that arrives while a probe is running waits for it, rather than
+    serving a stale answer: the broadcast is capped at 500 ms, so waiting is
+    cheap and an old answer buys nothing. The wait also stops a thundering
+    herd of broker broadcasts when the cache expires under load.
     """
-    global _hexaly_probe_cache
+    return _hexaly_probe.get(_read_hexaly_queue)
 
-    # Fast path: lock-free cache read. Tuple binding is atomic under the GIL;
-    # the worst case is reading a value that just expired, which the lock-
-    # protected slow path will refresh on the next call.
-    cached = _hexaly_probe_cache
-    if cached is not None and (time.monotonic() - cached[0]) < _HEXALY_PROBE_CACHE_SECONDS:
-        return (cached[1], cached[2])
 
-    with _hexaly_probe_lock:
-        # Re-check inside the lock — another thread may have refreshed the
-        # cache while we were waiting. Stops a thundering herd of broker
-        # broadcasts when the cache expires under load.
-        cached = _hexaly_probe_cache
-        now = time.monotonic()
-        if cached is not None and (now - cached[0]) < _HEXALY_PROBE_CACHE_SECONDS:
-            return (cached[1], cached[2])
+def _read_hexaly_queue() -> tuple[bool, str | None]:
+    """Ask the broker once. Never raises: a broker failure is a degraded answer."""
+    try:
+        from app.domains.solver.queue_routing import SOLVER_QUEUE_MAP
+        from app.shared.core.celery_app import celery_app
 
-        queue_ok = False
-        message: str | None = None
-        try:
-            from app.domains.solver.queue_routing import SOLVER_QUEUE_MAP
-            from app.shared.core.celery_app import celery_app
-
-            hexaly_queue_name = SOLVER_QUEUE_MAP["hexaly"]
-            inspector = celery_app.control.inspect(timeout=_HEXALY_PROBE_TIMEOUT_SECONDS)
-            queues_by_worker = inspector.active_queues() or {}
-            queue_ok = any(
-                any(q.get("name") == hexaly_queue_name for q in (queues or []))
-                for queues in queues_by_worker.values()
-            )
-            if not queue_ok:
-                message = f"No worker bound to {hexaly_queue_name} queue"
-        except Exception as exc:  # noqa: BLE001 — infra probe must degrade, never raise
-            message = f"Hexaly worker probe failed: {str(exc)[:100]}"
-
-        _hexaly_probe_cache = (now, queue_ok, message)
-        return (queue_ok, message)
+        hexaly_queue_name = SOLVER_QUEUE_MAP["hexaly"]
+        inspector = celery_app.control.inspect(timeout=_HEXALY_PROBE_TIMEOUT_SECONDS)
+        queues_by_worker = inspector.active_queues() or {}
+        queue_ok = any(
+            any(q.get("name") == hexaly_queue_name for q in (queues or []))
+            for queues in queues_by_worker.values()
+        )
+        message = None if queue_ok else f"No worker bound to {hexaly_queue_name} queue"
+    except Exception as exc:  # noqa: BLE001 — infra probe must degrade, never raise
+        return (False, f"Hexaly worker probe failed: {str(exc)[:100]}")
+    return (queue_ok, message)

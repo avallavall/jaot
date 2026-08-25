@@ -7,7 +7,7 @@ Covers HIGH-02 (per-queue Hexaly health discrimination):
     Test 2: Hexaly worker bound to solve_hexaly → solver_worker_hexaly is healthy.
     Test 3: Cache respected — two rapid calls hit the broker probe exactly once.
 
-All tests clear the process-global _hexaly_probe_cache before running.
+All tests clear the process-global Hexaly probe cache before running.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _clear_hexaly_probe_cache(monkeypatch):
+def _clear_hexaly_probe_cache():
     """/health cache is process-global; wipe before every test.
 
     Phase 7.4 / FIX-CI: cache moved to ``app.domains.solver.services.worker_health``
@@ -26,8 +26,9 @@ def _clear_hexaly_probe_cache(monkeypatch):
     """
     import app.domains.solver.services.worker_health as worker_health_mod
 
-    monkeypatch.setattr(worker_health_mod, "_hexaly_probe_cache", None)
+    worker_health_mod._hexaly_probe.clear()
     yield
+    worker_health_mod._hexaly_probe.clear()
 
 
 def _make_inspector(queues_by_worker: dict) -> object:
@@ -91,34 +92,17 @@ def test_hexaly_component_degraded_when_no_worker(authenticated_client, monkeypa
 
 
 def _probe_with_fake(fake_app):  # noqa: ANN001,ANN202
-    """Run the real _probe_hexaly_worker body but with a patched celery_app."""
-    import time
+    """Run the REAL broker read, with ``celery_app`` already patched to *fake_app*.
 
+    This used to re-implement the probe body line for line. A copy of the code
+    under test proves nothing about the code under test: the copy would keep
+    passing on its own logic long after the original changed.
+    """
     import app.domains.solver.services.worker_health as worker_health_mod
-    from app.domains.solver.queue_routing import SOLVER_QUEUE_MAP
 
-    hexaly_queue_name = SOLVER_QUEUE_MAP["hexaly"]
-    try:
-        inspector = fake_app.control.inspect(
-            timeout=worker_health_mod._HEXALY_PROBE_TIMEOUT_SECONDS
-        )
-        queues_by_worker = inspector.active_queues() or {}
-        queue_ok = any(
-            any(q.get("name") == hexaly_queue_name for q in (queues or []))
-            for queues in queues_by_worker.values()
-        )
-        if not queue_ok:
-            message: str | None = f"No worker bound to {hexaly_queue_name} queue"
-    except Exception as exc:  # noqa: BLE001
-        queue_ok = False
-        message = f"Hexaly worker probe failed: {str(exc)[:100]}"
-
-    worker_health_mod._hexaly_probe_cache = (
-        time.monotonic(),
-        queue_ok,
-        message if not queue_ok else None,
-    )
-    return (queue_ok, message if not queue_ok else None)
+    assert fake_app is not None
+    worker_health_mod._hexaly_probe.clear()
+    return worker_health_mod._read_hexaly_queue()
 
 
 # Test 2 — healthy when Hexaly worker reports solve_hexaly queue
@@ -183,7 +167,7 @@ def test_hexaly_probe_cache_respected(authenticated_client, monkeypatch):
         lambda: True,
     )
     # Clear the cache so the first request always triggers a probe.
-    monkeypatch.setattr(worker_health_mod, "_hexaly_probe_cache", None)
+    worker_health_mod._hexaly_probe.clear()
 
     # First hit — broker probe fires once.
     resp1 = authenticated_client.get("/api/v2/health/status")

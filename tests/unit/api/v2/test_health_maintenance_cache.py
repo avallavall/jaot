@@ -42,10 +42,10 @@ def _make_pss_counter():
 
 
 def _reset_cache():
-    """Reset the module-level cache to None before each test."""
+    """Forget the cached flag before each test."""
     import app.api.v2.health as health_mod
 
-    health_mod._maintenance_probe_cache = None
+    health_mod._maintenance_probe.clear()
 
 
 # Test D: Cache hit reuses PSS result
@@ -88,22 +88,17 @@ def test_cache_ttl_expiry_refreshes(monkeypatch) -> None:
         pss_impl,
     )
 
-    from app.api.v2.health import _MAINTENANCE_PROBE_CACHE_SECONDS, _probe_maintenance_mode
+    from app.api.v2.health import _probe_maintenance_mode
 
     # First call — populates cache (count=1)
     _probe_maintenance_mode()
     assert counter[0] == 1
 
-    # Advance monotonic time past TTL to simulate expiry.
-    # We patch time.monotonic to return a value > (now + TTL).
+    # Age the entry past its TTL, keeping the value it holds.
     import app.api.v2.health as health_mod
 
-    original_cache = health_mod._maintenance_probe_cache
-    assert original_cache is not None
-    stale_ts = original_cache[0] - (_MAINTENANCE_PROBE_CACHE_SECONDS + 1.0)
-
-    # Inject a cache entry with a stale timestamp
-    health_mod._maintenance_probe_cache = (stale_ts, False)
+    assert health_mod._maintenance_probe.last_known is not None
+    health_mod._maintenance_probe.expire()
 
     # Second call — cache is stale, should re-invoke PSS.get_bool (count=2)
     _probe_maintenance_mode()
@@ -244,7 +239,7 @@ def test_exhausted_pool_serves_last_known_value(monkeypatch) -> None:
         _pss_true,
     )
 
-    from app.api.v2.health import _MAINTENANCE_PROBE_CACHE_SECONDS, _probe_maintenance_mode
+    from app.api.v2.health import _probe_maintenance_mode
 
     assert _probe_maintenance_mode() is True
 
@@ -252,12 +247,8 @@ def test_exhausted_pool_serves_last_known_value(monkeypatch) -> None:
     import app.api.v2.health as health_mod
     import app.shared.db.session as session_mod
 
-    cached = health_mod._maintenance_probe_cache
-    assert cached is not None
-    health_mod._maintenance_probe_cache = (
-        cached[0] - (_MAINTENANCE_PROBE_CACHE_SECONDS + 1.0),
-        cached[1],
-    )
+    assert health_mod._maintenance_probe.last_known is True
+    health_mod._maintenance_probe.expire()
 
     def _exhausted(*args, **kwargs):
         raise SQLAlchemyTimeoutError("QueuePool limit of size 5 overflow 5 reached")

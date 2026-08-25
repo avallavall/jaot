@@ -10,7 +10,6 @@ Ordered by benefit ÷ effort.
 | # | Debt | Impact | Effort |
 |---|------|--------|--------|
 | D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
-| D-29 | The TTL-cache-plus-single-flight pattern is written three times, and the three disagree | Low: each one works; the next copy is where it stops working | An afternoon, once a fourth caller needs it |
 
 ---
 
@@ -37,30 +36,6 @@ state does not survive transaction pooling the way it survives a session) and `p
 
 Not urgent while the platform is quiet, and the gauges from D-25 now say when it stops being
 quiet: watch `jaot_db_pool_checked_out / jaot_db_pool_capacity`.
-
----
-
-## D-29 · The same TTL cache is written three times, and the three disagree
-
-Three places cache an expensive probe in process memory behind a TTL and a lock, each one
-written from scratch:
-
-| Where | TTL | What a caller does when the cache is cold |
-|---|---|---|
-| `api/v2/health.py` (`MAINTENANCE_MODE`) | 10 s | Non-blocking `acquire`; a loser serves the stale value. Only the very first probe waits, because there is no stale value to serve yet |
-| `domains/solver/services/worker_health.py` (Hexaly queue) | 15 s | Double-checked locking: a loser blocks, then finds the cache filled |
-| `services/llm/cost_tracking.py` (monthly LLM spend) | 60 s | **No single flight at all.** The lock only guards reading and writing the tuple, so N callers that arrive on an expired cache all run the month-cost query |
-
-Each one is defensible where it sits, and the reasoning is in the comments: health must never
-block on a saturated pool, the Hexaly probe broadcasts to the whole fleet, the spend query is
-cheap enough that a stampede of a few is harmless.
-
-What makes this debt is that the differences are invisible from the outside. The fourth caller
-that needs this will copy whichever file it opens first, and there is no shared helper that
-makes the choice explicit. Worth extracting when that fourth caller shows up, not before.
-
-Recorded 2026-08-13. It had been sitting in an internal QA note since 2026-08-01, which is
-the wrong place for open debt.
 
 ---
 
@@ -101,6 +76,7 @@ Full reasoning in the commit that closed each one, and in the CHANGELOG.
 | D-32 | A comparison's columns stopped copying its problem; `ModelExecution.problem_data` reads the parent's snapshot. Cleared 59 MB of a 216 MB table on the development database | ✅ `20260824_comparison_copies` |
 | D-36 | The reaper settles a stale `TriggerRun` too, so an abandoned run stops blocking its own cron schedule | ✅ 2026-08-25 |
 | D-28 | The `fastapi<0.137.0` ceiling measured `len(app.routes)`, which 0.137 stopped being a route count. Nothing was broken: unpinned, and the two tests that read that list now issue a request instead | ✅ 2026-08-25 |
+| D-29 | The TTL-cache-plus-single-flight pattern extracted into `app/shared/utils/ttl_probe.py`. The three copies disagreed on what a caller does while a refresh runs; that is now an argument every caller names | ✅ 2026-08-25 |
 
 **The 2026-04-18 comparative audit** (58% essential / 42% accidental complexity, the LOC
 tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in

@@ -5,7 +5,6 @@ import logging
 import platform
 import time
 from concurrent.futures import ThreadPoolExecutor
-from threading import Lock
 from typing import Any
 
 import psutil
@@ -16,6 +15,7 @@ from sqlalchemy.exc import TimeoutError as SQLAlchemyTimeoutError
 
 from app.schemas.health import RecentRequestEntry, RecentRequestsResponse
 from app.shared.core.metrics import metrics_collector
+from app.shared.utils.ttl_probe import TTLProbe
 from app.version import APP_VERSION
 
 logger = logging.getLogger(__name__)
@@ -41,110 +41,70 @@ _HEALTH_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="jaot-he
 # the solver.services -> api.v2.health -> pyscipopt import-linter cycle.
 from app.domains.solver.services.worker_health import _probe_hexaly_worker  # noqa: E402, F401
 
-# MAINTENANCE_MODE TTL cache (D-7.1-13, E-13). Mirrors _hexaly_probe_cache.
+# MAINTENANCE_MODE TTL cache (D-7.1-13, E-13).
 # Scope: /health handler only. DO NOT generalize into a cross-cutting PSS
 # read-through cache (explicit anti-pattern per D-7.1-13).
+#
+# ``serve_stale``: the refresh spans a session checkout, so waiting on it means
+# waiting out pool_timeout, and with a blocking acquire every caller would pay
+# that in turn, serially. A caller that finds the refresh already running
+# serves the stale value instead, which is what waiting would have given it.
+#
+# ``first_wait_seconds``: on the very first probe there IS no stale value and
+# the fallback is a hard-coded False. A container starting inside a maintenance
+# window sees a liveness probe, a metrics scrape and a user request arrive
+# together: one wins the lock, the others reported maintenance OFF while it was
+# on. 2 s is well under DB_POOL_TIMEOUT, so it can never be the slow part.
+#
+# ``cold_value=False``: reporting maintenance ON over a transient blip would
+# take a healthy site down.
 _MAINTENANCE_PROBE_CACHE_SECONDS = 10.0
-#: How long a caller waits for the FIRST read, when there is no stale value to
-#: fall back on. Well under DB_POOL_TIMEOUT, so it can never be the slow part.
 _FIRST_PROBE_WAIT_SECONDS = 2.0
-_maintenance_probe_cache: tuple[float, bool] | None = None
-_maintenance_probe_lock = Lock()
+_maintenance_probe = TTLProbe[bool](
+    ttl_seconds=_MAINTENANCE_PROBE_CACHE_SECONDS,
+    on_contention="serve_stale",
+    first_wait_seconds=_FIRST_PROBE_WAIT_SECONDS,
+    cold_value=False,
+)
 
 
-def _cached_maintenance_flag() -> bool | None:
-    """The cached flag if it is still inside the TTL, else None.
+def _read_maintenance_mode() -> bool:
+    """Read MAINTENANCE_MODE once. Never raises.
 
-    Read twice per probe: once before taking the lock and once after, since a
-    concurrent refresh can land while this thread is acquiring.
+    D-25: this owns its session instead of receiving one from
+    ``Depends(get_db)``. FastAPI resolves dependencies *before* entering the
+    handler, so the old signature checked out a pooled connection on **every**
+    health request — including the ~9 out of 10 that the cache serves without
+    touching the database at all. Under saturation that made the health check
+    queue behind ordinary traffic, which is how a slow API became a restarting
+    one.
+
+    On failure it returns the last known value, so the cache is written either
+    way: returning without writing would leave the TTL expired, and the next
+    probe would immediately pay another full pool_timeout.
     """
-    cached = _maintenance_probe_cache
-    if cached is not None and (time.monotonic() - cached[0]) < _MAINTENANCE_PROBE_CACHE_SECONDS:
-        return cached[1]
-    return None
+    from app.services.platform_settings_service import PlatformSettingsService  # noqa: PLC0415
+    from app.shared.db.session import SessionLocal  # noqa: PLC0415
 
-
-def _last_known_maintenance_flag() -> bool:
-    """The last value read, however stale — False if there has never been one.
-
-    False is the safe default: reporting maintenance ON over a transient blip
-    would take a healthy site down.
-    """
-    cached = _maintenance_probe_cache
-    return cached[1] if cached is not None else False
+    try:
+        db = SessionLocal()
+        try:
+            return PlatformSettingsService.get_bool(db, "MAINTENANCE_MODE", default=False)
+        finally:
+            db.close()
+    except Exception:  # noqa: BLE001 — infra probe must degrade, never raise
+        last = _maintenance_probe.last_known
+        return last if last is not None else False
 
 
 def _probe_maintenance_mode() -> bool:
-    """TTL-cached PlatformSettingsService.get_bool('MAINTENANCE_MODE').
+    """The maintenance flag, read at most once every 10 s per process.
 
-    Uses a 10s TTL + single-flight lock so that sustained healthcheck load
-    (e.g. k8s liveness probes every 10s across N replicas) invokes
-    PSS.get_bool at most once per 10s per process — not on every /health hit.
-
-    D-25: this helper owns its session instead of receiving one from
-    ``Depends(get_db)``. FastAPI resolves dependencies *before* entering the
-    handler, so the old signature checked out a pooled connection on **every**
-    health request — including the ~9 out of 10 that the TTL cache serves
-    without touching the database at all. Under saturation that made the health
-    check queue behind ordinary traffic, which is how a slow API became a
-    restarting one.
-
-    All errors are swallowed: on failure we serve the last known value, or
-    False (maintenance off) if we have never had one. A saturated pool or a
-    broken platform_settings row must not stop the health endpoint answering.
+    Sustained healthcheck load (a liveness probe every 10 s across N replicas)
+    invokes ``PSS.get_bool`` at most once per window per process, not on every
+    /health hit.
     """
-    global _maintenance_probe_cache
-
-    fresh = _cached_maintenance_flag()
-    if fresh is not None:
-        return fresh
-
-    # Single flight, non-blocking ONCE WE HAVE AN ANSWER. The lock spans a session
-    # checkout, so waiting on it means waiting out pool_timeout, and with a
-    # blocking acquire every caller would pay that in turn, serially. A caller
-    # that finds the refresh already running serves the stale value instead —
-    # which is what it would have got by waiting anyway.
-    #
-    # Except on the very first probe, where there IS no stale value and the
-    # fallback is a hard-coded False. A container starting inside a maintenance
-    # window sees a liveness probe, a metrics scrape and a user request arrive
-    # together: one wins the lock, the others reported maintenance OFF while it
-    # was on. When nothing has ever been read, wait briefly for the answer.
-    if _maintenance_probe_cache is None:
-        acquired = _maintenance_probe_lock.acquire(timeout=_FIRST_PROBE_WAIT_SECONDS)
-    else:
-        acquired = _maintenance_probe_lock.acquire(blocking=False)
-    if not acquired:
-        return _last_known_maintenance_flag()
-
-    try:
-        fresh = _cached_maintenance_flag()
-        if fresh is not None:
-            return fresh
-
-        from app.services.platform_settings_service import PlatformSettingsService
-        from app.shared.db.session import SessionLocal
-
-        try:
-            db = SessionLocal()
-            try:
-                is_maintenance = PlatformSettingsService.get_bool(
-                    db,
-                    "MAINTENANCE_MODE",
-                    default=False,
-                )
-            finally:
-                db.close()
-        except Exception:  # noqa: BLE001 — infra probe must degrade, never raise
-            # Cache the failure too, at the last known value. Returning without
-            # writing would leave the TTL expired, so the next probe would
-            # immediately pay another full pool_timeout, and the one after that.
-            is_maintenance = _last_known_maintenance_flag()
-
-        _maintenance_probe_cache = (time.monotonic(), is_maintenance)
-        return is_maintenance
-    finally:
-        _maintenance_probe_lock.release()
+    return _maintenance_probe.get(_read_maintenance_mode)
 
 
 class SystemMetrics(BaseModel):
@@ -327,8 +287,6 @@ def _collect_status() -> DetailedStatusResponse:
     turns pool exhaustion into what it actually is: a reported "database is
     down", answered promptly, instead of a restart cascade.
     """
-    import time
-
     components = []
     app_stats = metrics_collector.get_stats()
 

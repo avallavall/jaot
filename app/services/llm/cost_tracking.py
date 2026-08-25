@@ -25,8 +25,6 @@ from __future__ import annotations
 
 import json
 import logging
-import threading
-import time
 from datetime import timedelta
 
 from sqlalchemy import func
@@ -37,6 +35,7 @@ from app.models.llm_conversation import LLMConversation, LLMMessage
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
+from app.shared.utils.ttl_probe import TTLProbe
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +56,11 @@ _JMODEL_AI_LEDGER_MODEL_ID = "sys:jmodel-ai"
 # guardrail errs toward pausing too early — never toward silent overspend.
 _FALLBACK_RATE: dict[str, float] = {"input": 4.63, "output": 23.15}
 
-_CACHE_TTL_SECONDS = 60.0
-_cache_lock = threading.Lock()
-_cached_at: float = 0.0
-_cached_status: tuple[float, float] | None = None
+#: ``wait``: the refresh is one SUM over the current month plus one settings
+#: read, both short and bounded, so a caller that finds one running is better
+#: off waiting than running its own. Before this it had no single flight at
+#: all: N callers arriving on an expired cache each ran the month-cost query.
+_budget_probe = TTLProbe[tuple[float, float]](ttl_seconds=60.0, on_contention="wait")
 
 
 def get_model_pricing(db: Session) -> dict[str, dict[str, float]]:
@@ -111,18 +111,9 @@ def get_month_cost_eur(db: Session) -> float:
 
 def get_budget_status(db: Session) -> tuple[float, float]:
     """Return ``(month_cost_eur, budget_eur)``, cached in-process for ~60s."""
-    global _cached_at, _cached_status
-    with _cache_lock:
-        if _cached_status is not None and (time.monotonic() - _cached_at) < _CACHE_TTL_SECONDS:
-            return _cached_status
-
-    cost = get_month_cost_eur(db)
-    budget = PSS.get_float(db, BUDGET_SETTING_KEY)
-
-    with _cache_lock:
-        _cached_status = (cost, budget)
-        _cached_at = time.monotonic()
-    return cost, budget
+    return _budget_probe.get(
+        lambda: (get_month_cost_eur(db), PSS.get_float(db, BUDGET_SETTING_KEY))
+    )
 
 
 def is_llm_budget_exceeded(db: Session) -> bool:
@@ -139,10 +130,7 @@ def is_llm_budget_exceeded(db: Session) -> bool:
 
 def reset_budget_cache() -> None:
     """Drop the cached (cost, budget) pair. Tests + admin settings updates."""
-    global _cached_at, _cached_status
-    with _cache_lock:
-        _cached_status = None
-        _cached_at = 0.0
+    _budget_probe.clear()
 
 
 def _ledger_conversation(db: Session, org_id: str, user_id: str) -> LLMConversation | None:
