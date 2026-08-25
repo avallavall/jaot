@@ -304,14 +304,16 @@ class NotificationService:
             )
             return False
 
+        # The title and the message carry user-supplied text — a notification
+        # about an execution names the model, and a model is named by whoever
+        # made it. The layout helpers escape what they are given and refuse a
+        # link that is not http, https or mailto, so this cannot inject markup
+        # into somebody else's inbox.
         body = email_layout.heading(notification.title) + email_layout.paragraph(
             notification.message
         )
         if notification.link:
-            href = notification.link
-            if href.startswith("/"):
-                href = f"{email_layout.SITE}{href}"
-            body += email_layout.button(href, notification.title)
+            body += email_layout.button(notification.link, notification.title)
 
         sent = EmailService.send(
             to=user.email,

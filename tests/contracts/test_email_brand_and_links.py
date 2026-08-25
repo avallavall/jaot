@@ -124,3 +124,29 @@ def test_feedback_goes_to_the_support_address() -> None:
     _, html = ONBOARDING_SEQUENCE[14](user_name="Ada", locale="en")
     assert "founders@jaot.io" not in html
     assert f"mailto:{email_layout.SUPPORT_EMAIL}" in html
+
+
+# CONTRACT-TEST: a name somebody chose cannot become markup in somebody's inbox.
+#
+# A notification about an execution names the model, and a model is named by
+# whoever made it. The helpers took that straight into the HTML.
+def test_the_layout_escapes_what_it_is_given() -> None:
+    nasty = '<img src=x onerror="alert(1)">'
+    for built in (email_layout.heading(nasty), email_layout.paragraph(nasty)):
+        assert "<img" not in built, "markup survived into the email"
+        assert "&lt;img" in built
+
+    labelled = email_layout.button("https://jaot.io/workspace/models", nasty)
+    assert "<img" not in labelled
+    assert "&lt;img" in labelled
+
+
+# CONTRACT-TEST: a button never points at a scheme a reader should not click.
+def test_a_button_refuses_anything_but_http_https_and_mailto() -> None:
+    for href in ("javascript:alert(1)", "data:text/html,<script>alert(1)</script>", "//evil.test"):
+        assert email_layout.button(href, "Open") == "", f"{href} rendered a button"
+        assert "<a" not in email_layout.link(href, "Open"), f"{href} rendered a link"
+
+    # A path is resolved against the site; the real schemes go through.
+    assert email_layout.SITE + "/workspace/models" in email_layout.button("/workspace/models", "Go")
+    assert "mailto:support@jaot.io" in email_layout.button("mailto:support@jaot.io", "Write")

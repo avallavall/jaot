@@ -79,7 +79,14 @@ def safe(text: str, fallback: str = "there") -> str:
 
 
 def heading(text: str, level: int = 1) -> str:
-    """A brand heading. Serif, brown, no bright blue anywhere."""
+    """A brand heading. Serif, brown, no bright blue anywhere.
+
+    ``text`` is escaped. These helpers take TEXT, never markup: a notification
+    title carries a model name, and a model is named by whoever made it. A
+    caller that genuinely needs markup builds the tag itself, as the onboarding
+    emails do — that way forgetting to escape is not the default.
+    """
+    text = safe(text, "")
     size = {1: "28px", 2: "20px"}.get(level, "20px")
     return (
         '<h{lvl} style="margin:0 0 16px;font-family:{serif};font-weight:600;'
@@ -88,6 +95,8 @@ def heading(text: str, level: int = 1) -> str:
 
 
 def paragraph(text: str, muted: bool = False) -> str:
+    """A body paragraph. ``text`` is escaped — see :func:`heading`."""
+    text = safe(text, "")
     colour = MUTED if muted else TEXT
     return (
         '<p style="margin:0 0 16px;font-family:{sans};font-size:15px;'
@@ -96,14 +105,39 @@ def paragraph(text: str, muted: bool = False) -> str:
 
 
 def link(href: str, label: str) -> str:
-    """An inline link, in the brand brown rather than the browser blue."""
+    """An inline link, in the brand brown rather than the browser blue.
+
+    Same rules as :func:`button`: the label is escaped and the scheme checked.
+    """
+    if href.startswith("/") and not href.startswith("//"):
+        href = SITE + href
+    if not href.startswith(_SAFE_SCHEMES):
+        return safe(label, "")
+    href = safe(href, "")
+    label = safe(label, "")
     return '<a href="{href}" style="color:{primary};text-decoration:underline;">{label}</a>'.format(
         href=href, primary=PRIMARY, label=label
     )
 
 
+#: The only schemes a button may point at. Anything else — `javascript:`,
+#: `data:` — is dropped rather than rendered.
+_SAFE_SCHEMES = ("https://", "http://", "mailto:")
+
+
 def button(href: str, label: str) -> str:
-    """The one call to action. Solid brand brown, generous tap target."""
+    """The one call to action. Solid brand brown, generous tap target.
+
+    ``label`` is escaped and ``href`` is checked: a link that is not http,
+    https or mailto produces no button at all, rather than a link a reader
+    might click. A path is resolved against the site.
+    """
+    if href.startswith("/") and not href.startswith("//"):
+        href = SITE + href
+    if not href.startswith(_SAFE_SCHEMES):
+        return ""
+    href = safe(href, "")
+    label = safe(label, "")
     return (
         '<a href="{href}" style="display:inline-block;background:{primary};'
         "color:#FFFFFF;font-family:{sans};font-size:15px;font-weight:600;"
