@@ -3,11 +3,10 @@ Celery tasks for onboarding email sequence.
 
 Tasks:
     - send_onboarding_email: Send a specific onboarding email to a user
-    - schedule_onboarding_sequence: Schedule all 5 emails for a new user
-    - process_pending_onboarding: Periodic task to send due onboarding emails
+    - schedule_onboarding_sequence: Schedule the sequence for a new user
+    - send_notification_email: Deliver one notification off the request path
 
-The sequence is stored in the `onboarding_emails` table (or as scheduled Celery tasks).
-We use Celery's `apply_async(eta=...)` for scheduling future sends.
+We use Celery's `apply_async(countdown=...)` for scheduling future sends.
 """
 
 import logging
@@ -82,6 +81,75 @@ def send_onboarding_email(
     except Exception as exc:
         logger.error(f"Failed to send onboarding day {day} to {user_email}: {exc}")
         raise self.retry(exc=exc) from exc
+
+
+@celery_app.task(  # type: ignore[misc]
+    name="app.tasks.email_tasks.send_notification_email",
+    bind=True,
+    max_retries=settings.CELERY_MAX_RETRIES,
+    default_retry_delay=settings.CELERY_DEFAULT_RETRY_DELAY,
+)
+def send_notification_email(self: Any, notification_id: str) -> dict[str, Any]:
+    """Deliver one notification by email, and record only what happened.
+
+    Off the request path on purpose. Sending inline meant a slow or unreachable
+    SMTP server added up to ``SMTP_TIMEOUT`` seconds to whatever the reader had
+    just done — adopting a model, leaving a review — for an email that is not
+    part of that action at all. A retry here also costs the reader nothing.
+
+    The in-app notification is written before this is queued, so a mail server
+    that is down loses nothing but the copy in the inbox.
+    """
+    from app.models import Notification, User
+    from app.services import email_layout as layout
+    from app.shared.db.session import SessionLocal
+    from app.shared.utils.datetime_helpers import utcnow
+
+    db = SessionLocal()
+    try:
+        notification = db.query(Notification).filter(Notification.id == notification_id).first()
+        if notification is None:
+            # Deleted between queueing and delivery. Nothing to chase.
+            logger.info("Notification %s is gone — nothing to send", notification_id)
+            return {"status": "gone", "notification_id": notification_id}
+        if notification.email_sent:
+            return {"status": "already_sent", "notification_id": notification_id}
+
+        user = db.query(User).filter(User.id == notification.user_id).first()
+        if user is None or not user.email:
+            logger.warning("No address for notification %s — not sent", notification_id)
+            return {"status": "no_address", "notification_id": notification_id}
+
+        # The title and the message carry user-supplied text: a notification
+        # about an execution names the model, and a model is named by whoever
+        # made it. The layout escapes what it is given.
+        body = layout.heading(notification.title) + layout.paragraph(notification.message)
+        if notification.link:
+            body += layout.button(notification.link, notification.title)
+
+        sent = EmailService.send(
+            to=user.email,
+            subject=notification.title,
+            html=layout.wrap(body, getattr(user, "locale", None)),
+            db=db,
+        )
+        if not sent:
+            raise EmailDeliveryError(f"EmailService.send returned False for {notification_id}")
+
+        notification.email_sent = True
+        notification.email_sent_at = utcnow()
+        db.commit()
+        return {"status": "sent", "notification_id": notification_id}
+    except EmailDeliveryError as exc:
+        db.rollback()
+        logger.error("Notification email %s failed: %s", notification_id, exc)
+        raise self.retry(exc=exc) from exc
+    except Exception as exc:
+        db.rollback()
+        logger.error("Notification email %s failed: %s", notification_id, exc, exc_info=True)
+        raise self.retry(exc=exc) from exc
+    finally:
+        db.close()
 
 
 @celery_app.task(name="app.tasks.email_tasks.schedule_onboarding_sequence")  # type: ignore[misc]

@@ -281,50 +281,41 @@ class NotificationService:
         )
 
     def _send_email_notification(self, notification: Notification) -> bool:
-        """Send the notification by email, and record only what actually happened.
+        """Arrange for the notification to be emailed once the row is committed.
 
-        This used to set ``email_sent = True`` and return success without
-        sending anything at all. So an author whose model somebody adopted got
-        nothing, and the row said the email had gone out — the one place anyone
-        would look to find out otherwise.
+        Two things were wrong here in turn. It used to set ``email_sent = True``
+        and return success without contacting the mail server at all, so an
+        author whose model somebody adopted got nothing while the one row
+        anybody would check said otherwise. Then it sent inline, which put up to
+        ``SMTP_TIMEOUT`` seconds of somebody else's mail server in front of the
+        reader who triggered it — for an email that is no part of what they did.
 
-        A failure now leaves ``email_sent`` false. The in-app notification is
-        already written either way, so nothing is lost when mail is down.
+        The worker sends and records. This only queues, so a mail server that is
+        slow or down costs the request nothing, and ``email_sent`` still means
+        the message actually went.
         """
-        from app.models import User
-        from app.services import email_layout
-        from app.services.email_service import EmailService
+        from sqlalchemy import event
 
-        user = self.db.query(User).filter(User.id == notification.user_id).first()
-        if user is None or not user.email:
-            logger.warning(
-                "No address for notification %s (user %s) — not sent",
-                notification.id,
-                notification.user_id,
-            )
-            return False
+        from app.tasks.email_tasks import send_notification_email
 
-        # The title and the message carry user-supplied text — a notification
-        # about an execution names the model, and a model is named by whoever
-        # made it. The layout helpers escape what they are given and refuse a
-        # link that is not http, https or mailto, so this cannot inject markup
-        # into somebody else's inbox.
-        body = email_layout.heading(notification.title) + email_layout.paragraph(
-            notification.message
-        )
-        if notification.link:
-            body += email_layout.button(notification.link, notification.title)
+        notification_id = notification.id
 
-        sent = EmailService.send(
-            to=user.email,
-            subject=notification.title,
-            html=email_layout.wrap(body, getattr(user, "locale", None)),
-            db=self.db,
-        )
-        if not sent:
-            logger.warning("Email for notification %s was not delivered", notification.id)
-            return False
+        def _queue(_session: object) -> None:
+            # Queued from `after_commit`, not here: this service flushes and
+            # leaves the commit to its caller, so the row is not visible to
+            # another connection yet. A worker that picked the job up first
+            # would look for a notification that does not exist and drop the
+            # email. A caller that rolls back queues nothing, which is right.
+            try:
+                send_notification_email.delay(notification_id=notification_id)
+            except Exception:
+                # No broker, or it refused the job. The in-app notification is
+                # already written, so this is a lost email, not a lost event.
+                logger.warning(
+                    "Could not queue the email for notification %s",
+                    notification_id,
+                    exc_info=True,
+                )
 
-        notification.email_sent = True
-        notification.email_sent_at = utcnow()
+        event.listen(self.db, "after_commit", _queue, once=True)
         return True
