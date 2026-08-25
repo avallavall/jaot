@@ -182,6 +182,15 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     "day1": {
+        # The link beside tip3 used to render the literal English word
+        # "Settings" in every language.
+        "apiKeysLinkLabel": {
+            "en": "API keys",
+            "es": "Claves API",
+            "ca": "Claus API",
+            "fr": "Clés API",
+            "de": "API-Schlüssel",
+        },
         "subject": {
             "en": "JAOT: Integrate in 5 lines of code",
             "es": "JAOT: Integra en 5 líneas de código",

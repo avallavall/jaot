@@ -15,9 +15,12 @@ from collections.abc import Callable
 from html import escape as _html_escape
 from urllib.parse import quote as _url_quote
 
+from app.services import email_layout
 from app.services.email_translations import get_email_string
 
-BRAND_COLOR = "#2563eb"
+#: Kept as a name so the four builders below read the same. The value is
+#: the platform's, not a colour picked for email.
+BRAND_COLOR = email_layout.PRIMARY
 
 
 def _safe_name(name: str) -> str:
@@ -32,34 +35,13 @@ def _safe_name(name: str) -> str:
 
 
 def _wrap(content: str, locale: str | None = None) -> str:
-    """Wrap content in a responsive email template with translated footer."""
+    """Put an onboarding email on the shared JAOT page.
 
-    def t(key: str) -> str:
-        return get_email_string("footer", key, locale)
-
-    footer = f"""
-<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;">
-    <p>{t("brand")}</p>
-    <p><a href="https://jaot.io" style="color:#2563eb;">jaot.io</a> ·
-       <a href="https://jaot.io/docs" style="color:#2563eb;">{t("docsLink")}</a> ·
-       <a href="mailto:support@jaot.io" style="color:#2563eb;">{t("supportLink")}</a></p>
-    <p style="margin-top:8px;">{t("unsubscribe")}
-       <a href="https://jaot.io/settings/notifications" style="color:#6b7280;">{t("unsubscribeLink")}</a></p>
-</div>
-"""
-
-    return f"""
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-<div style="max-width:600px;margin:0 auto;padding:32px 24px;background:#ffffff;">
-{content}
-{footer}
-</div>
-</body>
-</html>
-"""
+    The look lives in :mod:`app.services.email_layout`, which every email now
+    shares. This wrapper had a palette of its own — Tailwind blue on cool grey —
+    that matched nothing on the site.
+    """
+    return email_layout.wrap(content, locale)
 
 
 def day0_welcome(user_name: str, api_key_prefix: str, locale: str | None = None) -> tuple[str, str]:
@@ -75,20 +57,20 @@ def day0_welcome(user_name: str, api_key_prefix: str, locale: str | None = None)
     html = _wrap(
         f"""
     <h1 style="color:{BRAND_COLOR};margin-bottom:8px;">{t("heading").format(user_name=safe_name)} 🎉</h1>
-    <p style="font-size:16px;color:#374151;">
+    <p style="font-size:16px;color:#3A3230;">
         {t("bodyIntro")}
     </p>
 
-    <div style="background:#f0f9ff;border-left:4px solid {BRAND_COLOR};padding:16px;margin:24px 0;border-radius:4px;">
-        <h3 style="margin:0 0 8px 0;color:#1e40af;">{t("apiKeyHeading")}</h3>
-        <code style="background:#e0f2fe;padding:4px 8px;border-radius:4px;font-size:14px;">{safe_api_key_prefix}••••••••</code>
-        <p style="margin:8px 0 0;font-size:13px;color:#6b7280;">
+    <div style="background:#F1E6D8;border-left:4px solid {BRAND_COLOR};padding:16px;margin:24px 0;border-radius:4px;">
+        <h3 style="margin:0 0 8px 0;color:#5D4E47;">{t("apiKeyHeading")}</h3>
+        <code style="background:#F1E6D8;padding:4px 8px;border-radius:4px;font-size:14px;">{safe_api_key_prefix}••••••••</code>
+        <p style="margin:8px 0 0;font-size:13px;color:#6B5F59;">
             {t("apiKeyHint")} <a href="https://jaot.io/workspace/api-keys" style="color:{BRAND_COLOR};">{t("apiKeyLink")}</a>
         </p>
     </div>
 
-    <h2 style="color:#111827;">{t("firstSolveHeading")}</h2>
-    <pre style="background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;">
+    <h2 style="color:#5D4E47;">{t("firstSolveHeading")}</h2>
+    <pre style="background:#3A3230;color:#E4DBD3;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;">
 curl -X POST https://jaot.io/api/v2/solve \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -104,9 +86,9 @@ curl -X POST https://jaot.io/api/v2/solve \\
     }}
   }}'</pre>
 
-    <p style="color:#374151;">{t("bodyOutro")}</p>
+    <p style="color:#3A3230;">{t("bodyOutro")}</p>
 
-    <a href="https://jaot.io/docs/getting-started"
+    <a href="https://jaot.io/docs/getting-started/quick-start"
        style="display:inline-block;background:{BRAND_COLOR};color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:16px;">
         {t("ctaText")}
     </a>
@@ -122,17 +104,21 @@ def day1_api_setup(user_name: str, locale: str | None = None) -> tuple[str, str]
     def t(key: str) -> str:
         return get_email_string("day1", key, locale)
 
+    # The label used to be the literal word "Settings", in English, inside an
+    # email translated into five languages.
+    keys_link = email_layout.link(email_layout.API_KEYS, t("apiKeysLinkLabel"))
+
     safe_name = _safe_name(user_name)
     subject = t("subject")
     html = _wrap(
         f"""
     <h1 style="color:{BRAND_COLOR};">{t("heading").format(user_name=safe_name)}</h1>
-    <p style="font-size:16px;color:#374151;">
+    <p style="font-size:16px;color:#3A3230;">
         {t("bodyIntro")}
     </p>
 
-    <h2 style="color:#111827;">Python</h2>
-    <pre style="background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;">
+    <h2 style="color:#5D4E47;">Python</h2>
+    <pre style="background:#3A3230;color:#E4DBD3;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;">
 import requests
 
 result = requests.post(
@@ -153,8 +139,8 @@ result = requests.post(
 
 print(result["solution"]["variables"])</pre>
 
-    <h2 style="color:#111827;">JavaScript / Node.js</h2>
-    <pre style="background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;">
+    <h2 style="color:#5D4E47;">JavaScript / Node.js</h2>
+    <pre style="background:#3A3230;color:#E4DBD3;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;">
 const res = await fetch("https://jaot.io/api/v2/solve", {{
   method: "POST",
   headers: {{
@@ -168,14 +154,14 @@ const res = await fetch("https://jaot.io/api/v2/solve", {{
 }});
 const data = await res.json();</pre>
 
-    <h2 style="color:#111827;">{t("bestPracticesHeading")}</h2>
-    <ul style="color:#374151;">
+    <h2 style="color:#5D4E47;">{t("bestPracticesHeading")}</h2>
+    <ul style="color:#3A3230;">
         <li>{t("tip1")}</li>
         <li>{t("tip2")}</li>
-        <li>{t("tip3")} <a href="https://jaot.io/workspace/api-keys" style="color:{BRAND_COLOR};">Settings</a></li>
+        <li>{t("tip3")} {keys_link}</li>
     </ul>
 
-    <a href="https://jaot.io/docs/api/reference"
+    <a href="https://jaot.io/docs/api/solve"
        style="display:inline-block;background:{BRAND_COLOR};color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:16px;">
         {t("ctaText")}
     </a>
@@ -196,25 +182,25 @@ def day3_catalog(user_name: str, locale: str | None = None) -> tuple[str, str]:
     html = _wrap(
         f"""
     <h1 style="color:{BRAND_COLOR};">{t("heading").format(user_name=safe_name)}</h1>
-    <p style="font-size:16px;color:#374151;">
+    <p style="font-size:16px;color:#3A3230;">
         {t("bodyIntro")}
     </p>
 
     <table style="width:100%;border-collapse:collapse;margin:24px 0;">
-        <tr style="background:#f0f9ff;">
-            <th style="text-align:left;padding:8px 12px;border-bottom:2px solid #e5e7eb;">{t("tableModel")}</th>
-            <th style="text-align:left;padding:8px 12px;border-bottom:2px solid #e5e7eb;">{t("tableUseCase")}</th>
+        <tr style="background:#F1E6D8;">
+            <th style="text-align:left;padding:8px 12px;border-bottom:2px solid #E4DBD3;">{t("tableModel")}</th>
+            <th style="text-align:left;padding:8px 12px;border-bottom:2px solid #E4DBD3;">{t("tableUseCase")}</th>
         </tr>
-        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">📦 {t("row1name")}</td><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">{t("row1desc")}</td></tr>
-        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">👥 {t("row2name")}</td><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">{t("row2desc")}</td></tr>
-        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">🚛 {t("row3name")}</td><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">{t("row3desc")}</td></tr>
-        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">📊 {t("row4name")}</td><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">{t("row4desc")}</td></tr>
-        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">🏭 {t("row5name")}</td><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">{t("row5desc")}</td></tr>
-        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">💰 {t("row6name")}</td><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;">{t("row6desc")}</td></tr>
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">📦 {t("row1name")}</td><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">{t("row1desc")}</td></tr>
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">👥 {t("row2name")}</td><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">{t("row2desc")}</td></tr>
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">🚛 {t("row3name")}</td><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">{t("row3desc")}</td></tr>
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">📊 {t("row4name")}</td><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">{t("row4desc")}</td></tr>
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">🏭 {t("row5name")}</td><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">{t("row5desc")}</td></tr>
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">💰 {t("row6name")}</td><td style="padding:8px 12px;border-bottom:1px solid #F1E6D8;">{t("row6desc")}</td></tr>
         <tr><td style="padding:8px 12px;">🔧 {t("moreTemplates")}</td><td style="padding:8px 12px;"></td></tr>
     </table>
 
-    <p style="color:#374151;">
+    <p style="color:#3A3230;">
         {t("bodyOutro")}
     </p>
 
@@ -236,47 +222,66 @@ def day14_feedback(user_name: str, locale: str | None = None) -> tuple[str, str]
 
     safe_name = _safe_name(user_name)
     url_safe_name = _url_quote(user_name) if user_name else "anonymous"
+
+    # The four faces linked to /feedback?rating=..., a route that never existed:
+    # every one of them answered 404, so the whole ask did nothing. A mailto
+    # carries the rating for real and needs no new page. The address is the one
+    # the rest of the platform uses; this email pointed at founders@jaot.io,
+    # which appears nowhere else.
+    def _face(emoji: str, rating: str, spaced: bool = True) -> str:
+        gap = "margin-right:8px;" if spaced else ""
+        href = (
+            f"mailto:{email_layout.SUPPORT_EMAIL}"
+            f"?subject={_url_quote(t('subject'))}"
+            f"&body={_url_quote(f'[{rating}] ')}{url_safe_name}"
+        )
+        return f'<a href="{href}" style="text-decoration:none;font-size:24px;{gap}">{emoji}</a>'
+
+    rating_row = (
+        _face("😍", "great")
+        + _face("😊", "good")
+        + _face("😐", "ok")
+        + _face("😞", "bad", spaced=False)
+    )
+    feedback_cta = email_layout.button(
+        f"mailto:{email_layout.SUPPORT_EMAIL}?subject={_url_quote(t('subject'))}",
+        t("ctaText"),
+    )
     subject = t("subject")
     html = _wrap(
         f"""
     <h1 style="color:{BRAND_COLOR};">{t("heading").format(user_name=safe_name)}</h1>
-    <p style="font-size:16px;color:#374151;">
+    <p style="font-size:16px;color:#3A3230;">
         {t("bodyIntro")}
     </p>
 
-    <h2 style="color:#111827;">{t("storiesHeading")}</h2>
+    <h2 style="color:#5D4E47;">{t("storiesHeading")}</h2>
     <div style="margin:16px 0;">
-        <div style="background:#f9fafb;padding:16px;border-radius:8px;margin-bottom:12px;">
-            <p style="font-weight:600;color:#111827;margin:0 0 4px;">🏭 {t("story1title")}</p>
-            <p style="color:#6b7280;margin:0;">{t("story1desc")}</p>
+        <div style="background:#F1E6D8;padding:16px;border-radius:8px;margin-bottom:12px;">
+            <p style="font-weight:600;color:#5D4E47;margin:0 0 4px;">🏭 {t("story1title")}</p>
+            <p style="color:#6B5F59;margin:0;">{t("story1desc")}</p>
         </div>
-        <div style="background:#f9fafb;padding:16px;border-radius:8px;margin-bottom:12px;">
-            <p style="font-weight:600;color:#111827;margin:0 0 4px;">🚚 {t("story2title")}</p>
-            <p style="color:#6b7280;margin:0;">{t("story2desc")}</p>
+        <div style="background:#F1E6D8;padding:16px;border-radius:8px;margin-bottom:12px;">
+            <p style="font-weight:600;color:#5D4E47;margin:0 0 4px;">🚚 {t("story2title")}</p>
+            <p style="color:#6B5F59;margin:0;">{t("story2desc")}</p>
         </div>
-        <div style="background:#f9fafb;padding:16px;border-radius:8px;">
-            <p style="font-weight:600;color:#111827;margin:0 0 4px;">📊 {t("story3title")}</p>
-            <p style="color:#6b7280;margin:0;">{t("story3desc")}</p>
+        <div style="background:#F1E6D8;padding:16px;border-radius:8px;">
+            <p style="font-weight:600;color:#5D4E47;margin:0 0 4px;">📊 {t("story3title")}</p>
+            <p style="color:#6B5F59;margin:0;">{t("story3desc")}</p>
         </div>
     </div>
 
-    <h2 style="color:#111827;">{t("feedbackHeading")}</h2>
-    <p style="color:#374151;">{t("feedbackPrompt")}</p>
+    <h2 style="color:#5D4E47;">{t("feedbackHeading")}</h2>
+    <p style="color:#3A3230;">{t("feedbackPrompt")}</p>
     <div style="margin:16px 0;">
-        <a href="https://jaot.io/feedback?rating=great" style="text-decoration:none;font-size:24px;margin-right:8px;">😍</a>
-        <a href="https://jaot.io/feedback?rating=good" style="text-decoration:none;font-size:24px;margin-right:8px;">😊</a>
-        <a href="https://jaot.io/feedback?rating=ok" style="text-decoration:none;font-size:24px;margin-right:8px;">😐</a>
-        <a href="https://jaot.io/feedback?rating=bad" style="text-decoration:none;font-size:24px;">😞</a>
+        {rating_row}
     </div>
 
-    <p style="color:#374151;">
+    <p style="color:#3A3230;">
         {t("replyPrompt")}
     </p>
 
-    <a href="mailto:founders@jaot.io?subject=Feedback%20from%20{url_safe_name}"
-       style="display:inline-block;background:{BRAND_COLOR};color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:16px;">
-        {t("ctaText")}
-    </a>
+    {feedback_cta}
     """,
         locale=locale,
     )

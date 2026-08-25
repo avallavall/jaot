@@ -281,11 +281,48 @@ class NotificationService:
         )
 
     def _send_email_notification(self, notification: Notification) -> bool:
-        """Send email notification (placeholder for future implementation)."""
-        # Email delivery via SMTP is handled by EmailService (v2.0 backlog: dedicated transactional provider).
-        logger.info(f"Email notification queued for {notification.user_id}: {notification.title}")
+        """Send the notification by email, and record only what actually happened.
+
+        This used to set ``email_sent = True`` and return success without
+        sending anything at all. So an author whose model somebody adopted got
+        nothing, and the row said the email had gone out — the one place anyone
+        would look to find out otherwise.
+
+        A failure now leaves ``email_sent`` false. The in-app notification is
+        already written either way, so nothing is lost when mail is down.
+        """
+        from app.models import User
+        from app.services import email_layout
+        from app.services.email_service import EmailService
+
+        user = self.db.query(User).filter(User.id == notification.user_id).first()
+        if user is None or not user.email:
+            logger.warning(
+                "No address for notification %s (user %s) — not sent",
+                notification.id,
+                notification.user_id,
+            )
+            return False
+
+        body = email_layout.heading(notification.title) + email_layout.paragraph(
+            notification.message
+        )
+        if notification.link:
+            href = notification.link
+            if href.startswith("/"):
+                href = f"{email_layout.SITE}{href}"
+            body += email_layout.button(href, notification.title)
+
+        sent = EmailService.send(
+            to=user.email,
+            subject=notification.title,
+            html=email_layout.wrap(body, getattr(user, "locale", None)),
+            db=self.db,
+        )
+        if not sent:
+            logger.warning("Email for notification %s was not delivered", notification.id)
+            return False
 
         notification.email_sent = True
         notification.email_sent_at = utcnow()
-
         return True

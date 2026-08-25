@@ -32,7 +32,6 @@ from app.schemas.auth import (
 from app.schemas.common import SuccessResponse
 from app.services.auth import APIKeyService, JWTService, PasswordService
 from app.services.auth.password_service import DUMMY_HASH
-from app.services.email_translations import get_email_string
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.rate_limiter import check_rate_limit, check_rate_limit_hourly
@@ -470,22 +469,11 @@ def signup_email(
         verify_url = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
         logger.debug("Verification email sent to %s", body.email)
 
+        from app.services import email_layout
         from app.services.email_service import EmailService
 
-        def t(key: str) -> str:
-            return get_email_string("verify_email", key, body.locale)
-
-        EmailService.send(
-            to=body.email,
-            subject=t("subject"),
-            html=(
-                f"<h2>{t('heading')}</h2>"
-                f"<p>{t('body')}</p>"
-                f'<p><a href="{verify_url}">{t("cta")}</a></p>'
-                f"<p>{t('expiry')}</p>"
-            ),
-            db=db,
-        )
+        subject, html = email_layout.verify_email(verify_url, body.locale)
+        EmailService.send(to=body.email, subject=subject, html=html, db=db)
     except Exception as e:
         logger.warning(f"Failed to send verification email: {e}")
 
@@ -611,23 +599,11 @@ def forgot_password(body: ForgotPasswordRequest, db: DBSession) -> SuccessRespon
             reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
             logger.debug("Reset email sent to %s", body.email)
 
+            from app.services import email_layout
             from app.services.email_service import EmailService
 
-            def t(key: str) -> str:
-                return get_email_string("reset_password", key, user.locale)
-
-            EmailService.send(
-                to=body.email,
-                subject=t("subject"),
-                html=(
-                    f"<h2>{t('heading')}</h2>"
-                    f"<p>{t('body')}</p>"
-                    f'<p><a href="{reset_url}">{t("cta")}</a></p>'
-                    f"<p>{t('expiry')}</p>"
-                    f"<p>{t('ignore')}</p>"
-                ),
-                db=db,
-            )
+            subject, html = email_layout.reset_password(reset_url, user.locale)
+            EmailService.send(to=body.email, subject=subject, html=html, db=db)
         except Exception as e:
             logger.warning(f"Failed to send reset email: {e}")
 
