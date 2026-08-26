@@ -297,6 +297,7 @@ See [Deployment Guide](../operations/DEPLOYMENT.md) and [Disaster Recovery](../.
 | `ruff check app/ infra/ scripts/ deploy/ tests/` | Lint with ruff (line length 100, project-level ignores in `pyproject.toml`). These are the directories CI gates |
 | `ruff format app/ infra/ scripts/ deploy/ tests/` | Format Python files with ruff (replaces black + isort) |
 | `lint-imports` | Validate import-linter contracts (7 contracts — domain boundaries + pyscipopt isolation) |
+| `python scripts/export_openapi.py` then `cd frontend && npm run generate-types` | Regenerate the frontend's API types from the backend schema. Run this when the `types-frontend` CI job fails; it needs no running server and no database |
 | `alembic -c infra/alembic.ini upgrade head` | Apply DB migrations |
 | `alembic -c infra/alembic.ini revision --autogenerate -m "desc"` | Create a new migration from model changes |
 | `celery -A app.shared.core.celery_app worker --loglevel=info` | Start a Celery worker (requires RabbitMQ) |

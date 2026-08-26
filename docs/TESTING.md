@@ -100,15 +100,29 @@ build.
 
 ## Continuous integration
 
-Two pipelines, by design:
+Two workflows, and everything that judges a change is in the public one.
 
-- **Public CI** (`.github/workflows/ci.yml`, runs on any GitHub runner, no
-  secrets): `ruff` lint + format, backend `pytest` with the 78% coverage gate
-  against a real PostgreSQL service, frontend ESLint + i18n check + Vitest. This
-  is what runs on your PR.
-- **Maintainer pipeline** (runs on the maintainer's self-hosted CI runner): all of
-  the above plus `bandit`, `pip-audit`, `npm audit`, Lighthouse budgets, image
-  builds, and the production deploy.
+**`.github/workflows/ci.yml`** — six independent jobs on GitHub-hosted runners,
+no secrets. This is what runs on your PR:
+
+| Job | What it gates |
+|---|---|
+| `lint-backend` | `ruff check` + `ruff format --check` over the five gated directories, then `lint-imports` (7 contracts) |
+| `security-backend` | `pip-audit -r requirements.txt` (strict) + `bandit -r app/ -lll` |
+| `test-backend` | `pytest` with `--cov-fail-under=78` against a real PostgreSQL service; installs `coinor-cbc` and `glpk-utils` so the CLI-solver tests run instead of skipping |
+| `types-frontend` | regenerates `api.ts` from the schema and fails on any difference (see above) |
+| `lint-frontend` | ESLint + `check-i18n` + `npm audit` (critical blocks) |
+| `test-frontend` | Vitest |
+
+**`.github/workflows/deploy.yml`** — image builds and the production deploy, on
+the maintainer's self-hosted runner. It gates nothing; it ships what CI passed.
+
+This section used to say the security scans were maintainer-only and that
+Lighthouse budgets ran somewhere. Neither was true: `bandit`, `pip-audit` and
+`npm audit` are all in the public CI above, and there is no Lighthouse job.
+
+Not in CI, and both catch things the jobs above do not: `next build` (run it
+before opening a PR) and the Playwright E2E suite.
 
 ## Run it yourself
 

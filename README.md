@@ -292,8 +292,10 @@ Institute Berlin) and **[HiGHS](https://highs.dev/)** — full attributions in
 
 Built solo and AI-accelerated. What you can verify rather than take on faith:
 tests run against real PostgreSQL (no mocked DB), domain boundaries are enforced
-by import-linter contracts, and every change is gated by lint, tests, and
-security scans (`bandit`, `pip-audit`, `npm audit`). Details, coverage, and
+by import-linter contracts, the frontend's API types are regenerated from the
+backend schema on every push and must match what is committed, and every change
+is gated by lint, tests, and security scans (`bandit`, `pip-audit`,
+`npm audit`). Details, coverage, and
 mutation-test scores in [Testing & Quality](docs/TESTING.md).
 
 **Maintained best-effort** — monthly issue triage, quarterly dependency/CVE pass.
