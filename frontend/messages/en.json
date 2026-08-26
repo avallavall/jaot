@@ -1117,7 +1117,7 @@
       },
       "section2": {
         "title": "2. Description of Service",
-        "body": "JAOT is an open-source platform for building, sharing, and solving mathematical optimization models. It includes a free, collaborative marketplace of optimization templates, a visual drag-and-drop model builder, an optional AI formulation assistant, a Model Context Protocol (MCP) endpoint for programmatic access, and shared organization workspaces. Models are solved locally using open-source solvers — currently SCIP, HiGHS, CBC and GLPK. The instance at jaot.io is the reference deployment operated by the JAOT team; anyone can self-host the same software under the Apache License 2.0."
+        "body": "JAOT is an open-source platform for building, sharing, and solving mathematical optimization models. It includes a free, collaborative marketplace of optimization templates, a model studio with a visual canvas, a JModel text editor and a JSON editor, an optional AI formulation assistant, a Model Context Protocol (MCP) endpoint for programmatic access, and shared organization workspaces. Models are solved locally using open-source solvers, currently SCIP, HiGHS, CBC and GLPK. The instance at jaot.io is the reference deployment operated by the JAOT team; anyone can self-host the same software under the Apache License 2.0."
       },
       "section3": {
         "title": "3. Acceptable Use",
@@ -2655,7 +2655,7 @@
   },
   "marketplace": {
     "title": "Model Marketplace",
-    "subtitle": "Discover optimization models built by the community and verified authors — and make them yours in the studio.",
+    "subtitle": "Optimization models published by the community and by verified authors. Open any of them in your studio and change it.",
     "searchPlaceholder": "Search models...",
     "noResults": "No models found. Try a different search term.",
     "loadingModels": "Loading models",
@@ -2768,14 +2768,14 @@
     },
     "catalog": {
       "title": "Model Catalog",
-      "subtitle": "Browse optimization models from the official catalog — one click to use them in your studio",
+      "subtitle": "Optimization models from the official catalog. One click opens a model in your studio.",
       "searchPlaceholder": "Search models...",
       "search": "Search",
       "featuredOnly": "Featured only",
       "freeOnly": "Free only",
       "officialOnly": "Official only",
       "noModelsFound": "No models found",
-      "noModelsDescription": "No models match your current filters. Try adjusting the category, search term, or filter options to discover available models.",
+      "noModelsDescription": "No models match your current filters. Change the category, the search term or the filters.",
       "noModelsExpert": "No results. Adjust filters.",
       "clearFilters": "Clear filters",
       "failedToLoad": "Failed to load models",
@@ -4696,8 +4696,8 @@
       "description": "GNU LP/MIP solver, single-threaded"
     },
     "unavailable": "Solver '{name}' is not available on this server.",
-    "noProgressNotice": "{solver} reports no progress while it searches — you see the result when the solve finishes.",
-    "noSensitivityNotice": "{solver} computes no shadow prices — the Sensitivity tab will be empty for this run.",
+    "noProgressNotice": "{solver} reports no progress while it searches. You see the result when the solve finishes.",
+    "noSensitivityNotice": "{solver} computes no shadow prices. The Sensitivity tab will be empty for this run.",
     "availableEndpointError": "Could not load available solvers. Using default.",
     "executionDetail": {
       "autoRoutedLabel": "Auto → {solver}",
@@ -4739,7 +4739,7 @@
       }
     },
     "success": {
-      "title": "Thanks — your message is on its way.",
+      "title": "Thanks. Your message is sent.",
       "body": "We read every message and reply within a few business days."
     },
     "error": {
@@ -4763,7 +4763,7 @@
     },
     "contact": {
       "title": "Contact — JAOT",
-      "description": "Send a message to the JAOT team — questions, feedback, partnership ideas."
+      "description": "Send a message to the JAOT team: questions, feedback or partnership ideas."
     },
     "licenses": {
       "title": "Third-Party Licenses - JAOT",
@@ -4779,7 +4779,7 @@
     },
     "authors": {
       "title": "Model Publishers - JAOT Marketplace",
-      "description": "Discover organizations publishing optimization models on the JAOT community marketplace — free to use in your own studio."
+      "description": "The organizations that publish optimization models on the JAOT community marketplace. Every model is free to use in your own studio."
     }
   },
   "images": {

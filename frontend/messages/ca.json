@@ -1081,7 +1081,7 @@
       },
       "section2": {
         "title": "2. Descripció del servei",
-        "body": "JAOT és una plataforma de codi obert per crear, compartir i resoldre models d’optimització matemàtica. Inclou un marketplace gratuït i col·laboratiu de plantilles d’optimització, un constructor visual de models d’arrossegar i deixar anar, un assistent de formulació amb IA opcional, un endpoint de Model Context Protocol (MCP) per a accés programàtic i espais de treball compartits per organització. Els models es resolen localment amb solvers de codi obert, actualment SCIP, HiGHS, CBC i GLPK. La instància de jaot.io és el desplegament de referència operat per l’equip de JAOT; qualsevol pot autoallotjar el mateix programari sota la Llicència Apache 2.0."
+        "body": "JAOT és una plataforma de codi obert per crear, compartir i resoldre models d’optimització matemàtica. Inclou un marketplace gratuït i col·laboratiu de plantilles d’optimització, un estudi de models amb llenç visual, editor de text JModel i editor JSON, un assistent de formulació amb IA opcional, un endpoint de Model Context Protocol (MCP) per a accés programàtic i espais de treball compartits per organització. Els models es resolen localment amb solvers de codi obert, actualment SCIP, HiGHS, CBC i GLPK. La instància de jaot.io és el desplegament de referència operat per l’equip de JAOT; qualsevol pot autoallotjar el mateix programari sota la Llicència Apache 2.0."
       },
       "section3": {
         "title": "3. Ús acceptable",
@@ -2655,7 +2655,7 @@
   },
   "marketplace": {
     "title": "Marketplace de Models",
-    "subtitle": "Descobreix models d'optimització creats per la comunitat i autors verificats — i fes-los teus a l'estudi.",
+    "subtitle": "Models d'optimització publicats per la comunitat i per autors verificats. Obre'n qualsevol al teu estudi i modifica'l.",
     "searchPlaceholder": "Cercar models...",
     "noResults": "No s'han trobat models. Proveu amb un altre terme de cerca.",
     "loadingModels": "Carregant models",
@@ -2739,14 +2739,14 @@
     },
     "catalog": {
       "title": "Catàleg de models",
-      "subtitle": "Explora models d'optimització del catàleg oficial — un clic per usar-los al teu estudi",
+      "subtitle": "Models d'optimització del catàleg oficial. Un clic obre el model al teu estudi.",
       "searchPlaceholder": "Cercar models...",
       "search": "Cercar",
       "featuredOnly": "Només destacats",
       "freeOnly": "Només gratuïts",
       "officialOnly": "Només oficials",
       "noModelsFound": "No s'han trobat models",
-      "noModelsDescription": "Cap model coincideix amb els filtres actuals. Proveu d'ajustar la categoria, el terme de cerca o les opcions de filtre per descobrir models disponibles.",
+      "noModelsDescription": "Cap model coincideix amb els filtres actuals. Canvia la categoria, el terme de cerca o els filtres.",
       "noModelsExpert": "Sense resultats. Ajusteu els filtres.",
       "clearFilters": "Esborrar filtres",
       "failedToLoad": "Error en carregar els models",
@@ -4739,7 +4739,7 @@
       }
     },
     "success": {
-      "title": "Gràcies — el teu missatge està en camí.",
+      "title": "Gràcies. El teu missatge s'ha enviat.",
       "body": "Llegim tots els missatges i responem en pocs dies laborables."
     },
     "error": {
@@ -4763,7 +4763,7 @@
     },
     "contact": {
       "title": "Contacte — JAOT",
-      "description": "Envia un missatge a l'equip de JAOT — preguntes, comentaris, idees de col·laboració."
+      "description": "Envia un missatge a l'equip de JAOT: preguntes, comentaris o idees de col·laboració."
     },
     "licenses": {
       "title": "Llicències de tercers - JAOT",
@@ -4779,7 +4779,7 @@
     },
     "authors": {
       "title": "Publicadors de models - Marketplace JAOT",
-      "description": "Descobreix organitzacions que publiquen models d'optimització al marketplace comunitari de JAOT — gratuïts per usar al teu propi estudi."
+      "description": "Les organitzacions que publiquen models d'optimització al marketplace comunitari de JAOT. Tots els models són gratuïts per fer servir al teu propi estudi."
     }
   },
   "images": {

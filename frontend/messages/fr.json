@@ -1081,7 +1081,7 @@
       },
       "section2": {
         "title": "2. Description du service",
-        "body": "JAOT est une plateforme open source permettant de créer, partager et résoudre des modèles d’optimisation mathématique. Elle comprend une place de marché gratuite et collaborative de modèles d’optimisation, un constructeur visuel de modèles par glisser-déposer, un assistant de formulation par IA optionnel, un point d’accès Model Context Protocol (MCP) pour l’accès programmatique et des espaces de travail partagés par organisation. Les modèles sont résolus localement à l’aide de solveurs open source, actuellement SCIP, HiGHS, CBC et GLPK. L’instance jaot.io est le déploiement de référence exploité par l’équipe JAOT ; toute personne peut auto-héberger le même logiciel sous la Licence Apache 2.0."
+        "body": "JAOT est une plateforme open source permettant de créer, partager et résoudre des modèles d’optimisation mathématique. Elle comprend une place de marché gratuite et collaborative de modèles d’optimisation, un studio de modèles avec un canevas visuel, un éditeur de texte JModel et un éditeur JSON, un assistant de formulation par IA optionnel, un point d’accès Model Context Protocol (MCP) pour l’accès programmatique et des espaces de travail partagés par organisation. Les modèles sont résolus localement à l’aide de solveurs open source, actuellement SCIP, HiGHS, CBC et GLPK. L’instance jaot.io est le déploiement de référence exploité par l’équipe JAOT ; toute personne peut auto-héberger le même logiciel sous la Licence Apache 2.0."
       },
       "section3": {
         "title": "3. Utilisation acceptable",
@@ -2655,7 +2655,7 @@
   },
   "marketplace": {
     "title": "Marketplace de modèles",
-    "subtitle": "Découvrez des modèles d'optimisation créés par la communauté et des auteurs vérifiés — et faites-les vôtres dans le studio.",
+    "subtitle": "Des modèles d'optimisation publiés par la communauté et par des auteurs vérifiés. Ouvrez n'importe lequel dans votre studio et modifiez-le.",
     "searchPlaceholder": "Rechercher des modèles...",
     "noResults": "Aucun modèle trouvé. Essayez un autre terme de recherche.",
     "loadingModels": "Chargement des modèles",
@@ -2739,14 +2739,14 @@
     },
     "catalog": {
       "title": "Catalogue de modèles",
-      "subtitle": "Parcourez les modèles d'optimisation du catalogue officiel — un clic pour les utiliser dans votre studio",
+      "subtitle": "Des modèles d'optimisation du catalogue officiel. Un clic ouvre le modèle dans votre studio.",
       "searchPlaceholder": "Rechercher des modèles...",
       "search": "Rechercher",
       "featuredOnly": "En vedette uniquement",
       "freeOnly": "Gratuits uniquement",
       "officialOnly": "Officiels uniquement",
       "noModelsFound": "Aucun modèle trouvé",
-      "noModelsDescription": "Aucun modèle ne correspond à vos filtres actuels. Essayez de modifier la catégorie, le terme de recherche ou les options de filtrage pour découvrir les modèles disponibles.",
+      "noModelsDescription": "Aucun modèle ne correspond à vos filtres actuels. Changez la catégorie, le terme de recherche ou les filtres.",
       "noModelsExpert": "Aucun résultat. Ajustez les filtres.",
       "clearFilters": "Effacer les filtres",
       "failedToLoad": "Échec du chargement des modèles",
@@ -4739,7 +4739,7 @@
       }
     },
     "success": {
-      "title": "Merci — votre message est en route.",
+      "title": "Merci. Votre message a été envoyé.",
       "body": "Nous lisons chaque message et répondons sous quelques jours ouvrés."
     },
     "error": {
@@ -4763,7 +4763,7 @@
     },
     "contact": {
       "title": "Contact — JAOT",
-      "description": "Envoyez un message à l'équipe JAOT — questions, retours, idées de partenariat."
+      "description": "Envoyez un message à l'équipe JAOT : questions, retours ou idées de partenariat."
     },
     "licenses": {
       "title": "Licences Tierces - JAOT",
@@ -4779,7 +4779,7 @@
     },
     "authors": {
       "title": "Éditeurs de modèles - Marketplace JAOT",
-      "description": "Découvrez les organisations qui publient des modèles d'optimisation sur la marketplace communautaire JAOT — gratuits à utiliser dans votre propre studio."
+      "description": "Les organisations qui publient des modèles d'optimisation sur la marketplace communautaire JAOT. Chaque modèle est gratuit à utiliser dans votre propre studio."
     }
   },
   "images": {
