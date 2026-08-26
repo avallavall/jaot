@@ -717,7 +717,7 @@
     "exactAnalysis": {
       "eyebrow": "Després de resoldre",
       "title": "Els tres productes de més marge no entren al pla",
-      "subtitle": "Un trimestre d'una planta d'electrònica de potència, resolt i amb l'òptim demostrat. Les tres famílies de més marge són justament les que l'òptim es nega a fabricar — i el component que tothom culpa del coll d'ampolla acaba el trimestre gairebé a mig fer servir. Això és el que un full de càlcul fa malament.",
+      "subtitle": "Un trimestre d'una planta d'electrònica de potència, resolt i amb l'òptim demostrat. El pla no fabrica cap de les tres famílies de producte amb més marge per unitat. El component que tothom culpa del coll d'ampolla acaba el trimestre amb gairebé la meitat de l'estoc sense fer servir. L'anàlisi exacta mostra per què.",
       "planHeading": "Pla de producció del trimestre",
       "planMeta": "{units} unitats · {solver}, òptim demostrat",
       "bindingHeading": "Què s'esgota",
@@ -727,7 +727,7 @@
       "floorMet": "{actual} lliurades, {required} exigides",
       "binding": "al límit",
       "slack": "{slack} sense fer servir",
-      "verdict": "{product}: {margin} per unitat, i el pla no en fabrica cap. És el que més consumeix de cadascun dels {binding} límits que s'han esgotat, mentre queden {spare} {spareResource} sense tocar: comprar-ne més no canviaria res. Tots dos fets surten de la solució entera que executaràs, no d'una relaxació.",
+      "verdict": "{product}: {margin} per unitat, i el pla no en fabrica cap. Consumeix més de cadascun dels {binding} límits que s'han esgotat que qualsevol altre producte, mentre queden {spare} {spareResource} sense fer servir, així que comprar-ne més no canviaria res. JAOT llegeix tots dos fets de la mateixa solució amb variables enteres, així que valen per al pla que executaràs.",
       "products": {
         "tractionInverter": "Inversor de tracció de 800 V",
         "batteryMonitor": "Unitat de gestió de bateria",
@@ -757,8 +757,8 @@
     },
     "conflict": {
       "eyebrow": "Quan no hi ha resposta",
-      "title": "Assenyala les dues regles que xoquen — i descarta les altres cinc",
-      "subtitle": "Un client demana un trimestre d'inversors de tracció que la línia no pot treure. Un solver diu «no factible» i et deixa auditant el model sencer. JAOT treu cada regla i torna a resoldre fins a deixar només la contradicció, així saps exactament on mirar.",
+      "title": "Anomena les dues regles que xoquen i descarta les altres cinc",
+      "subtitle": "Un client demana un trimestre d'inversors de tracció que la línia no pot fabricar. Un solver respon «no factible» i et deixa revisant el model sencer. JAOT treu cada regla per torn i torna a resoldre fins que només queda la contradicció, així saps on mirar.",
       "chartHeading": "Fins on arriba cada límit",
       "method": "{rules} regles · {size} en el conflicte",
       "rules": {
@@ -782,38 +782,38 @@
       "cleared": "no és el problema",
       "reaches": "{units} inversors",
       "contractLine": "el contracte en demana {demand}",
-      "verdict": "Només hi ha {resource} per a {reaches} inversors i el contracte en demana {demand}. No hi ha res més en joc: JAOT descarta pel seu nom els altres {cleared} límits. Aconsegueix-ne {missing} més — una segona cambra per al trimestre — i el model es resol. Aquest és el número que portes a la negociació."
+      "verdict": "Només hi ha {resource} per a {reaches} inversors, i el contracte en demana {demand}. Els altres {cleared} límits queden descartats pel seu nom. Amb {missing} més, el model es resol. Aquest és el número que has de portar al client."
     },
     "catalog": {
       "headline": "{total} plantilles en {sectors} sectors",
       "browse": "Explorar el marketplace"
     },
     "jmodel": {
-      "eyebrow": "Escriu el model, no les files",
-      "title": "Catorze línies. La mida la decideix la dada.",
-      "subtitle": "JModel descriu el teu problema amb conjunts i famílies indexades, i JAOT el representa com a matemàtiques abans de tocar un sol número. El mateix codi de sota cobreix una planta durant un trimestre o quatre-cents productes durant un any — no reescrius ni una línia.",
+      "eyebrow": "Escriu el model una sola vegada",
+      "title": "Catorze línies, sigui quina sigui la mida de les dades",
+      "subtitle": "JModel descriu el problema amb conjunts i famílies indexades. JAOT representa les matemàtiques abans de carregar cap dada. El mateix codi de sota cobreix una planta durant un trimestre o quatre-cents productes durant un any, sense cap canvi al model.",
       "sourceHeading": "El que escrius",
       "notationHeading": "El que significa",
       "scaleSmall": "{products} productes × {resources} recursos × {weeks} setmanes",
       "scaleLarge": "{products} productes × {resources} recursos × {weeks} setmanes",
       "scaleResult": "{variables} variables · {constraints} restriccions",
-      "scaleNote": "Les mateixes {lines} línies en els dos casos. Els fulls de càlcul i els models escrits a mà creixen amb la dada; un model indexat no."
+      "scaleNote": "Les mateixes {lines} línies en els dos casos. Les dades fixen el nombre de variables i de restriccions. El model no canvia."
     },
     "hero": {
       "badge": "Plataforma d'optimització de codi obert",
-      "titleLine1": "Les teves rutes, torns i pressupostos,",
-      "titleLine2": "resolts amb la millor resposta possible",
-      "titleLine3": "— i demostrada.",
-      "subtitle": "JAOT converteix el teu problema en un model matemàtic, el resol i demostra que no existeix cap resposta millor. Crea'l amb IA, parteix d'una plantilla de la comunitat o governa'l des del teu propi agent via MCP.",
-      "tagline": "La plataforma d'optimització per a humans i agents d'IA.",
+      "titleLine1": "Rutes, torns i pressupostos,",
+      "titleLine2": "resolts amb el millor pla possible,",
+      "titleLine3": "i amb l'òptim demostrat.",
+      "subtitle": "JAOT converteix el teu problema en un model matemàtic, el resol i demostra que no existeix cap resposta millor. Pots crear el model amb l'assistent d'IA, partir d'una plantilla de la comunitat o cridar JAOT des del teu propi agent via MCP.",
+      "tagline": "Una plataforma d'optimització per a persones i per a agents d'IA.",
       "visual": {
         "windowLabel": "rutes · {stops} parades · {solver}",
-        "alt": "Una resolució real en marxa: una ruta de repartiment de {stops} parades que va millorant fins a assolir la seva longitud òptima demostrada de {optimum}, sobre {variables} variables de decisió.",
+        "alt": "Una resolució real: una ruta de repartiment de {stops} parades millora fins a arribar a la seva longitud òptima demostrada de {optimum}, sobre {variables} variables de decisió.",
         "proven": "Òptim demostrat",
         "legendStart": "Primera solució {cost}",
         "legendProven": "Òptim {cost}",
         "metrics": {
-          "cost": "Longitud de ruta",
+          "cost": "Longitud de la ruta",
           "gap": "Distància a l'òptim",
           "nodes": "Nodes explorats",
           "variables": "Variables"
@@ -821,23 +821,23 @@
       },
       "getStartedFree": "Comença gratuïtament",
       "browseTemplates": "Explorar plantilles",
-      "openSourceSolver": "Solver de codi obert",
+      "openSourceSolver": "Solvers de codi obert",
       "templatesCount": "Més de 100 plantilles",
       "firstMarketplace": "Marketplace de models d'optimització",
       "mcpNative": "Natiu MCP",
       "viewSource": "Veure a GitHub",
       "pillars": {
         "aiBuilder": {
-          "title": "Constructor IA",
-          "description": "Descriu el teu problema d'optimització en llenguatge natural. La nostra IA el tradueix a un model matemàtic i el resol."
+          "title": "Assistent d'IA",
+          "description": "Descriu el problema amb les teves paraules. L'assistent escriu el model matemàtic i JAOT el resol."
         },
         "marketplace": {
           "title": "Marketplace de models",
-          "description": "Explora el marketplace de models d'optimització. Usa models provats de la comunitat o publica els teus."
+          "description": "Explora models que altres persones han publicat. Fes-ne servir un tal com és, bifurca'l o publica el teu."
         },
         "mcp": {
-          "title": "MCP per a agents IA",
-          "description": "Connecta Claude, GPT o qualsevol agent compatible amb MCP — resol problemes, bifurca models del marketplace i crea models versionats de principi a fi."
+          "title": "MCP per a agents d'IA",
+          "description": "Connecta Claude, GPT o qualsevol client MCP. Un agent pot resoldre problemes, bifurcar models del marketplace i escriure models versionats pel seu compte."
         }
       },
       "ctaBuilder": "Crea amb IA",
@@ -845,158 +845,152 @@
       "ctaMcp": "Connectar un agent"
     },
     "platform": {
-      "samplePrompt": "«Planifica els repartiments de la setmana: 4 furgonetes, 60 parades, totes de tornada a les 18:00.»",
+      "samplePrompt": "“Planifica els repartiments de la setmana que ve: 4 furgonetes, 60 parades, totes de tornada a les 18:00.”",
       "eyebrow": "La plataforma",
       "title": "Tres maneres d'optimitzar",
-      "subtitle": "Crea models amb IA, usa solucions provades del marketplace de la comunitat o connecta el teu agent d'IA via MCP.",
-      "aiVisualAlt": "L'assistent d'IA de JAOT formulant un model d'optimització a partir d'una descripció del problema en llenguatge natural"
+      "subtitle": "Crea un model amb l'assistent d'IA, parteix d'un model de la comunitat al marketplace o connecta el teu agent d'IA via MCP.",
+      "aiVisualAlt": "L'assistent de JAOT escrivint un model d'optimització a partir d'un problema descrit en llenguatge planer"
     },
     "audience": {
-      "title": "Dissenyat per a tothom qui optimitza",
+      "title": "Qui fa servir JAOT",
       "teams": {
-        "title": "Per a equips i empreses",
-        "item1": "Resol problemes d'optimització complexos a escala",
-        "item2": "Integració API REST amb qualsevol stack tecnològic",
-        "item3": "Col·laboració en equip i biblioteca de models compartida",
-        "item4": "Seguretat empresarial i controls d'accés",
+        "title": "Equips i empreses",
+        "item1": "Planifica rutes, torns, producció o pressupostos amb un solver exacte",
+        "item2": "API REST i MCP, per encaixar amb els sistemes que ja fas servir",
+        "item3": "Espais de treball compartits amb rols i una biblioteca de models comuna",
+        "item4": "Claus d'API, permisos per espai de treball i límits de peticions",
         "cta": "Comença a construir"
       },
       "students": {
-        "title": "Per a estudiants i investigadors",
-        "item1": "Aprèn optimització amb construcció de models assistida per IA",
-        "item2": "Plantilles educatives des de LP fins a MIP",
-        "item3": "Comença simple i avança cap a models complexos",
-        "item4": "Gratis i de codi obert, ideal per aprendre",
+        "title": "Estudiants i investigadors",
+        "item1": "Crea un model amb l'assistent i llegeix les matemàtiques que genera",
+        "item2": "Plantilles des d'un primer LP fins a un MIP complet, amb exemples resolts",
+        "item3": "Quatre solvers de codi obert que pots executar l'un al costat de l'altre sobre el mateix model",
+        "item4": "Gratuït i de codi obert, i el pots instal·lar a la teva pròpia màquina",
         "cta": "Prova gratuïtament"
       },
       "authors": {
-        "title": "Per a col·laboradors i consultors",
-        "item1": "Publica els teus models al marketplace de la comunitat",
-        "item2": "Comparteix la teva experiència en optimització amb equips d'arreu del món",
-        "item3": "Arriba a equips i empreses de tot el món",
-        "item4": "Mesura l'adopció i l'impacte a les teves analítiques",
+        "title": "Col·laboradors i consultors",
+        "item1": "Publica els teus models al marketplace",
+        "item2": "Altres persones poden bifurcar-los i construir sobre la teva feina",
+        "item3": "Els models estan versionats, així que una bifurcació apunta a una versió coneguda",
+        "item4": "Mira quantes vegades s'ha adoptat i executat cada model",
         "cta": "Comença a publicar"
       }
     },
     "useCases": {
-      "title": "Optimització del món real, resolta",
-      "subtitle": "Crea models a mida amb IA o parteix de models provats de la comunitat al marketplace.",
+      "title": "Què s'hi modela",
+      "subtitle": "Sis problemes habituals. Cadascun té una plantilla al marketplace, o l'assistent el pot construir a partir de la teva descripció.",
       "tryTemplate": "Provar aquesta plantilla",
       "getStarted": "Començar",
       "vehicleRouting": {
         "title": "Rutes de vehicles",
-        "scenario": "Una empresa de logística lliura a 50 ubicacions amb 8 camions. Les rutes optimitzades van reduir la distància total un 23%, estalviant combustible i hores de conductor.",
-        "result": "23% de reducció de distància"
+        "scenario": "Una empresa de transport reparteix a 50 adreces amb 8 camions. El model tria l'ordre de les parades de cada camió perquè la distància total sigui la més curta possible, dins de la capacitat de cada camió i de les finestres de lliurament."
       },
       "employeeScheduling": {
         "title": "Planificació de torns",
-        "scenario": "Un hospital planifica 120 infermers en 3 torns respectant disponibilitat i normativa laboral. La planificació automatitzada va reduir el temps de 8 hores a minuts.",
-        "result": "De 8 hores a minuts"
+        "scenario": "Un hospital assigna 120 infermers a tres torns. El model respecta la disponibilitat de cadascú, les normes de descans entre torns i el personal mínim per torn."
       },
       "budgetAllocation": {
         "title": "Assignació de pressupost",
-        "scenario": "Un equip de màrqueting distribueix 2M€ en 12 canals per maximitzar conversions. L'optimització va trobar una assignació 31% millor que la planificació manual.",
-        "result": "31% millor assignació"
+        "scenario": "Un equip de màrqueting reparteix 2 M€ entre 12 canals. El model posa els diners on el retorn esperat per euro és més alt, amb un mínim i un màxim per canal."
       },
       "productionPlanning": {
         "title": "Planificació de producció",
-        "scenario": "Un fabricant planifica la producció setmanal en 5 línies amb restriccions de material. Els plans optimitzats van augmentar el rendiment un 15% sense capacitat addicional.",
-        "result": "15% més de rendiment"
+        "scenario": "Una fàbrica planifica una setmana de producció en 5 línies. El model decideix què fabrica cada línia i quan, dins del material, la mà d'obra i les hores de màquina disponibles."
       },
       "supplyChainNetwork": {
         "title": "Xarxa de cadena de subministrament",
-        "scenario": "Un minorista selecciona ubicacions de magatzem per servir 200 botigues al mínim cost. L'optimització de xarxa va reduir la despesa logística un 18%.",
-        "result": "18% de reducció de costos"
+        "scenario": "Un minorista tria on obrir magatzems per servir 200 botigues. El model contrapesa el cost fix de cada emplaçament amb el cost de transport fins a cada botiga."
       },
       "resourceAssignment": {
         "title": "Assignació de recursos",
-        "scenario": "Una consultora assigna 80 consultors a 25 projectes segons habilitats i disponibilitat. L'optimització va millorar la utilització del 72% al 89%.",
-        "result": "Del 72% al 89% d'utilització"
+        "scenario": "Una consultora assigna 80 consultors a 25 projectes. El model encaixa les habilitats amb el que necessita cada projecte i manté cada consultor dins de les seves hores disponibles."
       },
       "builtWithAi": "Creat amb IA",
-      "fromMarketplace": "Des del Marketplace"
+      "fromMarketplace": "Des del marketplace"
     },
     "solutionExplainer": {
       "eyebrow": "Anàlisi de la solució",
-      "title": "Entén la teva solució",
-      "subtitle": "No només resolguis: entén. Cada resultat ve amb el raonament al darrere.",
+      "title": "Entén la solució",
+      "subtitle": "Cada resultat ve amb l'anàlisi que l'explica.",
       "whatIf": {
-        "title": "Escenaris, mesurats",
-        "description": "Pregunta què et donaria una unitat més: JAOT torna a resoldre el model pertorbat i mostra el canvi real, mesurat sobre el teu MIP i no estimat a partir d'una relaxació."
+        "title": "Escenaris, mesurats tornant a resoldre",
+        "description": "Pregunta què val una unitat més d'un límit. JAOT canvia aquell límit, torna a resoldre el model i informa de la diferència real. Com que torna a resoldre el model amb les seves variables enteres, el número és exacte. Un preu ombra llegit de la relaxació lineal pot ser incorrecte per a un model amb variables enteres."
       },
       "structuredSolution": {
-        "title": "Decisions, no un mur de números",
-        "description": "Les solucions tornen agrupades per l'estructura d'índexs real del model, amb un resum honest del solve: node arrel, ramificació o límit de temps."
+        "title": "Decisions agrupades tal com les vas escriure",
+        "description": "La solució torna agrupada pels conjunts i els índexs del teu model. Cada resolució també diu com ha acabat: al node arrel, després de ramificar o al límit de temps."
       },
       "aiExplain": {
-        "title": "Explicació amb IA en un clic",
-        "description": "Converteix l'anàlisi en llenguatge clar, basat només en les teves xifres reals, mai inventades."
+        "title": "Explicació en un clic",
+        "description": "L'assistent converteix l'anàlisi en llenguatge planer. Només fa servir els números de la teva resolució."
       }
     },
     "infeasibilityHighlight": {
-      "eyebrow": "No factible? No et quedis encallat",
-      "title": "Et diem exactament quines restriccions entren en conflicte",
-      "subtitle": "La majoria de solvers només diuen «sense solució». JAOT identifica el conflicte i et mostra com solucionar-ho.",
+      "eyebrow": "Quan no hi ha resposta",
+      "title": "JAOT et diu quines restriccions entren en conflicte",
+      "subtitle": "Un solver diu «no factible». JAOT a més troba el conjunt més petit de restriccions que no es poden complir alhora, i el mostra a la pàgina de resultats.",
       "conflict": {
         "title": "El conjunt exacte en conflicte",
-        "description": "JAOT aïlla el conjunt mínim de restriccions i límits que no poden complir-se alhora, i els ressalta a la pàgina de resultats."
+        "description": "JAOT aïlla el conjunt més petit de restriccions i cotes que no es poden complir alhora, i les ressalta a la pàgina de resultats."
       },
       "fix": {
-        "title": "Com solucionar-ho, en llenguatge clar",
-        "description": "Una explicació amb IA en un clic anomena els requisits en conflicte i suggereix solucions concretes: quin límit ampliar, quina restricció relaxar."
+        "title": "Com arreglar-ho, en llenguatge planer",
+        "description": "Amb un clic demanes a l'assistent que anomeni les restriccions en conflicte i que proposi un arranjament: quina cota ampliar o quin límit relaxar."
       },
       "honest": {
-        "title": "Honest per disseny",
-        "description": "Quan un model és massa gran per a un conjunt exacte, JAOT ho diu i marca l'explicació com a heurística, mai una suposició amb falsa seguretat."
+        "title": "Diu quan està estimant",
+        "description": "Quan un model és massa gran per a un conjunt exacte en conflicte, JAOT ho diu i marca l'explicació com a heurística."
       }
     },
     "solverRace": {
       "eyebrow": "Triar solver",
-      "title": "Quin solver és més ràpid depèn del model",
-      "subtitle": "JAOT porta SCIP, HiGHS, CBC i GLPK. Cap no és el millor. L'ordre canvia amb el model, així que JAOT executa el teu problema en tots ells en les mateixes condicions i ensenya què va fer cadascun. A sota, un trimestre de càrrega de cambres d'envelliment a la planta.",
+      "title": "El solver més ràpid depèn del model",
+      "subtitle": "JAOT porta SCIP, HiGHS, CBC i GLPK. L'ordre canvia d'un model a l'altre, així que JAOT executa el teu problema en tots ells en les mateixes condicions i mostra què ha fet cadascun. A sota, un trimestre de càrrega de cambres d'envelliment a la mateixa planta.",
       "chartHeading": "Temps total, escala logarítmica",
       "instance": "{variables} variables, {constraints} restriccions",
       "outOfTime": "Sense temps",
       "proved": "Va demostrar {objective} cambres",
       "seconds": "{seconds} s",
       "rowWork": "{nodes} nodes, {iterations} iteracions símplex",
-      "rowCutOff": "Va demostrar que res no baixa de {bound} cambres, després de {nodes} nodes, i no va trobar cap pla",
+      "rowCutOff": "Va demostrar que cap pla necessita menys de {bound} cambres, després de {nodes} nodes, i no va trobar cap pla",
       "scaleNote": "L'escala és logarítmica: cada pas són deu vegades l'anterior, així que la llargada de la barra no és proporcional al número que té al costat.",
-      "verdict": "{winner} va acabar primer. {slowest} va arribar a la mateixa resposta {ratio} vegades més lent. Amb un altre model l'ordre canvia, i per això això ho contesta una mesura i no una recomanació.",
-      "cutOffNote": "{solvers} va esgotar els {limit} segons i no va trobar cap pla, encara que sí va demostrar que res no baixa de {bound} cambres. Per això hi ha la cota.",
-      "terms": "Tots els solvers van rebre el mateix límit de {limit} segons i els mateixos {threads} fils, l'un darrere l'altre en un servidor de {cores} nuclis. Els segons són comparables dins d'aquesta execució i enlloc més.",
+      "verdict": "{winner} va acabar primer. {slowest} va arribar a la mateixa resposta {ratio} vegades més lent. Amb un altre model l'ordre canvia, així que l'única manera de triar és mesurar.",
+      "cutOffNote": "{solvers} va esgotar els {limit} segons i no va trobar cap pla. Sí que va demostrar que cap pla necessita menys de {bound} cambres. Aquesta cota encara és útil: et diu fins a quin punt qualsevol pla pot quedar lluny del millor.",
+      "terms": "Tots els solvers van rebre el mateix límit de {limit} segons i els mateixos {threads} fils, l'un darrere l'altre en un sol servidor de {cores} nuclis. Els segons només són comparables dins d'aquesta execució.",
       "sameTerms": {
         "title": "Les mateixes condicions",
-        "description": "El mateix límit de temps, la mateixa tolerància de gap, el mateix nombre de fils, una màquina i una execució cada cop. Dos solvers que comparteixen màquina es barallen pels nuclis, i llavors els segons deixen de significar res."
+        "description": "El mateix límit de temps, la mateixa tolerància de gap i el mateix nombre de fils, en una màquina, una execució cada cop. Dos solvers executant-se alhora competirien pels nuclis, i els seus temps ja no serien comparables."
       },
       "matrix": {
         "title": "Una matriu sencera",
-        "description": "Creua els conjunts de dades del teu model amb els solvers: les dades a les files, els solvers a les columnes. Un model amb dades que canvien cada mes no té un solver més ràpid, i els números d'un sol mes trien el que no toca."
+        "description": "Creua els conjunts de dades del teu model amb els solvers: les dades a les files, els solvers a les columnes. Si les teves dades canvien cada mes, el solver més ràpid també pot canviar, i la matriu ho mostra en una sola taula."
       },
       "honestTimes": {
-        "title": "La cota, no només la resposta",
-        "description": "Cada fila porta la millor cota que va demostrar el solver al costat de la resposta que va trobar. Una execució aturada pel límit de temps informa de la distància entre totes dues, i la resposta sola no ho diu."
+        "title": "La cota al costat de la resposta",
+        "description": "Cada fila mostra la millor cota que el solver va demostrar al costat de la resposta que va trobar. En una execució aturada pel límit de temps, la distància entre totes dues et diu fins a quin punt la resposta pot quedar lluny de l'òptim."
       },
       "cta": "Com funciona la comparació"
     },
     "howItWorks": {
-      "title": "A punt en minuts",
+      "title": "Com funciona",
       "step1": {
-        "title": "Tria una plantilla o comença des de zero",
-        "description": "Explora més de 100 plantilles o comença un model en blanc a l'estudi — llenç visual, assistent d'IA, editor JSON o el DSL JModel."
+        "title": "Tria un punt de partida",
+        "description": "Tria una de les més de 100 plantilles, bifurca un model del marketplace, importa un fitxer MPS, LP o JSON, o descriu el problema a l'assistent."
       },
       "step2": {
-        "title": "Defineix variables i restriccions visualment",
-        "description": "Utilitza la interfície d'arrossegar i deixar anar per definir el teu model d'optimització. Estableix objectius, afegeix restriccions i configura tipus de variables."
+        "title": "Construeix el model a l'estudi",
+        "description": "Escriu-lo en JModel, o col·loca variables i restriccions al llenç visual. Carrega les dades a la pestanya Dades. JAOT et mostra les matemàtiques resultants mentre avances."
       },
       "step3": {
-        "title": "Resol i explora els resultats",
-        "description": "Prem resoldre i observa els resultats en temps real. Analitza valors de variables, dades de sensibilitat i exporta la teva solució."
+        "title": "Resol i llegeix l'anàlisi",
+        "description": "Executa un solver, o compara els quatre sobre el mateix model. Després llegeix quines restriccions estan al límit, què val una unitat més, i exporta la solució."
       }
     },
     "cta": {
       "title": "Comença a optimitzar",
-      "subtitle": "Gratuït i de codi obert. Crea un compte i resol el teu primer model en minuts — o autoallotja la plataforma tu mateix.",
+      "subtitle": "Gratuït i de codi obert. Crea un compte i resol un primer model avui, o instal·la tota la plataforma al teu propi servidor.",
       "button": "Crear compte"
     },
     "footer": {
@@ -1164,11 +1158,11 @@
       "rejectNonEssential": "Rebutjar no essencials",
       "acceptAll": "Acceptar totes"
     },
-    "solverDisclaimer": "Els resultats depenen de la formulació del model. Els solvers retornen solucions de millor esforç — verifica les decisions crítiques de manera independent.",
+    "solverDisclaimer": "Els resultats depenen de com s'ha escrit el model. Una execució aturada pel seu límit de temps no té l'òptim demostrat. Verifica les decisions crítiques abans d'actuar-hi.",
     "mcp": {
       "toolCount": "{count} eines, totes invocables per un agent",
-      "title": "Els agents IA coneixen l'optimització",
-      "subtitle": "JAOT és una plataforma d'optimització accessible de forma nativa per a agents IA. Connecta qualsevol agent compatible amb MCP per resoldre problemes d'optimització d'extrem a extrem.",
+      "title": "Fet també per a agents d'IA",
+      "subtitle": "Qualsevol client MCP pot fer servir JAOT: Claude, GPT o el teu propi agent. Pot crear un model, resoldre'l, llegir l'anàlisi i publicar el resultat, amb les mateixes eines que fa servir una persona.",
       "workflow": {
         "discover": {
           "title": "Descobrir",
@@ -1176,20 +1170,20 @@
         },
         "authenticate": {
           "title": "Autenticar",
-          "description": "Accés segur amb autenticació per API key"
+          "description": "L'agent envia una clau d'API"
         },
         "solve": {
           "title": "Resoldre",
-          "description": "Crear model, configurar parametres, executar el solver"
+          "description": "Crea el model, fixa els paràmetres i executa el solver"
         },
         "results": {
           "title": "Resultats",
-          "description": "Obtenir la solució optimitzada programàticament"
+          "description": "Llegeix la solució i l'anàlisi en JSON"
         }
       },
-      "toolsTitle": "30 eines",
+      "toolsTitle": "Eines MCP",
       "tools": {
-        "problemSolving": "Resolucio de problemes",
+        "problemSolving": "Resolució de problemes",
         "templates": "Plantilles",
         "fileIO": "E/S de fitxers",
         "marketplace": "Marketplace",
@@ -1198,8 +1192,8 @@
         "analysis": "Anàlisi",
         "solverComparison": "Comparació de solvers"
       },
-      "agentBadge": "Compatible amb Claude, GPT i qualsevol agent compatible amb MCP",
-      "cta": "Explorar la integració MCP"
+      "agentBadge": "Funciona amb Claude, GPT i qualsevol client MCP",
+      "cta": "Llegir la documentació de MCP"
     },
     "announcement": {
       "regionLabel": "Anunci del lloc",
@@ -4757,7 +4751,7 @@
   "metadata": {
     "home": {
       "title": "JAOT - Plataforma d'optimització amb IA i marketplace de models | Crea, usa o automatitza",
-      "description": "Plataforma d'optimització amb IA i un marketplace de models gratuït i col·laboratiu. Crea models versionats amb IA, bifurca solucions de la comunitat o connecta agents d'IA via MCP. Impulsada per SCIP, HiGHS, CBC i GLPK."
+      "description": "Plataforma d'optimització amb un marketplace de models gratuït i col·laboratiu. Crea models versionats amb un assistent d'IA, bifurca models de la comunitat o connecta agents d'IA via MCP. Solvers: SCIP, HiGHS, CBC i GLPK."
     },
     "terms": {
       "title": "Termes de servei - JAOT",

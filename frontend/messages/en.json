@@ -716,8 +716,8 @@
     },
     "exactAnalysis": {
       "eyebrow": "After the solve",
-      "title": "The three highest-margin products never make the plan",
-      "subtitle": "One quarter of a power-electronics plant, solved and proven optimal. The three richest families are exactly the ones the optimum refuses to build — and the component everyone blames for the bottleneck ends the quarter almost half untouched. This is the part a spreadsheet gets wrong.",
+      "title": "The three products with the highest margin are left out of the plan",
+      "subtitle": "One quarter of a power-electronics plant, solved and proven optimal. The plan builds none of the three product families with the highest margin per unit. The component everyone blames for the bottleneck ends the quarter with almost half of its stock unused. The exact analysis shows why.",
       "planHeading": "Quarterly build plan",
       "planMeta": "{units} units · {solver}, proven optimal",
       "bindingHeading": "What runs out",
@@ -727,7 +727,7 @@
       "floorMet": "{actual} shipped, {required} required",
       "binding": "at capacity",
       "slack": "{slack} spare",
-      "verdict": "{product}: {margin} a unit — and the plan builds none. It is the heaviest draw on every one of the {binding} limits that ran out, while {spare} {spareResource} go untouched, so buying more would change nothing. Both facts come from the integer solution you will actually run, not from a relaxation.",
+      "verdict": "{product}: {margin} a unit, and the plan builds none. It uses more of each of the {binding} limits that ran out than any other product, while {spare} {spareResource} stay unused, so buying more of those would change nothing. JAOT reads both facts from the integer solution itself, so they hold for the plan you will run.",
       "products": {
         "tractionInverter": "800 V traction inverter",
         "batteryMonitor": "Battery management unit",
@@ -757,8 +757,8 @@
     },
     "conflict": {
       "eyebrow": "When there is no answer",
-      "title": "It names the two rules that clash — and clears the other five",
-      "subtitle": "A customer wants a quarter's worth of traction inverters the line cannot carry. A solver says “infeasible” and leaves you auditing the whole model. JAOT removes each rule and re-solves until only the contradiction is left, so you know exactly where to look.",
+      "title": "It names the two rules that clash and clears the other five",
+      "subtitle": "A customer orders a quarter's worth of traction inverters that the line cannot build. A solver answers \"infeasible\" and leaves you to check the whole model. JAOT removes each rule in turn and solves again until only the contradiction is left, so you know where to look.",
       "chartHeading": "How far each limit reaches",
       "method": "{rules} rules · {size} in the conflict",
       "rules": {
@@ -782,33 +782,33 @@
       "cleared": "not the problem",
       "reaches": "{units} inverters",
       "contractLine": "contract needs {demand}",
-      "verdict": "There are only enough {resource} for {reaches} inverters, and the contract asks for {demand}. Nothing else is at fault: JAOT clears the other {cleared} limits by name. Find {missing} more — a second chamber for the quarter — and the model solves. That is the number to take into the negotiation."
+      "verdict": "There are only enough {resource} for {reaches} inverters, and the contract asks for {demand}. The other {cleared} limits are cleared by name. With {missing} more, the model solves. That is the number to take to the customer."
     },
     "catalog": {
       "headline": "{total} templates across {sectors} sectors",
       "browse": "Browse the marketplace"
     },
     "jmodel": {
-      "eyebrow": "Write the model, not the rows",
-      "title": "Fourteen lines. The data decides the size.",
-      "subtitle": "JModel describes your problem with sets and indexed families, and JAOT renders it as mathematics before it touches a single number. The same source below covers one plant for a quarter or four hundred products for a year — you do not rewrite a line.",
+      "eyebrow": "Write the model once",
+      "title": "Fourteen lines, whatever the size of the data",
+      "subtitle": "JModel describes the problem with sets and indexed families. JAOT renders the mathematics before any data is loaded. The same source below covers one plant for a quarter or four hundred products for a year, with no change to the model.",
       "sourceHeading": "What you write",
       "notationHeading": "What it means",
       "scaleSmall": "{products} products × {resources} resources × {weeks} weeks",
       "scaleLarge": "{products} products × {resources} resources × {weeks} weeks",
       "scaleResult": "{variables} variables · {constraints} constraints",
-      "scaleNote": "Same {lines} lines, both times. Spreadsheets and hand-written models grow with the data; an indexed model does not."
+      "scaleNote": "The same {lines} lines both times. The data sets the number of variables and constraints. The model stays the same."
     },
     "hero": {
       "badge": "Open source optimization platform",
-      "titleLine1": "Your routes, shifts and budgets,",
-      "titleLine2": "solved to the best possible answer",
-      "titleLine3": "— and proven.",
-      "subtitle": "JAOT turns your problem into a mathematical model, solves it, and proves that no better answer exists. Build it with AI, start from a community template, or drive it from your own agent over MCP.",
-      "tagline": "The optimization platform for humans and AI agents alike.",
+      "titleLine1": "Routes, shifts and budgets,",
+      "titleLine2": "solved to the best possible plan,",
+      "titleLine3": "and proven optimal.",
+      "subtitle": "JAOT turns your problem into a mathematical model, solves it, and proves that no better answer exists. You can build the model with the AI assistant, start from a community template, or call JAOT from your own agent over MCP.",
+      "tagline": "An optimization platform for people and for AI agents.",
       "visual": {
         "windowLabel": "routing · {stops} stops · {solver}",
-        "alt": "A live optimization run: a {stops}-stop delivery route being improved until it reaches its proven optimal length of {optimum}, across {variables} decision variables.",
+        "alt": "A real optimization run: a delivery route with {stops} stops improves until it reaches its proven optimal length of {optimum}, over {variables} decision variables.",
         "proven": "Proven optimal",
         "legendStart": "First solution {cost}",
         "legendProven": "Optimal {cost}",
@@ -819,220 +819,214 @@
           "variables": "Variables"
         }
       },
-      "getStartedFree": "Get Started Free",
-      "browseTemplates": "Browse Templates",
-      "openSourceSolver": "Open source solver",
+      "getStartedFree": "Get started free",
+      "browseTemplates": "Browse templates",
+      "openSourceSolver": "Open source solvers",
       "templatesCount": "100+ templates",
       "firstMarketplace": "Optimization model marketplace",
       "mcpNative": "MCP-native",
       "viewSource": "View on GitHub",
       "pillars": {
         "aiBuilder": {
-          "title": "AI Builder",
-          "description": "Describe your optimization problem in plain English. Our AI translates it into a mathematical model and solves it."
+          "title": "AI assistant",
+          "description": "Describe the problem in plain words. The assistant writes the mathematical model, and JAOT solves it."
         },
         "marketplace": {
-          "title": "Model Marketplace",
-          "description": "Browse the optimization model marketplace. Use proven community models or publish your own."
+          "title": "Model marketplace",
+          "description": "Browse models that other people have published. Use one as it is, fork it, or publish your own."
         },
         "mcp": {
-          "title": "MCP for AI Agents",
-          "description": "Connect Claude, GPT, or any MCP-compatible agent — solve problems, fork marketplace models, and author versioned models end-to-end."
+          "title": "MCP for AI agents",
+          "description": "Connect Claude, GPT or any MCP client. An agent can solve problems, fork marketplace models and write versioned models on its own."
         }
       },
       "ctaBuilder": "Build with AI",
-      "ctaMarketplace": "Browse Models",
-      "ctaMcp": "Connect an Agent"
+      "ctaMarketplace": "Browse models",
+      "ctaMcp": "Connect an agent"
     },
     "platform": {
       "samplePrompt": "“Plan next week's deliveries: 4 vans, 60 stops, every van back by 18:00.”",
       "eyebrow": "The platform",
       "title": "Three ways to optimize",
-      "subtitle": "Build models with AI, use proven solutions from the community marketplace, or connect your AI agent via MCP.",
-      "aiVisualAlt": "The JAOT AI assistant formulating an optimization model from a plain-English problem description"
+      "subtitle": "Build a model with the AI assistant, start from a community model in the marketplace, or connect your AI agent over MCP.",
+      "aiVisualAlt": "The JAOT assistant writing an optimization model from a problem described in plain words"
     },
     "audience": {
-      "title": "Built for everyone who optimizes",
+      "title": "Who uses JAOT",
       "teams": {
-        "title": "For Teams & Enterprises",
-        "item1": "Solve complex optimization problems at scale",
-        "item2": "REST API integration with any tech stack",
-        "item3": "Team collaboration and shared model library",
-        "item4": "Enterprise-grade security and access controls",
+        "title": "Teams and companies",
+        "item1": "Plan routes, shifts, production or budgets with an exact solver",
+        "item2": "REST API and MCP, so it fits the systems you already run",
+        "item3": "Shared workspaces with roles and a common model library",
+        "item4": "API keys, per-workspace permissions and rate limits",
         "cta": "Start building"
       },
       "students": {
-        "title": "For Students & Researchers",
-        "item1": "Learn optimization with AI-assisted model building",
-        "item2": "Educational templates from LP to MIP",
-        "item3": "Start simple and grow into complex models",
-        "item4": "Free and open source — ideal for learning",
+        "title": "Students and researchers",
+        "item1": "Build a model with the assistant and read the mathematics it produces",
+        "item2": "Templates from a first LP to a full MIP, with worked examples",
+        "item3": "Four open source solvers you can run side by side on the same model",
+        "item4": "Free and open source, and you can install it on your own machine",
         "cta": "Try for free"
       },
       "authors": {
-        "title": "For Contributors & Consultants",
-        "item1": "Publish your models to the community marketplace",
-        "item2": "Share your optimization expertise with teams worldwide",
-        "item3": "Reach teams and enterprises globally",
-        "item4": "Track adoption and impact in your analytics",
-        "cta": "Start Publishing"
+        "title": "Contributors and consultants",
+        "item1": "Publish your models in the marketplace",
+        "item2": "Other people can fork them and build on your work",
+        "item3": "Models are versioned, so a fork points at a known release",
+        "item4": "See how many times each model was adopted and run",
+        "cta": "Start publishing"
       }
     },
     "useCases": {
-      "title": "Real-world optimization, solved",
-      "subtitle": "Build custom models with AI or start from proven community models in the marketplace.",
+      "title": "What people model with it",
+      "subtitle": "Six common problems. Each one has a template in the marketplace, or the assistant can build it from your description.",
       "tryTemplate": "Try this template",
       "getStarted": "Get started",
       "builtWithAi": "Built with AI",
-      "fromMarketplace": "From Marketplace",
+      "fromMarketplace": "From the marketplace",
       "vehicleRouting": {
-        "title": "Vehicle Routing",
-        "scenario": "A logistics company delivers to 50 locations with 8 trucks. Optimized routes reduced total distance by 23%, saving fuel and driver hours.",
-        "result": "23% distance reduction"
+        "title": "Vehicle routing",
+        "scenario": "A carrier delivers to 50 addresses with 8 trucks. The model picks the order of stops for each truck so the total distance is as short as possible, within each truck's capacity and the delivery windows."
       },
       "employeeScheduling": {
-        "title": "Employee Scheduling",
-        "scenario": "A hospital schedules 120 nurses across 3 shifts while respecting availability and labor regulations. Automated scheduling cut planning time from 8 hours to minutes.",
-        "result": "8 hours to minutes"
+        "title": "Employee scheduling",
+        "scenario": "A hospital assigns 120 nurses to three shifts. The model respects each nurse's availability, the rest rules between shifts and the minimum staff per shift."
       },
       "budgetAllocation": {
-        "title": "Budget Allocation",
-        "scenario": "A marketing team distributes $2M across 12 channels to maximize conversions. Optimization found a 31% better allocation than manual planning.",
-        "result": "31% better allocation"
+        "title": "Budget allocation",
+        "scenario": "A marketing team splits €2M across 12 channels. The model puts the money where the expected return per euro is highest, with a minimum and a maximum per channel."
       },
       "productionPlanning": {
-        "title": "Production Planning",
-        "scenario": "A manufacturer plans weekly production across 5 lines with material constraints. Optimized plans increased throughput 15% without additional capacity.",
-        "result": "15% throughput increase"
+        "title": "Production planning",
+        "scenario": "A factory plans a week of production on 5 lines. The model decides what each line builds and when, within the material, labour and machine hours available."
       },
       "supplyChainNetwork": {
-        "title": "Supply Chain Network",
-        "scenario": "A retailer selects warehouse locations to serve 200 stores at minimum cost. Network optimization reduced logistics spend by 18%.",
-        "result": "18% cost reduction"
+        "title": "Supply chain network",
+        "scenario": "A retailer chooses where to open warehouses to serve 200 shops. The model weighs the fixed cost of each site against the transport cost to every shop."
       },
       "resourceAssignment": {
-        "title": "Resource Assignment",
-        "scenario": "A consulting firm assigns 80 consultants to 25 projects matching skills and availability. Optimization improved utilization from 72% to 89%.",
-        "result": "72% to 89% utilization"
+        "title": "Resource assignment",
+        "scenario": "A consultancy assigns 80 consultants to 25 projects. The model matches skills to what each project needs and keeps every consultant within their available hours."
       }
     },
     "solutionExplainer": {
       "eyebrow": "Solution analysis",
-      "title": "Understand your solution",
-      "subtitle": "Don't just solve — understand. Every result comes with the reasoning behind it.",
+      "title": "Understand the solution",
+      "subtitle": "Every result comes with the analysis that explains it.",
       "whatIf": {
-        "title": "What-if, measured",
-        "description": "Ask what one more unit would buy you: JAOT re-solves the perturbed model and reports the real change — measured on your MIP, not estimated from a relaxation."
+        "title": "What-if, measured by solving again",
+        "description": "Ask what one more unit of a limit is worth. JAOT changes that limit, solves the model again and reports the real difference. Because it solves the integer model itself, the number is exact. A shadow price read from the linear relaxation can be wrong for an integer model."
       },
       "structuredSolution": {
-        "title": "Decisions, not a wall of numbers",
-        "description": "Solutions come back grouped by the model's real index structure, with an honest summary of how the solve went — root node, branching, or time limit."
+        "title": "Decisions grouped the way you wrote them",
+        "description": "The solution comes back grouped by the sets and indices of your model. Each solve also states how it ended: at the root node, after branching, or at the time limit."
       },
       "aiExplain": {
-        "title": "One-click AI explanation",
-        "description": "Turn the analysis into plain language, grounded strictly in your actual numbers — never invented ones."
+        "title": "One-click explanation",
+        "description": "The assistant turns the analysis into plain words. It only uses the numbers from your solve."
       }
     },
     "infeasibilityHighlight": {
-      "eyebrow": "Infeasible? Don't get stuck",
-      "title": "We tell you exactly which constraints conflict",
-      "subtitle": "Most solvers just say \"no solution.\" JAOT pinpoints the conflict and shows you how to fix it.",
+      "eyebrow": "When there is no answer",
+      "title": "JAOT tells you which constraints conflict",
+      "subtitle": "A solver reports \"infeasible\". JAOT also finds the smallest set of constraints that cannot all hold, and shows it on the result page.",
       "conflict": {
         "title": "The exact conflict set",
-        "description": "JAOT isolates the minimal set of constraints and bounds that can't all hold at once — and highlights them on the result page."
+        "description": "JAOT isolates the smallest set of constraints and bounds that cannot all hold at once, and highlights them on the result page."
       },
       "fix": {
-        "title": "How to fix it, in plain language",
-        "description": "A one-click AI explanation names the conflicting requirements and suggests concrete fixes: which bound to widen, which limit to relax."
+        "title": "How to fix it, in plain words",
+        "description": "One click asks the assistant to name the constraints in conflict and to suggest a fix: which bound to widen, or which limit to relax."
       },
       "honest": {
-        "title": "Honest by design",
-        "description": "When a model is too large for an exact conflict set, JAOT says so and clearly flags the explanation as heuristic — never a confident guess."
+        "title": "It says when it is estimating",
+        "description": "When a model is too large for an exact conflict set, JAOT says so and marks the explanation as heuristic."
       }
     },
     "solverRace": {
       "eyebrow": "Choosing a solver",
-      "title": "Which solver is quickest depends on the model",
-      "subtitle": "JAOT ships SCIP, HiGHS, CBC and GLPK. None of them is best. The ranking changes with the model, so JAOT runs your problem on all of them under identical terms and shows what each one did. Below is one quarter of burn-in chamber loading at the plant.",
+      "title": "The fastest solver depends on the model",
+      "subtitle": "JAOT ships SCIP, HiGHS, CBC and GLPK. The ranking changes from one model to the next, so JAOT runs your problem on all of them under the same terms and shows what each one did. Below, one quarter of burn-in chamber loading at the same plant.",
       "chartHeading": "Total time, logarithmic scale",
       "instance": "{variables} variables, {constraints} constraints",
       "outOfTime": "Out of time",
       "proved": "Proved {objective} chambers",
       "seconds": "{seconds} s",
       "rowWork": "{nodes} nodes, {iterations} simplex iterations",
-      "rowCutOff": "Proved nothing beats {bound} chambers, after {nodes} nodes, and never found a plan",
+      "rowCutOff": "Proved that no plan needs fewer than {bound} chambers, after {nodes} nodes, and never found a plan",
       "scaleNote": "The scale is logarithmic: each step is ten times the one before, so bar length is not proportional to the number beside it.",
-      "verdict": "{winner} finished first. {slowest} reached the same answer {ratio} times slower. On another model the order changes, which is why a measurement answers this and a recommendation cannot.",
-      "cutOffNote": "{solvers} ran the full {limit} seconds and never found a plan, although it did prove that nothing beats {bound} chambers. That is what the bound is for.",
-      "terms": "Every solver received the same {limit}-second limit and the same {threads} threads, one run after another on one {cores}-core server. The seconds are comparable inside this run and nowhere else.",
+      "verdict": "{winner} finished first. {slowest} reached the same answer {ratio} times slower. On another model the order changes, so the only way to choose is to measure.",
+      "cutOffNote": "{solvers} used the full {limit} seconds and never found a plan. It did prove that no plan needs fewer than {bound} chambers. That bound is still useful: it tells you how far any plan can be from the best one.",
+      "terms": "Every solver got the same {limit}-second limit and the same {threads} threads, one run after another on one {cores}-core server. The seconds are comparable within this run only.",
       "sameTerms": {
-        "title": "Identical terms",
-        "description": "The same time limit, the same gap tolerance, the same thread count, one machine, one run at a time. Two solvers sharing a machine fight for cores, and then the seconds stop meaning anything."
+        "title": "The same terms",
+        "description": "The same time limit, gap tolerance and thread count, on one machine, one run at a time. Two solvers running at once would compete for cores, and their times would no longer be comparable."
       },
       "matrix": {
         "title": "A whole matrix",
-        "description": "Cross your model's datasets with the solvers: datasets down the side, solvers across the top. A model whose data changes every month has no single fastest solver, and one month's numbers pick the wrong one."
+        "description": "Cross your model's datasets with the solvers: datasets down the side, solvers across the top. If your data changes every month, the fastest solver can change too, and the matrix shows that in one table."
       },
       "honestTimes": {
-        "title": "The bound, not only the answer",
-        "description": "Each row carries the best bound the solver proved beside the answer it found. A run stopped by its time limit is reporting the distance between the two, and the answer on its own does not say it."
+        "title": "The bound next to the answer",
+        "description": "Each row shows the best bound the solver proved next to the answer it found. For a run stopped by the time limit, the gap between the two tells you how far the answer can be from the optimum."
       },
-      "cta": "How comparing works"
+      "cta": "How the comparison works"
     },
     "mcp": {
       "toolCount": "{count} tools, all callable by an agent",
-      "title": "AI Agents Meet Optimization",
-      "subtitle": "JAOT is an optimization platform natively accessible to AI agents. Connect any MCP-compatible agent to solve optimization problems end-to-end.",
+      "title": "Built for AI agents too",
+      "subtitle": "Any MCP client can use JAOT: Claude, GPT, or your own agent. It can build a model, solve it, read the analysis and publish the result, with the same tools a person uses.",
       "workflow": {
         "discover": {
           "title": "Discover",
-          "description": "Agent finds JAOT via MCP or /.well-known/llms.txt"
+          "description": "The agent finds JAOT through MCP or /.well-known/llms.txt"
         },
         "authenticate": {
           "title": "Authenticate",
-          "description": "Secure access with API key authentication"
+          "description": "The agent sends an API key"
         },
         "solve": {
           "title": "Solve",
-          "description": "Create model, set parameters, run the solver"
+          "description": "It creates the model, sets the parameters and runs the solver"
         },
         "results": {
           "title": "Results",
-          "description": "Get optimized solution programmatically"
+          "description": "It reads the solution and the analysis as JSON"
         }
       },
-      "toolsTitle": "30 Tools",
+      "toolsTitle": "MCP tools",
       "tools": {
-        "problemSolving": "Problem Solving",
+        "problemSolving": "Problem solving",
         "templates": "Templates",
         "fileIO": "File I/O",
         "marketplace": "Marketplace",
         "execution": "Execution",
-        "modelProjects": "Model Projects",
+        "modelProjects": "Model projects",
         "analysis": "Analysis",
-        "solverComparison": "Solver Comparison"
+        "solverComparison": "Solver comparison"
       },
-      "agentBadge": "Works with Claude, GPT, and any MCP-compatible agent",
-      "cta": "Explore MCP Integration"
+      "agentBadge": "Works with Claude, GPT and any MCP client",
+      "cta": "Read the MCP docs"
     },
     "howItWorks": {
-      "title": "Up and running in minutes",
+      "title": "How it works",
       "step1": {
-        "title": "Choose a template or start from scratch",
-        "description": "Browse 100+ pre-built templates or start a blank model in the studio — visual canvas, AI assistant, JSON editor, or the JModel DSL."
+        "title": "Pick a starting point",
+        "description": "Choose one of 100+ templates, fork a marketplace model, import an MPS, LP or JSON file, or describe the problem to the assistant."
       },
       "step2": {
-        "title": "Set variables and constraints visually",
-        "description": "Use the drag-and-drop interface to define your optimization model. Set objectives, add constraints, and configure variable types."
+        "title": "Build the model in the studio",
+        "description": "Write it in JModel, or place variables and constraints on the visual canvas. Load your data in the Data tab. JAOT shows the resulting mathematics as you go."
       },
       "step3": {
-        "title": "Solve and explore results",
-        "description": "Hit solve and watch results come in real-time. Analyze variable values, sensitivity data, and export your solution."
+        "title": "Solve and read the analysis",
+        "description": "Run one solver, or compare all four on the same model. Then read which constraints bind, what one more unit is worth, and export the solution."
       }
     },
     "cta": {
       "title": "Start optimizing",
-      "subtitle": "Free and open source. Create an account and solve your first model in minutes — or self-host the whole platform yourself.",
+      "subtitle": "Free and open source. Create an account and solve a first model today, or install the whole platform on your own server.",
       "button": "Create account"
     },
     "footer": {
@@ -1200,7 +1194,7 @@
       "rejectNonEssential": "Reject Non-Essential",
       "acceptAll": "Accept All"
     },
-    "solverDisclaimer": "Results depend on model formulation. Solvers return best-effort solutions — verify critical decisions independently.",
+    "solverDisclaimer": "Results depend on how the model is written. A run stopped by its time limit is not proven optimal. Check critical decisions before you act on them.",
     "announcement": {
       "regionLabel": "Site announcement",
       "dismiss": "Dismiss announcement"
@@ -4757,7 +4751,7 @@
   "metadata": {
     "home": {
       "title": "JAOT - AI Optimization Platform and Model Marketplace | Build, Use, or Automate",
-      "description": "AI-powered optimization platform with a free, collaborative model marketplace. Build versioned models with AI, fork ready-made community solutions, or connect AI agents via MCP. Powered by SCIP, HiGHS, CBC and GLPK."
+      "description": "Optimization platform with a free, collaborative model marketplace. Build versioned models with an AI assistant, fork community models, or connect AI agents over MCP. Solvers: SCIP, HiGHS, CBC and GLPK."
     },
     "terms": {
       "title": "Terms of Service - JAOT",

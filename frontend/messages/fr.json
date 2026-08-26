@@ -717,7 +717,7 @@
     "exactAnalysis": {
       "eyebrow": "Après la résolution",
       "title": "Les trois produits à plus forte marge ne figurent pas au plan",
-      "subtitle": "Un trimestre d'une usine d'électronique de puissance, résolu et prouvé optimal. Les trois familles les plus rentables sont précisément celles que l'optimum refuse de produire — et le composant que tout le monde accuse d'être le goulet termine le trimestre à moitié inutilisé. C'est exactement ce qu'un tableur rate.",
+      "subtitle": "Un trimestre d'une usine d'électronique de puissance, résolu et prouvé optimal. Le plan ne fabrique aucune des trois familles de produits à plus forte marge unitaire. Le composant que tout le monde accuse d'être le goulet termine le trimestre avec près de la moitié de son stock inutilisé. L'analyse exacte montre pourquoi.",
       "planHeading": "Plan de production du trimestre",
       "planMeta": "{units} unités · {solver}, optimalité prouvée",
       "bindingHeading": "Ce qui s'épuise",
@@ -727,7 +727,7 @@
       "floorMet": "{actual} livrées, {required} exigées",
       "binding": "saturé",
       "slack": "{slack} disponibles",
-      "verdict": "{product} : {margin} l'unité, et le plan n'en produit aucun. C'est lui qui pèse le plus sur chacune des {binding} limites arrivées à saturation, alors que {spare} {spareResource} restent inutilisés : en acheter davantage ne changerait rien. Les deux faits viennent de la solution entière que vous allez exécuter, pas d'une relaxation.",
+      "verdict": "{product} : {margin} l'unité, et le plan n'en fabrique aucun. Il consomme davantage de chacune des {binding} limites épuisées que tout autre produit, alors que {spare} {spareResource} restent inutilisés, donc en acheter davantage ne changerait rien. JAOT lit ces deux faits dans la solution en nombres entiers elle-même, donc ils valent pour le plan que vous allez exécuter.",
       "products": {
         "tractionInverter": "Onduleur de traction 800 V",
         "batteryMonitor": "Unité de gestion de batterie",
@@ -757,8 +757,8 @@
     },
     "conflict": {
       "eyebrow": "Quand il n'y a pas de réponse",
-      "title": "Il nomme les deux règles qui s'opposent — et innocente les cinq autres",
-      "subtitle": "Un client demande un trimestre d'onduleurs de traction que la ligne ne peut pas produire. Un solveur dit « irréalisable » et vous laisse auditer le modèle entier. JAOT retire chaque règle et relance la résolution jusqu'à ne garder que la contradiction, pour que vous sachiez exactement où regarder.",
+      "title": "Il nomme les deux règles qui s'opposent et met les cinq autres hors de cause",
+      "subtitle": "Un client commande un trimestre d'onduleurs de traction que la ligne ne peut pas fabriquer. Un solveur répond « irréalisable » et vous laisse vérifier le modèle entier. JAOT retire chaque règle à tour de rôle et résout à nouveau, jusqu'à ce qu'il ne reste que la contradiction. Vous savez ainsi où regarder.",
       "chartHeading": "Jusqu'où va chaque limite",
       "method": "{rules} règles · {size} dans le conflit",
       "rules": {
@@ -782,221 +782,215 @@
       "cleared": "hors de cause",
       "reaches": "{units} onduleurs",
       "contractLine": "le contrat en demande {demand}",
-      "verdict": "Il n'y a que {resource} pour {reaches} onduleurs, et le contrat en demande {demand}. Rien d'autre n'est en cause : JAOT innocente nommément les {cleared} autres limites. Trouvez-en {missing} de plus — une seconde étuve pour le trimestre — et le modèle se résout. C'est le chiffre à emporter en négociation."
+      "verdict": "Il n'y a que {resource} pour {reaches} onduleurs, et le contrat en demande {demand}. Les {cleared} autres limites sont nommées et mises hors de cause. Avec {missing} de plus, le modèle se résout. C'est le chiffre à apporter au client."
     },
     "catalog": {
       "headline": "{total} modèles dans {sectors} secteurs",
       "browse": "Parcourir la marketplace"
     },
     "jmodel": {
-      "eyebrow": "Écrivez le modèle, pas les lignes",
-      "title": "Quatorze lignes. C'est la donnée qui décide de la taille.",
-      "subtitle": "JModel décrit votre problème avec des ensembles et des familles indexées, et JAOT le rend en mathématiques avant de toucher le moindre chiffre. Le même source ci-dessous couvre une usine sur un trimestre ou quatre cents produits sur un an — vous ne réécrivez pas une ligne.",
+      "eyebrow": "Écrivez le modèle une seule fois",
+      "title": "Quatorze lignes, quelle que soit la taille des données",
+      "subtitle": "JModel décrit le problème avec des ensembles et des familles indexées. JAOT affiche les mathématiques avant de charger la moindre donnée. Le même source ci-dessous couvre une usine sur un trimestre ou quatre cents produits sur un an, sans changer le modèle.",
       "sourceHeading": "Ce que vous écrivez",
       "notationHeading": "Ce que cela signifie",
       "scaleSmall": "{products} produits × {resources} ressources × {weeks} semaines",
       "scaleLarge": "{products} produits × {resources} ressources × {weeks} semaines",
       "scaleResult": "{variables} variables · {constraints} contraintes",
-      "scaleNote": "Les mêmes {lines} lignes dans les deux cas. Les tableurs et les modèles écrits à la main grossissent avec les données ; un modèle indexé, non."
+      "scaleNote": "Les mêmes {lines} lignes dans les deux cas. Les données fixent le nombre de variables et de contraintes. Le modèle ne change pas."
     },
     "hero": {
       "badge": "Plateforme d'optimisation open source",
-      "titleLine1": "Vos tournées, plannings et budgets,",
-      "titleLine2": "résolus par la meilleure réponse possible",
-      "titleLine3": "— et démontrée.",
-      "subtitle": "JAOT transforme votre problème en modèle mathématique, le résout et démontre qu'aucune meilleure réponse n'existe. Construisez-le avec l'IA, partez d'un modèle de la communauté ou pilotez-le depuis votre propre agent via MCP.",
-      "tagline": "La plateforme d'optimisation pour les humains et les agents IA.",
+      "titleLine1": "Tournées, plannings et budgets,",
+      "titleLine2": "résolus jusqu'au meilleur plan possible,",
+      "titleLine3": "et prouvés optimaux.",
+      "subtitle": "JAOT transforme votre problème en modèle mathématique, le résout et prouve qu'aucune meilleure réponse n'existe. Vous pouvez construire le modèle avec l'assistant IA, partir d'un modèle prédéfini de la communauté ou appeler JAOT depuis votre propre agent via MCP.",
+      "tagline": "Une plateforme d'optimisation pour les personnes et pour les agents IA.",
       "visual": {
         "windowLabel": "tournées · {stops} arrêts · {solver}",
-        "alt": "Une résolution réelle en cours : une tournée de livraison de {stops} arrêts améliorée jusqu'à atteindre sa longueur optimale démontrée de {optimum}, sur {variables} variables de décision.",
-        "proven": "Optimalité démontrée",
+        "alt": "Une résolution réelle : une tournée de livraison de {stops} arrêts s'améliore jusqu'à atteindre sa longueur optimale prouvée de {optimum}, sur {variables} variables de décision.",
+        "proven": "Optimalité prouvée",
         "legendStart": "Première solution {cost}",
         "legendProven": "Optimum {cost}",
         "metrics": {
-          "cost": "Longueur de tournée",
+          "cost": "Longueur de la tournée",
           "gap": "Écart à l'optimum",
           "nodes": "Nœuds explorés",
           "variables": "Variables"
         }
       },
-      "getStartedFree": "Commencer Gratuitement",
-      "browseTemplates": "Parcourir les Modèles",
-      "openSourceSolver": "Solveur open source",
-      "templatesCount": "100+ modèles",
+      "getStartedFree": "Commencer gratuitement",
+      "browseTemplates": "Parcourir les modèles prédéfinis",
+      "openSourceSolver": "Solveurs open source",
+      "templatesCount": "100+ modèles prédéfinis",
       "firstMarketplace": "Marketplace de modèles d'optimisation",
       "mcpNative": "Natif MCP",
       "viewSource": "Voir sur GitHub",
       "pillars": {
         "aiBuilder": {
-          "title": "Constructeur IA",
-          "description": "Décris ton problème d'optimisation en langage courant. Notre IA le traduit en modèle mathématique et le résout."
+          "title": "Assistant IA",
+          "description": "Décrivez le problème avec vos mots. L'assistant écrit le modèle mathématique et JAOT le résout."
         },
         "marketplace": {
-          "title": "Marketplace de Modèles",
-          "description": "Parcours le marketplace de modèles d'optimisation. Utilise des modèles éprouvés de la communauté ou publie les tiens."
+          "title": "Marketplace de modèles",
+          "description": "Parcourez les modèles publiés par d'autres personnes. Utilisez-en un tel quel, dupliquez-le ou publiez le vôtre."
         },
         "mcp": {
-          "title": "MCP pour Agents IA",
-          "description": "Connectez Claude, GPT ou tout agent compatible MCP — résolvez des problèmes, dupliquez des modèles de la marketplace et créez des modèles versionnés de bout en bout."
+          "title": "MCP pour les agents IA",
+          "description": "Connectez Claude, GPT ou tout client MCP. Un agent peut résoudre des problèmes, dupliquer des modèles de la marketplace et écrire des modèles versionnés par lui-même."
         }
       },
       "ctaBuilder": "Construire avec l'IA",
-      "ctaMarketplace": "Parcourir les Modèles",
-      "ctaMcp": "Connecter un Agent"
+      "ctaMarketplace": "Parcourir les modèles",
+      "ctaMcp": "Connecter un agent"
     },
     "platform": {
-      "samplePrompt": "« Planifie les livraisons de la semaine : 4 camionnettes, 60 arrêts, toutes rentrées à 18h00. »",
+      "samplePrompt": "« Planifie les livraisons de la semaine prochaine : 4 camionnettes, 60 arrêts, chaque camionnette de retour à 18 h. »",
       "eyebrow": "La plateforme",
       "title": "Trois façons d'optimiser",
-      "subtitle": "Créez des modèles avec l'IA, utilisez des solutions éprouvées du marketplace communautaire ou connectez votre agent IA via MCP.",
-      "aiVisualAlt": "L'assistant IA de JAOT formulant un modèle d'optimisation à partir d'une description du problème en langage naturel"
+      "subtitle": "Construisez un modèle avec l'assistant IA, partez d'un modèle de la communauté dans la marketplace, ou connectez votre agent IA via MCP.",
+      "aiVisualAlt": "L'assistant JAOT écrit un modèle d'optimisation à partir d'un problème décrit avec des mots simples"
     },
     "audience": {
-      "title": "Conçu pour tous ceux qui optimisent",
+      "title": "Qui utilise JAOT",
       "teams": {
-        "title": "Pour les Équipes et Entreprises",
-        "item1": "Résolvez des problèmes d'optimisation complexes à grande échelle",
-        "item2": "Intégration API REST avec n'importe quelle stack technologique",
-        "item3": "Collaboration d'équipe et bibliothèque de modèles partagée",
-        "item4": "Sécurité et contrôles d'accès de niveau entreprise",
+        "title": "Équipes et entreprises",
+        "item1": "Planifiez tournées, plannings, production ou budgets avec un solveur exact",
+        "item2": "API REST et MCP, pour s'intégrer aux systèmes que vous utilisez déjà",
+        "item3": "Espaces de travail partagés, avec des rôles et une bibliothèque de modèles commune",
+        "item4": "Clés API, permissions par espace de travail et limites de débit",
         "cta": "Commencer à construire"
       },
       "students": {
-        "title": "Pour les Étudiants et Chercheurs",
-        "item1": "Apprends l'optimisation avec la construction de modèles assistée par IA",
-        "item2": "Modèles éducatifs du PL au PLNE",
-        "item3": "Commencez simple et évoluez vers des modèles complexes",
-        "item4": "Gratuit et open source, idéal pour apprendre",
+        "title": "Étudiants et chercheurs",
+        "item1": "Construisez un modèle avec l'assistant et lisez les mathématiques qu'il produit",
+        "item2": "Des modèles prédéfinis, du premier PL jusqu'au PLNE complet, avec des exemples résolus",
+        "item3": "Quatre solveurs open source que vous pouvez lancer côte à côte sur le même modèle",
+        "item4": "Gratuit et open source, et vous pouvez l'installer sur votre propre machine",
         "cta": "Essayer gratuitement"
       },
       "authors": {
-        "title": "Pour les contributeurs et consultants",
-        "item1": "Publie tes modèles sur le marketplace communautaire",
-        "item2": "Partage ton expertise en optimisation avec des équipes du monde entier",
-        "item3": "Atteins des équipes et entreprises dans le monde entier",
-        "item4": "Suis l'adoption et l'impact dans tes analytiques",
-        "cta": "Commence à publier"
+        "title": "Contributeurs et consultants",
+        "item1": "Publiez vos modèles dans la marketplace",
+        "item2": "D'autres personnes peuvent les dupliquer et bâtir sur votre travail",
+        "item3": "Les modèles sont versionnés, donc une copie pointe vers une version publiée précise",
+        "item4": "Voyez combien de fois chaque modèle a été adopté et exécuté",
+        "cta": "Commencer à publier"
       }
     },
     "useCases": {
-      "title": "L'optimisation du monde réel, résolue",
-      "subtitle": "Créez des modèles sur mesure avec l'IA ou partez de modèles éprouvés de la communauté sur la marketplace.",
-      "tryTemplate": "Essayer ce modèle",
+      "title": "Ce que les gens modélisent avec JAOT",
+      "subtitle": "Six problèmes courants. Chacun a un modèle prédéfini dans la marketplace, ou l'assistant peut le construire à partir de votre description.",
+      "tryTemplate": "Essayer ce modèle prédéfini",
       "getStarted": "Commencer",
       "vehicleRouting": {
-        "title": "Routage de Véhicules",
-        "scenario": "Une entreprise de logistique livre à 50 sites avec 8 camions. Les routes optimisées ont réduit la distance totale de 23%, économisant carburant et heures de chauffeur.",
-        "result": "23% de réduction de distance"
+        "title": "Tournées de véhicules",
+        "scenario": "Un transporteur livre 50 adresses avec 8 camions. Le modèle choisit l'ordre des arrêts de chaque camion pour que la distance totale soit la plus courte possible, dans la limite de la capacité de chaque camion et des créneaux de livraison."
       },
       "employeeScheduling": {
-        "title": "Planification du Personnel",
-        "scenario": "Un hôpital planifie 120 infirmiers sur 3 quarts en respectant les disponibilités et la réglementation du travail. La planification automatisée a réduit le temps de planification de 8 heures à quelques minutes.",
-        "result": "De 8 heures à quelques minutes"
+        "title": "Planification du personnel",
+        "scenario": "Un hôpital affecte 120 infirmiers à trois postes. Le modèle respecte les disponibilités de chaque infirmier, les règles de repos entre deux postes et l'effectif minimal par poste."
       },
       "budgetAllocation": {
-        "title": "Allocation de Budget",
-        "scenario": "Une équipe marketing distribue 2M€ sur 12 canaux pour maximiser les conversions. L'optimisation a trouvé une allocation 31% meilleure que la planification manuelle.",
-        "result": "31% d'amélioration de l'allocation"
+        "title": "Allocation de budget",
+        "scenario": "Une équipe marketing répartit 2 M€ entre 12 canaux. Le modèle place l'argent là où le retour attendu par euro est le plus élevé, avec un minimum et un maximum par canal."
       },
       "productionPlanning": {
-        "title": "Planification de Production",
-        "scenario": "Un fabricant planifie la production hebdomadaire sur 5 lignes avec des contraintes de matériaux. Les plans optimisés ont augmenté le débit de 15% sans capacité supplémentaire.",
-        "result": "15% d'augmentation du débit"
+        "title": "Planification de production",
+        "scenario": "Une usine planifie une semaine de production sur 5 lignes. Le modèle décide ce que chaque ligne fabrique et quand, dans la limite des matières, de la main-d'œuvre et des heures machine disponibles."
       },
       "supplyChainNetwork": {
-        "title": "Réseau de Chaîne d'Approvisionnement",
-        "scenario": "Un détaillant sélectionne les emplacements d'entrepôts pour desservir 200 magasins au coût minimum. L'optimisation du réseau a réduit les dépenses logistiques de 18%.",
-        "result": "18% de réduction des coûts"
+        "title": "Réseau d'approvisionnement",
+        "scenario": "Un détaillant choisit où ouvrir des entrepôts pour desservir 200 magasins. Le modèle met en balance le coût fixe de chaque site et le coût de transport vers chaque magasin."
       },
       "resourceAssignment": {
-        "title": "Affectation de Ressources",
-        "scenario": "Un cabinet de conseil affecte 80 consultants à 25 projets en fonction des compétences et disponibilités. L'optimisation a amélioré l'utilisation de 72% à 89%.",
-        "result": "De 72% à 89% d'utilisation"
+        "title": "Affectation de ressources",
+        "scenario": "Un cabinet de conseil affecte 80 consultants à 25 projets. Le modèle fait correspondre les compétences aux besoins de chaque projet et garde chaque consultant dans ses heures disponibles."
       },
       "builtWithAi": "Construit avec l'IA",
-      "fromMarketplace": "Depuis le Marketplace"
+      "fromMarketplace": "Depuis la marketplace"
     },
     "solutionExplainer": {
       "eyebrow": "Analyse de la solution",
-      "title": "Comprenez votre solution",
-      "subtitle": "Ne vous contentez pas de résoudre : comprenez. Chaque résultat est accompagné de son raisonnement.",
+      "title": "Comprendre la solution",
+      "subtitle": "Chaque résultat est accompagné de l'analyse qui l'explique.",
       "whatIf": {
-        "title": "Scénarios, mesurés",
-        "description": "Demandez ce qu'une unité de plus vous apporterait : JAOT résout à nouveau le modèle perturbé et indique le gain réel, mesuré sur votre MIP et non estimé à partir d'une relaxation."
+        "title": "Scénarios, mesurés par une nouvelle résolution",
+        "description": "Demandez ce que vaut une unité de plus sur une limite. JAOT modifie cette limite, résout le modèle à nouveau et rapporte la différence réelle. Comme il résout lui-même le modèle en nombres entiers, le chiffre est exact. Un prix dual lu sur la relaxation linéaire peut être faux pour un modèle en nombres entiers."
       },
       "structuredSolution": {
-        "title": "Des décisions, pas un mur de chiffres",
-        "description": "Les solutions reviennent groupées selon la vraie structure d'indices du modèle, avec un résumé honnête du solve : nœud racine, branchement ou limite de temps."
+        "title": "Des décisions groupées comme vous les avez écrites",
+        "description": "La solution revient groupée selon les ensembles et les indices de votre modèle. Chaque résolution indique aussi comment elle s'est terminée : au nœud racine, après branchement, ou à la limite de temps."
       },
       "aiExplain": {
-        "title": "Explication par IA en un clic",
-        "description": "Transformez l'analyse en langage clair, fondé uniquement sur vos chiffres réels, jamais inventés."
+        "title": "Explication en un clic",
+        "description": "L'assistant traduit l'analyse en mots simples. Il n'utilise que les chiffres de votre résolution."
       }
     },
     "infeasibilityHighlight": {
-      "eyebrow": "Infaisable ? Ne restez pas bloqué",
-      "title": "Nous vous disons exactement quelles contraintes sont en conflit",
-      "subtitle": "La plupart des solveurs disent juste « aucune solution ». JAOT identifie le conflit et vous montre comment le corriger.",
+      "eyebrow": "Quand il n'y a pas de réponse",
+      "title": "JAOT vous dit quelles contraintes sont en conflit",
+      "subtitle": "Un solveur répond « irréalisable ». JAOT trouve aussi le plus petit ensemble de contraintes qui ne peuvent pas toutes tenir, et l'affiche sur la page de résultats.",
       "conflict": {
-        "title": "L'ensemble exact en conflit",
-        "description": "JAOT isole l'ensemble minimal de contraintes et de bornes qui ne peuvent pas toutes tenir à la fois, et les met en évidence sur la page de résultats."
+        "title": "L'ensemble exact du conflit",
+        "description": "JAOT isole le plus petit ensemble de contraintes et de bornes qui ne peuvent pas toutes tenir à la fois, et le met en évidence sur la page de résultats."
       },
       "fix": {
-        "title": "Comment corriger, en langage clair",
-        "description": "Une explication par IA en un clic nomme les exigences en conflit et propose des corrections concrètes : quelle borne élargir, quelle contrainte assouplir."
+        "title": "Comment corriger, en mots simples",
+        "description": "Un clic demande à l'assistant de nommer les contraintes en conflit et de proposer une correction : quelle borne élargir, ou quelle limite assouplir."
       },
       "honest": {
-        "title": "Honnête par conception",
-        "description": "Quand un modèle est trop grand pour un ensemble exact, JAOT le dit et signale clairement l'explication comme heuristique, jamais une supposition assurée."
+        "title": "Il dit quand il estime",
+        "description": "Quand un modèle est trop grand pour un ensemble exact, JAOT le dit et marque l'explication comme heuristique."
       }
     },
     "solverRace": {
       "eyebrow": "Choisir un solveur",
       "title": "Le solveur le plus rapide dépend du modèle",
-      "subtitle": "JAOT embarque SCIP, HiGHS, CBC et GLPK. Aucun n'est le meilleur. Le classement change avec le modèle, donc JAOT exécute votre problème sur tous dans les mêmes conditions et montre ce que chacun a fait. Ci-dessous, un trimestre de chargement des étuves de déverminage de l'usine.",
+      "subtitle": "JAOT embarque SCIP, HiGHS, CBC et GLPK. Le classement change d'un modèle à l'autre, donc JAOT exécute votre problème sur tous, dans les mêmes conditions, et montre ce que chacun a fait. Ci-dessous, un trimestre de chargement des étuves de déverminage de la même usine.",
       "chartHeading": "Temps total, échelle logarithmique",
       "instance": "{variables} variables, {constraints} contraintes",
       "outOfTime": "Temps écoulé",
       "proved": "A prouvé {objective} étuves",
       "seconds": "{seconds} s",
       "rowWork": "{nodes} nœuds, {iterations} itérations du simplexe",
-      "rowCutOff": "A prouvé que rien ne descend sous {bound} étuves, après {nodes} nœuds, sans trouver de plan",
+      "rowCutOff": "A prouvé qu'aucun plan n'a besoin de moins de {bound} étuves, après {nodes} nœuds, sans jamais trouver de plan",
       "scaleNote": "L'échelle est logarithmique : chaque pas vaut dix fois le précédent, donc la longueur de la barre n'est pas proportionnelle au nombre affiché à côté.",
-      "verdict": "{winner} a terminé en premier. {slowest} a atteint la même réponse {ratio} fois plus lentement. Sur un autre modèle l'ordre change, et c'est pourquoi une mesure répond à cette question là où une recommandation ne le peut pas.",
-      "cutOffNote": "{solvers} a consommé les {limit} secondes sans trouver de plan, tout en prouvant que rien ne descend sous {bound} étuves. C'est à cela que sert la borne.",
-      "terms": "Chaque solveur a reçu la même limite de {limit} secondes et les mêmes {threads} threads, l'un après l'autre sur un serveur de {cores} cœurs. Les secondes sont comparables à l'intérieur de cette exécution et nulle part ailleurs.",
+      "verdict": "{winner} a terminé en premier. {slowest} a atteint la même réponse {ratio} fois plus lentement. Sur un autre modèle, l'ordre change, donc la seule façon de choisir est de mesurer.",
+      "cutOffNote": "{solvers} a utilisé les {limit} secondes en entier et n'a jamais trouvé de plan. Il a tout de même prouvé qu'aucun plan n'a besoin de moins de {bound} étuves. Cette borne reste utile : elle vous dit à quelle distance du meilleur plan un plan peut se trouver.",
+      "terms": "Chaque solveur a reçu la même limite de {limit} secondes et les mêmes {threads} threads, l'un après l'autre sur un serveur de {cores} cœurs. Les secondes sont comparables à l'intérieur de cette exécution seulement.",
       "sameTerms": {
-        "title": "Des conditions identiques",
-        "description": "Même limite de temps, même tolérance de gap, même nombre de threads, une machine, une exécution à la fois. Deux solveurs qui partagent une machine se disputent les cœurs, et les secondes ne veulent plus rien dire."
+        "title": "Les mêmes conditions",
+        "description": "La même limite de temps, la même tolérance de gap et le même nombre de threads, sur une machine, une exécution à la fois. Deux solveurs lancés en même temps se disputeraient les cœurs, et leurs temps ne seraient plus comparables."
       },
       "matrix": {
         "title": "Une matrice entière",
-        "description": "Croisez les jeux de données de votre modèle avec les solveurs : les données en lignes, les solveurs en colonnes. Un modèle dont les données changent chaque mois n'a pas de solveur le plus rapide, et les chiffres d'un seul mois désignent le mauvais."
+        "description": "Croisez les jeux de données de votre modèle avec les solveurs : les jeux de données en lignes, les solveurs en colonnes. Si vos données changent chaque mois, le solveur le plus rapide peut changer aussi, et la matrice le montre dans un seul tableau."
       },
       "honestTimes": {
-        "title": "La borne, pas seulement la réponse",
-        "description": "Chaque ligne porte la meilleure borne prouvée par le solveur à côté de la réponse trouvée. Une exécution arrêtée par sa limite de temps rapporte l'écart entre les deux, et la réponse seule ne le dit pas."
+        "title": "La borne à côté de la réponse",
+        "description": "Chaque ligne montre la meilleure borne prouvée par le solveur, à côté de la réponse qu'il a trouvée. Pour une exécution arrêtée par la limite de temps, l'écart entre les deux vous dit à quelle distance de l'optimum la réponse peut se trouver."
       },
       "cta": "Comment fonctionne la comparaison"
     },
     "howItWorks": {
-      "title": "Opérationnel en quelques minutes",
+      "title": "Comment ça marche",
       "step1": {
-        "title": "Choisissez un modèle ou partez de zéro",
-        "description": "Parcourez plus de 100 modèles prédéfinis ou démarrez un modèle vierge dans le studio — canevas visuel, assistant IA, éditeur JSON ou le DSL JModel."
+        "title": "Choisissez un point de départ",
+        "description": "Choisissez l'un des 100+ modèles prédéfinis, dupliquez un modèle de la marketplace, importez un fichier MPS, LP ou JSON, ou décrivez le problème à l'assistant."
       },
       "step2": {
-        "title": "Définissez variables et contraintes visuellement",
-        "description": "Utilisez l'interface glisser-déposer pour définir votre modèle d'optimisation. Définissez les objectifs, ajoutez des contraintes et configurez les types de variables."
+        "title": "Construisez le modèle dans le studio",
+        "description": "Écrivez-le en JModel, ou placez variables et contraintes sur le canevas visuel. Chargez vos données dans l'onglet Données. JAOT affiche les mathématiques correspondantes au fur et à mesure."
       },
       "step3": {
-        "title": "Résolvez et explorez les résultats",
-        "description": "Lancez la résolution et observez les résultats en temps réel. Analysez les valeurs des variables, les données de sensibilité et exportez votre solution."
+        "title": "Résolvez et lisez l'analyse",
+        "description": "Lancez un solveur, ou comparez les quatre sur le même modèle. Lisez ensuite quelles contraintes sont saturées, ce que vaut une unité de plus, et exportez la solution."
       }
     },
     "cta": {
       "title": "Commencez à optimiser",
-      "subtitle": "Gratuit et open source. Créez un compte et résolvez votre premier modèle en quelques minutes — ou hébergez la plateforme vous-même.",
+      "subtitle": "Gratuit et open source. Créez un compte et résolvez un premier modèle aujourd'hui, ou installez toute la plateforme sur votre propre serveur.",
       "button": "Créer un compte"
     },
     "footer": {
@@ -1164,33 +1158,33 @@
       "rejectNonEssential": "Refuser les Non-Essentiels",
       "acceptAll": "Tout Accepter"
     },
-    "solverDisclaimer": "Les résultats dépendent de la formulation du modèle. Les solveurs renvoient des solutions au mieux — vérifiez les décisions critiques de manière indépendante.",
+    "solverDisclaimer": "Les résultats dépendent de la façon dont le modèle est écrit. Une exécution arrêtée par sa limite de temps n'est pas prouvée optimale. Vérifiez les décisions critiques avant d'agir.",
     "mcp": {
       "toolCount": "{count} outils, tous appelables par un agent",
-      "title": "Les Agents IA Rencontrent l'Optimisation",
-      "subtitle": "JAOT est une plateforme d'optimisation nativement accessible aux agents IA. Connecte n'importe quel agent compatible MCP pour résoudre des problèmes d'optimisation de bout en bout.",
+      "title": "Conçu aussi pour les agents IA",
+      "subtitle": "Tout client MCP peut utiliser JAOT : Claude, GPT ou votre propre agent. Il peut construire un modèle, le résoudre, lire l'analyse et publier le résultat, avec les mêmes outils qu'une personne.",
       "workflow": {
         "discover": {
           "title": "Découvrir",
           "description": "L'agent trouve JAOT via MCP ou /.well-known/llms.txt"
         },
         "authenticate": {
-          "title": "Authentifier",
-          "description": "Accès sécurisé avec authentification par clé API"
+          "title": "S'authentifier",
+          "description": "L'agent envoie une clé API"
         },
         "solve": {
           "title": "Résoudre",
-          "description": "Crée un modèle, définis les paramètres, lance le solveur"
+          "description": "Il crée le modèle, règle les paramètres et lance le solveur"
         },
         "results": {
           "title": "Résultats",
-          "description": "Obtiens la solution optimisée de manière programmatique"
+          "description": "Il lit la solution et l'analyse en JSON"
         }
       },
-      "toolsTitle": "30 outils",
+      "toolsTitle": "Outils MCP",
       "tools": {
-        "problemSolving": "Résolution de Problèmes",
-        "templates": "Modèles",
+        "problemSolving": "Résolution de problèmes",
+        "templates": "Modèles prédéfinis",
         "fileIO": "E/S de fichiers",
         "marketplace": "Marketplace",
         "execution": "Exécution",
@@ -1198,8 +1192,8 @@
         "analysis": "Analyse",
         "solverComparison": "Comparaison de solveurs"
       },
-      "agentBadge": "Fonctionne avec Claude, GPT et tout agent compatible MCP",
-      "cta": "Explorer l'Intégration MCP"
+      "agentBadge": "Fonctionne avec Claude, GPT et tout client MCP",
+      "cta": "Lire la documentation MCP"
     },
     "announcement": {
       "regionLabel": "Annonce du site",
@@ -4756,8 +4750,8 @@
   },
   "metadata": {
     "home": {
-      "title": "JAOT - Plateforme d'optimisation IA et marketplace de modèles | Créez, utilisez ou automatisez",
-      "description": "Plateforme d'optimisation IA avec une marketplace de modèles gratuite et collaborative. Créez des modèles versionnés avec l'IA, dupliquez des solutions de la communauté ou connectez des agents IA via MCP. Propulsée par SCIP, HiGHS, CBC et GLPK."
+      "title": "JAOT - Plateforme d'optimisation IA et marketplace de modèles | Construire, utiliser ou automatiser",
+      "description": "Plateforme d'optimisation avec une marketplace de modèles gratuite et collaborative. Construisez des modèles versionnés avec un assistant IA, dupliquez des modèles de la communauté ou connectez des agents IA via MCP. Solveurs : SCIP, HiGHS, CBC et GLPK."
     },
     "terms": {
       "title": "Conditions d'Utilisation - JAOT",

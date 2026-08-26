@@ -32,6 +32,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+- **The home page says what JAOT does in plain sentences, in all five languages.** The old copy leaned on slogans ("Don't just solve — understand", "AI Agents Meet Optimization", "Honest by design") and on six example results that were never measured ("23% distance reduction", "31% better allocation"). Every section now states what the product does and what the worked examples show; the six use cases describe the decision the model makes instead of quoting an invented saving. The "How it works" steps name the studio, JModel and the Data tab as they exist today, and the tool listing no longer carries a hard-coded count.
+
 ### Fixed
 - **The frontend's copy of the API contract can no longer fall behind the API.** It is generated from the backend and committed, and nothing checked it: the only thing that refreshed it was a local build step that quietly did nothing when the server was not running, and quietly wrote *old* types when an out-of-date server was. A build check now regenerates it from the code and fails if the two disagree.
 - **The sitemap lists the marketplace again.** It was built during the Docker image build, where the API is not reachable, so the fetch failed, the error was swallowed and the file was baked with only the home, the legal pages and the documentation — 78 addresses, with all 103 model pages and every author page missing. It had been that way for as long as the sitemap has existed, and it looked correct on a developer's machine because that one builds the page fresh on every request. It is now built when it is asked for.
