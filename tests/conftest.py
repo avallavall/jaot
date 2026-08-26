@@ -215,6 +215,13 @@ def db_engine():
         # Same UTC anchor as the app engine: naive test timestamps are
         # interpreted as UTC by the timestamptz columns (ADR-007 S6).
         connect_args={"options": "-c timezone=utc"},
+    ).execution_options(
+        # Same mapping as `build_engine`. sqlalchemy-celery-beat hardcodes
+        # schema='celery_schema' in its models and the migrations create those
+        # tables in public. Without this the Beat tables are simply unreachable
+        # from a test, so every code path that touches them died in an `except`
+        # and the assertions around it passed on an error nobody saw.
+        schema_translate_map={"celery_schema": None},
     )
 
     alembic_cfg = AlembicConfig("infra/alembic.ini")

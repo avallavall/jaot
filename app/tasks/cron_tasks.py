@@ -51,8 +51,18 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
             logger.warning("cron_fire_task: no schedule for trigger %s", trigger_id)
             return {"status": "skipped", "reason": "schedule_not_found"}
 
+        # Beat fires on its own timetable, so this tick is spent whatever happens
+        # below. next_run_at has to move with it or the stored value goes stale.
+        # Recomputing from the cron expression is idempotent, so doing it once
+        # here covers every branch: disabled, overlap-skipped and fired alike.
+        # Only the disabled branch used to skip it, and toggling a trigger off
+        # is exactly how a schedule ends up sitting there advertising a next run
+        # that already passed.
+        _update_next_run(schedule)
+
         if not trigger.is_enabled or not schedule.is_enabled:
             logger.info("cron_fire_task: trigger/schedule disabled for %s", trigger_id)
+            db.commit()
             return {"status": "skipped", "reason": "disabled"}
 
         # 2. Overlap check (CRON-07)
@@ -68,10 +78,6 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
         if active_cron_run:
             run = trigger_service.create_run(db, trigger, None, "skipped_overlap")
             run.source = "cron"
-            # This tick is spent either way, so the stored next_run_at has to
-            # move with it. Skipping this left the schedule advertising a next
-            # run in the past until some later tick happened to fire.
-            _update_next_run(schedule)
             db.commit()
             logger.info(
                 "cron_fire_task: overlap skip for trigger %s (active run %s)",
@@ -90,9 +96,6 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
             # Success: reset failure counter, update timestamps
             schedule.consecutive_failures = 0
             schedule.last_run_at = utcnow()
-
-        # Recompute next_run_at
-        _update_next_run(schedule)
 
         db.commit()
 
@@ -146,7 +149,14 @@ def _increment_failure_counter(db: Any, schedule: Any, trigger: Any) -> None:
                 beat_task = db.get(PeriodicTask, schedule.beat_task_id)
                 if beat_task:
                     beat_task.enabled = False
-                PeriodicTaskChanged.update_from_session(db)
+                # commit=False, like all three calls in schedule_service. The
+                # default is True, and its body is `connection.commit()` on the
+                # Session's own connection: the flushed rows become durable
+                # without the Session knowing, so after_commit never fires and
+                # the db.commit() below raises "This transaction is inactive".
+                # The handler then rolls back, which cancels both webhooks this
+                # function queued — the auto-disabled notice included.
+                PeriodicTaskChanged.update_from_session(db, commit=False)
             except Exception as exc:
                 logger.warning(
                     "Failed to disable Beat task for schedule %s: %s",

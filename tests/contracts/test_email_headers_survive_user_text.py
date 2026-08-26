@@ -39,14 +39,29 @@ def _backend() -> SMTPBackend:
 
 def _sent_message(**send_kwargs: object) -> tuple[bool, str]:
     """Send through a stubbed SMTP server and return (result, the wire bytes)."""
+    result, _envelope, wire = _sent_call(**send_kwargs)
+    return result, wire
+
+
+def _sent_call(**send_kwargs: object) -> tuple[bool, tuple[str, list[str]], str]:
+    """(result, (MAIL FROM, RCPT TO), the message bytes).
+
+    The envelope is returned separately because it is a different attack
+    surface from the headers: ``sendmail(sender, recipients, msg)`` writes its
+    first two arguments straight into the MAIL FROM and RCPT TO commands, so a
+    line break there opens a second SMTP command rather than a second header.
+    Reading only ``args[2]`` cannot see that, and cannot tell a fix that cleans
+    the envelope from one that only cleans the headers.
+    """
     backend = _backend()
     with patch("smtplib.SMTP") as smtp_cls:
         server = MagicMock()
         smtp_cls.return_value = server
         result = backend.send(**send_kwargs)  # type: ignore[arg-type]
         if not server.sendmail.called:
-            return result, ""
-        return result, server.sendmail.call_args.args[2]
+            return result, ("", []), ""
+        args = server.sendmail.call_args.args
+        return result, (args[0], list(args[1])), args[2]
 
 
 # CONTRACT-TEST: a header built from user text never carries a line break.
@@ -121,3 +136,50 @@ def test_an_smtp_failure_still_reports_false() -> None:
             backend.send(to="a@b.c", subject=INJECTION, html="<p>x</p>", reply_to=INJECTION)
             is False
         )
+
+
+# CONTRACT-TEST: the SMTP envelope is cleaned too, not only the headers.
+#
+# `sendmail` writes its sender and recipient arguments into the MAIL FROM and
+# RCPT TO commands. A line break there is an injected SMTP command, which is a
+# worse outcome than an injected header — and it is invisible to any assertion
+# that reads only the serialised message.
+@pytest.mark.parametrize("field", ["to", "from_email"])
+def test_the_envelope_carries_no_line_break(field: str) -> None:
+    kwargs: dict[str, object] = {
+        "to": "reader@example.com",
+        "subject": "A subject",
+        "html": "<p>Body</p>",
+        "reply_to": "Someone <someone@example.com>",
+        "from_email": "noreply@jaot.io",
+    }
+    kwargs[field] = "reader@example.com\r\nRCPT TO: victim@example.com"
+
+    sent, (mail_from, rcpt_to), _wire = _sent_call(**kwargs)
+
+    assert sent is True
+    for part in [mail_from, *rcpt_to]:
+        assert part.splitlines() == [part], f"a line break reached the SMTP envelope: {part!r}"
+
+
+# CONTRACT-TEST: every character `str.splitlines` treats as a break is removed.
+#
+# The first fix matched `[\r\n]` only. `email.header` splits on
+# `str.splitlines()`, which breaks on several more control characters, so a form
+# feed pasted into a name still raised HeaderParseError and still lost the
+# message.
+@pytest.mark.parametrize(
+    "ch",
+    ["\r", "\n", "\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", " ", " "],
+    ids=["CR", "LF", "VT", "FF", "FS", "GS", "RS", "NEL", "LS", "PS"],
+)
+def test_every_character_python_calls_a_line_break_is_removed(ch: str) -> None:
+    sent, wire = _sent_message(
+        to="reader@example.com",
+        subject=f"Ann{ch}Bcc: victim@example.com",
+        html="<p>Body</p>",
+        reply_to="Someone <someone@example.com>",
+    )
+
+    assert sent is True, f"{ch!r} in a subject made the send fail instead of being cleaned"
+    assert "\nBcc:" not in wire, f"{ch!r} let a second header through"

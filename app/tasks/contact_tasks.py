@@ -9,6 +9,7 @@ from __future__ import annotations
 import html
 import logging
 import smtplib
+from email.utils import formataddr
 from typing import Any
 
 from app.models.contact_message import ContactMessage
@@ -84,7 +85,13 @@ def send_contact_email(self: Any, message_id: str) -> dict[str, Any]:
         recipient = PSS.get(db, "CONTACT_RECIPIENT")
 
         subject_line = f"[JAOT Contact] {msg.subject}"
-        reply_to_header = f"{msg.name} <{msg.email}>"
+        # formataddr, not an f-string. A visitor whose name holds a comma turns
+        # `Ann, Bob <visitor@example.com>` into TWO addresses as far as
+        # email.utils.getaddresses is concerned, and hitting Reply then sends to
+        # a bare token that is not an address. formataddr quotes the display
+        # name; `_header` in email_service removes the line breaks formataddr
+        # does not. The two are complementary and both are needed.
+        reply_to_header = formataddr((msg.name, msg.email))
         body_text = (
             f"Locale: {msg.locale or 'unknown'}\n"
             f"Submitted at: {msg.created_at.isoformat()}\n"

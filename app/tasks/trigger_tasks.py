@@ -73,6 +73,19 @@ def trigger_solve_task(
             db.commit()
             return {"status": "failed"}
 
+        # A run the reaper settled while this task waited in the queue must not
+        # be brought back. Writing 'running' over 'failed' resurrects a row the
+        # cron overlap gate has already been told is finished, so the trigger
+        # would now have two live runs of itself.
+        if run.status in ("completed", "failed", "cancelled", "skipped_overlap"):
+            logger.warning(
+                "TriggerRun %s was already settled as '%s' before this task started; "
+                "not running it again",
+                run_id,
+                run.status,
+            )
+            return {"status": run.status, "reason": "already_settled"}
+
         run.status = "running"
         db.commit()
         logger.info("TriggerRun %s started (trigger=%s)", run_id, trigger_id)

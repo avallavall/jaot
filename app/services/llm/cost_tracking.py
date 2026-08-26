@@ -56,11 +56,18 @@ _JMODEL_AI_LEDGER_MODEL_ID = "sys:jmodel-ai"
 # guardrail errs toward pausing too early — never toward silent overspend.
 _FALLBACK_RATE: dict[str, float] = {"input": 4.63, "output": 23.15}
 
-#: ``wait``: the refresh is one SUM over the current month plus one settings
-#: read, both short and bounded, so a caller that finds one running is better
-#: off waiting than running its own. Before this it had no single flight at
-#: all: N callers arriving on an expired cache each ran the month-cost query.
-_budget_probe = TTLProbe[tuple[float, float]](ttl_seconds=60.0, on_contention="wait")
+#: ``refresh_anyway``: every caller of ``is_llm_budget_exceeded`` sits inside an
+#: ``async def`` handler (7 sites across llm.py and dsl.py), so this runs on the
+#: event loop. A caller that blocked on a lock held across two queries would
+#: stop every route in that worker until the holder finished — and the
+#: /metrics collector, which scrapes every 15 s against a 60 s TTL, opens its
+#: own session inside that lock, so it is usually the holder. Cheap refreshes
+#: that never block beat one refresh that can.
+#:
+#: The price is N queries when N callers arrive together on an expired value.
+#: The refresh is one SUM over the current month plus one settings read, so
+#: that is affordable; blocking the loop is not.
+_budget_probe = TTLProbe[tuple[float, float]](ttl_seconds=60.0, on_contention="refresh_anyway")
 
 
 def get_model_pricing(db: Session) -> dict[str, dict[str, float]]:

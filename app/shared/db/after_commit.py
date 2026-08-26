@@ -36,10 +36,13 @@ def queue_after_commit(db: Session, task: Queueable, *args: Any, **kwargs: Any) 
     down or absent is logged and swallowed: the committed row is the record of
     what happened, and losing the follow-up job must not undo it.
 
-    Both listeners are registered with ``once=True`` so SQLAlchemy detaches them
-    itself. Whichever fires second finds the work already settled and does
-    nothing, which is what makes this safe on the long-lived session a Celery
-    task holds for its whole run.
+    The ``settled`` flag is what makes this safe, not ``once=True``. SQLAlchemy
+    documents ``once`` as deprecated and explicitly says it does NOT de-register
+    the listener; measured on 2.0.46, ``session.dispatch.after_commit`` still
+    holds the function after it has fired. So on the long-lived session a Celery
+    task keeps for its whole run, both listeners stay attached and can fire
+    again on a later commit or rollback. ``settled`` is the guard that makes the
+    second one a no-op. Do not remove it, and do not lean on ``once``.
     """
     settled = False
 

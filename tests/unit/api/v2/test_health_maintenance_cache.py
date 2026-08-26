@@ -24,6 +24,7 @@ from __future__ import annotations
 import threading
 import time
 
+import pytest
 from sqlalchemy.exc import TimeoutError as SQLAlchemyTimeoutError
 
 
@@ -41,8 +42,26 @@ def _make_pss_counter():
     return _impl, counter
 
 
+@pytest.fixture(autouse=True)
+def _reset_maintenance_probe():
+    """Forget the cached flag before AND after every test in this module.
+
+    The probe is a process global with a 10 s TTL. Clearing only on the way in
+    let the last test here leave `True` behind: `monkeypatch` undoes the PSS
+    patch at teardown, but it cannot undo a value already written into the
+    cache, and the next test in the same process that calls GET /health inside
+    that window reads `maintenance: true`. Under pytest-randomly that is a
+    different test every run.
+    """
+    import app.api.v2.health as health_mod
+
+    health_mod._maintenance_probe.clear()
+    yield
+    health_mod._maintenance_probe.clear()
+
+
 def _reset_cache():
-    """Forget the cached flag before each test."""
+    """Kept so the explicit call in each test still reads as a reset."""
     import app.api.v2.health as health_mod
 
     health_mod._maintenance_probe.clear()

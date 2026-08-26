@@ -18,7 +18,7 @@ from typing import Generic, Literal, TypeVar
 
 T = TypeVar("T")
 
-OnContention = Literal["wait", "serve_stale"]
+OnContention = Literal["wait", "serve_stale", "refresh_anyway"]
 
 
 class TTLProbe(Generic[T]):
@@ -38,6 +38,14 @@ class TTLProbe(Generic[T]):
             checkout against a saturated pool — and an old answer beats a slow
             one. Waiting would have produced that same old answer anyway, just
             later.
+
+            ``"refresh_anyway"`` runs its own refresh alongside. No caller ever
+            blocks and no caller ever gets a stale answer, at the price of N
+            refreshes when N callers arrive together on an expired value.
+            Correct when blocking is the thing you cannot afford — a
+            synchronous call inside an ``async def`` handler holds the event
+            loop, and every route in that worker stops with it — and the
+            refresh is cheap enough that a few of them do no harm.
         first_wait_seconds: ``serve_stale`` only, and only for the very first
             call, where there is no stale value and the alternative is
             ``cold_value``. Waiting briefly for a real answer beats inventing
@@ -115,6 +123,11 @@ class TTLProbe(Generic[T]):
         # The fast path above reads the tuple without the lock. Binding a name
         # is atomic under the GIL, so the worst case is reading a value that
         # expired a moment ago, which the next call refreshes.
+        if self._on_contention == "refresh_anyway":
+            value = refresh()
+            self._cached = (time.monotonic(), value)
+            return value
+
         if self._on_contention == "wait":
             acquired = self._lock.acquire()
         elif self._cached is None and self._first_wait > 0:

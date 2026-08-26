@@ -187,6 +187,21 @@ class TestDelivery:
             assert headers["X-Jaot-Event"] == "execution.completed"
 
 
+@pytest.fixture(autouse=True)
+def _no_dns_in_the_delivery_guard():
+    """Keep the refusal guard off the network.
+
+    ``deliver_webhook_task`` now asks ``blocked_url_target`` whether the address
+    is one the server refuses, and that resolves the hostname for real. These
+    tests patch ``deliver_webhook`` and never meant to touch the network. A
+    resolver that answers 0.0.0.0 for an unknown name — a sinkhole, a corporate
+    DNS — makes the guard refuse example.com, because 0.0.0.0 is private; an
+    offline runner makes every one of them block until the resolver gives up.
+    """
+    with patch("app.tasks.webhook_tasks.blocked_url_target", return_value=None):
+        yield
+
+
 class TestWebhookTask:
     def test_deliver_webhook_task_success(self):
         with patch("app.tasks.webhook_tasks.deliver_webhook", return_value=True):

@@ -15,7 +15,6 @@ Usage:
 """
 
 import logging
-import re
 import smtplib
 import time
 from abc import ABC, abstractmethod
@@ -27,9 +26,6 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
-
-# Anything that could close a header and open another one.
-_HEADER_BREAK = re.compile("[\r\n]+")
 
 # F8: lazy reconfigure TTL. Email-related PlatformSettings (EMAIL_BACKEND,
 # SMTP_HOST/PORT/USER/PASSWORD, SMTP_USE_TLS, EMAIL_FROM) are edited by operators
@@ -92,8 +88,16 @@ def _header(value: str) -> str:
     Applied to every header rather than to the two the contact form fills: the
     rule belongs to the header, not to one caller. The words are kept, so a
     reply still reaches a person with a strange name in it.
+
+    ``splitlines`` and not a regex of carriage return and newline. ``email
+    .header`` decides where a header value breaks by calling ``str.splitlines``,
+    which also breaks on VT, FF, FS, GS, RS, NEL and the two Unicode line
+    separators. Matching only the two obvious ones left a form feed pasted into
+    a name still raising ``HeaderParseError``, so the bug above stayed open for
+    everything except the character it was reported with. Ask the same function
+    the library asks.
     """
-    return _HEADER_BREAK.sub(" ", value).strip()
+    return " ".join(value.splitlines()).strip()
 
 
 class ConsoleBackend(EmailBackend):
