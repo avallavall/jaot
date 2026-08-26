@@ -268,8 +268,142 @@ describe("sitemap", () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Test 5b — An author's lastModified is their newest model, not a fixed date
+  // ---------------------------------------------------------------------------
+  // Every author page carried 2026-01-01 for as long as this sitemap existed: the
+  // code read `author_created_at`, which the catalog endpoint has never returned,
+  // so every author fell through to the launch sentinel. A date that never moves
+  // tells a crawler nothing, and the same wrong date on every URL is a signal
+  // Google can learn to ignore.
+  it("an author's lastModified is the newest updated_at among their own models", async () => {
+    const items = [
+      {
+        id: "m_old",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-03-01T00:00:00Z",
+        author_organization_id: "org_a",
+      },
+      {
+        id: "m_new",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-07-04T00:00:00Z",
+        author_organization_id: "org_a",
+      },
+      {
+        id: "m_other",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-02-02T00:00:00Z",
+        author_organization_id: "org_b",
+      },
+    ];
+
+    const entries = await loadSitemapWithFetch(
+      vi.fn().mockResolvedValue(makePageResponse(items, items.length, 1, 1))
+    );
+
+    const authorA = entries.find((e) => e.url.endsWith("/marketplace/authors/org_a"));
+    const authorB = entries.find((e) => e.url.endsWith("/marketplace/authors/org_b"));
+
+    expect(authorA, "org_a must have an author entry").toBeDefined();
+    expect(authorB, "org_b must have an author entry").toBeDefined();
+
+    // The newest of org_a's two models, not the first one the loop met.
+    expect(
+      new Date(authorA!.lastModified as Date).toISOString(),
+      "org_a must take m_new (2026-07-04), not m_old (2026-03-01)"
+    ).toBe("2026-07-04T00:00:00.000Z");
+
+    expect(new Date(authorB!.lastModified as Date).toISOString()).toBe(
+      "2026-02-02T00:00:00.000Z"
+    );
+
+    // The bug this replaces: the launch sentinel on every author.
+    expect(
+      new Date(authorA!.lastModified as Date).toISOString(),
+      "author fell back to the launch sentinel"
+    ).not.toBe("2026-01-01T00:00:00.000Z");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 5c — An author's newest model can live on a later catalog page
+  // ---------------------------------------------------------------------------
+  it("an author's date spans every catalog page, not just the first", async () => {
+    const page1 = [
+      {
+        id: "m1",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-03-01T00:00:00Z",
+        author_organization_id: "org_a",
+      },
+    ];
+    const page2 = [
+      {
+        id: "m2",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-09-09T00:00:00Z",
+        author_organization_id: "org_a",
+      },
+    ];
+
+    const entries = await loadSitemapWithFetch(
+      vi
+        .fn()
+        .mockResolvedValueOnce(makePageResponse(page1, 2, 1, 2))
+        .mockResolvedValueOnce(makePageResponse(page2, 2, 2, 2))
+    );
+
+    const authorA = entries.find((e) => e.url.endsWith("/marketplace/authors/org_a"));
+    expect(
+      new Date(authorA!.lastModified as Date).toISOString(),
+      "the maximum must be taken over ALL pages"
+    ).toBe("2026-09-09T00:00:00.000Z");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 5d — An unparseable updated_at still yields a valid date
+  // ---------------------------------------------------------------------------
+  it("an author whose only model has a broken updated_at still emits a valid date", async () => {
+    const items = [
+      {
+        id: "m_broken",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "not-a-date",
+        author_organization_id: "org_a",
+      },
+    ];
+
+    const entries = await loadSitemapWithFetch(
+      vi.fn().mockResolvedValue(makePageResponse(items, 1, 1, 1))
+    );
+
+    const authorA = entries.find((e) => e.url.endsWith("/marketplace/authors/org_a"));
+    expect(authorA, "a broken date must not drop the author entry").toBeDefined();
+    expect(
+      isNaN(new Date(authorA!.lastModified as Date).getTime()),
+      "an Invalid Date would corrupt <lastmod> in the emitted XML"
+    ).toBe(false);
+  });
+
+  // ---------------------------------------------------------------------------
   // Test 6 — No bare new Date() in sitemap source (D-06 source-level check)
   // ---------------------------------------------------------------------------
+  it("the sitemap route renders on request, not at build time", () => {
+    // A prerendered sitemap is baked during `next build`, inside `docker build`,
+    // where the compose service `api` does not resolve. The catalog fetch threw,
+    // the catch swallowed it, and production served 78 URLs — static and docs
+    // only — with all 103 marketplace pages and every author page missing, for
+    // as long as the image lived. It looked fine locally because the local
+    // container runs the `dev` target, which renders per request.
+    const sitemapSource = realFs.readFileSync(
+      realPath.join(__dirname, "sitemap.ts"),
+      "utf8"
+    );
+    expect(
+      /export\s+const\s+dynamic\s*=\s*["']force-dynamic["']/.test(sitemapSource),
+      "sitemap.ts must export `dynamic = \"force-dynamic\"` or the build bakes an empty sitemap"
+    ).toBe(true);
+  });
+
   it("no bare new Date() lastModified in sitemap.ts source file", () => {
     const sitemapSource = realFs.readFileSync(
       realPath.join(__dirname, "sitemap.ts"),

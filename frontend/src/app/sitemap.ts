@@ -6,9 +6,10 @@ import path from "path";
 import fs from "fs";
 
 // WR-03: project-launch sentinel — the single source of truth for every "no honest
-// mtime available yet" fallback in this file (missing-MDX docs, authors without an
-// exposed author_created_at, and any static path that somehow lacks a lastMod).
-// Update yearly until the backend exposes real mtimes for orgs and missing-MDX paths.
+// mtime available yet" fallback in this file: a doc page whose MDX file is missing,
+// a catalog row whose updated_at does not parse, and any static path that somehow
+// lacks a lastMod. Authors no longer land here — they take the newest updated_at of
+// their own models. Update yearly while missing-MDX paths still need it.
 const FALLBACK_LAST_MODIFIED = new Date("2026-01-01");
 
 // Guard against API drift: an unexpected null/undefined/non-ISO string produces
@@ -41,12 +42,6 @@ interface CatalogModel {
   created_at: string;
   updated_at: string; // D-06: exposed by Plan 01 Pydantic addition
   author_organization_id?: string | null;
-  // v2.4 TODO: expose OrganizationPublicProfile.created_at through the catalog response.
-  // Organization ORM has no updated_at column. Option A (RESEARCH § Critical Backend Gap):
-  // use org.created_at as lastModified for author entries. Currently NOT in the API response
-  // (Plan 01 only added updated_at; author_created_at is a separate additive field).
-  // Until exposed, author entries fall back to new Date("2026-01-01").
-  author_created_at?: string | null;
 }
 
 interface CatalogResponse {
@@ -56,6 +51,23 @@ interface CatalogResponse {
   page_size: number;
   total_pages: number; // D-04: pagination cursor
 }
+
+// Rendered on request, not at build time.
+//
+// Without this, Next prerenders /sitemap.xml during `next build`. That build runs
+// inside `docker build`, where the compose service `api` does not resolve, so the
+// catalog fetch below threw, the catch swallowed it, and the XML was baked with
+// only the static and docs entries — permanently, because a prerendered route is
+// then served from disk.
+//
+// Measured 2026-08-26: jaot.io/sitemap.xml carried 78 URLs, all static or docs.
+// Every one of the 103 marketplace model pages and every author page was missing.
+// It looked correct locally because the local container runs the `dev` target,
+// which renders per request and reaches the API.
+//
+// Cost is bounded: the catalog fetches below carry `revalidate: 3600`, so a burst
+// of crawler requests shares one hourly walk of the catalog rather than repeating it.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static page entries with locale alternates — WR-03: lastMod now lives on the same
@@ -152,41 +164,43 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         alternates: { languages: buildAlternates(`/marketplace/${model.id}`) },
       }));
 
-    // Author profile entries from unique org IDs
-    // D-06 Option A: use author_created_at (org.created_at) when available.
-    // FALLBACK: new Date("2026-01-01") when author_created_at is not in the response.
-    // author_created_at is NOT currently returned by the catalog endpoint (Plan 01
-    // added only updated_at; Organization ORM has no updated_at column).
-    // v2.4 TODO: expose OrganizationPublicProfile.created_at through the catalog response
-    // so author entries get honest lastModified values (tracked in CatalogModel interface above).
+    // Author profile entries from unique org IDs.
+    //
+    // lastModified is the newest `updated_at` among that author's own models. An
+    // author page IS the list of their models, so it changes exactly when one of
+    // them does — which is what <lastmod> is supposed to say.
+    //
+    // This used to read `author_created_at`, a field the catalog endpoint has
+    // never returned, so every author fell through to the launch sentinel:
+    // 2026-01-01 on every author page, for as long as the sitemap has existed.
+    // A date that never moves tells a crawler nothing, and the same wrong date on
+    // every URL is a signal Google can learn to ignore. The org's creation date
+    // would not have fixed that either — it also never moves. The models do.
+    //
+    // The loop walks every catalog page (see the do/while above), so the maximum
+    // here is over ALL of an author's models, not a page of them.
+    //
     // WR-01: same id-sanitization guard for author orgIds — a malformed
     // author_organization_id would emit an unencoded /marketplace/authors/<bad> URL.
-    // Capture the first model per org in the SAME pass that dedupes org IDs — the
-    // representative model supplies the author's lastModified. Avoids a second
-    // O(orgs × models) scan (a models.find per unique org) to recover data this loop
-    // already walks past. Map preserves first-insertion order, matching the previous
-    // Set-then-find ordering exactly.
-    const orgFirstModel = new Map<string, CatalogModel>();
+    // Map preserves first-insertion order, matching the previous ordering exactly.
+    const orgLastModified = new Map<string, Date>();
     for (const model of models) {
       const orgId = model.author_organization_id;
-      if (orgId && /^[A-Za-z0-9_-]+$/.test(orgId) && !orgFirstModel.has(orgId)) {
-        orgFirstModel.set(orgId, model);
+      if (!orgId || !/^[A-Za-z0-9_-]+$/.test(orgId)) continue;
+      const modelDate = safeDate(model.updated_at, FALLBACK_LAST_MODIFIED);
+      const current = orgLastModified.get(orgId);
+      if (!current || modelDate > current) {
+        orgLastModified.set(orgId, modelDate);
       }
     }
 
-    authorEntries = Array.from(orgFirstModel, ([orgId, orgModel]) => {
-      const authorDate = safeDate(
-        orgModel.author_created_at,
-        FALLBACK_LAST_MODIFIED, // WR-03: shared launch sentinel
-      );
-      return {
-        url: `${BASE_URL}/marketplace/authors/${orgId}`,
-        lastModified: authorDate,
-        changeFrequency: "weekly" as const,
-        priority: 0.6,
-        alternates: { languages: buildAlternates(`/marketplace/authors/${orgId}`) },
-      };
-    });
+    authorEntries = Array.from(orgLastModified, ([orgId, lastModified]) => ({
+      url: `${BASE_URL}/marketplace/authors/${orgId}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+      alternates: { languages: buildAlternates(`/marketplace/authors/${orgId}`) },
+    }));
   } catch (err) {
     // Graceful degradation: return static + doc entries if backend is unreachable.
     // WR-04: log so a silently-empty catalog block (typo'd proxy URL, backend down,

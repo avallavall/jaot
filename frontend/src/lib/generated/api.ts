@@ -3221,8 +3221,9 @@ export interface paths {
          *     its example input; a static community model ignores it (its pinned version is copied).
          *
          *     This is THE "use a marketplace model" path (P1.5 fusion — the legacy activate
-         *     flow collapsed into it), so the adoption side-effects live here: the listing's
-         *     activation counter and the author notification.
+         *     flow collapsed into it). The fork row it writes IS the adoption: nothing is
+         *     counted up here, and every screen counts these rows instead. What is left as
+         *     a side-effect is the notification to the author.
          */
         post: operations["create_model_project_from_marketplace"];
         delete?: never;
@@ -5173,7 +5174,10 @@ export interface components {
             status: string;
             /** Success Rate */
             success_rate?: number | null;
-            /** Total Activations */
+            /**
+             * Total Activations
+             * @default 0
+             */
             total_activations: number;
             /** Total Executions */
             total_executions: number;
@@ -6018,7 +6022,12 @@ export interface components {
          *       body's `Locale: <code>` header line. Bounded to 8 chars (e.g. "es-ES").
          *
          *     T-09-03 (reply-to header injection): EmailStr validates address shape at
-         *     the schema layer — malformed values raise 422 before persistence.
+         *     the schema layer — malformed values raise 422 before persistence. That is
+         *     half of the header. The Reply-To sent is ``{name} <{email}>``, and ``name``
+         *     has no shape at all beyond a length; so does ``subject``, which becomes the
+         *     Subject header. Both are cleaned where the header is built, in
+         *     ``email_service._header``, which is the one place that covers every field
+         *     and every caller.
          */
         ContactCreate: {
             /**

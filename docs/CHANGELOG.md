@@ -32,7 +32,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+- **The sitemap lists the marketplace again.** It was built during the Docker image build, where the API is not reachable, so the fetch failed, the error was swallowed and the file was baked with only the home, the legal pages and the documentation — 78 addresses, with all 103 model pages and every author page missing. It had been that way for as long as the sitemap has existed, and it looked correct on a developer's machine because that one builds the page fresh on every request. It is now built when it is asked for.
+- **An author's page carries the date of their newest model.** Every author entry in the sitemap said 1 January 2026, because the code read a field the server has never sent. A date that never moves tells a search engine nothing.
 
 ---
 
