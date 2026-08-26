@@ -65,6 +65,31 @@ one of the eleven test files it selected had been deleted too — so a run
 selected no tests and no mutant could be killed. Cleaned 2026-08-26. If you add
 a target, check the tests you select for it still exist.
 
+## The frontend's API types cannot drift
+
+`frontend/src/lib/generated/api.ts` is generated from the backend's OpenAPI
+schema and committed. The `types-frontend` CI job regenerates it from the code
+in the checkout and fails if it differs from what is committed.
+
+It exists because nothing verified that file, and the only thing that
+regenerated it was `npm run build`'s prebuild step, which curls
+`http://localhost:8001` and prints "API not running, skipping type generation"
+when nothing answers. Two of its three outcomes are wrong: nothing running
+leaves the drift in place, and an **old** API container silently overwrites
+correct types with old ones. The Docker image build can never reach the API, so
+production ships whatever is committed — and `tsc` then validates the frontend
+against a stale contract and passes clean while the two sides disagree.
+
+To fix a failure:
+
+```bash
+python scripts/export_openapi.py
+cd frontend && npm run generate-types
+```
+
+`scripts/export_openapi.py` calls `app.openapi()` directly, so it needs no
+running server and no reachable database.
+
 ## Architectural boundaries
 
 Domain boundaries aren't a convention — they're enforced. Seven `import-linter`

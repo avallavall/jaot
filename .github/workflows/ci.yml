@@ -112,6 +112,57 @@ jobs:
           --cov-report=term-missing
           --tb=short
 
+  # The frontend's API types are generated from the backend's OpenAPI schema and
+  # committed. Nothing verified them, and the only thing that regenerated them was
+  # `npm run build`'s prebuild step, which curls http://localhost:8001 and prints
+  # "API not running, skipping type generation" when nothing answers. Three
+  # outcomes, two of them wrong: nothing running means the drift stays; an OLD API
+  # container running means correct types are silently overwritten with old ones.
+  # The Docker image build can never reach the API, so production ships whatever
+  # is committed — and `tsc` then validates the frontend against a stale contract,
+  # passing clean while the two sides disagree.
+  #
+  # `scripts/export_openapi.py` calls `app.openapi()` directly, so this needs no
+  # running server and no database (measured: it exports all 194 paths with the
+  # database unreachable). `info.version` does not reach api.ts, so a release
+  # bump does not churn this file.
+  types-frontend:
+    runs-on: ubuntu-latest
+    env:
+      # Never connected to. `create_engine` only has to parse it at import time.
+      DATABASE_URL: "postgresql://jaot:jaot@127.0.0.1:5432/jaot"
+      REDIS_URL: ""
+      CELERY_BROKER_URL: ""
+      DEBUG: "True"
+      JWT_SECRET: "ci-types-secret-not-for-production-use"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install uv
+      - run: uv pip install --system -r requirements.txt
+      - name: Export the OpenAPI schema from the code
+        run: python scripts/export_openapi.py
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefer-offline
+        working-directory: frontend
+      - run: npm run generate-types
+        working-directory: frontend
+      - name: The committed API types must match the schema
+        run: |
+          if ! git diff --exit-code -- frontend/src/lib/generated/api.ts; then
+            echo "::error::frontend/src/lib/generated/api.ts is out of date with the backend schema."
+            echo "Regenerate it: python scripts/export_openapi.py && (cd frontend && npm run generate-types)"
+            exit 1
+          fi
+
   lint-frontend:
     runs-on: ubuntu-latest
     defaults:

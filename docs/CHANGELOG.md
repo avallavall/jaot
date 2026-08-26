@@ -33,6 +33,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ## [Unreleased]
 
 ### Fixed
+- **The frontend's copy of the API contract can no longer fall behind the API.** It is generated from the backend and committed, and nothing checked it: the only thing that refreshed it was a local build step that quietly did nothing when the server was not running, and quietly wrote *old* types when an out-of-date server was. A build check now regenerates it from the code and fails if the two disagree.
 - **The sitemap lists the marketplace again.** It was built during the Docker image build, where the API is not reachable, so the fetch failed, the error was swallowed and the file was baked with only the home, the legal pages and the documentation — 78 addresses, with all 103 model pages and every author page missing. It had been that way for as long as the sitemap has existed, and it looked correct on a developer's machine because that one builds the page fresh on every request. It is now built when it is asked for.
 - **An author's page carries the date of their newest model.** Every author entry in the sitemap said 1 January 2026, because the code read a field the server has never sent. A date that never moves tells a search engine nothing.
 
