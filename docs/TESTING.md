@@ -21,9 +21,9 @@ from a clean checkout.
 
 | | |
 |---|---|
-| Backend test functions | **2,800+** across 186 files (more at runtime via parametrization) |
-| Line coverage (`app/`) | **79.7%**, enforced in CI at `--cov-fail-under=78` |
-| API routes mapped | 222 (≈52 org-scoped, 30 financial) |
+| Backend tests | **4,410** collected across 242 files (965 test functions; the rest are parametrizations) |
+| Line coverage (`app/`) | **87.0%**, enforced in CI at `--cov-fail-under=78` |
+| API surface | 194 paths / 238 operations, counted from the OpenAPI schema |
 | Database in tests | real PostgreSQL — never mocked |
 | Frontend | ESLint + i18n consistency + Vitest unit tests |
 
@@ -55,18 +55,23 @@ matter most:
 | Idempotency service | **100%** |
 | Auth, solver core | ≥75% target met |
 
-(The Stripe and credits services also scored 97.5% / 94.6% before being
-removed entirely by ADR-008.)
+Target is ≥75% per file; residual survivors are documented cosmetic/equivalent
+mutants, not unasserted behaviour. Seven files are targeted, listed in
+`[tool.mutmut]` in `pyproject.toml`.
 
-(Target is ≥75% per file; residual survivors are documented cosmetic/equivalent
-mutants, not unasserted behaviour.)
+A mutation config is only as good as its paths. Ours had gone stale: it still
+named the credits, Stripe and invoice services, deleted with ADR-008, and every
+one of the eleven test files it selected had been deleted too — so a run
+selected no tests and no mutant could be killed. Cleaned 2026-08-26. If you add
+a target, check the tests you select for it still exist.
 
 ## Architectural boundaries
 
-Domain boundaries aren't a convention — they're enforced. Five `import-linter`
-contracts run in the test toolchain; the key one keeps `pyscipopt` confined to
-the solver adapter layer, so the solver-agnostic core physically cannot import a
-specific solver. A boundary violation fails the check.
+Domain boundaries aren't a convention — they're enforced. Seven `import-linter`
+contracts run as their own CI job (`lint-imports`); the key one keeps
+`pyscipopt` confined to the solver adapter layer, so the solver-agnostic core
+physically cannot import a specific solver. A boundary violation fails the
+build.
 
 ## Continuous integration
 

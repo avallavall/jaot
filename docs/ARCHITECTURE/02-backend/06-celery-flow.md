@@ -112,7 +112,7 @@ flowchart TB
 - **Result backend:** Redis with 7-day TTL
 - **Acks:** `task_acks_late=True` (ack after completion)
 - **Requeue:** `task_reject_on_worker_lost=True` (retries if the worker dies)
-- **Static routes:** only `financial_tasks` → `default` (Beat scheduler)
+- **Static routes:** none — `task_routes` is empty. Everything either takes the default queue or is routed by the producer
 - **Dynamic routes:** `solve_async` → `resolve_queue(solver_name)` in the producer
 - **Events:** `worker_send_task_events=True` + `task_send_sent_event=True` → celery-exporter to Prometheus
 
@@ -122,3 +122,5 @@ flowchart TB
 - **WebSocket:** Redis relays `ws:execution:{execution_id}` events for real-time updates to the client.
 - **Retry TTL:** results expire after 7 days → GET returns 404.
 - **Transactionality:** `execution_writer` owns every ModelExecution state change; a `SolverError` marks the row failed (atomic `UPDATE … WHERE status IN ('pending','running')` — terminal-wins vs the reaper).
+- **Queue after the commit, never before.** A service that flushes and leaves the commit to its caller must not `delay()` at the call site: the worker owns a different connection, so it can look for a row that is not visible yet, find nothing and drop the work. `queue_after_commit` (`app/shared/db/after_commit.py`) moves the `delay()` onto SQLAlchemy's `after_commit` and cancels it on `after_rollback`. Four call sites use it. One caveat it was written for: anything that commits the Session's *connection* directly — `PeriodicTaskChanged.update_from_session` does, unless you pass `commit=False` — makes `after_commit` never fire and the queued job disappear.
+- **The reaper sweeps two tables.** `reap_stale_executions` settles abandoned `ModelExecution` rows against the Celery result backend. `reap_stale_trigger_runs` does the same for `TriggerRun`, because `cron_fire_task` refuses to fire while any run of that trigger looks unfinished — so one abandoned run stops that schedule for good, and every later tick records an ordinary-looking `skipped_overlap`. A `TriggerRun` stores no task id, so that sweep asks the broker which runs a worker is holding rather than judging by age alone.

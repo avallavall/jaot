@@ -80,7 +80,7 @@ Full reasoning in the commit that closed each one, and in the CHANGELOG.
 | D-32 | A comparison's columns stopped copying its problem; `ModelExecution.problem_data` reads the parent's snapshot. Cleared 59 MB of a 216 MB table on the development database | ✅ `20260824_comparison_copies` |
 | D-36 | The reaper settles a stale `TriggerRun` too, so an abandoned run stops blocking its own cron schedule | ✅ 2026-08-25 |
 | D-28 | The `fastapi<0.137.0` ceiling measured `len(app.routes)`, which 0.137 stopped being a route count. Nothing was broken: unpinned, and the two tests that read that list now issue a request instead | ✅ 2026-08-25 |
-| D-29 | The TTL-cache-plus-single-flight pattern extracted into `app/shared/utils/ttl_probe.py`. The three copies disagreed on what a caller does while a refresh runs; that is now an argument every caller names | ✅ 2026-08-25 |
+| D-29 | The TTL-cache-plus-single-flight pattern extracted into `app/shared/utils/ttl_probe.py`. Four copies disagreed on what a caller does while a refresh runs; that is now an argument every caller names | ✅ 2026-08-26 |
 
 **The 2026-04-18 comparative audit** (58% essential / 42% accidental complexity, the LOC
 tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in

@@ -245,6 +245,48 @@ inside the solver domain, and the import contract lets a domain route reach
 
 ---
 
+## 8. Queue After the Commit
+
+> A background job is published when the transaction that justifies it commits, never at the call site.
+
+```mermaid
+flowchart LR
+    Service["Service<br/>flush(), no commit"]
+    Register["queue_after_commit(db, task, ...)"]
+    Commit["caller: db.commit()"]
+    Rollback["caller: db.rollback()"]
+    Delay["task.delay(...)"]
+    Nothing["nothing queued"]
+
+    Service --> Register
+    Register -->|after_commit| Commit --> Delay
+    Register -->|after_rollback| Rollback --> Nothing
+```
+
+A service that flushes and leaves the commit to its caller cannot publish the job itself. The worker owns a different connection, so it can look for a row that is not visible yet, find nothing, and drop the work silently — and a caller that rolls back has queued a job for something that never happened. Both directions were live bugs: a trigger fired at the moment it was saved could vanish, and its run then sat on 'pending' forever, blocking its own cron schedule.
+
+**Location:** `app/shared/db/after_commit.py`. Four call sites.
+**Caveat:** anything that commits the Session's *connection* directly defeats it — `PeriodicTaskChanged.update_from_session` does exactly that unless you pass `commit=False`, and the queued job disappears with no error.
+
+---
+
+## 9. One TTL Probe, With Its Contention Answer Named
+
+> An expensive reading cached in process memory, where every caller has to say what happens while somebody else is refreshing.
+
+Four places cached a probe behind a TTL and a lock, each written from scratch. The skeleton was identical; they disagreed on one decision that is invisible from outside, so the fourth copy inherited whichever answer its author happened to read first.
+
+| `on_contention` | The loser… | Use when |
+|---|---|---|
+| `wait` | blocks, then finds the cache filled | the refresh is short and bounded |
+| `serve_stale` | returns the last value, however old | the refresh can block a long time (a session checkout on a saturated pool) and an old answer beats a slow one |
+| `refresh_anyway` | runs its own refresh | blocking is what you cannot afford — a synchronous call inside an `async def` handler holds the event loop, and every route in that worker stops with it |
+
+**Location:** `app/shared/utils/ttl_probe.py`. Callers: `/health` maintenance flag (`serve_stale`), the Hexaly worker probe (`wait`), the monthly LLM spend and the solve-maintenance gate (`refresh_anyway`).
+**Refusals at construction:** an unknown `on_contention`, and `serve_stale` without a `cold_value` — returning `None` from a probe declared as returning `T` is how a caller reads "no budget" or "not in maintenance" as a fact.
+
+---
+
 ## Summary Table
 
 | Pattern | File | Purpose |
@@ -256,3 +298,5 @@ inside the solver domain, and the import contract lets a domain route reach
 | Shim Architecture | *(removed — `app/core/` gone)* | Backward compat during refactor (resolved) |
 | Coded refusal | `app/shared/core/http_errors.py` + `errors.codes` messages | English on the wire, the reader's language on screen |
 | Workspace wall | `app/api/deps.py` (`enforce_workspace_of`, `enforce_execution_workspace`) | The row's own workspace decides, never the query string |
+| Queue after commit | `app/shared/db/after_commit.py` | The job is published by the commit that justifies it |
+| TTL probe | `app/shared/utils/ttl_probe.py` | One cache skeleton; each caller names what happens under contention |

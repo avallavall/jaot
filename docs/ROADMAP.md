@@ -59,6 +59,21 @@ Inside a model's workspace that becomes a grid: your datasets down the side, the
 across the top, one measure at a time. The solver that wins on January's data routinely
 loses on March's, and one dataset cannot tell you that.
 
+Since then the work has been reliability rather than surface. Several things that
+reported success were not doing anything: re-running a trigger returned a run number for
+a run that was never saved, notification emails marked themselves sent without contacting
+the mail server, and the webhook that tells you a schedule was switched off had never once
+been delivered. A schedule whose worker was killed used to stop firing for good, and every
+later tick logged what ordinary overlap protection looks like. Those are closed, and the
+sweep that closes them now asks the workers what they are still holding instead of judging
+by age alone.
+
+The dependency the API is built on is also current again. FastAPI had been held two years
+behind on the belief that newer versions dropped most of the API's routes; they did not —
+the check counted a list that stopped being a count of routes. The route surface is now
+pinned by a test that asks the app what it publishes, which is the question that check was
+standing in for.
+
 ## Next
 
 Nothing queued right now — the last item here (the solve analytics screen reading

@@ -44,7 +44,7 @@ celery_app = Celery(
         "app.tasks.cron_tasks",
         "app.tasks.hexaly_platform_license_expiry",  # Phase 7.4 / HEX-09 - platform license sweep
         "app.tasks.contact_tasks",  # Phase 9 — public contact-form SMTP delivery
-        "app.tasks.execution_reaper",  # W1/F-01 — stale async execution sweep + refund
+        "app.tasks.execution_reaper",  # W1/F-01 — stale execution + trigger-run sweep
     ],
 )
 

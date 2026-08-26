@@ -32,10 +32,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+_Nothing yet._
+
+---
+
+## [3.7.0] - 2026-08-26
+
 ### Added
 - **A comparison now names any solver that still searched past the shared limit.** The row's Search time turns amber and a notice under the table says which solver and by how much, so extra time is never read as a fair loss.
 
 ### Changed
+- **The documented numbers were re-counted against the code for this release.** The test figures were two releases out of date and still counted 30 financial endpoints, which ADR-008 removed; the import contracts were listed as five when there are seven; the Celery notes still routed a task module that no longer exists. The mutation-testing config was the worst of it: it targeted four deleted files and selected eleven test files that had all been deleted with billing, so a run picked up no tests at all and nothing could fail. Coverage is 87.0% measured, not the 79.7% the page claimed.
 - **The README says where to try JAOT without installing it, and draws its architecture instead of typing it in box characters.** Both architecture diagrams are Mermaid now, so they render as pictures on GitHub.
 - **Documented claims were re-counted against the code.** The MCP tool count, the number of containers a production host runs, the size of the search index behind the AI assistant, and the list of background task modules were all out of date. So was the description of the solver contract, which still named a method removed a phase ago.
 - **A solver comparison stores the problem it compares once, not once per solver.** Every column of the table solves the same problem, and each was keeping its own copy of it: about 19 MB written for one row of four solvers on a model of 22,500 variables. The comparison keeps it, the columns read it from there, and comparisons already stored give their copies back — 59 MB of a 216 MB table on the development database.
@@ -814,7 +821,10 @@ Full rewrite of the platform. The plugin-based system was replaced by a universa
 - Only 3.0.0 onwards is tagged in this repository — it is the first release published
   here — so the comparison links below start there.
 
-[Unreleased]: https://github.com/avallavall/jaot/compare/v3.4.1...HEAD
+[Unreleased]: https://github.com/avallavall/jaot/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/avallavall/jaot/compare/v3.6.0...v3.7.0
+[3.6.0]: https://github.com/avallavall/jaot/compare/v3.5.0...v3.6.0
+[3.5.0]: https://github.com/avallavall/jaot/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/avallavall/jaot/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/avallavall/jaot/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/avallavall/jaot/compare/v3.2.0...v3.3.0

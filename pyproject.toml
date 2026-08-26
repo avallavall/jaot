@@ -291,10 +291,17 @@ precision = 1
 # NOTE: fail_under is INTENTIONALLY OMITTED here — the CI gate is set via
 # the --cov-fail-under CLI flag in the CI workflow. Single source of truth.
 
-# Phase 12.3 scoped pre-pilot (CONTEXT D-03). Expanded in Phase 12.5 Plan 01
-# (D-01b) to all 5 critical module groups (idempotency, credits, billing, auth,
-# solver core — 11 files total). Tolerance: 2pp absolute drop per-module (Plan
-# 05 delta gate; stricter would false-REVERT on randomization noise).
+# Mutation targets: the modules where a passing test that catches nothing would
+# cost the most — idempotency, auth, solver core. 7 files.
+#
+# It used to list 11, across five groups. Four of them (credits, Stripe,
+# invoices) and `pool.py` were deleted, and so were ALL ELEVEN files the test
+# selection named — so `mutmut run` selected zero tests and every mutant
+# survived by default. Cleaned 2026-08-26. Whatever this file names has to
+# exist; a mutation config that points at nothing reports a perfect score.
+#
+# Tolerance: 2pp absolute drop per-module (stricter would false-REVERT on
+# randomization noise).
 #
 # Config keys use mutmut 3.6.0 syntax. The recognized set in 3.6.0 is:
 # do_not_mutate, do_not_mutate_patterns, only_mutate, also_copy, max_stack_depth,
@@ -314,20 +321,14 @@ precision = 1
 source_paths = [
     # idempotency (D-01 extracted from app/api/v2/solve.py)
     "app/services/idempotency.py",
-    # credits
-    "app/services/credits_service.py",
-    # billing (excludes app/api/v2/billing.py route layer — D-01 decision)
-    "app/services/stripe_service.py",
-    "app/services/invoice_service.py",
     # auth
     "app/services/auth/api_key_service.py",
     "app/services/auth/jwt_service.py",
     "app/services/auth/password_service.py",
-    # solver core (excludes parsers + analytics — D-02 decision, deferred to v2.4)
+    # solver core (excludes parsers + analytics — D-02 decision)
     "app/domains/solver/services/solver_service.py",
     "app/domains/solver/services/auto_router.py",
     "app/domains/solver/services/availability_gate.py",
-    "app/domains/solver/services/pool.py",
 ]
 # Flags appended to mutmut's internal pytest invocation. mutmut 3.5.0 has NO
 # `runner_command` key (it was a silent no-op here); the intended pytest flags
@@ -336,21 +337,26 @@ source_paths = [
 # itself — mutmut runs pytest in-process. Flags: disable xdist + randomly so
 # each mutant runs deterministically, stop on first failure, quiet output.
 pytest_add_cli_args = ["-p", "no:xdist", "-p", "no:randomly", "-x", "--no-header", "-q"]
-# Restrict pytest collection to the 11 test files that exercise the 2 target
-# modules — biggest wall-clock win versus running the full 3000-test suite per
-# mutant. See RESEARCH § 3.2.
+# Restrict pytest collection to the files that exercise the target modules —
+# biggest wall-clock win versus running the full suite per mutant.
+#
+# Every path here must exist. The previous list named eleven files that had all
+# been deleted with the billing removal, so mutmut selected nothing and every
+# mutant survived unchallenged: a broken run that reads as a bad score, or a
+# perfect one, depending on which way you squint.
 pytest_add_cli_args_test_selection = [
-    "tests/test_credits.py",
-    "tests/test_credits_service_consolidated.py",
-    "tests/test_credit_race_conditions.py",
-    "tests/test_billing.py",
-    "tests/test_stripe_refund_chargeback.py",
-    "tests/test_stripe_refund_chargeback_extended.py",
-    "tests/test_stripe_webhook_processing.py",
-    "tests/test_stripe_connect.py",
-    "tests/test_credit_calculator.py",
-    "tests/test_financial_bugs.py",
-    "tests/test_cancel_refund_idempotency.py",
+    # idempotency
+    "tests/test_idempotency_service.py",
+    # auth
+    "tests/test_api_key_service.py",
+    "tests/test_api_key_limit.py",
+    "tests/test_auth_lockout.py",
+    "tests/test_auth_email.py",
+    "tests/auth/test_auth_middleware_integration.py",
+    # solver core
+    "tests/unit/domains/solver/services/test_solver_service_core.py",
+    "tests/unit/domains/solver/services/test_auto_router.py",
+    "tests/integration/api/v2/test_solve_auto_routing.py",
 ]
 # Only mutate lines actually covered — drops tautologically unreachable mutants.
 mutate_only_covered_lines = true
