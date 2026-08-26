@@ -117,8 +117,13 @@ def submit_contact(
         _log_submission("rate_limited", client_ip=client_ip, signed_in=signed_in, window="day")
         raise HTTPException(status_code=429, detail=rate_info_day)
 
-    # 4. T-09-02: strip CR/LF so a malicious subject cannot inject email headers.
-    subject = payload.subject.replace("\r", "").replace("\n", " ").strip()
+    # 4. T-09-02: flatten the subject before storing it. `_header` in
+    # email_service flattens again where the header is actually built, and that
+    # is what protects the send; this keeps the stored row reading the same as
+    # the subject we send. Same function on both sides, so the two cannot
+    # disagree — the hand-rolled CR/LF replace here did, and it missed the five
+    # other characters `str.splitlines` treats as a break.
+    subject = " ".join(payload.subject.splitlines()).strip()
 
     # 5. Persist (D-03) — auto-tag user/org if the middleware attached them (D-06).
     msg = ContactMessage(

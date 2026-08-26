@@ -64,12 +64,20 @@ class TTLProbe(Generic[T]):
         ttl_seconds: float,
         on_contention: OnContention,
         first_wait_seconds: float = 0.0,
-        cold_value: T | None = None,
+        cold_value: T = None,  # type: ignore[assignment]
     ) -> None:
+        if on_contention not in ("wait", "serve_stale", "refresh_anyway"):
+            raise ValueError(f"unknown on_contention: {on_contention!r}")
+        if on_contention == "serve_stale" and cold_value is None:
+            # The whole point of serve_stale is answering without waiting, and
+            # on the first call there is nothing to answer with. Returning None
+            # from a probe declared as returning T is how a caller ends up
+            # reading "no budget" or "not in maintenance" as a fact.
+            raise ValueError("serve_stale needs a cold_value to answer with before the first read")
         self._ttl = ttl_seconds
         self._on_contention: OnContention = on_contention
         self._first_wait = first_wait_seconds
-        self._cold = cold_value
+        self._cold: T = cold_value
         self._cached: tuple[float, T] | None = None
         self._lock = Lock()
 
@@ -106,8 +114,10 @@ class TTLProbe(Generic[T]):
         return False, None
 
     def _stale(self) -> T:
+        """The last value, or ``cold_value``. Only ``serve_stale`` reaches this,
+        and its constructor refuses to build without a ``cold_value``."""
         cached = self._cached
-        return cached[1] if cached is not None else self._cold  # type: ignore[return-value]
+        return cached[1] if cached is not None else self._cold
 
     def get(self, refresh: Callable[[], T]) -> T:
         """The cached value, calling ``refresh`` when it has expired.

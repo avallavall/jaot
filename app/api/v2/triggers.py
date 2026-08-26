@@ -748,6 +748,11 @@ def rerun(
 
     # Reuse original override_data (skip trigger_secret validation)
     run, error = trigger_service.fire_trigger(db, trigger, original_run.override_data)
+    # The model documents "rerun" as the value this endpoint writes, and nothing
+    # ever wrote it: every rerun was stored as a manual fire, so the run history
+    # could not tell a rerun from someone pressing Fire. `cron_fire_task` stamps
+    # its own the same way, right after firing.
+    run.source = "rerun"
     # `fire_trigger` flushes and leaves the commit here, and `get_db` closes the
     # session without one. Without this line the new run, the bumped counters
     # and the queued solve were all rolled back on the way out, while the

@@ -38,9 +38,10 @@ def test_a_private_address_is_refused_without_delivering() -> None:
     assert result["status"] == "refused"
     assert result["address"] == "192.168.1.20"
     assert deliver.call_count == 0, "it tried to deliver to an address it had already refused"
-    # The attempt is recorded, and settled: no verdict is left open for retries
-    # that will never come.
-    record.assert_called_once_with("trun_abc", delivered=False)
+    # The verdict is settled — no answer is left open for retries that will
+    # never come — but the counter does not move: nothing was ever attempted,
+    # and "1 attempt" would tell the owner their endpoint was tried once.
+    record.assert_called_once_with("trun_abc", delivered=False, counts=False)
     assert notify.call_count == 1
 
 

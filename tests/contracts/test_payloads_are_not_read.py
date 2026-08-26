@@ -153,3 +153,73 @@ def test_the_reaper_sweep_does_not_read_the_payloads(
 
     assert summary["scanned"] >= 1
     sql.assert_never_selected("model_executions", _EXECUTION_PAYLOADS)
+
+
+# CONTRACT-TEST: the trigger-run sweep reads no payloads either.
+#
+# The sweep commits once per row, and a commit expires every instance in the
+# session. Whatever the next attribute touch reloads has to stay inside the
+# columns the sweep actually uses — a status and two timestamps — or the
+# deferred options on the candidate query buy nothing and the sweep pulls a
+# whole solver result per row all over again.
+def test_the_trigger_run_sweep_does_not_read_the_payloads(
+    db_session: Session, test_organization: Organization
+) -> None:
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    from app.models.trigger import SolveTrigger, TriggerRun
+    from app.shared.utils.id_generator import generate_id
+    from app.tasks import execution_reaper
+    from app.tasks.execution_reaper import reap_stale_trigger_runs
+
+    now = utcnow()
+    trigger = SolveTrigger(
+        id=generate_id("trg_"),
+        organization_id=test_organization.id,
+        name="Payload sweep trigger",
+        trigger_secret="a" * 64,
+        webhook_url="https://example.com/hook",
+        is_enabled=True,
+        total_runs=0,
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(trigger)
+    db_session.flush()
+    for i in range(3):
+        db_session.add(
+            TriggerRun(
+                id=generate_id("trun_"),
+                trigger_id=trigger.id,
+                organization_id=test_organization.id,
+                status="pending",
+                source="cron",
+                webhook_attempts=0,
+                result_data={"objective_value": 1.0},
+                override_data={"x": 1},
+                created_at=now - timedelta(days=2) - timedelta(seconds=i),
+            )
+        )
+    db_session.commit()
+
+    # A session configured like production, not like the harness. `db_session`
+    # is built with expire_on_commit=False; `SessionLocal` is not. The sweep
+    # commits once per row, and only under expire_on_commit=True does that
+    # commit expire the remaining instances and force the reloads this test is
+    # here to measure. Measured on the harness session, the reloads never happen
+    # and the test passes on code that would read a whole solver result per row.
+    from sqlalchemy.orm import Session as SASession
+
+    production_like = SASession(bind=db_session.bind, expire_on_commit=True)
+    try:
+        with (
+            patch.object(execution_reaper, "_runs_a_worker_still_holds", return_value=frozenset()),
+            _Statements(production_like) as sql,
+        ):
+            summary = reap_stale_trigger_runs(production_like)
+    finally:
+        production_like.close()
+
+    assert summary["failed"] == 3
+    sql.assert_never_selected("trigger_runs", ("result_data", "override_data"))

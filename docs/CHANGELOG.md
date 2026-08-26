@@ -46,6 +46,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The frontend runs on Node 24.** It was on Node 20, which reached end of life on 2026-04-30 — so the image serving the site went four months without security patches, purely because nobody revisited the line since the first public commit. Nothing required Node 20: Next 16 asks for 20.9 or newer.
 
 ### Fixed
+- **A re-run is recorded as a re-run.** Every one was stored as if somebody had pressed Fire, so the run history could not tell them apart.
+- **A webhook refused because of its address no longer counts as an attempt**, and the notice names the trigger it belongs to.
 - **A contact message with a form feed in it still reaches us.** The line-break fix removed carriage returns and newlines; Python treats five more control characters as line breaks in an email header, and any one of them still lost the message the same way.
 - **A reply to a contact message goes to the person who wrote it, even if their name has a comma in it.** "Ann, Bob" turned one reply address into two, and hitting Reply sent to a name that is not an address.
 - **A scheduled run that is still queued is no longer reported as failed.** The sweep that tidies abandoned runs judged them by age alone, so a run waiting behind a busy solve queue for half an hour was marked failed while it was about to start. It now asks the workers what they are holding first, and a run that was settled while the sweep was looking at it is left alone rather than overwritten.

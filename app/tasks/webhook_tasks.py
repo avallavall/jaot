@@ -21,8 +21,14 @@ from app.shared.utils.validators import blocked_url_target
 logger = logging.getLogger(__name__)
 
 
-def _record_attempt(run_id: str | None, *, delivered: bool | None) -> None:
+def _record_attempt(run_id: str | None, *, delivered: bool | None, counts: bool = True) -> None:
     """Count this attempt on the run, and record the outcome when it is settled.
+
+    ``counts=False`` writes the verdict without bumping the counter, for the one
+    case that settles without ever contacting the endpoint: an address the
+    server refuses to call. Counting that as an attempt tells the owner their
+    endpoint was tried once and did not answer, which is the opposite of what
+    happened.
 
     ``delivered`` is None while attempts remain: the count goes up, the verdict
     stays open. It becomes True on a 2xx and False once the retries are spent.
@@ -41,7 +47,8 @@ def _record_attempt(run_id: str | None, *, delivered: bool | None) -> None:
         run = db.query(TriggerRun).filter(TriggerRun.id == run_id).first()
         if run is None:
             return
-        run.webhook_attempts = (run.webhook_attempts or 0) + 1
+        if counts:
+            run.webhook_attempts = (run.webhook_attempts or 0) + 1
         if delivered is not None:
             run.webhook_delivered = delivered
         db.commit()
@@ -80,11 +87,16 @@ def _notify_delivery_failed(run_id: str | None, url: str, reason: str | None = N
             organization_id=trigger.organization_id,
             notification_type=NotificationType.SYSTEM,
             title="Webhook delivery failed",
-            message=reason
-            or (
-                f"The result of '{trigger.name}' could not be delivered to {url} "
-                f"after {run.webhook_attempts} attempts. The run itself finished; "
-                f"only the delivery failed."
+            # The trigger name is always the subject of the sentence, whichever
+            # ending it gets: a notification that does not say WHICH trigger
+            # sends the owner looking through all of them.
+            message=f"The result of '{trigger.name}' "
+            + (
+                reason
+                or (
+                    f"could not be delivered to {url} after {run.webhook_attempts} "
+                    f"attempts. The run itself finished; only the delivery failed."
+                )
             ),
             data={"trigger_id": trigger.id, "run_id": run.id, "webhook_url": url},
         )
@@ -143,16 +155,16 @@ def deliver_webhook_task(
     # resolve by the next attempt, which is what the retries are for.
     blocked = blocked_url_target(url)
     if blocked is not None:
-        _record_attempt(run_id, delivered=False)
+        _record_attempt(run_id, delivered=False, counts=False)
         logger.warning("Webhook for %s points at %s — refusing to deliver", url, blocked)
         _notify_delivery_failed(
             run_id,
             url,
             reason=(
-                f"The result could not be sent to {url}: that address resolves to "
-                f"{blocked}, which is private, loopback or link-local, so the server "
-                f"will not call it. The run itself finished. Point the webhook at a "
-                f"public address to receive it."
+                f"could not be sent to {url}: that address resolves to {blocked}, "
+                f"which is private, loopback or link-local, so the server will not "
+                f"call it. The run itself finished. Point the webhook at a public "
+                f"address to receive it."
             ),
         )
         return {"status": "refused", "url": url, "address": blocked}

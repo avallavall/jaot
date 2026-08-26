@@ -250,24 +250,33 @@ def test_a_run_a_worker_still_holds_is_not_reaped(db_session, trigger):
 
 # CONTRACT-TEST: a run the worker settled between the SELECT and the write wins.
 #
-# The sweep selects without a lock. Writing 'failed' over a run the worker just
-# completed reports a finished solve as a failure and orphans its result.
+# The sweep lists its candidates without a lock. Writing 'failed' over a run the
+# worker completed in between reports a finished solve as a failure and orphans
+# its result.
 def test_a_run_settled_after_the_select_is_not_overwritten(db_session, trigger):
+    from sqlalchemy import update
+
     run = _run(db_session, trigger, status="pending", age_seconds=PENDING_MAX + 600)
 
-    real_refresh = db_session.refresh
+    real_execute = db_session.execute
+    settled = []
 
-    def settle_then_refresh(obj, *args, **kwargs):
-        """Stand in for the worker finishing the run while the sweep holds it."""
-        if isinstance(obj, TriggerRun) and obj.status == "pending":
-            obj.status = "completed"
-            return None
-        return real_refresh(obj, *args, **kwargs)
+    def settle_between(statement, *args, **kwargs):
+        """Stand in for the worker finishing the run right after the listing."""
+        result = real_execute(statement, *args, **kwargs)
+        text = str(statement)
+        if "trigger_runs" in text and "FOR UPDATE" not in text.upper() and not settled:
+            settled.append(True)
+            real_execute(
+                update(TriggerRun).where(TriggerRun.id == run.id).values(status="completed")
+            )
+        return result
 
-    with patch.object(db_session, "refresh", settle_then_refresh):
+    with patch.object(db_session, "execute", settle_between):
         summary = reap_stale_trigger_runs(db_session)
 
-    assert summary["failed"] == 0
+    assert settled, "the test never got between the listing and the locked read"
+    assert summary["failed"] == 0, "a run the worker had finished was marked failed"
     assert summary["skipped"] == 1
     db_session.expire_all()
     assert db_session.get(TriggerRun, run.id).status == "completed"

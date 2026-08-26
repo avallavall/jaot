@@ -490,6 +490,25 @@ def _reset_llm_budget_cache():
     reset_budget_cache()
 
 
+@pytest.fixture(autouse=True)
+def _reset_process_wide_probes():
+    """Clear the in-process TTL probes around every test.
+
+    They are process globals with TTLs of 5 and 10 seconds. A test that turns
+    solve maintenance on, or reads the maintenance flag, would otherwise leave
+    that answer standing for the next few tests in the same process — and under
+    pytest-randomly that is a different test every run.
+
+    The solve gate used to avoid this by checking PYTEST_CURRENT_TEST and
+    skipping its own cache, which meant the cached path never ran under test.
+    """
+    from app.api.v2.deps.solve_maintenance_gate import _gate_probe
+
+    _gate_probe.clear()
+    yield
+    _gate_probe.clear()
+
+
 @pytest.fixture
 def real_rate_limiter():
     """Restore real rate limiter for tests that deliberately test rate limiting.

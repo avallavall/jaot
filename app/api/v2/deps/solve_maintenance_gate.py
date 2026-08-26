@@ -5,33 +5,32 @@ Orthogonal to ``MaintenanceMiddleware`` so admin/login/read routes stay up
 during the drain window.
 """
 
-import os
-import time
-
 from fastapi import HTTPException, status
 
 from app.api.deps import DBSession
 from app.services.platform_settings_service import PlatformSettingsService as PSS
+from app.shared.utils.ttl_probe import TTLProbe
 
 # Short-TTL process cache: avoids a SELECT on every solve request for a flag
 # that changes at most a few times per month. Up to _CACHE_TTL seconds of
 # stale-false is acceptable — ``Retry-After: 600`` already expects clients
-# to retry minutes later. Skipped under pytest so tests that toggle the flag
-# rapidly see each change immediately (mirrors the rate_limiter.py pattern).
+# to retry minutes later.
+#
+# ``refresh_anyway``: this runs as a FastAPI dependency, and the read is one
+# indexed SELECT. A caller that blocked on a lock here would hold up the
+# request it is gating for no gain; a handful of concurrent reads on an expired
+# value costs less than that.
+#
+# This used to be its own dict-and-timestamp cache, and it used to skip itself
+# entirely when PYTEST_CURRENT_TEST was set — so the cached path, the only path
+# production takes, was never once exercised by a test. The shared probe is
+# cleared between tests by an autouse fixture instead.
 _CACHE_TTL = 5.0
-_cache: dict[str, float | bool] = {"value": False, "expires_at": 0.0}
+_gate_probe = TTLProbe[bool](ttl_seconds=_CACHE_TTL, on_contention="refresh_anyway")
 
 
 def _is_on(db: DBSession) -> bool:
-    if os.environ.get("PYTEST_CURRENT_TEST"):
-        return PSS.get_bool(db, "SOLVE_MAINTENANCE_MODE", default=False)
-    now = time.monotonic()
-    if now < _cache["expires_at"]:
-        return bool(_cache["value"])
-    value = PSS.get_bool(db, "SOLVE_MAINTENANCE_MODE", default=False)
-    _cache["value"] = value
-    _cache["expires_at"] = now + _CACHE_TTL
-    return value
+    return _gate_probe.get(lambda: PSS.get_bool(db, "SOLVE_MAINTENANCE_MODE", default=False))
 
 
 def solve_maintenance_gate(db: DBSession) -> None:

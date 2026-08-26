@@ -44,7 +44,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import Session, defer
 
 from app.domains.solver import execution_writer
@@ -386,32 +386,54 @@ def _runs_a_worker_still_holds() -> frozenset[str] | None:
         return None
 
 
-def _reap_one_trigger_run(db: Session, run: Any, now: datetime, threshold: int) -> str:
+def _reap_one_trigger_run(
+    db: Session, run_id: str, now: datetime, pending_max: int, running_max: int
+) -> str:
     """Settle one stale trigger run. Returns 'failed' or 'skipped'.
 
-    Locks the row and re-reads it first. The sweep selected it without a lock,
-    and the worker may have finished it in between: writing 'failed' over a
-    completed run reports a finished solve as a failure and orphans its result.
-    ``_mark_failed`` carries the same guard for ``ModelExecution``.
+    Reads three columns and writes three, through Core rather than the ORM. A
+    ``TriggerRun`` also holds a whole solver result and a whole override set,
+    and the sweep commits once per row: under ``expire_on_commit`` — which is
+    what ``SessionLocal`` uses and the test harness does not — that commit
+    expires every remaining instance, so the next attribute touch reloads the
+    full row and undoes any ``defer`` on the candidate query. Never holding an
+    instance is the only version of this that stays true.
+
+    ``FOR UPDATE`` and a re-read of the status first. The sweep selected without
+    a lock, and the worker may have finished the run in between: writing
+    'failed' over a completed run reports a finished solve as a failure and
+    orphans its result. ``_mark_failed`` carries the same guard for
+    ``ModelExecution``.
 
     No webhook and no notification go out. The reaper knows the run stopped, not
     what happened to it, and the same is true of every ``ModelExecution`` it
     settles. What it restores is the history and the schedule.
     """
-    db.refresh(run, with_for_update={"of": TriggerRun})
-    if run.status in _TERMINAL_RUN_STATUSES:
+    row = db.execute(
+        select(TriggerRun.status, TriggerRun.created_at)
+        .where(TriggerRun.id == run_id)
+        .with_for_update()
+    ).first()
+    if row is None or row.status in _TERMINAL_RUN_STATUSES:
         return "skipped"
 
-    age_seconds = (now - run.created_at).total_seconds()
+    threshold = running_max if row.status == "running" else pending_max
+    age_seconds = (now - row.created_at).total_seconds()
     if age_seconds <= threshold:
         return "skipped"
 
-    run.error_message = (
-        f"Reaped: stuck in '{run.status}' for {int(age_seconds)}s "
-        f"(limit {threshold}s) — the task was lost or its worker was killed."
+    db.execute(
+        update(TriggerRun)
+        .where(TriggerRun.id == run_id)
+        .values(
+            status="failed",
+            completed_at=now,
+            error_message=(
+                f"Reaped: stuck in '{row.status}' for {int(age_seconds)}s "
+                f"(limit {threshold}s) — the task was lost or its worker was killed."
+            ),
+        )
     )
-    run.status = "failed"
-    run.completed_at = now
     return "failed"
 
 
@@ -430,56 +452,56 @@ def reap_stale_trigger_runs(db: Session) -> dict[str, Any]:
     if held is None:
         held = frozenset()
 
-    candidates = (
-        db.query(TriggerRun)
-        # `result_data` holds a whole solver result on a settled run. This sweep
-        # reads a status and a timestamp, and the rows it looks at have not
-        # written one yet — but a deferred column cannot surprise a later reader.
-        .options(defer(TriggerRun.result_data), defer(TriggerRun.override_data))
-        .filter(
-            # One floor per status, in SQL. A single min(pending_max, running_max)
-            # floor let every 'running' row older than 30 minutes into the window
-            # to be judged against the 48-hour limit and skipped; ordered oldest
-            # first and capped at 500 rows, those skips crowd out the 'pending'
-            # rows the sweep exists to rescue — silently, because the summary log
-            # only fires on a failure or an error.
-            or_(
-                and_(
-                    TriggerRun.status == "pending",
-                    TriggerRun.created_at < now - timedelta(seconds=pending_max),
-                ),
-                and_(
-                    TriggerRun.status == "running",
-                    TriggerRun.created_at < now - timedelta(seconds=running_max),
-                ),
+    candidate_ids = [
+        r.id
+        for r in db.execute(
+            # Ids only. See _reap_one_trigger_run: an ORM instance would be
+            # expired by the first per-row commit and reload its payloads.
+            select(TriggerRun.id)
+            .where(
+                # One floor per status, in SQL. A single
+                # min(pending_max, running_max) floor let every 'running' row
+                # older than 30 minutes into the window to be judged against the
+                # 48-hour limit and skipped; ordered oldest first and capped at
+                # 500 rows, those skips crowd out the 'pending' rows the sweep
+                # exists to rescue — silently, because the summary log only
+                # fired on a failure or an error.
+                or_(
+                    and_(
+                        TriggerRun.status == "pending",
+                        TriggerRun.created_at < now - timedelta(seconds=pending_max),
+                    ),
+                    and_(
+                        TriggerRun.status == "running",
+                        TriggerRun.created_at < now - timedelta(seconds=running_max),
+                    ),
+                )
             )
-        )
-        .order_by(TriggerRun.created_at)
-        .limit(_MAX_ROWS_PER_SWEEP)
-        .all()
-    )
+            .order_by(TriggerRun.created_at)
+            .limit(_MAX_ROWS_PER_SWEEP)
+        ).all()
+    ]
 
     summary: dict[str, Any] = {
-        "scanned": len(candidates),
+        "scanned": len(candidate_ids),
         "failed": 0,
         "skipped": 0,
         "errors": 0,
         "broker_answered": broker_answered,
     }
 
-    for run in candidates:
-        if run.id in held:
+    for run_id in candidate_ids:
+        if run_id in held:
             summary["skipped"] += 1
             continue
-        threshold = running_max if run.status == "running" else pending_max
         try:
-            outcome = _reap_one_trigger_run(db, run, now, threshold)
+            outcome = _reap_one_trigger_run(db, run_id, now, pending_max, running_max)
             db.commit()
             summary[outcome] += 1
         except Exception as exc:
             db.rollback()
             summary["errors"] += 1
-            logger.error("Reaper failed on trigger run %s: %s", run.id, exc, exc_info=True)
+            logger.error("Reaper failed on trigger run %s: %s", run_id, exc, exc_info=True)
 
     if summary["scanned"]:
         logger.info("Trigger run reaper sweep: %s", summary)
