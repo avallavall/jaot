@@ -614,7 +614,7 @@
       "welcomeTitle": "Bienvenue sur JAOT !",
       "wizardTitle": "Assistant de Bienvenue",
       "wizardDescription": "Un assistant guidé pour vous aider à démarrer avec JAOT.",
-      "step1Verbose": "JAOT vous aide à résoudre des problèmes d'optimisation — de la planification et logistique aux finances et allocation de ressources. Indiquez-nous votre niveau d'expérience pour que nous puissions adapter l'interface pour vous.",
+      "step1Verbose": "JAOT vous aide à résoudre des problèmes d'optimisation, de la planification et logistique aux finances et allocation de ressources. Indiquez-nous votre niveau d'expérience pour que nous puissions adapter l'interface pour vous.",
       "step1Brief": "Indiquez votre niveau d'expérience pour personnaliser l'interface.",
       "step1Expert": "Sélectionnez votre niveau d'expérience.",
       "step2Title": "Décrivez votre problème",
@@ -1029,14 +1029,14 @@
       },
       "section2": {
         "title": "2. Comment nous stockons vos données",
-        "body": "Vos données sont chiffrées en transit via TLS et logiquement isolées par organisation dans notre architecture multi-locataire, de sorte que seuls les membres de votre organisation peuvent y accéder. Les champs particulièrement sensibles — comme une clé de fournisseur d’IA stockée — sont en outre chiffrés au repos. Si vous auto-hébergez JAOT au lieu d’utiliser jaot.io, vous exploitez votre propre instance et agissez en tant que responsable du traitement des données qu’elle contient ; dans ce cas, cette politique décrit uniquement l’instance hébergée."
+        "body": "Vos données sont chiffrées en transit via TLS et logiquement isolées par organisation dans notre architecture multi-locataire, de sorte que seuls les membres de votre organisation peuvent y accéder. Les champs particulièrement sensibles (comme une clé de fournisseur d’IA stockée) sont en outre chiffrés au repos. Si vous auto-hébergez JAOT au lieu d’utiliser jaot.io, vous exploitez votre propre instance et agissez en tant que responsable du traitement des données qu’elle contient ; dans ce cas, cette politique décrit uniquement l’instance hébergée."
       },
       "section3": {
         "title": "3. Services tiers",
         "intro": "Nous nous appuyons sur un petit nombre de services tiers pour exploiter l’instance hébergée :",
         "anthropic": "<strong>Anthropic (API Claude) :</strong> alimente l’assistant IA optionnel. Vos invites et descriptions de modèle ne sont envoyées à Anthropic que lorsque vous utilisez l’assistant, et sont traitées conformément aux conditions d’Anthropic. Vous pouvez utiliser votre propre clé Anthropic à la place.",
         "analytics": "<strong>Plausible Analytics :</strong> un outil d’analyse auto-hébergé et respectueux de la vie privée, utilisé pour comprendre l’usage agrégé. Il est sans cookie, ne vous suit pas d’un site à l’autre et ne collecte pas de données personnelles.",
-        "payments": "<strong>Paiements :</strong> JAOT ne traite aucun paiement — la plateforme est gratuite et ne collecte aucune donnée de paiement ou de facturation.",
+        "payments": "<strong>Paiements :</strong> JAOT ne traite aucun paiement. La plateforme est gratuite et ne collecte aucune donnée de paiement ou de facturation.",
         "note": "La recherche, les embeddings et tous les calculs du solveur s’exécutent localement sur le Service et ne sont envoyés à aucun tiers."
       },
       "section4": {
@@ -1113,7 +1113,7 @@
       },
       "section8": {
         "title": "8. Multi-locataire",
-        "body": "Le Service fonctionne selon une architecture multi-locataire. Les données de chaque organisation sont logiquement isolées et accessibles uniquement aux membres de cette organisation. Vous pouvez appartenir à une organisation et partager ses ressources — modèles, quota d’utilisation et exécutions — avec ses autres membres."
+        "body": "Le Service fonctionne selon une architecture multi-locataire. Les données de chaque organisation sont logiquement isolées et accessibles uniquement aux membres de cette organisation. Vous pouvez appartenir à une organisation et partager ses ressources (modèles, quota d’utilisation et exécutions) avec ses autres membres."
       },
       "section9": {
         "title": "9. Résiliation",
@@ -1121,7 +1121,7 @@
       },
       "section10": {
         "title": "10. Exclusion de garantie et limitation de responsabilité",
-        "body": "Le Service est fourni « en l’état » et « selon disponibilité », sans garantie d’aucune sorte, expresse ou implicite, conformément à la Licence Apache 2.0 sous laquelle le logiciel est distribué. Dans toute la mesure permise par la loi, l’équipe et les exploitants de JAOT ne sauraient être tenus responsables de tout dommage indirect, accessoire, spécial, consécutif ou punitif — y compris la perte de profits, de données ou d’opportunités commerciales — découlant de votre utilisation du Service, des résultats du solveur ou générés par l’IA, ou de toute interruption du Service."
+        "body": "Le Service est fourni « en l’état » et « selon disponibilité », sans garantie d’aucune sorte, expresse ou implicite, conformément à la Licence Apache 2.0 sous laquelle le logiciel est distribué. Dans toute la mesure permise par la loi, l’équipe et les exploitants de JAOT ne sauraient être tenus responsables de tout dommage indirect, accessoire, spécial, consécutif ou punitif (y compris la perte de profits, de données ou d’opportunités commerciales) découlant de votre utilisation du Service, des résultats du solveur ou générés par l’IA, ou de toute interruption du Service."
       },
       "section11": {
         "title": "11. Droit applicable",
@@ -1323,7 +1323,7 @@
       "importModel": "Importer un modèle",
       "templates": "Modèles",
       "newModel": "Nouveau modèle",
-      "noPermission": "Vous n'avez pas la permission de modifier.",
+      "noPermission": "Votre rôle ({role}) ne permet pas de créer des modèles. Demandez à l'administrateur de l'espace de travail de le faire évoluer.",
       "deleteConfirm": "Supprimer « {name} » ? Cette action est irréversible.",
       "deleteDocument": "Supprimer le document",
       "documentDeleted": "Document supprimé.",
@@ -1332,7 +1332,7 @@
       "today": "Aujourd'hui",
       "yesterday": "Hier",
       "daysAgo": "Il y a {count} jours",
-      "importInvalid": "Problème d'optimisation invalide — variables ou objectif manquants.",
+      "importInvalid": "Problème d'optimisation invalide. Variables ou objectif manquants.",
       "importNotRepresentable": "Ce modèle ne peut pas être dessiné exactement sur la toile visuelle (expressions non linéaires ou non prises en charge). Importez-le plutôt dans un projet du studio.",
       "importSuccess": "{count} nœuds importés.",
       "importParseFailed": "Impossible d'analyser le fichier de modèle. Formats pris en charge : JSON, MPS, LP, CIP.",
@@ -1368,11 +1368,11 @@
       "connectToObjective": "Connectez au moins une variable à l'objectif.",
       "invalidProblem": "Problème invalide : {message}",
       "checkModelDefinition": "Vérifiez la définition de votre modèle.",
-      "solverError": "Erreur du solveur. Veuillez vérifier votre modèle.",
+      "solverError": "Erreur du solveur : {detail}",
       "solveFailed": "Échec de la résolution. Veuillez réessayer.",
       "modelSaved": "Modèle enregistré.",
       "saveFailed": "Échec de l'enregistrement. Veuillez réessayer.",
-      "importInvalid": "JSON de problème d'optimisation invalide — variables ou objectif manquants.",
+      "importInvalid": "JSON de problème d'optimisation invalide. Variables ou objectif manquants.",
       "importNotRepresentable": "Ce modèle ne peut pas être dessiné exactement sur la toile visuelle (expressions non linéaires ou non prises en charge). Importez-le plutôt dans un projet du studio.",
       "importSuccess": "{count} nœuds importés.",
       "importParseFailed": "Impossible d'analyser le fichier JSON. Assurez-vous qu'il s'agit d'un OptimizationProblem valide.",
@@ -1462,7 +1462,7 @@
       "sensitivityAnalysis": "Analyse de sensibilité",
       "sensitivityUnavailable": "L'analyse de sensibilité n'est pas disponible pour ce type de problème.",
       "sensitivityNote": "Les données de sensibilité sont calculées pour les programmes linéaires et les relaxations LP des programmes en nombres entiers.",
-      "statusInfeasible": "Le problème n'a pas de solution réalisable. Vérifiez que vos contraintes ne sont pas contradictoires — il peut être impossible de satisfaire toutes les contraintes simultanément.",
+      "statusInfeasible": "Le problème n'a pas de solution réalisable. Vérifiez que vos contraintes ne sont pas contradictoires. Il peut être impossible de satisfaire toutes les contraintes à la fois.",
       "statusUnbounded": "L'objectif peut être amélioré sans limite. Ajoutez des bornes à vos variables ou des contraintes supplémentaires pour restreindre la région réalisable.",
       "statusTimeLimit": "Le solveur a atteint la limite de temps avant de trouver une solution optimale prouvée. Le résultat affiché est la meilleure solution trouvée jusqu'à présent.",
       "statusError": "Le solveur a rencontré une erreur. Vérifiez la définition de votre problème pour détecter des expressions ou des noms de variables invalides."
@@ -1527,7 +1527,7 @@
       "addItem": "+ Ajouter un élément",
       "noRows": "Aucune ligne. Cliquez sur « + Ajouter une ligne » pour commencer.",
       "noItems": "Aucun élément. Cliquez sur « + Ajouter un élément » pour commencer.",
-      "invalidInput": "Données d'entrée invalides. Veuillez vérifier les valeurs du formulaire.",
+      "invalidInput": "Données d'entrée invalides : {detail}",
       "solveFailed": "Échec de la résolution. Veuillez réessayer.",
       "fieldRequired": "{field} est obligatoire",
       "atLeastOneItem": "Au moins un élément est requis",
@@ -1814,7 +1814,7 @@
       "timeHoursAgo": "Il y a {count} h",
       "timeYesterday": "Hier",
       "timeDaysAgo": "Il y a {count} j",
-      "adminRequired": "Vous devez avoir le rôle d'administrateur pour consulter le journal d'audit",
+      "adminRequired": "Votre rôle ({role}) ne permet pas de consulter le journal d'audit. Demandez le rôle Admin à l'administrateur de l'espace de travail.",
       "loadError": "Échec du chargement du journal d'audit",
       "createWorkspace": "Créer un espace de travail",
       "noWorkspaceForMember": "Vous n'êtes encore dans aucun espace de travail, et seul le propriétaire de l'organisation peut en créer un. Demandez-lui de vous inviter."
@@ -1881,7 +1881,7 @@
       "noWorkspaceDescription": "Sélectionnez d'abord un espace de travail pour gérer ses membres.",
       "browseWorkspaces": "Parcourir les espaces de travail",
       "inviteMember": "Inviter un membre",
-      "adminRequired": "Vous devez avoir le rôle d'administrateur pour inviter des membres",
+      "adminRequired": "Votre rôle ({role}) ne permet pas d'inviter des membres. Demandez le rôle Admin à l'administrateur de l'espace de travail.",
       "loadError": "Échec du chargement des membres de l'équipe",
       "quickStart": {
         "title": "Premiers Pas avec les Espaces de Travail",
@@ -1892,10 +1892,10 @@
         "howToInviteDescription": "Cliquez sur « Inviter un Membre » ci-dessus pour envoyer des invitations par e-mail ou générer un lien d'invitation partageable. Seuls les administrateurs peuvent inviter de nouveaux membres.",
         "roles": "Rôles et permissions",
         "rolesDescription": "Chaque membre a un rôle qui détermine ce qu'il peut faire :",
-        "roleViewer": "Lecteur -- Peut consulter les modèles et les résultats, mais ne peut rien créer ni modifier.",
-        "roleEditor": "Éditeur -- Peut créer, modifier et supprimer des modèles et des déclencheurs.",
-        "roleSolver": "Solveur -- Peut exécuter des résolutions et créer des modèles (inclut les permissions de Lecteur).",
-        "roleAdmin": "Admin -- Accès complet, y compris les invitations et la gestion des paramètres."
+        "roleViewer": "Lecteur : peut consulter les modèles et les résultats, mais ne peut rien créer ni modifier.",
+        "roleEditor": "Éditeur : peut créer, modifier et supprimer des modèles et des déclencheurs.",
+        "roleSolver": "Solveur : peut exécuter des résolutions et créer des modèles (inclut les permissions de Lecteur).",
+        "roleAdmin": "Admin : accès complet, y compris les invitations et la gestion des paramètres."
       },
       "createWorkspace": "Créer un espace de travail",
       "noWorkspaceForMember": "Vous n'êtes encore dans aucun espace de travail, et seul le propriétaire de l'organisation peut en créer un. Demandez-lui de vous inviter."
@@ -1937,13 +1937,13 @@
       "viewMembers": "Voir les membres",
       "membersTitle": "Membres",
       "inviteMember": "Inviter un membre",
-      "adminRequired": "Vous devez avoir le rôle d'administrateur pour inviter des membres",
+      "adminRequired": "Votre rôle ({role}) ne permet pas d'inviter des membres. Demandez le rôle Admin à l'administrateur de l'espace de travail.",
       "workspaceSettings": "Paramètres de l'espace de travail",
       "nameLabel": "Nom",
       "descriptionLabel": "Description",
       "saving": "Enregistrement...",
       "saveChanges": "Enregistrer les modifications",
-      "adminOnlySettings": "Vous devez avoir le rôle d'administrateur pour gérer les paramètres de l'espace de travail.",
+      "adminOnlySettings": "Votre rôle ({role}) ne permet pas de gérer les paramètres de l'espace de travail. Demandez le rôle Admin à l'administrateur de l'espace de travail.",
       "settingsSaved": "Paramètres de l'espace de travail enregistrés",
       "loadError": "Échec du chargement de l'espace de travail",
       "saveError": "Échec de l'enregistrement des paramètres"
@@ -2471,7 +2471,7 @@
       }
     },
     "layout": {
-      "maintenanceBanner": "Le mode de maintenance est actif — les utilisateurs non administrateurs voient une page de maintenance",
+      "maintenanceBanner": "Le mode de maintenance est actif. Les utilisateurs non administrateurs voient une page de maintenance",
       "manageSettings": "Gérer les paramètres",
       "subtitle": "Panneau d'Administration",
       "nav": {
@@ -3517,7 +3517,7 @@
       "title": "Déclencheurs",
       "subtitle": "Déclencheurs HTTP qui exécutent automatiquement des versions de modèles épinglées",
       "newTrigger": "Nouveau déclencheur",
-      "noPermission": "Vous n'avez pas la permission de modifier.",
+      "noPermission": "Votre rôle ({role}) ne permet pas de gérer les déclencheurs. Demandez le rôle Éditeur à l'administrateur de l'espace de travail.",
       "noTriggers": "Aucun déclencheur pour le moment",
       "noTriggersDescription": "Créez votre premier déclencheur pour automatiser les résolutions via des événements HTTP.",
       "createTrigger": "Créer un déclencheur",
@@ -3545,7 +3545,7 @@
       "subtitle": "Configurez un déclencheur HTTP pour exécuter automatiquement une version de modèle épinglée lorsqu'il est appelé.",
       "backToTriggers": "Retour aux déclencheurs",
       "created": "Déclencheur créé !",
-      "secretWarning": "Le secret de votre déclencheur est affiché ci-dessous. C'est la seule fois qu'il sera affiché en entier — conservez-le en lieu sûr.",
+      "secretWarning": "Le secret de votre déclencheur est affiché ci-dessous. C'est la seule fois qu'il sera affiché en entier. Conservez-le en lieu sûr.",
       "secretLabel": "Secret du déclencheur (affiché une seule fois)",
       "secretCopied": "Secret du déclencheur copié dans le presse-papiers",
       "copyError": "Impossible de copier dans le presse-papiers",
@@ -3557,7 +3557,7 @@
       "backToTriggers": "Retour aux déclencheurs",
       "disable": "Désactiver",
       "enable": "Activer",
-      "noPermission": "Vous n'avez pas la permission de modifier.",
+      "noPermission": "Votre rôle ({role}) ne permet pas de gérer les déclencheurs. Demandez le rôle Éditeur à l'administrateur de l'espace de travail.",
       "notFound": "Déclencheur introuvable",
       "loadError": "Échec du chargement du déclencheur",
       "toggleEnabled": "Déclencheur {state}",
@@ -3579,8 +3579,8 @@
       "lastFired": "Dernier déclenchement",
       "createdAt": "Créé le",
       "overrideSchemaTitle": "Schéma de surcharge",
-      "openSchema": "Schéma ouvert — toutes les clés de surcharge sont acceptées",
-      "noOverrides": "Pas de schéma de surcharge — les appelants ne peuvent pas passer de override_data",
+      "openSchema": "Schéma ouvert. Toutes les clés de surcharge sont acceptées",
+      "noOverrides": "Pas de schéma de surcharge. Les appelants ne peuvent pas passer de override_data",
       "schemaName": "Nom",
       "schemaType": "Type",
       "schemaFieldPath": "Chemin du champ du modèle",
@@ -3625,7 +3625,7 @@
       "requiredField": "Champ obligatoire",
       "addParameter": "Ajouter un paramètre",
       "jsonArrayError": "Doit être un tableau JSON de champs de surcharge",
-      "jsonSyntaxError": "JSON invalide — vérifiez la syntaxe et réessayez",
+      "jsonSyntaxError": "JSON invalide. Vérifiez la syntaxe et réessayez",
       "jsonHelp": "Modifiez le JSON directement. Les modifications sont appliquées lorsque vous cliquez en dehors de ce champ.",
       "noParametersVisual": "Aucun paramètre défini. Passez en mode Formulaire pour ajouter des paramètres.",
       "visualHelp": "Vue d'ensemble en lecture seule du mapping. Passez en mode Formulaire ou JSON pour modifier.",
@@ -3752,7 +3752,7 @@
       "webhookInvalid": "L'URL du webhook doit être une URL HTTP/HTTPS valide",
       "creating": "Création du déclencheur...",
       "createButton": "Créer le déclencheur",
-      "noPermission": "Vous n'avez pas la permission de modifier.",
+      "noPermission": "Votre rôle ({role}) ne permet pas de créer des déclencheurs. Demandez le rôle Éditeur à l'administrateur de l'espace de travail.",
       "createdSuccess": "Déclencheur créé avec succès",
       "createError": "Échec de la création du déclencheur",
       "loadModelsError": "Échec du chargement des modèles",
@@ -3765,15 +3765,15 @@
       "example": "Un prix dual de 3,5 signifie que relâcher la contrainte d'une unité améliore l'objectif de 3,5."
     },
     "bindingConstraint": {
-      "definition": "Une contrainte satisfaite exactement à l'égalité dans la solution optimale — la solution est « poussée contre » cette limite.",
+      "definition": "Une contrainte satisfaite exactement à l'égalité dans la solution optimale. La solution ne laisse aucune marge avant cette limite.",
       "example": "Si une contrainte de budget est x + y <= 100 et que la solution donne x + y = 100, elle est saturée."
     },
     "slackValue": {
-      "definition": "La marge restante avant qu'une contrainte ne devienne saturée — une marge nulle signifie qu'elle est saturée.",
+      "definition": "La marge restante avant qu'une contrainte ne devienne saturée. Une marge nulle signifie qu'elle est saturée.",
       "example": "Si x + y <= 100 et x + y = 80, la marge est de 20."
     },
     "paretoFront": {
-      "definition": "L'ensemble des solutions où aucun objectif ne peut être amélioré sans en dégrader un autre — chaque point de la courbe est également « optimal »."
+      "definition": "L'ensemble des solutions où aucun objectif ne peut être amélioré sans en dégrader un autre. Chaque point de la courbe est également optimal."
     },
     "warmStart": {
       "definition": "Fournir une solution réalisable initiale au solveur pour qu'il puisse sauter l'exploration initiale et converger plus rapidement."
@@ -3783,7 +3783,7 @@
       "example": "Un produit non fabriqué (x = 0) avec un coût réduit de 5 dégraderait l'objectif de 5 par unité s'il était forcé dans le plan."
     },
     "lpRelaxation": {
-      "definition": "Résoudre le problème comme si les variables entières pouvaient prendre des valeurs fractionnaires — donne une borne sur la meilleure solution entière possible."
+      "definition": "Résoudre le problème comme si les variables entières pouvaient prendre des valeurs fractionnaires. Cela donne une borne sur la meilleure solution entière possible."
     },
     "objectiveValue": {
       "definition": "La valeur finale de la fonction optimisée (minimisée ou maximisée)."
@@ -3793,7 +3793,7 @@
       "example": "Un problème de routage de livraison formulé avec des variables de route, des contraintes de capacité et un objectif de minimisation de distance."
     },
     "decisionVariable": {
-      "definition": "Une quantité que le solveur détermine — les inconnues de votre problème d'optimisation.",
+      "definition": "Une quantité que le solveur détermine. Ce sont les inconnues de votre problème d'optimisation.",
       "example": "En planification, x[i][j] = 1 signifie que l'employé i travaille au quart j."
     },
     "constraint": {
@@ -3801,18 +3801,18 @@
       "example": "Chaque employé travaille au maximum 40 heures par semaine."
     },
     "objective": {
-      "definition": "L'objectif que vous souhaitez optimiser — soit minimiser le coût, soit maximiser la valeur.",
+      "definition": "L'objectif que vous souhaitez optimiser. Il s'agit soit de minimiser le coût, soit de maximiser la valeur.",
       "example": "Minimiser le coût total d'expédition sur toutes les routes."
     },
     "feasibility": {
       "definition": "Si une solution satisfait simultanément toutes les contraintes. Une solution réalisable est une solution qui ne viole aucune règle."
     },
     "infeasible": {
-      "definition": "Un problème où aucune solution ne peut satisfaire toutes les contraintes à la fois — les règles se contredisent.",
+      "definition": "Un problème où aucune solution ne peut satisfaire toutes les contraintes à la fois. Les règles se contredisent.",
       "example": "Exiger 10 heures de travail dans une journée de 8 heures est irréalisable."
     },
     "optimal": {
-      "definition": "La meilleure solution réalisable possible — aucune autre solution n'atteint une meilleure valeur d'objectif."
+      "definition": "La meilleure solution réalisable possible. Aucune autre solution n'atteint une meilleure valeur d'objectif."
     },
     "relaxation": {
       "definition": "Une version simplifiée du problème où certaines contraintes (souvent l'intégrité) sont assouplies pour trouver une borne sur la meilleure solution.",
@@ -4572,8 +4572,8 @@
     "byok": {
       "title": "Votre propre clé API Anthropic",
       "description": "Ajoutez la clé d'API Anthropic de votre organisation pour exécuter toutes les fonctions d'IA sur votre propre compte, indépendamment du budget partagé de la plateforme.",
-      "active": "Active — avec votre propre clé",
-      "inactive": "Non configurée — utilise le budget IA partagé de la plateforme.",
+      "active": "Active, avec votre propre clé",
+      "inactive": "Non configurée. Le budget IA partagé de la plateforme est utilisé.",
       "placeholder": "sk-ant-...",
       "save": "Enregistrer la clé",
       "saving": "Enregistrement…",
@@ -4996,7 +4996,7 @@
       "boundTooltip": "Réponse {objective}, borne {bound}, {distance} d'écart",
       "timeTitle": "Temps total",
       "timeLegend": "L'échelle est logarithmique : chaque pas vaut dix fois le précédent, donc la longueur de la barre n'est pas proportionnelle au nombre.",
-      "timeTooltip": "{seconds} — {ratio}× le plus rapide",
+      "timeTooltip": "{seconds}, {ratio}× le plus rapide",
       "splitTitle": "Recherche contre construction du modèle",
       "splitLegend": "La partie sombre est la recherche du solveur. Le reste est la traduction du problème dans le modèle de ce solveur, qui est un coût de JAOT et non du solveur.",
       "splitSearch": "Recherche",

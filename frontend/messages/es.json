@@ -614,7 +614,7 @@
       "welcomeTitle": "¡Bienvenido a JAOT!",
       "wizardTitle": "Asistente de bienvenida",
       "wizardDescription": "Un asistente guiado para ayudarte a empezar con JAOT.",
-      "step1Verbose": "JAOT te ayuda a resolver problemas de optimización -- desde planificación y logística hasta finanzas y asignación de recursos. Indícanos tu nivel de experiencia para adaptar la interfaz a tus necesidades.",
+      "step1Verbose": "JAOT te ayuda a resolver problemas de optimización, desde planificación y logística hasta finanzas y asignación de recursos. Indícanos tu nivel de experiencia para adaptar la interfaz a tus necesidades.",
       "step1Brief": "Indica tu nivel de experiencia para personalizar la interfaz.",
       "step1Expert": "Selecciona tu nivel de experiencia.",
       "step2Title": "Describe tu problema",
@@ -1029,14 +1029,14 @@
       },
       "section2": {
         "title": "2. Cómo almacenamos tus datos",
-        "body": "Tus datos se cifran en tránsito mediante TLS y están aislados lógicamente por organización en nuestra arquitectura multitenant, de modo que solo los miembros de tu organización pueden acceder a ellos. Los campos especialmente sensibles —como una clave de proveedor de IA almacenada— se cifran además en reposo. Si autoalojas JAOT en lugar de usar jaot.io, ejecutas tu propia instancia y actúas como responsable del tratamiento de los datos que esta contenga; en ese caso, esta política describe únicamente la instancia alojada."
+        "body": "Tus datos se cifran en tránsito mediante TLS y están aislados lógicamente por organización en nuestra arquitectura multitenant, de modo que solo los miembros de tu organización pueden acceder a ellos. Los campos especialmente sensibles (como una clave de proveedor de IA almacenada) se cifran además en reposo. Si autoalojas JAOT en lugar de usar jaot.io, ejecutas tu propia instancia y actúas como responsable del tratamiento de los datos que esta contenga; en ese caso, esta política describe únicamente la instancia alojada."
       },
       "section3": {
         "title": "3. Servicios de terceros",
         "intro": "Nos apoyamos en un pequeño número de servicios de terceros para operar la instancia alojada:",
         "anthropic": "<strong>Anthropic (API de Claude):</strong> da soporte al asistente de IA opcional. Tus indicaciones y descripciones de modelo se envían a Anthropic solo cuando usas el asistente, y se tratan conforme a los términos de Anthropic. Puedes usar tu propia clave de Anthropic en su lugar.",
         "analytics": "<strong>Plausible Analytics:</strong> una herramienta de analítica autoalojada y respetuosa con la privacidad que se usa para entender el uso agregado. No usa cookies, no te rastrea entre sitios y no recopila datos personales.",
-        "payments": "<strong>Pagos:</strong> JAOT no procesa pagos — la plataforma es gratuita y no recoge datos de pago ni de facturación.",
+        "payments": "<strong>Pagos:</strong> JAOT no procesa pagos. La plataforma es gratuita y no recoge datos de pago ni de facturación.",
         "note": "La recuperación, los embeddings y todos los cálculos del solver se ejecutan localmente en el Servicio y no se envían a ningún tercero."
       },
       "section4": {
@@ -1113,7 +1113,7 @@
       },
       "section8": {
         "title": "8. Multitenencia",
-        "body": "El Servicio funciona con una arquitectura multitenant. Los datos de cada organización están aislados lógicamente y solo son accesibles para los miembros de esa organización. Puedes pertenecer a una organización y compartir sus recursos —modelos, cuota de uso y ejecuciones— con sus demás miembros."
+        "body": "El Servicio funciona con una arquitectura multitenant. Los datos de cada organización están aislados lógicamente y solo son accesibles para los miembros de esa organización. Puedes pertenecer a una organización y compartir sus recursos (modelos, cuota de uso y ejecuciones) con sus demás miembros."
       },
       "section9": {
         "title": "9. Cancelación",
@@ -1121,7 +1121,7 @@
       },
       "section10": {
         "title": "10. Exención de garantías y limitación de responsabilidad",
-        "body": "El Servicio se ofrece “tal cual” y “según disponibilidad”, sin garantías de ningún tipo, expresas o implícitas, en coherencia con la Licencia Apache 2.0 bajo la que se distribuye el software. En la máxima medida permitida por la ley, el equipo y los operadores de JAOT no serán responsables de ningún daño indirecto, incidental, especial, consecuente o punitivo —incluida la pérdida de beneficios, datos u oportunidades de negocio— derivado de tu uso del Servicio, de los resultados del solver o generados por IA, o de cualquier interrupción del Servicio."
+        "body": "El Servicio se ofrece “tal cual” y “según disponibilidad”, sin garantías de ningún tipo, expresas o implícitas, en coherencia con la Licencia Apache 2.0 bajo la que se distribuye el software. En la máxima medida permitida por la ley, el equipo y los operadores de JAOT no serán responsables de ningún daño indirecto, incidental, especial, consecuente o punitivo (incluida la pérdida de beneficios, datos u oportunidades de negocio) derivado de tu uso del Servicio, de los resultados del solver o generados por IA, o de cualquier interrupción del Servicio."
       },
       "section11": {
         "title": "11. Legislación aplicable",
@@ -1323,7 +1323,7 @@
       "importModel": "Importar modelo",
       "templates": "Plantillas",
       "newModel": "Nuevo modelo",
-      "noPermission": "No tienes permiso para editar.",
+      "noPermission": "Tu rol ({role}) no tiene permiso para crear modelos. Pide al admin del espacio de trabajo que te suba de rol.",
       "deleteConfirm": "¿Eliminar \"{name}\"? Esta acción no se puede deshacer.",
       "deleteDocument": "Eliminar documento",
       "documentDeleted": "Documento eliminado.",
@@ -1332,7 +1332,7 @@
       "today": "Hoy",
       "yesterday": "Ayer",
       "daysAgo": "hace {count} días",
-      "importInvalid": "Problema de optimización no válido — faltan variables u objetivo.",
+      "importInvalid": "Problema de optimización no válido. Faltan variables u objetivo.",
       "importNotRepresentable": "Este modelo no puede dibujarse exactamente en el lienzo visual (expresiones no lineales o no soportadas). Impórtalo en un proyecto del estudio.",
       "importSuccess": "{count} nodos importados.",
       "importParseFailed": "No se pudo analizar el archivo de modelo. Formatos admitidos: JSON, MPS, LP, CIP.",
@@ -1368,11 +1368,11 @@
       "connectToObjective": "Conecta al menos una variable al objetivo.",
       "invalidProblem": "Problema no válido: {message}",
       "checkModelDefinition": "Revisa la definición de tu modelo.",
-      "solverError": "Error del solver. Revisa tu modelo en busca de errores.",
+      "solverError": "Error del solver: {detail}",
       "solveFailed": "Error al resolver. Inténtalo de nuevo.",
       "modelSaved": "Modelo guardado.",
       "saveFailed": "Error al guardar. Inténtalo de nuevo.",
-      "importInvalid": "JSON de problema de optimización no válido — faltan variables u objetivo.",
+      "importInvalid": "JSON de problema de optimización no válido. Faltan variables u objetivo.",
       "importNotRepresentable": "Este modelo no puede dibujarse exactamente en el lienzo visual (expresiones no lineales o no soportadas). Impórtalo en un proyecto del estudio.",
       "importSuccess": "{count} nodos importados.",
       "importParseFailed": "No se pudo analizar el archivo JSON. Asegúrate de que es un OptimizationProblem válido.",
@@ -1462,7 +1462,7 @@
       "sensitivityAnalysis": "Análisis de sensibilidad",
       "sensitivityUnavailable": "Análisis de sensibilidad no disponible para este tipo de problema.",
       "sensitivityNote": "Los datos de sensibilidad se calculan para programas lineales y LP relaxation de programas enteros.",
-      "statusInfeasible": "El problema no tiene solución factible. Comprueba que tus restricciones no sean contradictorias — puede ser imposible satisfacer todas las restricciones simultáneamente.",
+      "statusInfeasible": "El problema no tiene solución factible. Comprueba que tus restricciones no sean contradictorias. Puede ser imposible satisfacer todas las restricciones a la vez.",
       "statusUnbounded": "El objetivo puede mejorarse sin límite. Añade límites a tus variables o restricciones adicionales para acotar la región factible.",
       "statusTimeLimit": "El solver alcanzó el límite de tiempo antes de encontrar una solución óptima demostrada. El resultado mostrado es la mejor solución encontrada hasta ahora.",
       "statusError": "El solver encontró un error. Revisa la definición de tu problema en busca de expresiones o nombres de variables no válidos."
@@ -1527,7 +1527,7 @@
       "addItem": "+ Añadir elemento",
       "noRows": "Sin filas. Haz clic en \"+ Añadir fila\" para empezar.",
       "noItems": "Sin elementos. Haz clic en \"+ Añadir elemento\" para empezar.",
-      "invalidInput": "Datos de entrada no válidos. Revisa los valores del formulario.",
+      "invalidInput": "Datos de entrada no válidos: {detail}",
       "solveFailed": "Error al resolver. Inténtalo de nuevo.",
       "fieldRequired": "{field} es obligatorio",
       "atLeastOneItem": "Se requiere al menos un elemento",
@@ -1815,7 +1815,7 @@
       "timeHoursAgo": "hace {count}h",
       "timeYesterday": "Ayer",
       "timeDaysAgo": "hace {count}d",
-      "adminRequired": "Necesitas rol de admin para ver el registro de auditoría",
+      "adminRequired": "Tu rol ({role}) no permite ver el registro de auditoría. Pide al admin del espacio de trabajo el rol de Admin.",
       "loadError": "Error al cargar el registro de auditoría",
       "noWorkspaceForMember": "Todavía no estás en ningún espacio de trabajo, y sólo el propietario de la organización puede crear uno. Pídele que te invite."
     },
@@ -1881,7 +1881,7 @@
       "noWorkspaceDescription": "Selecciona primero un espacio de trabajo para gestionar sus miembros.",
       "browseWorkspaces": "Explorar espacios de trabajo",
       "inviteMember": "Invitar miembro",
-      "adminRequired": "Necesitas rol de admin para invitar miembros",
+      "adminRequired": "Tu rol ({role}) no permite invitar miembros. Pide al admin del espacio de trabajo el rol de Admin.",
       "loadError": "Error al cargar los miembros del equipo",
       "quickStart": {
         "title": "Primeros Pasos con Espacios de Trabajo",
@@ -1892,10 +1892,10 @@
         "howToInviteDescription": "Haz clic en \"Invitar Miembro\" arriba para enviar invitaciones por correo electrónico o generar un enlace de invitación compartible. Solo los administradores pueden invitar nuevos miembros.",
         "roles": "Roles y permisos",
         "rolesDescription": "Cada miembro tiene un rol que controla lo que puede hacer:",
-        "roleViewer": "Visualizador -- Puede ver modelos y resultados, pero no puede crear ni editar nada.",
-        "roleEditor": "Editor -- Puede crear, editar y eliminar modelos y disparadores.",
-        "roleSolver": "Solucionador -- Puede ejecutar resoluciones y crear modelos (incluye permisos de Visualizador).",
-        "roleAdmin": "Admin -- Acceso completo, incluidas invitaciones y gestión de la configuración."
+        "roleViewer": "Visualizador: puede ver modelos y resultados, pero no puede crear ni editar nada.",
+        "roleEditor": "Editor: puede crear, editar y eliminar modelos y disparadores.",
+        "roleSolver": "Solucionador: puede ejecutar resoluciones y crear modelos (incluye permisos de Visualizador).",
+        "roleAdmin": "Admin: acceso completo, incluidas invitaciones y gestión de la configuración."
       },
       "createWorkspace": "Crear espacio de trabajo",
       "noWorkspaceForMember": "Todavía no estás en ningún espacio de trabajo, y sólo el propietario de la organización puede crear uno. Pídele que te invite."
@@ -1937,13 +1937,13 @@
       "viewMembers": "Ver miembros",
       "membersTitle": "Miembros",
       "inviteMember": "Invitar miembro",
-      "adminRequired": "Necesitas rol de admin para invitar miembros",
+      "adminRequired": "Tu rol ({role}) no permite invitar miembros. Pide al admin del espacio de trabajo el rol de Admin.",
       "workspaceSettings": "Configuración del espacio de trabajo",
       "nameLabel": "Nombre",
       "descriptionLabel": "Descripción",
       "saving": "Guardando...",
       "saveChanges": "Guardar cambios",
-      "adminOnlySettings": "Necesitas rol de admin para gestionar la configuración del espacio de trabajo.",
+      "adminOnlySettings": "Tu rol ({role}) no permite gestionar la configuración del espacio de trabajo. Pide al admin del espacio de trabajo el rol de Admin.",
       "settingsSaved": "Configuración del espacio de trabajo guardada",
       "loadError": "Error al cargar el espacio de trabajo",
       "saveError": "Error al guardar la configuración"
@@ -2471,7 +2471,7 @@
       }
     },
     "layout": {
-      "maintenanceBanner": "El modo de mantenimiento está activo — los usuarios no administradores ven una página de mantenimiento",
+      "maintenanceBanner": "El modo de mantenimiento está activo. Los usuarios no administradores ven una página de mantenimiento",
       "manageSettings": "Gestionar configuración",
       "subtitle": "Panel de Admin",
       "nav": {
@@ -3517,7 +3517,7 @@
       "title": "Automatizaciones",
       "subtitle": "Automatizaciones de eventos HTTP que ejecutan automáticamente versiones fijadas de modelos",
       "newTrigger": "Nuevo trigger",
-      "noPermission": "No tienes permiso para editar.",
+      "noPermission": "Tu rol ({role}) no tiene permiso para gestionar disparadores. Pide al admin del espacio de trabajo el rol de Editor.",
       "noTriggers": "Aún no hay triggers",
       "noTriggersDescription": "Crea tu primer trigger para automatizar resoluciones vía eventos HTTP.",
       "createTrigger": "Crear trigger",
@@ -3545,7 +3545,7 @@
       "subtitle": "Configura un trigger HTTP para ejecutar automáticamente una versión fijada del modelo cuando se llame.",
       "backToTriggers": "Volver a triggers",
       "created": "¡Trigger creado!",
-      "secretWarning": "Tu secreto del trigger se muestra abajo. Esta es la única vez que se mostrará completo - guárdalo de forma segura.",
+      "secretWarning": "Tu secreto del trigger se muestra abajo. Esta es la única vez que se mostrará completo. Guárdalo de forma segura.",
       "secretLabel": "Secreto del trigger (se muestra una vez)",
       "secretCopied": "Secreto del trigger copiado al portapapeles",
       "copyError": "No se pudo copiar al portapapeles",
@@ -3557,7 +3557,7 @@
       "backToTriggers": "Volver a triggers",
       "disable": "Desactivar",
       "enable": "Activar",
-      "noPermission": "No tienes permiso para editar.",
+      "noPermission": "Tu rol ({role}) no tiene permiso para gestionar disparadores. Pide al admin del espacio de trabajo el rol de Editor.",
       "notFound": "Trigger no encontrado",
       "loadError": "Error al cargar el trigger",
       "toggleEnabled": "Trigger {state}",
@@ -3579,8 +3579,8 @@
       "lastFired": "Último disparo",
       "createdAt": "Creado",
       "overrideSchemaTitle": "Esquema de override",
-      "openSchema": "Esquema abierto - se acepta cualquier clave de override",
-      "noOverrides": "Sin esquema de override - los llamantes no pueden pasar override_data",
+      "openSchema": "Esquema abierto. Se acepta cualquier clave de override",
+      "noOverrides": "Sin esquema de override. Los llamantes no pueden pasar override_data",
       "schemaName": "Nombre",
       "schemaType": "Tipo",
       "schemaFieldPath": "Ruta del campo en el modelo",
@@ -3625,7 +3625,7 @@
       "requiredField": "Campo obligatorio",
       "addParameter": "Añadir parámetro",
       "jsonArrayError": "Debe ser un array JSON de campos de override",
-      "jsonSyntaxError": "JSON no válido - revisa la sintaxis e inténtalo de nuevo",
+      "jsonSyntaxError": "JSON no válido. Revisa la sintaxis e inténtalo de nuevo",
       "jsonHelp": "Edita el JSON directamente. Los cambios se aplican al hacer clic fuera de este campo.",
       "noParametersVisual": "Sin parámetros definidos. Cambia al modo Formulario para añadir parámetros.",
       "visualHelp": "Vista general de mapeo de solo lectura. Cambia al modo Formulario o JSON para editar.",
@@ -3752,7 +3752,7 @@
       "webhookInvalid": "La URL del webhook debe ser una URL HTTP/HTTPS válida",
       "creating": "Creando trigger...",
       "createButton": "Crear trigger",
-      "noPermission": "No tienes permiso para editar.",
+      "noPermission": "Tu rol ({role}) no tiene permiso para crear disparadores. Pide al admin del espacio de trabajo el rol de Editor.",
       "createdSuccess": "Trigger creado correctamente",
       "createError": "Error al crear el trigger",
       "loadModelsError": "Error al cargar los modelos",
@@ -3765,15 +3765,15 @@
       "example": "Un shadow price de 3.5 significa que relajar la restricción en 1 unidad mejora el objetivo en 3.5."
     },
     "bindingConstraint": {
-      "definition": "Una restricción que se satisface exactamente en igualdad en la solución óptima — la solución está 'presionada contra' este límite.",
+      "definition": "Una restricción que se cumple exactamente en igualdad en la solución óptima. La solución no deja margen antes de este límite.",
       "example": "Si una restricción de presupuesto es x + y <= 100 y la solución tiene x + y = 100, es binding."
     },
     "slackValue": {
-      "definition": "Cuánto margen queda antes de que una restricción sea binding — holgura cero significa binding.",
+      "definition": "Cuánto margen queda antes de que una restricción sea binding. Holgura cero significa binding.",
       "example": "Si x + y <= 100 y x + y = 80, la holgura es 20."
     },
     "paretoFront": {
-      "definition": "El conjunto de soluciones donde ningún objetivo puede mejorarse sin empeorar otro — cada punto de la curva es igualmente 'óptimo'."
+      "definition": "El conjunto de soluciones donde ningún objetivo puede mejorarse sin empeorar otro. Cada punto de la curva es igualmente óptimo."
     },
     "warmStart": {
       "definition": "Proporcionar una solución factible inicial al solver para que pueda saltar la exploración temprana y converger más rápido."
@@ -3783,7 +3783,7 @@
       "example": "Un producto no fabricado (x = 0) con coste reducido 5 empeoraría el objetivo en 5 por unidad si se forzara su inclusión en el plan."
     },
     "lpRelaxation": {
-      "definition": "Resolver el problema como si las variables enteras pudieran tomar valores fraccionarios — proporciona una cota de la mejor solución entera posible."
+      "definition": "Resolver el problema como si las variables enteras pudieran tomar valores fraccionarios. Proporciona una cota de la mejor solución entera posible."
     },
     "objectiveValue": {
       "definition": "El valor final de la función que se está optimizando (minimizando o maximizando)."
@@ -3793,7 +3793,7 @@
       "example": "Un problema de rutas de entrega formulado con variables de ruta, restricciones de capacidad y un objetivo de minimizar distancia."
     },
     "decisionVariable": {
-      "definition": "Una cantidad que el solver decide — las incógnitas en tu problema de optimización.",
+      "definition": "Una cantidad que el solver decide. Son las incógnitas en tu problema de optimización.",
       "example": "En planificación, x[i][j] = 1 significa que el empleado i trabaja en el turno j."
     },
     "constraint": {
@@ -3801,18 +3801,18 @@
       "example": "Cada empleado trabaja como máximo 40 horas por semana."
     },
     "objective": {
-      "definition": "La meta que quieres optimizar — ya sea minimizar coste o maximizar valor.",
+      "definition": "La meta que quieres optimizar. Es minimizar coste o maximizar valor.",
       "example": "Minimizar el coste total de envío en todas las rutas."
     },
     "feasibility": {
       "definition": "Si una solución satisface todas las restricciones simultáneamente. Una solución factible es aquella que no viola ninguna regla."
     },
     "infeasible": {
-      "definition": "Un problema donde ninguna solución puede satisfacer todas las restricciones a la vez — las reglas se contradicen entre sí.",
+      "definition": "Un problema donde ninguna solución puede satisfacer todas las restricciones a la vez. Las reglas se contradicen entre sí.",
       "example": "Requerir 10 horas de trabajo en un día de 8 horas es infactible."
     },
     "optimal": {
-      "definition": "La mejor solución factible posible — ninguna otra solución logra un mejor valor del objetivo."
+      "definition": "La mejor solución factible posible. Ninguna otra solución logra un mejor valor del objetivo."
     },
     "relaxation": {
       "definition": "Una versión simplificada del problema donde algunas restricciones (a menudo de integralidad) se relajan para encontrar una cota de la mejor solución.",
@@ -4572,8 +4572,8 @@
     "byok": {
       "title": "Tu propia API key de Anthropic",
       "description": "Añade la clave de API de Anthropic de tu organización para ejecutar todas las funciones de IA en tu propia cuenta, independiente del presupuesto compartido de la plataforma.",
-      "active": "Activa — usando tu propia key",
-      "inactive": "Sin configurar — usando el presupuesto de IA compartido de la plataforma.",
+      "active": "Activa, usando tu propia key",
+      "inactive": "Sin configurar. Se usa el presupuesto de IA compartido de la plataforma.",
       "placeholder": "sk-ant-...",
       "save": "Guardar key",
       "saving": "Guardando…",
@@ -4996,7 +4996,7 @@
       "boundTooltip": "Respuesta {objective}, cota {bound}, a {distance} de distancia",
       "timeTitle": "Tiempo total",
       "timeLegend": "La escala es logarítmica: cada paso es diez veces el anterior, así que el largo de la barra no es proporcional al número.",
-      "timeTooltip": "{seconds} — {ratio}× el más rápido",
+      "timeTooltip": "{seconds}, {ratio}× el más rápido",
       "splitTitle": "Buscar frente a construir el modelo",
       "splitLegend": "La parte oscura es la búsqueda del propio solver. El resto es traducir el problema al modelo de ese solver, que es coste de JAOT y no del solver.",
       "splitSearch": "Búsqueda",

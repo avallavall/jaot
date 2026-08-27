@@ -206,7 +206,7 @@
     "jmodelHint": "Schreibe das Modell in JModel (Mengen, Parameter, indizierte Familien). Es wird zum Modell kompiliert und automatisch gespeichert.",
     "jmodelAriaLabel": "Modell als JModel-Quelltext",
     "jmodelInvalid": "Kompilierfehler",
-    "jmodelBlockedGeneric": "Die aktuelle Quelle kompiliert nicht mit den gewählten Daten – das Lösen ist blockiert.",
+    "jmodelBlockedGeneric": "Die aktuelle Quelle kompiliert nicht mit den gewählten Daten. Das Lösen ist blockiert.",
     "jmodelValid": "Gültiges Modell",
     "jmodelCompiling": "Kompiliere…",
     "jmodelStale": "Das Modell wurde anderswo geändert: dieser JModel-Quelltext ist veraltet und nicht angewendet. Neu kompilieren ersetzt das aktuelle Modell.",
@@ -614,7 +614,7 @@
       "welcomeTitle": "Willkommen bei JAOT!",
       "wizardTitle": "Willkommensassistent",
       "wizardDescription": "Ein geführter Assistent, um Ihnen den Einstieg in JAOT zu erleichtern.",
-      "step1Verbose": "JAOT hilft Ihnen bei der Lösung von Optimierungsproblemen – von Terminplanung und Logistik bis hin zu Finanzen und Ressourcenallokation. Teilen Sie uns Ihr Erfahrungsniveau mit, damit wir die Oberfläche für Sie anpassen können.",
+      "step1Verbose": "JAOT hilft Ihnen bei der Lösung von Optimierungsproblemen, von Terminplanung und Logistik bis hin zu Finanzen und Ressourcenallokation. Teilen Sie uns Ihr Erfahrungsniveau mit, damit wir die Oberfläche für Sie anpassen können.",
       "step1Brief": "Teilen Sie uns Ihr Erfahrungsniveau mit, um die Oberfläche anzupassen.",
       "step1Expert": "Wählen Sie Ihr Erfahrungsniveau.",
       "step2Title": "Beschreiben Sie Ihr Problem",
@@ -622,8 +622,8 @@
       "step2Brief": "Beschreibe ein Problem in eigenen Worten, und der KI-Assistent formuliert es. Zum Beispiel:",
       "step2Expert": "Der Assistent formuliert in Worten beschriebene Probleme. Zum Beispiel:",
       "step3Title": "Erstelle dein erstes Modell",
-      "step3Verbose": "Jetzt mit einem eigenen Problem. Öffne das Studio, beschreibe es dem KI-Assistenten, und er macht aus deinen Worten Variablen, Nebenbedingungen und ein Ziel — zum Prüfen, bevor du löst.",
-      "step3Brief": "Öffne das Studio und beschreibe dein eigenes Problem — der Assistent formuliert es zum Prüfen und Lösen.",
+      "step3Verbose": "Jetzt mit einem eigenen Problem. Öffne das Studio, beschreibe es dem KI-Assistenten, und er macht aus deinen Worten Variablen, Nebenbedingungen und ein Ziel. Das kannst du prüfen, bevor du löst.",
+      "step3Brief": "Öffne das Studio und beschreibe dein eigenes Problem. Der Assistent formuliert es zum Prüfen und Lösen.",
       "step3Expert": "Öffne das Studio, um ein Problem mit dem Assistenten zu formulieren.",
       "openAiAssistant": "Modell beginnen",
       "step4Title": "Alles bereit!",
@@ -699,7 +699,7 @@
       "cancelled": "Abgebrochen",
       "timeout": "Zeitüberschreitung"
     },
-    "siteDescription": "Optimierungsmodelle erstellen, nutzen und automatisieren – solver-unabhängig, KI-gestützt, ohne Doktortitel.",
+    "siteDescription": "Optimierungsmodelle erstellen, nutzen und automatisieren. Solver-unabhängig, KI-gestützt, ohne Doktortitel.",
     "breadcrumbsAriaLabel": "Brotkrümelnavigation",
     "tableOfContentsAriaLabel": "Inhaltsverzeichnis",
     "onThisPage": "Auf dieser Seite",
@@ -1029,14 +1029,14 @@
       },
       "section2": {
         "title": "2. Wie wir Ihre Daten speichern",
-        "body": "Ihre Daten werden bei der Übertragung mit TLS verschlüsselt und in unserer mandantenfähigen Architektur pro Organisation logisch isoliert, sodass nur Mitglieder Ihrer Organisation darauf zugreifen können. Besonders sensible Felder – etwa ein gespeicherter KI-Anbieter-Schlüssel – werden zusätzlich im Ruhezustand verschlüsselt. Wenn Sie JAOT selbst hosten, anstatt jaot.io zu nutzen, betreiben Sie Ihre eigene Instanz und handeln als Verantwortlicher für die darin enthaltenen Daten; in diesem Fall beschreibt diese Erklärung nur die gehostete Instanz."
+        "body": "Ihre Daten werden bei der Übertragung mit TLS verschlüsselt und in unserer mandantenfähigen Architektur pro Organisation logisch isoliert, sodass nur Mitglieder Ihrer Organisation darauf zugreifen können. Besonders sensible Felder (etwa ein gespeicherter KI-Anbieter-Schlüssel) werden zusätzlich im Ruhezustand verschlüsselt. Wenn Sie JAOT selbst hosten, anstatt jaot.io zu nutzen, betreiben Sie Ihre eigene Instanz und handeln als Verantwortlicher für die darin enthaltenen Daten; in diesem Fall beschreibt diese Erklärung nur die gehostete Instanz."
       },
       "section3": {
         "title": "3. Dienste von Drittanbietern",
         "intro": "Wir stützen uns auf eine kleine Zahl von Drittanbieter-Diensten, um die gehostete Instanz zu betreiben:",
         "anthropic": "<strong>Anthropic (Claude-API):</strong> betreibt den optionalen KI-Assistenten. Ihre Eingabeaufforderungen und Modellbeschreibungen werden nur dann an Anthropic gesendet, wenn Sie den Assistenten nutzen, und werden gemäß den Bedingungen von Anthropic verarbeitet. Sie können stattdessen Ihren eigenen Anthropic-Schlüssel verwenden.",
         "analytics": "<strong>Plausible Analytics:</strong> ein selbst gehostetes, datenschutzfreundliches Analysetool, das zum Verständnis der aggregierten Nutzung verwendet wird. Es ist cookielos, verfolgt Sie nicht über Websites hinweg und erhebt keine personenbezogenen Daten.",
-        "payments": "<strong>Zahlungen:</strong> JAOT verarbeitet keine Zahlungen — die Plattform ist kostenlos und erhebt keine Zahlungs- oder Abrechnungsdaten.",
+        "payments": "<strong>Zahlungen:</strong> JAOT verarbeitet keine Zahlungen. Die Plattform ist kostenlos und erhebt keine Zahlungs- oder Abrechnungsdaten.",
         "note": "Retrieval, Embeddings und alle Solver-Berechnungen laufen lokal auf dem Dienst und werden an keinen Dritten gesendet."
       },
       "section4": {
@@ -1100,7 +1100,7 @@
       "section5": {
         "title": "5. KI-Assistent",
         "body1": "Der KI-Formulierungsassistent ist optional und bleibt deaktiviert, sofern Sie ihn nicht aktiv nutzen. Wenn Sie ihn nutzen, werden die von Ihnen eingegebenen Eingabeaufforderungen und Modellbeschreibungen an die Claude-API von Anthropic gesendet, um Formulierungen und Erklärungen zu erzeugen, und gemäß den Bedingungen und der Datenschutzerklärung von Anthropic verarbeitet. Wir fügen diesen Anfragen Ihren Namen, Ihre E-Mail-Adresse oder Organisationsdaten nicht hinzu. Wenn Sie den Assistenten nie nutzen, werden keine Ihrer Daten an einen KI-Anbieter gesendet.",
-        "body2": "Sie können in den Einstellungen Ihrer Organisation Ihren eigenen Anthropic-API-Schlüssel angeben („Bring Your Own Key“); Anfragen werden dann Ihrem eigenen Anthropic-Konto in Rechnung gestellt und nicht auf das gemeinsame Assistenten-Budget angerechnet. Die Retrieval- und Embedding-Funktionen, die den Assistenten unterstützen, laufen lokal auf dem Dienst und senden Ihre Daten nicht an Dritte. Wie jedes große Sprachmodell kann der Assistent falsche oder unvollständige Ergebnisse liefern – überprüfen Sie seine Ausgabe stets, bevor Sie sich darauf verlassen."
+        "body2": "Sie können in den Einstellungen Ihrer Organisation Ihren eigenen Anthropic-API-Schlüssel angeben („Bring Your Own Key“); Anfragen werden dann Ihrem eigenen Anthropic-Konto in Rechnung gestellt und nicht auf das gemeinsame Assistenten-Budget angerechnet. Die Retrieval- und Embedding-Funktionen, die den Assistenten unterstützen, laufen lokal auf dem Dienst und senden Ihre Daten nicht an Dritte. Wie jedes große Sprachmodell kann der Assistent falsche oder unvollständige Ergebnisse liefern. Überprüfen Sie seine Ausgabe stets, bevor Sie sich darauf verlassen."
       },
       "section6": {
         "title": "6. Solver-Haftungsausschluss",
@@ -1109,11 +1109,11 @@
       },
       "section7": {
         "title": "7. Eigentum an den Daten",
-        "body": "Sie behalten das volle Eigentum an den von Ihnen erstellten Modellen, Daten und Ergebnissen. Wir speichern Ihre Daten ausschließlich zum Betrieb des Dienstes und verkaufen oder teilen sie nicht mit Dritten, außer wie in unserer Datenschutzerklärung beschrieben. Sie können Ihre Daten jederzeit exportieren oder Ihr Konto dauerhaft löschen – über die Einstellungen Ihres Kontos."
+        "body": "Sie behalten das volle Eigentum an den von Ihnen erstellten Modellen, Daten und Ergebnissen. Wir speichern Ihre Daten ausschließlich zum Betrieb des Dienstes und verkaufen oder teilen sie nicht mit Dritten, außer wie in unserer Datenschutzerklärung beschrieben. Sie können Ihre Daten jederzeit über die Einstellungen Ihres Kontos exportieren oder Ihr Konto dauerhaft löschen."
       },
       "section8": {
         "title": "8. Mandantenfähigkeit",
-        "body": "Der Dienst läuft auf einer mandantenfähigen Architektur. Die Daten jeder Organisation sind logisch isoliert und nur für Mitglieder dieser Organisation zugänglich. Sie können einer Organisation angehören und deren Ressourcen – Modelle, Nutzungskontingent und Ausführungen – mit ihren anderen Mitgliedern teilen."
+        "body": "Der Dienst läuft auf einer mandantenfähigen Architektur. Die Daten jeder Organisation sind logisch isoliert und nur für Mitglieder dieser Organisation zugänglich. Sie können einer Organisation angehören und deren Ressourcen (Modelle, Nutzungskontingent und Ausführungen) mit ihren anderen Mitgliedern teilen."
       },
       "section9": {
         "title": "9. Kündigung",
@@ -1121,7 +1121,7 @@
       },
       "section10": {
         "title": "10. Gewährleistungsausschluss und Haftungsbeschränkung",
-        "body": "Der Dienst wird „wie besehen“ und „wie verfügbar“ bereitgestellt, ohne jegliche ausdrückliche oder stillschweigende Gewährleistung, im Einklang mit der Apache-Lizenz 2.0, unter der die Software vertrieben wird. Im größtmöglichen gesetzlich zulässigen Umfang haften das JAOT-Team und die Betreiber nicht für indirekte, zufällige, besondere, Folge- oder Strafschäden – einschließlich entgangenen Gewinns, verlorener Daten oder Geschäftschancen –, die aus Ihrer Nutzung des Dienstes, aus Solver- oder KI-generierten Ergebnissen oder aus einer Unterbrechung des Dienstes entstehen."
+        "body": "Der Dienst wird „wie besehen“ und „wie verfügbar“ bereitgestellt, ohne jegliche ausdrückliche oder stillschweigende Gewährleistung, im Einklang mit der Apache-Lizenz 2.0, unter der die Software vertrieben wird. Im größtmöglichen gesetzlich zulässigen Umfang haften das JAOT-Team und die Betreiber nicht für indirekte, zufällige, besondere, Folge- oder Strafschäden (einschließlich entgangenen Gewinns, verlorener Daten oder Geschäftschancen), die aus Ihrer Nutzung des Dienstes, aus Solver- oder KI-generierten Ergebnissen oder aus einer Unterbrechung des Dienstes entstehen."
       },
       "section11": {
         "title": "11. Anwendbares Recht",
@@ -1323,7 +1323,7 @@
       "importModel": "Modell importieren",
       "templates": "Vorlagen",
       "newModel": "Neues Modell",
-      "noPermission": "Sie haben keine Berechtigung zum Bearbeiten.",
+      "noPermission": "Ihre Rolle ({role}) darf keine Modelle erstellen. Bitten Sie den Admin des Arbeitsbereichs um eine höhere Rolle.",
       "deleteConfirm": "„{name}“ löschen? Dies kann nicht rückgängig gemacht werden.",
       "deleteDocument": "Dokument löschen",
       "documentDeleted": "Dokument gelöscht.",
@@ -1332,7 +1332,7 @@
       "today": "Heute",
       "yesterday": "Gestern",
       "daysAgo": "Vor {count} Tagen",
-      "importInvalid": "Ungültiges Optimierungsproblem — Variablen oder Ziel fehlen.",
+      "importInvalid": "Ungültiges Optimierungsproblem. Variablen oder Ziel fehlen.",
       "importNotRepresentable": "Dieses Modell lässt sich nicht exakt auf der visuellen Leinwand zeichnen (nichtlineare oder nicht unterstützte Ausdrücke). Importiere es stattdessen in ein Studio-Projekt.",
       "importSuccess": "{count} Knoten importiert.",
       "importParseFailed": "Modelldatei konnte nicht analysiert werden. Unterstützte Formate: JSON, MPS, LP, CIP.",
@@ -1368,11 +1368,11 @@
       "connectToObjective": "Verbinden Sie mindestens eine Variable mit dem Ziel.",
       "invalidProblem": "Ungültiges Problem: {message}",
       "checkModelDefinition": "Überprüfen Sie Ihre Modelldefinition.",
-      "solverError": "Solver-Fehler. Bitte überprüfen Sie Ihr Modell auf Fehler.",
+      "solverError": "Solver-Fehler: {detail}",
       "solveFailed": "Lösung fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "modelSaved": "Modell gespeichert.",
       "saveFailed": "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut.",
-      "importInvalid": "Ungültiges Optimierungsproblem-JSON — Variablen oder Ziel fehlen.",
+      "importInvalid": "Ungültiges Optimierungsproblem-JSON. Variablen oder Ziel fehlen.",
       "importNotRepresentable": "Dieses Modell lässt sich nicht exakt auf der visuellen Leinwand zeichnen (nichtlineare oder nicht unterstützte Ausdrücke). Importiere es stattdessen in ein Studio-Projekt.",
       "importSuccess": "{count} Knoten importiert.",
       "importParseFailed": "JSON-Datei konnte nicht analysiert werden. Stellen Sie sicher, dass es ein gültiges OptimizationProblem ist.",
@@ -1462,7 +1462,7 @@
       "sensitivityAnalysis": "Sensitivitätsanalyse",
       "sensitivityUnavailable": "Sensitivitätsanalyse für diesen Problemtyp nicht verfügbar.",
       "sensitivityNote": "Sensitivitätsdaten werden für lineare Programme und LP-Relaxationen ganzzahliger Programme berechnet.",
-      "statusInfeasible": "Das Problem hat keine zulässige Lösung. Prüfen Sie, ob Ihre Nebenbedingungen nicht widersprüchlich sind — es ist möglicherweise unmöglich, alle Nebenbedingungen gleichzeitig zu erfüllen.",
+      "statusInfeasible": "Das Problem hat keine zulässige Lösung. Prüfen Sie, ob Ihre Nebenbedingungen widersprüchlich sind. Es kann unmöglich sein, alle Nebenbedingungen gleichzeitig zu erfüllen.",
       "statusUnbounded": "Das Ziel kann unbegrenzt verbessert werden. Fügen Sie Ihren Variablen Schranken oder zusätzliche Nebenbedingungen hinzu, um den zulässigen Bereich einzuschränken.",
       "statusTimeLimit": "Der Solver hat das Zeitlimit erreicht, bevor eine nachweislich optimale Lösung gefunden wurde. Das angezeigte Ergebnis ist die bisher beste gefundene Lösung.",
       "statusError": "Der Solver hat einen Fehler festgestellt. Überprüfen Sie Ihre Problemdefinition auf ungültige Ausdrücke oder Variablennamen."
@@ -1527,7 +1527,7 @@
       "addItem": "+ Element hinzufügen",
       "noRows": "Keine Zeilen. Klicken Sie auf „+ Zeile hinzufügen“, um zu beginnen.",
       "noItems": "Keine Elemente. Klicken Sie auf „+ Element hinzufügen“, um zu beginnen.",
-      "invalidInput": "Ungültige Eingabedaten. Bitte überprüfen Sie die Formularwerte.",
+      "invalidInput": "Ungültige Eingabedaten: {detail}",
       "solveFailed": "Lösung fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "fieldRequired": "{field} ist erforderlich",
       "atLeastOneItem": "Mindestens ein Element ist erforderlich",
@@ -1814,7 +1814,7 @@
       "timeHoursAgo": "vor {count} Std.",
       "timeYesterday": "Gestern",
       "timeDaysAgo": "vor {count} Tagen",
-      "adminRequired": "Sie benötigen die Admin-Rolle, um das Audit-Protokoll einzusehen",
+      "adminRequired": "Ihre Rolle ({role}) erlaubt es nicht, das Audit-Protokoll einzusehen. Bitten Sie den Admin des Arbeitsbereichs um die Admin-Rolle.",
       "loadError": "Audit-Protokoll konnte nicht geladen werden",
       "createWorkspace": "Arbeitsbereich erstellen",
       "noWorkspaceForMember": "Sie sind noch in keinem Arbeitsbereich, und nur der Eigentümer der Organisation kann einen anlegen. Bitten Sie ihn um eine Einladung."
@@ -1881,7 +1881,7 @@
       "noWorkspaceDescription": "Wählen Sie zuerst einen Arbeitsbereich, um dessen Teammitglieder zu verwalten.",
       "browseWorkspaces": "Arbeitsbereiche durchsuchen",
       "inviteMember": "Mitglied einladen",
-      "adminRequired": "Sie benötigen die Admin-Rolle, um Mitglieder einzuladen",
+      "adminRequired": "Ihre Rolle ({role}) erlaubt es nicht, Mitglieder einzuladen. Bitten Sie den Admin des Arbeitsbereichs um die Admin-Rolle.",
       "loadError": "Teammitglieder konnten nicht geladen werden",
       "quickStart": {
         "title": "Erste Schritte mit Arbeitsbereichen",
@@ -1892,10 +1892,10 @@
         "howToInviteDescription": "Klicken Sie oben auf „Mitglied Einladen“, um E-Mail-Einladungen zu senden oder einen teilbaren Einladungslink zu generieren. Nur Administratoren können neue Mitglieder einladen.",
         "roles": "Rollen und Berechtigungen",
         "rolesDescription": "Jedes Mitglied hat eine Rolle, die bestimmt, was es tun kann:",
-        "roleViewer": "Betrachter -- Kann Modelle und Ergebnisse einsehen, aber nichts erstellen oder bearbeiten.",
-        "roleEditor": "Editor -- Kann Modelle und Trigger erstellen, bearbeiten und löschen.",
-        "roleSolver": "Solver -- Kann Lösungen ausführen und Modelle erstellen (beinhaltet Betrachter-Berechtigungen).",
-        "roleAdmin": "Admin -- Voller Zugriff, einschließlich Einladungen und Verwaltung der Einstellungen."
+        "roleViewer": "Betrachter: kann Modelle und Ergebnisse einsehen, aber nichts erstellen oder bearbeiten.",
+        "roleEditor": "Editor: kann Modelle und Trigger erstellen, bearbeiten und löschen.",
+        "roleSolver": "Solver: kann Lösungen ausführen und Modelle erstellen (beinhaltet Betrachter-Berechtigungen).",
+        "roleAdmin": "Admin: voller Zugriff, einschließlich Einladungen und Verwaltung der Einstellungen."
       },
       "createWorkspace": "Arbeitsbereich erstellen",
       "noWorkspaceForMember": "Sie sind noch in keinem Arbeitsbereich, und nur der Eigentümer der Organisation kann einen anlegen. Bitten Sie ihn um eine Einladung."
@@ -1937,13 +1937,13 @@
       "viewMembers": "Mitglieder anzeigen",
       "membersTitle": "Mitglieder",
       "inviteMember": "Mitglied einladen",
-      "adminRequired": "Sie benötigen die Admin-Rolle, um Mitglieder einzuladen",
+      "adminRequired": "Ihre Rolle ({role}) erlaubt es nicht, Mitglieder einzuladen. Bitten Sie den Admin des Arbeitsbereichs um die Admin-Rolle.",
       "workspaceSettings": "Arbeitsbereich-Einstellungen",
       "nameLabel": "Name",
       "descriptionLabel": "Beschreibung",
       "saving": "Wird gespeichert...",
       "saveChanges": "Änderungen speichern",
-      "adminOnlySettings": "Sie benötigen die Admin-Rolle, um Arbeitsbereich-Einstellungen zu verwalten.",
+      "adminOnlySettings": "Ihre Rolle ({role}) erlaubt es nicht, die Einstellungen des Arbeitsbereichs zu verwalten. Bitten Sie den Admin des Arbeitsbereichs um die Admin-Rolle.",
       "settingsSaved": "Arbeitsbereich-Einstellungen gespeichert",
       "loadError": "Arbeitsbereich konnte nicht geladen werden",
       "saveError": "Einstellungen konnten nicht gespeichert werden"
@@ -2471,7 +2471,7 @@
       }
     },
     "layout": {
-      "maintenanceBanner": "Wartungsmodus ist aktiv — Nicht-Admin-Benutzer sehen eine Wartungsseite",
+      "maintenanceBanner": "Wartungsmodus ist aktiv. Nicht-Admin-Benutzer sehen eine Wartungsseite",
       "manageSettings": "Einstellungen verwalten",
       "subtitle": "Admin-Bereich",
       "nav": {
@@ -3517,7 +3517,7 @@
       "title": "Trigger",
       "subtitle": "HTTP-Ereignis-Trigger, die automatisch gepinnte Modellversionen ausführen",
       "newTrigger": "Neuer Trigger",
-      "noPermission": "Sie haben keine Berechtigung zum Bearbeiten.",
+      "noPermission": "Ihre Rolle ({role}) darf keine Trigger verwalten. Bitten Sie den Admin des Arbeitsbereichs um die Editor-Rolle.",
       "noTriggers": "Noch keine Trigger",
       "noTriggersDescription": "Erstellen Sie Ihren ersten Trigger, um Lösungen über HTTP-Ereignisse zu automatisieren.",
       "createTrigger": "Trigger erstellen",
@@ -3545,7 +3545,7 @@
       "subtitle": "Richten Sie einen HTTP-Trigger ein, um automatisch eine gepinnte Modellversion auszuführen, wenn er aufgerufen wird.",
       "backToTriggers": "Zurück zu Trigger",
       "created": "Trigger erstellt!",
-      "secretWarning": "Ihr Trigger-Geheimnis wird unten angezeigt. Es wird nur dieses eine Mal vollständig angezeigt – speichern Sie es sicher.",
+      "secretWarning": "Ihr Trigger-Geheimnis wird unten angezeigt. Es wird nur dieses eine Mal vollständig angezeigt. Speichern Sie es sicher.",
       "secretLabel": "Trigger-Geheimnis (einmalig angezeigt)",
       "secretCopied": "Trigger-Geheimnis in die Zwischenablage kopiert",
       "copyError": "Konnte nicht in die Zwischenablage kopieren",
@@ -3557,7 +3557,7 @@
       "backToTriggers": "Zurück zu Trigger",
       "disable": "Deaktivieren",
       "enable": "Aktivieren",
-      "noPermission": "Sie haben keine Berechtigung zum Bearbeiten.",
+      "noPermission": "Ihre Rolle ({role}) darf keine Trigger verwalten. Bitten Sie den Admin des Arbeitsbereichs um die Editor-Rolle.",
       "notFound": "Trigger nicht gefunden",
       "loadError": "Trigger konnte nicht geladen werden",
       "toggleEnabled": "Trigger {state}",
@@ -3579,8 +3579,8 @@
       "lastFired": "Zuletzt ausgelöst",
       "createdAt": "Erstellt am",
       "overrideSchemaTitle": "Überschreibungsschema",
-      "openSchema": "Offenes Schema – beliebige Überschreibungsschlüssel werden akzeptiert",
-      "noOverrides": "Kein Überschreibungsschema – Aufrufer können keine override_data übergeben",
+      "openSchema": "Offenes Schema. Beliebige Überschreibungsschlüssel werden akzeptiert",
+      "noOverrides": "Kein Überschreibungsschema. Aufrufer können keine override_data übergeben",
       "schemaName": "Name",
       "schemaType": "Typ",
       "schemaFieldPath": "Modell-Feldpfad",
@@ -3625,7 +3625,7 @@
       "requiredField": "Pflichtfeld",
       "addParameter": "Parameter hinzufügen",
       "jsonArrayError": "Muss ein JSON-Array von Überschreibungsfeldern sein",
-      "jsonSyntaxError": "Ungültiges JSON – überprüfen Sie die Syntax und versuchen Sie es erneut",
+      "jsonSyntaxError": "Ungültiges JSON. Überprüfen Sie die Syntax und versuchen Sie es erneut",
       "jsonHelp": "JSON direkt bearbeiten. Änderungen werden übernommen, wenn Sie außerhalb dieses Feldes klicken.",
       "noParametersVisual": "Keine Parameter definiert. Wechseln Sie zum Formular-Modus, um Parameter hinzuzufügen.",
       "visualHelp": "Schreibgeschützte Zuordnungsübersicht. Wechseln Sie zum Formular- oder JSON-Modus zum Bearbeiten.",
@@ -3732,7 +3732,7 @@
       "pinnedVersion": "Gepinnte Modellversion",
       "modelLabel": "Modell *",
       "loadingModels": "Modelle werden geladen...",
-      "noModels": "Noch kein Modell bereit. Erstelle eines im <link>Studio</link> und committe eine Version — ein Trigger führt immer eine committete Version aus, nie einen Entwurf.",
+      "noModels": "Noch kein Modell bereit. Erstelle eines im <link>Studio</link> und committe eine Version. Ein Trigger führt immer eine committete Version aus, nie einen Entwurf.",
       "selectModel": "Modell auswählen...",
       "versionLabel": "Version *",
       "loadingVersions": "Versionen werden geladen...",
@@ -3752,7 +3752,7 @@
       "webhookInvalid": "Webhook-URL muss eine gültige HTTP/HTTPS-URL sein",
       "creating": "Trigger wird erstellt...",
       "createButton": "Trigger erstellen",
-      "noPermission": "Sie haben keine Berechtigung zum Bearbeiten.",
+      "noPermission": "Ihre Rolle ({role}) darf keine Trigger erstellen. Bitten Sie den Admin des Arbeitsbereichs um die Editor-Rolle.",
       "createdSuccess": "Trigger erfolgreich erstellt",
       "createError": "Trigger konnte nicht erstellt werden",
       "loadModelsError": "Modelle konnten nicht geladen werden",
@@ -3765,15 +3765,15 @@
       "example": "Ein Schattenpreis von 3,5 bedeutet, dass die Lockerung der Nebenbedingung um 1 Einheit den Zielwert um 3,5 verbessert."
     },
     "bindingConstraint": {
-      "definition": "Eine Nebenbedingung, die in der optimalen Lösung exakt als Gleichung erfüllt ist — die Lösung liegt an dieser Grenze.",
+      "definition": "Eine Nebenbedingung, die in der optimalen Lösung exakt als Gleichung erfüllt ist. Die Lösung lässt vor dieser Grenze keinen Spielraum.",
       "example": "Wenn eine Budgetbedingung x + y <= 100 ist und die Lösung x + y = 100 ergibt, ist sie bindend."
     },
     "slackValue": {
-      "definition": "Wie viel Spielraum verbleibt, bevor eine Nebenbedingung bindend wird — Null-Schlupf bedeutet bindend.",
+      "definition": "Wie viel Spielraum verbleibt, bevor eine Nebenbedingung bindend wird. Null-Schlupf bedeutet bindend.",
       "example": "Wenn x + y <= 100 und x + y = 80, beträgt der Schlupf 20."
     },
     "paretoFront": {
-      "definition": "Die Menge der Lösungen, bei denen kein Ziel verbessert werden kann, ohne ein anderes zu verschlechtern — jeder Punkt auf der Kurve ist gleichermaßen ‚optimal'."
+      "definition": "Die Menge der Lösungen, bei denen kein Ziel verbessert werden kann, ohne ein anderes zu verschlechtern. Jeder Punkt auf der Kurve ist gleichermaßen optimal."
     },
     "warmStart": {
       "definition": "Bereitstellung einer anfänglichen zulässigen Lösung für den Solver, damit er die frühe Erkundung überspringen und schneller konvergieren kann."
@@ -3783,7 +3783,7 @@
       "example": "Ein nicht produziertes Produkt (x = 0) mit reduzierten Kosten 5 würde das Ziel um 5 pro Einheit verschlechtern, wenn es in den Plan gezwungen würde."
     },
     "lpRelaxation": {
-      "definition": "Lösung des Problems, als ob ganzzahlige Variablen auch Bruchwerte annehmen könnten — liefert eine Schranke für die bestmögliche ganzzahlige Lösung."
+      "definition": "Lösung des Problems, als ob ganzzahlige Variablen auch Bruchwerte annehmen könnten. Das liefert eine Schranke für die bestmögliche ganzzahlige Lösung."
     },
     "objectiveValue": {
       "definition": "Der Endwert der zu optimierenden Funktion (minimiert oder maximiert)."
@@ -3793,7 +3793,7 @@
       "example": "Ein Lieferroutenproblem, formuliert mit Routenvariablen, Kapazitätsbedingungen und einem Abstandsminimierungsziel."
     },
     "decisionVariable": {
-      "definition": "Eine Größe, die der Solver bestimmt — die Unbekannten in Ihrem Optimierungsproblem.",
+      "definition": "Eine Größe, die der Solver bestimmt. Das sind die Unbekannten in Ihrem Optimierungsproblem.",
       "example": "Bei der Schichtplanung bedeutet x[i][j] = 1, dass Mitarbeiter i Schicht j arbeitet."
     },
     "constraint": {
@@ -3801,18 +3801,18 @@
       "example": "Jeder Mitarbeiter arbeitet höchstens 40 Stunden pro Woche."
     },
     "objective": {
-      "definition": "Das Ziel, das Sie optimieren möchten — entweder Kosten minimieren oder Wert maximieren.",
+      "definition": "Das Ziel, das Sie optimieren möchten. Entweder Kosten minimieren oder Wert maximieren.",
       "example": "Gesamtversandkosten über alle Routen minimieren."
     },
     "feasibility": {
       "definition": "Ob eine Lösung alle Nebenbedingungen gleichzeitig erfüllt. Eine zulässige Lösung verletzt keine Regeln."
     },
     "infeasible": {
-      "definition": "Ein Problem, bei dem keine Lösung alle Nebenbedingungen gleichzeitig erfüllen kann — die Regeln widersprechen sich.",
+      "definition": "Ein Problem, bei dem keine Lösung alle Nebenbedingungen gleichzeitig erfüllen kann. Die Regeln widersprechen sich.",
       "example": "10 Arbeitsstunden in einem 8-Stunden-Tag zu verlangen ist unzulässig."
     },
     "optimal": {
-      "definition": "Die bestmögliche zulässige Lösung — keine andere Lösung erzielt einen besseren Zielwert."
+      "definition": "Die bestmögliche zulässige Lösung. Keine andere Lösung erzielt einen besseren Zielwert."
     },
     "relaxation": {
       "definition": "Eine vereinfachte Version des Problems, bei der einige Nebenbedingungen (oft Ganzzahligkeit) gelockert werden, um eine Schranke für die beste Lösung zu finden.",
@@ -4572,8 +4572,8 @@
     "byok": {
       "title": "Dein eigener Anthropic-API-Schlüssel",
       "description": "Füge den Anthropic-API-Schlüssel deiner Organisation hinzu, um alle KI-Funktionen über dein eigenes Konto auszuführen, unabhängig vom gemeinsamen Budget der Plattform.",
-      "active": "Aktiv — mit deinem eigenen Schlüssel",
-      "inactive": "Nicht gesetzt — nutzt das geteilte KI-Budget der Plattform.",
+      "active": "Aktiv, mit deinem eigenen Schlüssel",
+      "inactive": "Nicht gesetzt. Es wird das geteilte KI-Budget der Plattform genutzt.",
       "placeholder": "sk-ant-...",
       "save": "Schlüssel speichern",
       "saving": "Speichern…",
@@ -4706,7 +4706,7 @@
   },
   "contact": {
     "title": "Kontakt aufnehmen",
-    "subtitle": "Haben Sie eine Frage, Rückmeldung oder Partnerschaftsidee? Schreiben Sie uns — wir melden uns zurück.",
+    "subtitle": "Haben Sie eine Frage, Rückmeldung oder Partnerschaftsidee? Schreiben Sie uns. Wir melden uns zurück.",
     "form": {
       "fields": {
         "name": {
@@ -4802,7 +4802,7 @@
       "funnelAdoptions": "Übernahmen",
       "trendTitle": "Aufrufe pro Tag",
       "trendEmpty": "Ein Trend braucht mindestens zwei Tage mit Aktivität; bisher sind es {days}.",
-      "trendClipped": "Gezeigt werden die letzten {days} Tage — ältere Aktivität steckt in den Summen oben, das Diagramm kann sie aber nicht lesbar darstellen.",
+      "trendClipped": "Gezeigt werden die letzten {days} Tage. Ältere Aktivität steckt in den Summen oben, das Diagramm kann sie aber nicht lesbar darstellen.",
       "geoTitle": "Woher deine Besuche kommen",
       "geoEmpty": "In diesem Zeitraum keine Besuche erfasst.",
       "geoSingle": "Alle erfassten Besuche ({count}) kommen aus einem einzigen Land: {country}.",
@@ -4847,7 +4847,7 @@
     },
     "listings": {
       "emptyTitle": "Du hast noch nichts veröffentlicht",
-      "emptyBody": "Veröffentliche ein Modell aus dem Studio, dann erscheint es hier — mit Übernahmen und Rezensionen.",
+      "emptyBody": "Veröffentliche ein Modell aus dem Studio, dann erscheint es hier, mit Übernahmen und Rezensionen.",
       "emptyCta": "Zu meinen Modellen",
       "colModel": "Modell",
       "colStatus": "Status",
@@ -4996,7 +4996,7 @@
       "boundTooltip": "Antwort {objective}, Schranke {bound}, {distance} Abstand",
       "timeTitle": "Gesamtzeit",
       "timeLegend": "Die Skala ist logarithmisch: jeder Schritt ist das Zehnfache des vorigen, die Balkenlänge ist also nicht proportional zur Zahl.",
-      "timeTooltip": "{seconds} — {ratio}× der schnellste",
+      "timeTooltip": "{seconds}, {ratio}× der schnellste",
       "splitTitle": "Suchen gegen Modell aufbauen",
       "splitLegend": "Der dunkle Teil ist die Suche des Solvers. Der Rest ist die Übersetzung des Problems in das Modell dieses Solvers, und das sind Kosten von JAOT, nicht vom Solver.",
       "splitSearch": "Suche",

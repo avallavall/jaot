@@ -614,7 +614,7 @@
       "welcomeTitle": "Welcome to JAOT!",
       "wizardTitle": "Welcome Wizard",
       "wizardDescription": "A guided wizard to help you get started with JAOT.",
-      "step1Verbose": "JAOT helps you solve optimization problems -- from scheduling and logistics to finance and resource allocation. Let us know your experience level so we can tailor the interface for you.",
+      "step1Verbose": "JAOT helps you solve optimization problems, from scheduling and logistics to finance and resource allocation. Let us know your experience level so we can tailor the interface for you.",
       "step1Brief": "Tell us your experience level to customize the interface.",
       "step1Expert": "Select your experience level.",
       "step2Title": "Describe your problem",
@@ -623,7 +623,7 @@
       "step2Expert": "The assistant formulates plain-language problems. For example:",
       "step3Title": "Start your first model",
       "step3Verbose": "Now do it with a problem of your own. Open the studio, describe it to the AI assistant, and it will turn your words into variables, constraints and an objective for you to review before solving.",
-      "step3Brief": "Open the studio and describe your own problem — the assistant formulates it for you to review and solve.",
+      "step3Brief": "Open the studio and describe your own problem. The assistant formulates it for you to review and solve.",
       "step3Expert": "Open the studio to formulate a problem with the assistant.",
       "openAiAssistant": "Start a model",
       "step4Title": "You're all set!",
@@ -699,7 +699,7 @@
       "cancelled": "Cancelled",
       "timeout": "Timeout"
     },
-    "siteDescription": "Build, use, and automate optimization models — solver-agnostic, AI-assisted, no PhD required.",
+    "siteDescription": "Build, use, and automate optimization models. Solver-agnostic, AI-assisted, no PhD required.",
     "breadcrumbsAriaLabel": "Breadcrumbs",
     "tableOfContentsAriaLabel": "Table of contents",
     "onThisPage": "On this page",
@@ -1065,14 +1065,14 @@
       },
       "section2": {
         "title": "2. How We Store Your Data",
-        "body": "Your data is encrypted in transit using TLS and is logically isolated per organization in our multi-tenant architecture, so only members of your organization can access it. Particularly sensitive fields — such as a stored AI provider key — are additionally encrypted at rest. If you self-host JAOT instead of using jaot.io, you run your own instance and act as the data controller for the data it holds; this policy then describes only the hosted instance."
+        "body": "Your data is encrypted in transit using TLS and is logically isolated per organization in our multi-tenant architecture, so only members of your organization can access it. Particularly sensitive fields (such as a stored AI provider key) are additionally encrypted at rest. If you self-host JAOT instead of using jaot.io, you run your own instance and act as the data controller for the data it holds; this policy then describes only the hosted instance."
       },
       "section3": {
         "title": "3. Third-Party Services",
         "intro": "We rely on a small number of third-party services to operate the hosted instance:",
         "anthropic": "<strong>Anthropic (Claude API):</strong> powers the optional AI assistant. Your prompts and model descriptions are sent to Anthropic only when you use the assistant, and are processed under Anthropic’s terms. You can use your own Anthropic key instead.",
         "analytics": "<strong>Plausible Analytics:</strong> a privacy-friendly, self-hosted analytics tool used to understand aggregate usage. It is cookieless, does not track you across sites, and does not collect personal data.",
-        "payments": "<strong>Payments:</strong> JAOT processes no payments — the platform is free and collects no payment or billing data.",
+        "payments": "<strong>Payments:</strong> JAOT processes no payments. The platform is free and collects no payment or billing data.",
         "note": "Retrieval, embeddings, and all solver computations run locally on the Service and are not sent to any third party."
       },
       "section4": {
@@ -1113,7 +1113,7 @@
       "lastUpdated": "Last updated: June 27, 2026",
       "section1": {
         "title": "1. Acceptance of Terms",
-        "body": "These Terms of Service govern your use of the JAOT instance hosted at jaot.io, operated by the JAOT team (“we”, “us”, “the Service”). By accessing or using this instance, you agree to be bound by these Terms; if you do not agree, do not use it. JAOT is open-source software released under the Apache License 2.0 — if you run your own instance, your use of the software is governed by that license and these Terms do not apply to you, as you act as your own operator. These Terms apply to all users of the hosted instance, whether individuals or organizations."
+        "body": "These Terms of Service govern your use of the JAOT instance hosted at jaot.io, operated by the JAOT team (“we”, “us”, “the Service”). By accessing or using this instance, you agree to be bound by these Terms; if you do not agree, do not use it. JAOT is open-source software released under the Apache License 2.0: if you run your own instance, your use of the software is governed by that license and these Terms do not apply to you, as you act as your own operator. These Terms apply to all users of the hosted instance, whether individuals or organizations."
       },
       "section2": {
         "title": "2. Description of Service",
@@ -1136,7 +1136,7 @@
       "section5": {
         "title": "5. AI Assistant",
         "body1": "The AI formulation assistant is optional and stays disabled unless you choose to use it. When you use it, the prompts and model descriptions you submit are sent to Anthropic’s Claude API to generate formulations and explanations, and are processed under Anthropic’s terms and privacy policy. We do not include your name, email, or organization details in these requests. If you never use the assistant, none of your data is sent to any AI provider.",
-        "body2": "You may provide your own Anthropic API key (“bring your own key”) in your organization settings; requests are then billed to your own Anthropic account and do not count against the shared assistant budget. Any retrieval and embedding features that support the assistant run locally on the Service and do not send your data to third parties. Like any large language model, the assistant can produce incorrect or incomplete results — always review its output before relying on it."
+        "body2": "You may provide your own Anthropic API key (“bring your own key”) in your organization settings; requests are then billed to your own Anthropic account and do not count against the shared assistant budget. Any retrieval and embedding features that support the assistant run locally on the Service and do not send your data to third parties. Like any large language model, the assistant can produce incorrect or incomplete results. Always review its output before relying on it."
       },
       "section6": {
         "title": "6. Solver Disclaimer",
@@ -1149,7 +1149,7 @@
       },
       "section8": {
         "title": "8. Multi-Tenancy",
-        "body": "The Service runs on a multi-tenant architecture. Each organization’s data is logically isolated and accessible only to members of that organization. You may belong to an organization and share its resources — models, usage quota, and executions — with its other members."
+        "body": "The Service runs on a multi-tenant architecture. Each organization’s data is logically isolated and accessible only to members of that organization. You may belong to an organization and share its resources (models, usage quota, and executions) with its other members."
       },
       "section9": {
         "title": "9. Termination",
@@ -1157,7 +1157,7 @@
       },
       "section10": {
         "title": "10. Disclaimer of Warranty and Limitation of Liability",
-        "body": "The Service is provided “as is” and “as available”, without warranties of any kind, whether express or implied, consistent with the Apache License 2.0 under which the software is distributed. To the maximum extent permitted by law, the JAOT team and operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages — including loss of profits, data, or business opportunities — arising from your use of the Service, from solver or AI-generated results, or from any interruption of the Service."
+        "body": "The Service is provided “as is” and “as available”, without warranties of any kind, whether express or implied, consistent with the Apache License 2.0 under which the software is distributed. To the maximum extent permitted by law, the JAOT team and operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages (including loss of profits, data, or business opportunities) arising from your use of the Service, from solver or AI-generated results, or from any interruption of the Service."
       },
       "section11": {
         "title": "11. Governing Law",
@@ -1332,7 +1332,7 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "daysAgo": "{count} days ago",
-      "importInvalid": "Invalid optimization problem — missing variables or objective.",
+      "importInvalid": "Invalid optimization problem. Variables or objective are missing.",
       "importNotRepresentable": "This model can't be drawn exactly on the visual canvas (nonlinear or unsupported expressions). Import it into a studio project instead.",
       "importSuccess": "Imported {count} nodes.",
       "importParseFailed": "Could not parse the model file. Supported formats: JSON, MPS, LP, CIP.",
@@ -1374,7 +1374,7 @@
       "solveFailed": "Failed to solve. Please try again.",
       "modelSaved": "Model saved.",
       "saveFailed": "Failed to save. Please try again.",
-      "importInvalid": "Invalid optimization problem JSON — missing variables or objective.",
+      "importInvalid": "Invalid optimization problem JSON. Variables or objective are missing.",
       "importNotRepresentable": "This model can't be drawn exactly on the visual canvas (nonlinear or unsupported expressions). Import it into a studio project instead.",
       "importSuccess": "Imported {count} nodes.",
       "importParseFailed": "Could not parse JSON file. Ensure it is a valid OptimizationProblem.",
@@ -1398,11 +1398,11 @@
     "onboarding": {
       "ariaLabel": "Builder tutorial",
       "step1Title": "Define Your Objective",
-      "step1Description": "Start by defining what you want to optimize — minimize costs, maximize profit, etc. The purple Objective node is your starting point.",
+      "step1Description": "Start by defining what you want to optimize: minimize costs, maximize profit, etc. The purple Objective node is your starting point.",
       "step2Title": "Add Variables",
       "step2Description": "Add decision variables that the solver will determine. Drag them from this palette onto the canvas, then set their types and bounds.",
       "step3Title": "Set Constraints",
-      "step3Description": "Define the rules your solution must follow — budgets, capacities, requirements. Connect variables to constraints and the objective.",
+      "step3Description": "Define the rules your solution must follow: budgets, capacities, requirements. Connect variables to constraints and the objective.",
       "step4Title": "Solve & Analyze",
       "step4Description": "Run the solver to find the optimal solution. View results, check variable values, and adjust your model as needed.",
       "skip": "Skip",
@@ -1462,7 +1462,7 @@
       "sensitivityAnalysis": "Sensitivity Analysis",
       "sensitivityUnavailable": "Sensitivity analysis not available for this problem type.",
       "sensitivityNote": "Sensitivity data is computed for linear programs and LP relaxations of integer programs.",
-      "statusInfeasible": "The problem has no feasible solution. Check that your constraints are not contradictory — it may be impossible to satisfy all constraints simultaneously.",
+      "statusInfeasible": "The problem has no feasible solution. Check that your constraints are not contradictory. It may be impossible to satisfy all constraints at once.",
       "statusUnbounded": "The objective can be improved without bound. Add bounds to your variables or additional constraints to restrict the feasible region.",
       "statusTimeLimit": "The solver reached the time limit before finding a proven optimal solution. The result shown is the best solution found so far.",
       "statusError": "The solver encountered an error. Check your problem definition for invalid expressions or variable names."
@@ -1893,10 +1893,10 @@
         "howToInviteDescription": "Click \"Invite Member\" above to send email invitations or generate a shareable invite link. Only admins can invite new members.",
         "roles": "Roles and permissions",
         "rolesDescription": "Each member has a role that controls what they can do:",
-        "roleViewer": "Viewer -- Can view models and results, but cannot create or edit anything.",
-        "roleEditor": "Editor -- Can create, edit, and delete models and triggers.",
-        "roleSolver": "Solver -- Can run solves and create models (includes Viewer permissions).",
-        "roleAdmin": "Admin -- Full access including inviting members and managing settings."
+        "roleViewer": "Viewer: can view models and results, but cannot create or edit anything.",
+        "roleEditor": "Editor: can create, edit, and delete models and triggers.",
+        "roleSolver": "Solver: can run solves and create models (includes Viewer permissions).",
+        "roleAdmin": "Admin: full access including inviting members and managing settings."
       },
       "noWorkspaceForMember": "You are not in a workspace yet, and only the organisation owner can create one. Ask them to invite you."
     },
@@ -2471,7 +2471,7 @@
       }
     },
     "layout": {
-      "maintenanceBanner": "Maintenance mode is active — non-admin users see a maintenance page",
+      "maintenanceBanner": "Maintenance mode is active. Non-admin users see a maintenance page",
       "manageSettings": "Manage Settings",
       "subtitle": "Admin Panel",
       "nav": {
@@ -3545,7 +3545,7 @@
       "subtitle": "Set up an HTTP trigger to automatically run a pinned model version when called.",
       "backToTriggers": "Back to Triggers",
       "created": "Trigger Created!",
-      "secretWarning": "Your trigger secret is shown below. This is the only time it will be displayed in full - store it securely.",
+      "secretWarning": "Your trigger secret is shown below. This is the only time it will be displayed in full. Store it securely.",
       "secretLabel": "Trigger Secret (shown once)",
       "secretCopied": "Trigger secret copied to clipboard",
       "copyError": "Could not copy to clipboard",
@@ -3579,8 +3579,8 @@
       "lastFired": "Last Fired",
       "createdAt": "Created",
       "overrideSchemaTitle": "Override Schema",
-      "openSchema": "Open schema - any override keys are accepted",
-      "noOverrides": "No override schema - callers cannot pass override_data",
+      "openSchema": "Open schema. Any override keys are accepted",
+      "noOverrides": "No override schema. Callers cannot pass override_data",
       "schemaName": "Name",
       "schemaType": "Type",
       "schemaFieldPath": "Model Field Path",
@@ -3625,7 +3625,7 @@
       "requiredField": "Required field",
       "addParameter": "Add Parameter",
       "jsonArrayError": "Must be a JSON array of override fields",
-      "jsonSyntaxError": "Invalid JSON - check syntax and try again",
+      "jsonSyntaxError": "Invalid JSON. Check syntax and try again",
       "jsonHelp": "Edit JSON directly. Changes are applied when you click outside this field.",
       "noParametersVisual": "No parameters defined. Switch to Form mode to add parameters.",
       "visualHelp": "Read-only mapping overview. Switch to Form or JSON mode to edit.",
@@ -3732,7 +3732,7 @@
       "pinnedVersion": "Pinned Model Version",
       "modelLabel": "Model *",
       "loadingModels": "Loading models...",
-      "noModels": "No models ready yet. Build one in the <link>studio</link> and commit a version — a trigger always fires a committed version, never a draft.",
+      "noModels": "No models ready yet. Build one in the <link>studio</link> and commit a version. A trigger always fires a committed version, never a draft.",
       "selectModel": "Select a model...",
       "versionLabel": "Version *",
       "loadingVersions": "Loading versions...",
@@ -3765,15 +3765,15 @@
       "example": "A shadow price of 3.5 means relaxing the constraint by 1 unit improves the objective by 3.5."
     },
     "bindingConstraint": {
-      "definition": "A constraint that is satisfied exactly at equality in the optimal solution — the solution is 'pressed against' this limit.",
+      "definition": "A constraint that holds exactly at equality in the optimal solution. The solution has no room left before this limit.",
       "example": "If a budget constraint is x + y <= 100 and the solution has x + y = 100, it is binding."
     },
     "slackValue": {
-      "definition": "How much room remains before a constraint becomes binding — zero slack means binding.",
+      "definition": "How much room remains before a constraint becomes binding. Zero slack means binding.",
       "example": "If x + y <= 100 and x + y = 80, the slack is 20."
     },
     "paretoFront": {
-      "definition": "The set of solutions where no objective can be improved without worsening another — every point on the curve is equally 'optimal'."
+      "definition": "The set of solutions where no objective can be improved without worsening another. Every point on the curve is equally optimal."
     },
     "warmStart": {
       "definition": "Providing an initial feasible solution to the solver so it can skip early exploration and converge faster."
@@ -3783,7 +3783,7 @@
       "example": "A product not produced (x = 0) with reduced cost 5 would worsen the objective by 5 per unit if forced into the plan."
     },
     "lpRelaxation": {
-      "definition": "Solving the problem as if integer variables could take fractional values — gives a bound on the best possible integer solution."
+      "definition": "Solving the problem as if integer variables could take fractional values. It gives a bound on the best possible integer solution."
     },
     "objectiveValue": {
       "definition": "The final value of the function being optimized (minimized or maximized)."
@@ -3793,7 +3793,7 @@
       "example": "A delivery routing problem formulated with route variables, capacity constraints, and a minimize-distance objective."
     },
     "decisionVariable": {
-      "definition": "A quantity the solver decides — the unknowns in your optimization problem.",
+      "definition": "A quantity the solver decides. These are the unknowns in your optimization problem.",
       "example": "In scheduling, x[i][j] = 1 means employee i works shift j."
     },
     "constraint": {
@@ -3801,18 +3801,18 @@
       "example": "Each employee works at most 40 hours per week."
     },
     "objective": {
-      "definition": "The goal you want to optimize — either minimize cost or maximize value.",
+      "definition": "The goal you want to optimize. It is either to minimize cost or to maximize value.",
       "example": "Minimize total shipping cost across all routes."
     },
     "feasibility": {
       "definition": "Whether a solution satisfies all constraints simultaneously. A feasible solution is one that breaks no rules."
     },
     "infeasible": {
-      "definition": "A problem where no solution can satisfy all constraints at once — the rules contradict each other.",
+      "definition": "A problem where no solution can satisfy all constraints at once. The rules contradict each other.",
       "example": "Requiring 10 hours of work in an 8-hour day is infeasible."
     },
     "optimal": {
-      "definition": "The best possible feasible solution — no other solution achieves a better objective value."
+      "definition": "The best possible feasible solution. No other solution achieves a better objective value."
     },
     "relaxation": {
       "definition": "A simplified version of the problem where some constraints (often integrality) are loosened to find a bound on the best solution.",
@@ -3931,8 +3931,8 @@
     "constraint_satisfaction_demo": {
       "displayName": "Constraint Satisfaction",
       "shortDescription": "Find any feasible solution that satisfies all constraints, with no optimization objective.",
-      "description": "A pure feasibility problem -- the solver finds any assignment of variables that satisfies all constraints, without trying to optimize anything. Useful for timetabling, puzzle-solving (e.g., Sudoku), configuration problems, or verifying that a set of business rules is satisfiable. If no feasible solution exists, the solver reports infeasibility. Use this template to check whether your constraints are consistent before adding an objective.\n",
-      "scenarioDescription": "A conference organiser needs to assign 4 speakers to 4 time slots. Each speaker has blackout times. The organiser does not care which slot each speaker gets -- only that every speaker is scheduled and no slot is double-booked.\n",
+      "description": "A pure feasibility problem. The solver finds any assignment of variables that satisfies all constraints, without trying to optimize anything. Useful for timetabling, puzzle-solving (e.g., Sudoku), configuration problems, or verifying that a set of business rules is satisfiable. If no feasible solution exists, the solver reports infeasibility. Use this template to check whether your constraints are consistent before adding an objective.\n",
+      "scenarioDescription": "A conference organiser needs to assign 4 speakers to 4 time slots. Each speaker has blackout times. The organiser does not care which slot each speaker gets. What matters is that every speaker is scheduled and no slot is double-booked.\n",
       "categoryDisplayName": "General Purpose"
     },
     "container_loading": {
@@ -3959,7 +3959,7 @@
     "custom": {
       "displayName": "Custom Problem",
       "shortDescription": "Define your own optimization problem with custom variables, constraints, and an objective function.",
-      "description": "The fully flexible template for power users. Define any linear or mixed-integer optimization problem by specifying variables (continuous, integer, or binary), linear constraints, and an objective function to maximize or minimize. No domain assumptions are made -- you have full control. Use this when none of the specialized templates fit your problem, or when you want to experiment with mathematical programming directly.\n",
+      "description": "The fully flexible template for power users. Define any linear or mixed-integer optimization problem by specifying variables (continuous, integer, or binary), linear constraints, and an objective function to maximize or minimize. No domain assumptions are made, so you have full control. Use this when none of the specialized templates fit your problem, or when you want to experiment with mathematical programming directly.\n",
       "scenarioDescription": "A data scientist wants to solve a custom resource allocation problem: maximize 5x + 3y + 2z subject to resource and production constraints, where x, y, and z are integer decision variables bounded between 0 and 50.\n",
       "categoryDisplayName": "General Purpose"
     },
@@ -3995,13 +3995,13 @@
       "displayName": "Dye Batch Scheduling",
       "shortDescription": "Schedule fabric dyeing batches to minimize color changeover costs and water usage while meeting delivery deadlines.",
       "description": "Sequences dyeing jobs on dye machines to minimize total changeover cost. Changing from a dark color to a light one requires extensive machine cleaning, while light-to-dark transitions are cheaper. Each job has a fabric volume, color, processing time, and delivery deadline. The model assigns jobs to machines and determines their sequence to minimize changeover and cleaning costs while completing all jobs on time.\n",
-      "scenarioDescription": "A textile dyeing plant has two jet-dye machines running 16-hour shifts. Six dyeing jobs in different colors must be completed by their deadlines. The plant wants to sequence jobs to minimize changeover cost -- switching from dark to light colors requires a 90-minute cleaning cycle, while light-to-dark needs only 30 minutes.\n",
+      "scenarioDescription": "A textile dyeing plant has two jet-dye machines running 16-hour shifts. Six dyeing jobs in different colors must be completed by their deadlines. The plant wants to sequence jobs to minimize changeover cost. Switching from dark to light colors requires a 90-minute cleaning cycle, while light-to-dark needs only 30 minutes.\n",
       "categoryDisplayName": "Textile"
     },
     "emergency_response_allocation": {
       "displayName": "Emergency Response",
       "shortDescription": "Allocate emergency response units to zones to ensure every area is covered within response time targets.",
-      "description": "Positions emergency response units (ambulances, fire engines, police cars) across stations to ensure every zone in the jurisdiction can be reached within a target response time. Each station has a capacity for units, and each zone has a demand rate for emergencies. The model minimizes total deployment cost while ensuring coverage requirements are met -- every zone must be reachable by at least one unit within the response time, and high-demand zones need backup coverage. A set-covering formulation used by emergency management agencies.\n",
+      "description": "Positions emergency response units (ambulances, fire engines, police cars) across stations to ensure every zone in the jurisdiction can be reached within a target response time. Each station has a capacity for units, and each zone has a demand rate for emergencies. The model minimizes total deployment cost while ensuring coverage requirements are met: every zone must be reachable by at least one unit within the response time, and high-demand zones need backup coverage. A set-covering formulation used by emergency management agencies.\n",
       "scenarioDescription": "A city emergency services department has five stations and needs to deploy ambulance units across six response zones. The CBD zone (Zone A) has the highest call volume and requires two-unit coverage. Suburban zones need at least one unit within ten minutes. The department wants to position the minimum number of units across stations to meet all coverage requirements at the lowest annual cost.\n",
       "categoryDisplayName": "Government"
     },
@@ -4044,7 +4044,7 @@
       "displayName": "Fertilizer Mixing",
       "shortDescription": "Blend raw materials into a fertilizer mix that meets nutrient targets (N-P-K) at minimum cost.",
       "description": "Optimize a fertilizer blend by choosing quantities of raw materials so that the final mix meets minimum and maximum nutrient percentages for nitrogen, phosphorus, potassium, and any other tracked nutrients. The solver minimizes total raw-material cost while respecting supplier stock limits and batch-size constraints. The output tells you exactly how many tonnes of each ingredient to purchase.\n",
-      "scenarioDescription": "An agri-cooperative needs to produce 1,000 kg of NPK fertilizer. Four raw materials are available -- urea (46% N), DAP (18% N, 46% P), MOP (60% K), and inert filler. Target blend: 15-20% N, 10-15% P, 12-18% K. Prices range from EUR 50 (filler) to EUR 480 (DAP) per tonne.\n",
+      "scenarioDescription": "An agri-cooperative needs to produce 1,000 kg of NPK fertilizer. Four raw materials are available: urea (46% N), DAP (18% N, 46% P), MOP (60% K), and inert filler. Target blend: 15-20% N, 10-15% P, 12-18% K. Prices range from EUR 50 (filler) to EUR 480 (DAP) per tonne.\n",
       "categoryDisplayName": "Agriculture & Farming"
     },
     "fleet_dispatch_mining": {
@@ -4071,7 +4071,7 @@
     "harvest_scheduling": {
       "displayName": "Harvest Scheduling",
       "shortDescription": "Schedule timber harvesting across forest stands over multiple periods to maximize revenue while ensuring sustainability.",
-      "description": "Plans which forest stands to harvest in each period of a multi-year horizon. Each stand has a timber volume, species mix, age, and expected revenue at harvest. The model maximizes total discounted revenue while respecting sustainability constraints -- maximum area harvested per period, adjacency rules (no two neighboring stands harvested in the same period), and minimum ending forest inventory. Fundamental for forest management companies and public land agencies.\n",
+      "description": "Plans which forest stands to harvest in each period of a multi-year horizon. Each stand has a timber volume, species mix, age, and expected revenue at harvest. The model maximizes total discounted revenue while respecting sustainability constraints: maximum area harvested per period, adjacency rules (no two neighboring stands harvested in the same period), and minimum ending forest inventory. Fundamental for forest management companies and public land agencies.\n",
       "scenarioDescription": "A forestry company manages 158 hectares across six stands of Douglas fir and spruce. Over a four-year plan, no more than 40 hectares may be harvested per year to comply with sustainability regulations. Older stands yield higher-value timber. The company wants to maximize total harvest revenue while maintaining sustainable practices.\n",
       "categoryDisplayName": "Forestry"
     },
@@ -4114,7 +4114,7 @@
       "displayName": "Item Selection (Knapsack)",
       "shortDescription": "Select the best combination of items to maximize value while staying within a single capacity limit.",
       "description": "The classic 0-1 knapsack problem: given a set of items each with a value and a weight, choose which items to pack so that total value is maximized without exceeding the container's weight capacity. Every item is either fully included or excluded. Use this for cargo loading, project selection, or any scenario where you pick from a list of indivisible options under a single resource constraint.\n",
-      "scenarioDescription": "A traveller is packing a 50 kg suitcase for an international trip. Eight items compete for space -- a laptop, camera, headphones, book, tablet, charger, clothes, and shoes. Each item has a subjective value score and a weight. The goal is to maximise total value within the weight limit.\n",
+      "scenarioDescription": "A traveller is packing a 50 kg suitcase for an international trip. Eight items compete for space: a laptop, camera, headphones, book, tablet, charger, clothes, and shoes. Each item has a subjective value score and a weight. The goal is to maximise total value within the weight limit.\n",
       "categoryDisplayName": "Logistics & Distribution"
     },
     "launch_vehicle_payload": {
@@ -4190,7 +4190,7 @@
     "network_redundancy": {
       "displayName": "Network Redundancy",
       "shortDescription": "Design a minimum-cost redundant network ensuring every node has at least two independent paths.",
-      "description": "Select edges from a candidate set to build a communication network where every pair of critical nodes is connected by at least two edge-disjoint paths. Each candidate edge has an installation cost. The model minimizes total cost while guaranteeing fault tolerance -- if any single link fails, all nodes remain reachable. Essential for designing resilient fiber-optic or microwave backhaul networks.\n",
+      "description": "Select edges from a candidate set to build a communication network where every pair of critical nodes is connected by at least two edge-disjoint paths. Each candidate edge has an installation cost. The model minimizes total cost while guaranteeing fault tolerance: if any single link fails, all nodes remain reachable. Essential for designing resilient fiber-optic or microwave backhaul networks.\n",
       "scenarioDescription": "A regional ISP is building a fiber backbone connecting its data center to five hub sites through a central exchange. Nine candidate fiber routes have been surveyed. The ISP requires that every hub has at least two independent paths to the data center so that a single fiber cut does not cause an outage.\n",
       "categoryDisplayName": "Telecommunications"
     },
@@ -4351,7 +4351,7 @@
     "reservoir_operation": {
       "displayName": "Reservoir Operation",
       "shortDescription": "Plan water releases from a reservoir over multiple periods to balance irrigation, power generation, and flood control.",
-      "description": "Schedules water releases from a multi-purpose reservoir over a planning horizon (weeks or months). Inflows are forecasted, and the model must balance competing demands -- irrigation water for agriculture, minimum environmental flows, hydroelectric generation targets, and flood storage reserves. The model maximizes total benefit (irrigation value plus energy revenue) while keeping the reservoir level within safe operating bounds at all times.\n",
+      "description": "Schedules water releases from a multi-purpose reservoir over a planning horizon (weeks or months). Inflows are forecasted, and the model must balance competing demands: irrigation water for agriculture, minimum environmental flows, hydroelectric generation targets, and flood storage reserves. The model maximizes total benefit (irrigation value plus energy revenue) while keeping the reservoir level within safe operating bounds at all times.\n",
       "scenarioDescription": "A regional water authority manages a reservoir that serves both irrigation and hydroelectric purposes over a six-month dry-season horizon. Inflows peak in months 1-2 (rainy tail) and drop sharply by month 4. Irrigators downstream need increasing water as the dry season progresses. The authority must plan monthly releases that satisfy irrigation, generate electricity revenue, and keep the reservoir within safe operating limits.\n",
       "categoryDisplayName": "Water Management"
     },
@@ -4572,8 +4572,8 @@
     "byok": {
       "title": "Your own Anthropic API key",
       "description": "Add your organization's Anthropic API key to run all AI features on your own account, independent of the platform's shared budget.",
-      "active": "Active — using your own key",
-      "inactive": "Not set — using the platform's shared AI budget.",
+      "active": "Active, using your own key",
+      "inactive": "Not set. Using the platform's shared AI budget.",
       "placeholder": "sk-ant-...",
       "save": "Save key",
       "saving": "Saving…",
@@ -4633,11 +4633,11 @@
         "expected_token": "Expected {token} here, and there is {got}.",
         "expected_keyword": "Expected the keyword {keyword} here, and there is {got}.",
         "expected_identifier": "Expected a name here, and there is {got}.",
-        "expected_statement": "Expected a statement — set, param, var, minimize, maximize or subject to — and there is {got}.",
-        "expected_set_member": "Expected a set member here — a name or a number — and there is {got}.",
-        "expected_set_expression": "Expected a set here — a set name, a literal in braces, a range lo..hi, or an opening bracket — and there is {got}.",
+        "expected_statement": "Expected a statement here: set, param, var, minimize, maximize or subject to. There is {got}.",
+        "expected_set_member": "Expected a set member here (a name or a number), and there is {got}.",
+        "expected_set_expression": "Expected a set here: a set name, a literal in braces, a range lo..hi, or an opening bracket. There is {got}.",
         "expected_var_type_or_bound": "Expected a variable type, a bound with >= or <=, or a semicolon, and there is {got}.",
-        "expected_expression": "Expected an expression here — a number, a variable, a param, sum, or an opening bracket — and there is {got}.",
+        "expected_expression": "Expected an expression here: a number, a variable, a param, sum, or an opening bracket. There is {got}.",
         "reserved_word": "{word} is a word of the language and cannot be used as a name.",
         "no_objective": "The model has no objective. Add a minimize or maximize line.",
         "unknown_symbol": "{name} is not declared. Declare it as a set, a param or a var, or check the spelling.",
@@ -4802,7 +4802,7 @@
       "funnelAdoptions": "Adoptions",
       "trendTitle": "Daily views",
       "trendEmpty": "A trend needs at least two days with activity; there are {days} so far.",
-      "trendClipped": "Showing the last {days} days — older activity is in the totals above, but the chart cannot draw it legibly.",
+      "trendClipped": "Showing the last {days} days. Older activity is in the totals above, but the chart cannot draw it legibly.",
       "geoTitle": "Where your visitors are",
       "geoEmpty": "No visits recorded in this period.",
       "geoSingle": "Every visit recorded ({count}) comes from a single country: {country}.",
@@ -4996,7 +4996,7 @@
       "boundTooltip": "Answer {objective}, bound {bound}, {distance} apart",
       "timeTitle": "Total time",
       "timeLegend": "The scale is logarithmic: each step is ten times the one before, so bar length is not proportional to the number.",
-      "timeTooltip": "{seconds} — {ratio}× the fastest",
+      "timeTooltip": "{seconds}, {ratio}× the fastest",
       "splitTitle": "Searching against building the model",
       "splitLegend": "The dark part is the solver's own search. The rest is translating the problem into that solver's model, which is JAOT's cost, not the solver's.",
       "splitSearch": "Search",

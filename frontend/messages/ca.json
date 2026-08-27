@@ -614,7 +614,7 @@
       "welcomeTitle": "Benvingut a JAOT!",
       "wizardTitle": "Assistent de benvinguda",
       "wizardDescription": "Un assistent guiat per ajudar-te a començar amb JAOT.",
-      "step1Verbose": "JAOT t'ajuda a resoldre problemes d'optimització -- des de planificació i logística fins a finances i assignació de recursos. Indica'ns el teu nivell d'experiència per adaptar la interfície a les teves necessitats.",
+      "step1Verbose": "JAOT t'ajuda a resoldre problemes d'optimització, des de planificació i logística fins a finances i assignació de recursos. Indica'ns el teu nivell d'experiència per adaptar la interfície a les teves necessitats.",
       "step1Brief": "Indica el teu nivell d'experiència per personalitzar la interfície.",
       "step1Expert": "Selecciona el teu nivell d'experiència.",
       "step2Title": "Descriu el teu problema",
@@ -1029,14 +1029,14 @@
       },
       "section2": {
         "title": "2. Com emmagatzemem les teves dades",
-        "body": "Les teves dades es xifren en trànsit mitjançant TLS i estan aïllades lògicament per organització a la nostra arquitectura multitenant, de manera que només els membres de la teva organització hi poden accedir. Els camps especialment sensibles —com una clau de proveïdor d’IA emmagatzemada— es xifren a més en repòs. Si autoallotges JAOT en lloc de fer servir jaot.io, executes la teva pròpia instància i actues com a responsable del tractament de les dades que contingui; en aquest cas, aquesta política descriu únicament la instància allotjada."
+        "body": "Les teves dades es xifren en trànsit mitjançant TLS i estan aïllades lògicament per organització a la nostra arquitectura multitenant, de manera que només els membres de la teva organització hi poden accedir. Els camps especialment sensibles (com una clau de proveïdor d’IA emmagatzemada) es xifren a més en repòs. Si autoallotges JAOT en lloc de fer servir jaot.io, executes la teva pròpia instància i actues com a responsable del tractament de les dades que contingui; en aquest cas, aquesta política descriu únicament la instància allotjada."
       },
       "section3": {
         "title": "3. Serveis de tercers",
         "intro": "Ens recolzem en un nombre reduït de serveis de tercers per operar la instància allotjada:",
         "anthropic": "<strong>Anthropic (API de Claude):</strong> dona suport a l’assistent d’IA opcional. Les teves indicacions i descripcions de model s’envien a Anthropic només quan fas servir l’assistent, i es tracten d’acord amb els termes d’Anthropic. Pots fer servir la teva pròpia clau d’Anthropic en lloc seu.",
         "analytics": "<strong>Plausible Analytics:</strong> una eina d’analítica autoallotjada i respectuosa amb la privadesa que es fa servir per entendre l’ús agregat. No fa servir cookies, no et rastreja entre llocs i no recopila dades personals.",
-        "payments": "<strong>Pagaments:</strong> JAOT no processa pagaments — la plataforma és gratuïta i no recull dades de pagament ni de facturació.",
+        "payments": "<strong>Pagaments:</strong> JAOT no processa pagaments. La plataforma és gratuïta i no recull dades de pagament ni de facturació.",
         "note": "La recuperació, els embeddings i tots els càlculs del solver s’executen localment al Servei i no s’envien a cap tercer."
       },
       "section4": {
@@ -1113,7 +1113,7 @@
       },
       "section8": {
         "title": "8. Multitenència",
-        "body": "El Servei funciona amb una arquitectura multitenant. Les dades de cada organització estan aïllades lògicament i només hi poden accedir els membres d’aquesta organització. Pots pertànyer a una organització i compartir-ne els recursos —models, quota d’ús i execucions— amb els altres membres."
+        "body": "El Servei funciona amb una arquitectura multitenant. Les dades de cada organització estan aïllades lògicament i només hi poden accedir els membres d’aquesta organització. Pots pertànyer a una organització i compartir-ne els recursos (models, quota d’ús i execucions) amb els altres membres."
       },
       "section9": {
         "title": "9. Cancel·lació",
@@ -1121,7 +1121,7 @@
       },
       "section10": {
         "title": "10. Exempció de garanties i limitació de responsabilitat",
-        "body": "El Servei s’ofereix “tal qual” i “segons disponibilitat”, sense garanties de cap mena, expresses o implícites, en coherència amb la Llicència Apache 2.0 sota la qual es distribueix el programari. En la màxima mesura permesa per la llei, l’equip i els operadors de JAOT no seran responsables de cap dany indirecte, incidental, especial, conseqüent o punitiu —inclosa la pèrdua de beneficis, dades o oportunitats de negoci— derivat del teu ús del Servei, dels resultats del solver o generats per IA, o de qualsevol interrupció del Servei."
+        "body": "El Servei s’ofereix “tal qual” i “segons disponibilitat”, sense garanties de cap mena, expresses o implícites, en coherència amb la Llicència Apache 2.0 sota la qual es distribueix el programari. En la màxima mesura permesa per la llei, l’equip i els operadors de JAOT no seran responsables de cap dany indirecte, incidental, especial, conseqüent o punitiu (inclosa la pèrdua de beneficis, dades o oportunitats de negoci) derivat del teu ús del Servei, dels resultats del solver o generats per IA, o de qualsevol interrupció del Servei."
       },
       "section11": {
         "title": "11. Legislació aplicable",
@@ -1323,7 +1323,7 @@
       "importModel": "Importar model",
       "templates": "Plantilles",
       "newModel": "Model Nou",
-      "noPermission": "No tens permís per editar.",
+      "noPermission": "El teu rol ({role}) no té permís per crear models. Demana a l'admin de l'espai de treball que et pugi de rol.",
       "deleteConfirm": "Eliminar \"{name}\"? Aquesta acció no es pot desfer.",
       "deleteDocument": "Eliminar document",
       "documentDeleted": "Document eliminat.",
@@ -1332,7 +1332,7 @@
       "today": "Avui",
       "yesterday": "Ahir",
       "daysAgo": "Fa {count} dies",
-      "importInvalid": "Problema d'optimització no vàlid — falten variables o objectiu.",
+      "importInvalid": "Problema d'optimització no vàlid. Falten variables o objectiu.",
       "importNotRepresentable": "Aquest model no es pot dibuixar exactament al llenç visual (expressions no lineals o no suportades). Importa'l en un projecte de l'estudi.",
       "importSuccess": "S'han importat {count} nodes.",
       "importParseFailed": "No s'ha pogut analitzar el fitxer de model. Formats admesos: JSON, MPS, LP, CIP.",
@@ -1368,11 +1368,11 @@
       "connectToObjective": "Connecteu almenys una variable a l'objectiu.",
       "invalidProblem": "Problema no vàlid: {message}",
       "checkModelDefinition": "Comproveu la definició del vostre model.",
-      "solverError": "Error del solucionador. Si us plau, comproveu el vostre model per errors.",
+      "solverError": "Error del solver: {detail}",
       "solveFailed": "Error en resoldre. Si us plau, torneu-ho a provar.",
       "modelSaved": "Model desat.",
       "saveFailed": "Error en desar. Si us plau, torneu-ho a provar.",
-      "importInvalid": "JSON de problema d'optimització no vàlid — falten variables o objectiu.",
+      "importInvalid": "JSON de problema d'optimització no vàlid. Falten variables o objectiu.",
       "importNotRepresentable": "Aquest model no es pot dibuixar exactament al llenç visual (expressions no lineals o no suportades). Importa'l en un projecte de l'estudi.",
       "importSuccess": "S'han importat {count} nodes.",
       "importParseFailed": "No s'ha pogut analitzar el fitxer JSON. Assegureu-vos que sigui un OptimizationProblem vàlid.",
@@ -1462,7 +1462,7 @@
       "sensitivityAnalysis": "Anàlisi de Sensibilitat",
       "sensitivityUnavailable": "L'anàlisi de sensibilitat no està disponible per a aquest tipus de problema.",
       "sensitivityNote": "Les dades de sensibilitat es calculen per a programes lineals i relaxacions LP de programes enters.",
-      "statusInfeasible": "El problema no té solució factible. Comproveu que les restriccions no siguin contradictòries — pot ser impossible satisfer totes les restriccions simultàniament.",
+      "statusInfeasible": "El problema no té solució factible. Comproveu que les restriccions no siguin contradictòries. Pot ser impossible satisfer totes les restriccions alhora.",
       "statusUnbounded": "L'objectiu es pot millorar sense límit. Afegiu límits a les vostres variables o restriccions addicionals per restringir la regió factible.",
       "statusTimeLimit": "El solucionador ha assolit el límit de temps abans de trobar una solució òptima provada. El resultat mostrat és la millor solució trobada fins ara.",
       "statusError": "El solucionador ha trobat un error. Comproveu la definició del problema per expressions o noms de variables no vàlids."
@@ -1527,7 +1527,7 @@
       "addItem": "+ Afegir Element",
       "noRows": "No hi ha files. Feu clic a \"+ Afegir Fila\" per començar.",
       "noItems": "No hi ha elements. Feu clic a \"+ Afegir Element\" per començar.",
-      "invalidInput": "Dades d'entrada no vàlides. Si us plau, comproveu els valors del formulari.",
+      "invalidInput": "Dades d'entrada no vàlides: {detail}",
       "solveFailed": "Error en resoldre. Si us plau, torneu-ho a provar.",
       "fieldRequired": "{field} és obligatori",
       "atLeastOneItem": "Es requereix almenys un element",
@@ -1814,7 +1814,7 @@
       "timeHoursAgo": "Fa {count}h",
       "timeYesterday": "Ahir",
       "timeDaysAgo": "Fa {count}d",
-      "adminRequired": "Necessiteu rol d'administrador per veure el registre d'auditoria",
+      "adminRequired": "El teu rol ({role}) no permet veure el registre d'auditoria. Demana a l'admin de l'espai de treball el rol d'Admin.",
       "loadError": "Error en carregar el registre d'auditoria",
       "createWorkspace": "Crear Espai de Treball",
       "noWorkspaceForMember": "Encara no ets a cap espai de treball, i només el propietari de l'organització en pot crear un. Demana-li que t'hi convidi."
@@ -1881,7 +1881,7 @@
       "noWorkspaceDescription": "Seleccioneu primer un espai de treball per gestionar els seus membres.",
       "browseWorkspaces": "Explorar Espais de Treball",
       "inviteMember": "Convidar Membre",
-      "adminRequired": "Necessiteu rol d'administrador per convidar membres",
+      "adminRequired": "El teu rol ({role}) no permet convidar membres. Demana a l'admin de l'espai de treball el rol d'Admin.",
       "loadError": "Error en carregar els membres de l'equip",
       "quickStart": {
         "title": "Primers Passos amb Espais de Treball",
@@ -1892,10 +1892,10 @@
         "howToInviteDescription": "Fes clic a \"Convidar Membre\" a dalt per enviar invitacions per correu electrònic o generar un enllaç d'invitació compartible. Només els administradors poden convidar nous membres.",
         "roles": "Rols i permisos",
         "rolesDescription": "Cada membre té un rol que controla el que pot fer:",
-        "roleViewer": "Visualitzador -- Pot veure models i resultats, però no pot crear ni editar res.",
-        "roleEditor": "Editor -- Pot crear, editar i eliminar models i activadors.",
-        "roleSolver": "Solucionador -- Pot executar resolucions i crear models (inclou permisos de Visualitzador).",
-        "roleAdmin": "Admin -- Accés complet, incloses invitacions i gestió de la configuració."
+        "roleViewer": "Visualitzador: pot veure models i resultats, però no pot crear ni editar res.",
+        "roleEditor": "Editor: pot crear, editar i eliminar models i activadors.",
+        "roleSolver": "Solucionador: pot executar resolucions i crear models (inclou permisos de Visualitzador).",
+        "roleAdmin": "Admin: accés complet, incloses invitacions i gestió de la configuració."
       },
       "createWorkspace": "Crear Espai de Treball",
       "noWorkspaceForMember": "Encara no ets a cap espai de treball, i només el propietari de l'organització en pot crear un. Demana-li que t'hi convidi."
@@ -1937,13 +1937,13 @@
       "viewMembers": "Veure Membres",
       "membersTitle": "Membres",
       "inviteMember": "Convidar Membre",
-      "adminRequired": "Necessiteu rol d'administrador per convidar membres",
+      "adminRequired": "El teu rol ({role}) no permet convidar membres. Demana a l'admin de l'espai de treball el rol d'Admin.",
       "workspaceSettings": "Configuració de l'Espai de Treball",
       "nameLabel": "Nom",
       "descriptionLabel": "Descripció",
       "saving": "Desant...",
       "saveChanges": "Desar Canvis",
-      "adminOnlySettings": "Necessiteu rol d'administrador per gestionar la configuració de l'espai de treball.",
+      "adminOnlySettings": "El teu rol ({role}) no permet gestionar la configuració de l'espai de treball. Demana a l'admin de l'espai de treball el rol d'Admin.",
       "settingsSaved": "Configuració de l'espai de treball desada",
       "loadError": "Error en carregar l'espai de treball",
       "saveError": "Error en desar la configuració"
@@ -2471,7 +2471,7 @@
       }
     },
     "layout": {
-      "maintenanceBanner": "El mode de manteniment està actiu — els usuaris no administradors veuen una pàgina de manteniment",
+      "maintenanceBanner": "El mode de manteniment està actiu. Els usuaris no administradors veuen una pàgina de manteniment",
       "manageSettings": "Gestionar configuració",
       "subtitle": "Tauler d'Admin",
       "nav": {
@@ -3517,7 +3517,7 @@
       "title": "Triggers",
       "subtitle": "Triggers d'events HTTP que executen automàticament versions fixades de models",
       "newTrigger": "Nou Trigger",
-      "noPermission": "No tens permís per editar.",
+      "noPermission": "El teu rol ({role}) no té permís per gestionar activadors. Demana a l'admin de l'espai de treball el rol d'Editor.",
       "noTriggers": "Encara no hi ha triggers",
       "noTriggersDescription": "Creeu el vostre primer trigger per automatitzar resolucions via events HTTP.",
       "createTrigger": "Crear Trigger",
@@ -3545,7 +3545,7 @@
       "subtitle": "Configureu un trigger HTTP per executar automàticament una versió fixada del model quan es cridi.",
       "backToTriggers": "Tornar als Triggers",
       "created": "Trigger Creat!",
-      "secretWarning": "El secret del trigger es mostra a continuació. Aquesta és l'única vegada que es mostrarà complet — deseu-lo de forma segura.",
+      "secretWarning": "El secret del trigger es mostra a continuació. Aquesta és l'única vegada que es mostrarà complet. Deseu-lo de forma segura.",
       "secretLabel": "Secret del Trigger (mostrat una vegada)",
       "secretCopied": "Secret del trigger copiat al porta-retalls",
       "copyError": "No s'ha pogut copiar al porta-retalls",
@@ -3557,7 +3557,7 @@
       "backToTriggers": "Tornar als Triggers",
       "disable": "Desactivar",
       "enable": "Activar",
-      "noPermission": "No tens permís per editar.",
+      "noPermission": "El teu rol ({role}) no té permís per gestionar activadors. Demana a l'admin de l'espai de treball el rol d'Editor.",
       "notFound": "Trigger no trobat",
       "loadError": "Error en carregar el trigger",
       "toggleEnabled": "Trigger {state}",
@@ -3579,8 +3579,8 @@
       "lastFired": "Últim Disparat",
       "createdAt": "Creat",
       "overrideSchemaTitle": "Esquema de Sobreescriptura",
-      "openSchema": "Esquema obert — s'accepta qualsevol clau de sobreescriptura",
-      "noOverrides": "Sense esquema de sobreescriptura — els cridants no poden passar override_data",
+      "openSchema": "Esquema obert. S'accepta qualsevol clau de sobreescriptura",
+      "noOverrides": "Sense esquema de sobreescriptura. Els cridants no poden passar override_data",
       "schemaName": "Nom",
       "schemaType": "Tipus",
       "schemaFieldPath": "Ruta del Camp del Model",
@@ -3625,7 +3625,7 @@
       "requiredField": "Camp obligatori",
       "addParameter": "Afegir Paràmetre",
       "jsonArrayError": "Ha de ser un array JSON de camps de sobreescriptura",
-      "jsonSyntaxError": "JSON no vàlid — comproveu la sintaxi i torneu-ho a provar",
+      "jsonSyntaxError": "JSON no vàlid. Comproveu la sintaxi i torneu-ho a provar",
       "jsonHelp": "Editeu el JSON directament. Els canvis s'apliquen quan feu clic fora d'aquest camp.",
       "noParametersVisual": "No hi ha paràmetres definits. Canvieu al mode Formulari per afegir paràmetres.",
       "visualHelp": "Vista general del mapeig de només lectura. Canvieu al mode Formulari o JSON per editar.",
@@ -3752,7 +3752,7 @@
       "webhookInvalid": "La URL del webhook ha de ser una URL HTTP/HTTPS vàlida",
       "creating": "Creant Trigger...",
       "createButton": "Crear Trigger",
-      "noPermission": "No tens permís per editar.",
+      "noPermission": "El teu rol ({role}) no té permís per crear activadors. Demana a l'admin de l'espai de treball el rol d'Editor.",
       "createdSuccess": "Trigger creat correctament",
       "createError": "Error en crear el trigger",
       "loadModelsError": "Error en carregar els models",
@@ -3765,15 +3765,15 @@
       "example": "Un shadow price de 3.5 significa que relaxar la restricció en 1 unitat millora l'objectiu en 3.5."
     },
     "bindingConstraint": {
-      "definition": "Una restricció que se satisfà exactament en igualtat a la solució òptima — la solució està 'pressionada contra' aquest límit.",
+      "definition": "Una restricció que es compleix exactament en igualtat a la solució òptima. La solució no deixa marge abans d'aquest límit.",
       "example": "Si una restricció de pressupost és x + y <= 100 i la solució té x + y = 100, és binding."
     },
     "slackValue": {
-      "definition": "Quant marge queda abans que una restricció sigui binding — folgura zero significa binding.",
+      "definition": "Quant marge queda abans que una restricció sigui binding. Folgura zero significa binding.",
       "example": "Si x + y <= 100 i x + y = 80, la folgura és 20."
     },
     "paretoFront": {
-      "definition": "El conjunt de solucions on cap objectiu pot millorar-se sense empitjorar-ne un altre — cada punt de la corba és igualment 'òptim'."
+      "definition": "El conjunt de solucions on cap objectiu pot millorar-se sense empitjorar-ne un altre. Cada punt de la corba és igualment òptim."
     },
     "warmStart": {
       "definition": "Proporcionar una solució factible inicial al solver perquè pugui saltar l'exploració inicial i convergir més ràpid."
@@ -3783,7 +3783,7 @@
       "example": "Un producte no fabricat (x = 0) amb cost reduït 5 empitjoraria l'objectiu en 5 per unitat si se'n forcés la inclusió al pla."
     },
     "lpRelaxation": {
-      "definition": "Resoldre el problema com si les variables enteres poguessin prendre valors fraccionaris — proporciona una fita de la millor solució entera possible."
+      "definition": "Resoldre el problema com si les variables enteres poguessin prendre valors fraccionaris. Proporciona una fita de la millor solució entera possible."
     },
     "objectiveValue": {
       "definition": "El valor final de la funció que s'està optimitzant (minimitzant o maximitzant)."
@@ -3793,7 +3793,7 @@
       "example": "Un problema de rutes de lliurament formulat amb variables de ruta, restriccions de capacitat i un objectiu de minimitzar distància."
     },
     "decisionVariable": {
-      "definition": "Una quantitat que el solver decideix — les incògnites del teu problema d'optimització.",
+      "definition": "Una quantitat que el solver decideix. Són les incògnites del teu problema d'optimització.",
       "example": "En planificació, x[i][j] = 1 significa que l'empleat i treballa al torn j."
     },
     "constraint": {
@@ -3801,18 +3801,18 @@
       "example": "Cada empleat treballa com a màxim 40 hores per setmana."
     },
     "objective": {
-      "definition": "L'objectiu que vols optimitzar — ja sigui minimitzar cost o maximitzar valor.",
+      "definition": "L'objectiu que vols optimitzar. És minimitzar cost o maximitzar valor.",
       "example": "Minimitzar el cost total d'enviament en totes les rutes."
     },
     "feasibility": {
       "definition": "Si una solució satisfà totes les restriccions simultàniament. Una solució factible és aquella que no viola cap regla."
     },
     "infeasible": {
-      "definition": "Un problema on cap solució pot satisfer totes les restriccions alhora — les regles es contradiuen entre si.",
+      "definition": "Un problema on cap solució pot satisfer totes les restriccions alhora. Les regles es contradiuen entre si.",
       "example": "Requerir 10 hores de treball en un dia de 8 hores és infactible."
     },
     "optimal": {
-      "definition": "La millor solució factible possible — cap altra solució aconsegueix un millor valor de l'objectiu."
+      "definition": "La millor solució factible possible. Cap altra solució aconsegueix un millor valor de l'objectiu."
     },
     "relaxation": {
       "definition": "Una versió simplificada del problema on algunes restriccions (sovint d'integralitat) es relaxen per trobar una fita de la millor solució.",
@@ -4572,8 +4572,8 @@
     "byok": {
       "title": "La teva pròpia API key d'Anthropic",
       "description": "Afegeix la clau d'API d'Anthropic de la teva organització per executar totes les funcions d'IA al teu propi compte, independent del pressupost compartit de la plataforma.",
-      "active": "Activa — usant la teva pròpia key",
-      "inactive": "Sense configurar — usant el pressupost d'IA compartit de la plataforma.",
+      "active": "Activa, usant la teva pròpia key",
+      "inactive": "Sense configurar. S'usa el pressupost d'IA compartit de la plataforma.",
       "placeholder": "sk-ant-...",
       "save": "Desa la key",
       "saving": "Desant…",
@@ -4996,7 +4996,7 @@
       "boundTooltip": "Resposta {objective}, cota {bound}, a {distance} de distància",
       "timeTitle": "Temps total",
       "timeLegend": "L'escala és logarítmica: cada pas és deu vegades l'anterior, així que la llargada de la barra no és proporcional al número.",
-      "timeTooltip": "{seconds} — {ratio}× el més ràpid",
+      "timeTooltip": "{seconds}, {ratio}× el més ràpid",
       "splitTitle": "Cercar contra construir el model",
       "splitLegend": "La part fosca és la cerca del solver. La resta és traduir el problema al model d'aquell solver, que és cost de JAOT i no del solver.",
       "splitSearch": "Cerca",
