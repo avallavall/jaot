@@ -99,8 +99,8 @@ templates:
     category: food_beverage
     tags: [food, production, scheduling, changeover]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
-    generator_params: {}
+    generator_type: windowed_tasking
+    generator_params: {mode: serve_all}
     input_schema:
       type: object
       properties:
@@ -149,6 +149,9 @@ templates:
             from_product: {type: string}
             to_product: {type: string}
             hours: {type: number}
+    # an order's volume in units is what the run produces; the model schedules
+    #   the hours it takes, which the order states directly
+    context_fields: [volume]
     example_input:
       orders:
         - {name: "Milk-Chocolate-Batch", product: "chocolate", volume: 2000, production_hours: 4, deadline_hour: 16}
@@ -160,11 +163,6 @@ templates:
       lines:
         - {name: "Line-A", available_hours: 16}
         - {name: "Line-B", available_hours: 16}
-      changeover_times:
-        - {from_product: "pb_bars", to_product: "cookies_nf", hours: 2.0}
-        - {from_product: "pb_bars", to_product: "cereal_af", hours: 2.0}
-        - {from_product: "chocolate", to_product: "cookies_nf", hours: 1.0}
-        - {from_product: "granola", to_product: "cereal_af", hours: 1.5}
     scenario_description: >
       A snack factory runs two production lines for 16 hours each. Six orders
       for different products are waiting. Each order takes a known number of

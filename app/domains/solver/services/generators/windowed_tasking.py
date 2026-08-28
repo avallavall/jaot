@@ -39,10 +39,24 @@ _MAX_START_VARS = 40_000
 class WindowedTaskingGenerator(BaseGenerator):
     """Schedule jobs into time windows on resources that serve one at a time."""
 
-    _JOB_KEYS = ["tasks", "jobs", "vessels", "observations", "requests", "items"]
-    _RESOURCE_KEYS = ["satellites", "berths", "machines", "resources", "servers", "stations"]
+    _JOB_KEYS = ["tasks", "jobs", "orders", "vessels", "observations", "requests", "items"]
+    _RESOURCE_KEYS = [
+        "satellites",
+        "berths",
+        "machines",
+        "lines",
+        "resources",
+        "servers",
+        "stations",
+    ]
 
-    _DURATION_KEYS = ("duration", "handling_hours", "duration_minutes", "processing_hours")
+    _DURATION_KEYS = (
+        "duration",
+        "handling_hours",
+        "duration_minutes",
+        "processing_hours",
+        "production_hours",
+    )
     _RELEASE_KEYS = ("window_start", "arrival_hour", "earliest_start", "release")
     _DEADLINE_KEYS = ("window_end", "latest_finish", "deadline_hour", "deadline")
     _VALUE_KEYS = ("priority", "value", "revenue", "weight")
@@ -51,6 +65,8 @@ class WindowedTaskingGenerator(BaseGenerator):
     #: 15 m vessel cannot use a 14 m berth.
     _FIT_PAIRS = (
         ("draft_m", "max_draft_m"),
+        ("volume_kg", "capacity_kg"),
+        ("batch_kg", "capacity_kg"),
         ("length_m", "max_length_m"),
         ("weight_t", "max_weight_t"),
         ("size", "max_size"),

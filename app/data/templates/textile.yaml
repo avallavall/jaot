@@ -80,8 +80,8 @@ templates:
     category: textile
     tags: [textile, dyeing, scheduling, manufacturing]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
-    generator_params: {}
+    generator_type: windowed_tasking
+    generator_params: {mode: serve_all}
     input_schema:
       type: object
       properties:
@@ -127,7 +127,7 @@ templates:
         - {name: "Yellow-Linen", color: "yellow", volume_kg: 250, processing_hours: 2, deadline_hour: 18}
       machines:
         - {name: "Jet-Dye-1", available_hours: 16, capacity_kg: 1000}
-        - {name: "Jet-Dye-2", available_hours: 16, capacity_kg: 800}
+        - {name: "Jet-Dye-2", available_hours: 16, capacity_kg: 350}
     scenario_description: >
       A textile dyeing plant has two jet-dye machines running 16-hour shifts.
       Six dyeing jobs in different colors must be completed by their deadlines.

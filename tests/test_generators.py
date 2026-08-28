@@ -153,7 +153,11 @@ class TestSchedulingGenerator:
         and served an X-assigned-to-X model that answered nothing the card asked."""
         problem = SchedulingGenerator().generate(
             {
-                "stands": [{"name": "S1"}, {"name": "S2"}, {"name": "S3"}],
+                "stands": [
+                    {"name": "S1", "duration": 1},
+                    {"name": "S2", "duration": 1},
+                    {"name": "S3", "duration": 2},
+                ],
                 "num_periods": 4,
             },
             {},
@@ -164,6 +168,26 @@ class TestSchedulingGenerator:
         names = {v.name for v in problem.variables}
         assert "s1_s2" not in names
         assert "start_s1" in names
+
+    def test_task_without_a_duration_is_refused(self) -> None:
+        """A duration nobody recognised used to become 1.
+
+        drug_trial_scheduling writes "duration_months". That key was not in the
+        lookup, so every clinical phase was one month long: an eighteen-month
+        pivotal trial had a precedence row reading "start B at least 1 after A",
+        and the makespan it reported counted steps rather than months.
+        """
+        with pytest.raises(ValueError, match="states no duration"):
+            SchedulingGenerator().generate(
+                {"stands": [{"name": "S1"}], "num_periods": 4},
+                {},
+            )
+
+    def test_duration_months_is_a_duration(self) -> None:
+        SchedulingGenerator().generate(
+            {"phases": [{"name": "P1", "duration_months": 18}], "num_periods": 24},
+            {},
+        )
 
     def test_task_scheduling_honors_crews_and_prerequisites(self) -> None:
         """The renovation card promises three crews and dependency order. The

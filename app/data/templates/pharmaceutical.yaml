@@ -65,15 +65,15 @@ templates:
       trial_phases:
         - {name: "Phase-I-Safety", patients_needed: 30, duration_months: 6, prerequisites: []}
         - {name: "Phase-II-Efficacy", patients_needed: 120, duration_months: 12, prerequisites: ["Phase-I-Safety"]}
-        - {name: "Phase-III-Pivotal-A", patients_needed: 500, duration_months: 18, prerequisites: ["Phase-II-Efficacy"]}
-        - {name: "Phase-III-Pivotal-B", patients_needed: 500, duration_months: 18, prerequisites: ["Phase-II-Efficacy"]}
+        - {name: "Phase-III-Pivotal-A", patients_needed: 1600, duration_months: 18, prerequisites: ["Phase-II-Efficacy"]}
+        - {name: "Phase-III-Pivotal-B", patients_needed: 1600, duration_months: 18, prerequisites: ["Phase-II-Efficacy"]}
       sites:
         - {name: "Johns Hopkins", monthly_capacity: 40}
         - {name: "Mayo Clinic", monthly_capacity: 35}
         - {name: "Cleveland Clinic", monthly_capacity: 30}
         - {name: "Mass General", monthly_capacity: 45}
         - {name: "UCLA Medical", monthly_capacity: 25}
-      time_horizon: 48
+      time_horizon: 60
     scenario_description: >
       A biotech company is planning a new oncology drug through four trial phases.
       Phase I (safety) must complete before Phase II (efficacy), which must finish

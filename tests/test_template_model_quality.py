@@ -53,11 +53,7 @@ register_default_adapters()
 
 UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
     {
-        # scheduling: durations, deadlines and resource needs go unread
-        "project_scheduling",
-        "production_line_scheduling",
-        "dye_batch_scheduling",
-        "drug_trial_scheduling",
+        # scheduling: still on the shift-covering model
         "train_timetabling",
         "vessel_scheduling",
         # network: arc costs and contamination levels go unread
@@ -263,6 +259,9 @@ KNOWN_OPTIMA: dict[str, float] = {
     # 109 metres of order against 12-metre bars: ceil(109/12) = 10 is the
     # material lower bound, so the plan provably cannot do better.
     "one_d_cutting_stock": 10.0,
+    # 6 + 12 + 18 + 18 months. The two pivotal arms cannot run together: each
+    # draws 1600/18 = 88.9 patients a month against a site network of 175.
+    "drug_trial_scheduling": 54.0,
     # Brute force over all 255 subsets agrees: 7.8M of the 8M budget, weighted
     # risk 0.1104 against a 0.13 ceiling.
     "property_portfolio": 494100.0,

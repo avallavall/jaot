@@ -82,6 +82,20 @@ class SchedulingGenerator(BaseGenerator):
                 f"Got keys: {list(user_input.keys())}"
             )
 
+        # A "resource" that states a daily capacity and no wage is a pool the
+        # work draws on, not somebody a shift can be assigned to. Treating the
+        # trades on a construction card as assignable workers sent it to the
+        # shift-covering model, which cannot express a makespan or a
+        # dependency — the two things its card promises.
+        if employees and all(
+            isinstance(e, dict)
+            and any(e.get(k) is not None for k in ("daily_capacity", "monthly_capacity", "pool"))
+            and not any(e.get(k) is not None for k in ("hourly_cost", "cost", "max_hours"))
+            for e in employees
+        ):
+            user_input = {**user_input, "resource_pools": employees}
+            employees = []
+
         # Fallback: if no employees found, create implicit resources
         if not employees and shifts:
             # Use integer variables for task-to-period assignments
@@ -235,9 +249,33 @@ class SchedulingGenerator(BaseGenerator):
         durations: list[int] = []
         for i, task in enumerate(tasks):
             names.append(self.sanitize_name(task.get("name", f"task_{i}")))
-            durations.append(
-                max(1, int(task.get("duration", task.get("duration_days", task.get("period", 1)))))
+            # A duration nobody recognised became 1. Every clinical phase was
+            # therefore one month long, so the precedence chain read
+            # "start B at least 1 after A" for an eighteen-month trial and the
+            # makespan it reported was a count of steps, not a time.
+            duration = next(
+                (
+                    task[key]
+                    for key in (
+                        "duration",
+                        "duration_days",
+                        "duration_months",
+                        "duration_weeks",
+                        "duration_hours",
+                        "processing_hours",
+                        "period",
+                    )
+                    if task.get(key) is not None
+                ),
+                None,
             )
+            if duration is None:
+                raise ValueError(
+                    f"Task '{task.get('name', i)}' states no duration. Expected one of: "
+                    "duration, duration_days, duration_months, duration_weeks, "
+                    "duration_hours, processing_hours, period."
+                )
+            durations.append(max(1, int(round(float(duration)))))
 
         variables: list[Variable] = []
         constraints: list[Constraint] = []
@@ -315,6 +353,77 @@ class SchedulingGenerator(BaseGenerator):
                         expression=f"start_{names[i]} - start_{p_name} >= {p_duration}",
                     )
                 )
+
+        # A shared resource pool measured in units rather than in bodies: the
+        # clinical sites can enrol so many patients a month, and every phase
+        # running that month draws on the same pool. Nothing read either figure
+        # before, so a trial plan ignored how many patients it could actually
+        # recruit.
+        pools = user_input.get("resource_pools") or user_input.get("sites") or []
+        # Named pools: a site network is one shared number, but a building site
+        # has laborers AND a crane, and an activity draws its own amount of each.
+        by_name = {
+            str(r.get("name", "")): float(
+                next(
+                    r[k]
+                    for k in ("daily_capacity", "monthly_capacity", "capacity")
+                    if r.get(k) is not None
+                )
+            )
+            for r in pools
+            if isinstance(r, dict)
+            and any(
+                r.get(k) is not None for k in ("daily_capacity", "monthly_capacity", "capacity")
+            )
+        }
+        needs_by_task = {
+            t_name: task.get("resource_needs")
+            for task, t_name in zip(tasks, names, strict=True)
+            if isinstance(task.get("resource_needs"), dict)
+        }
+        if by_name and needs_by_task:
+            for res_name, limit in by_name.items():
+                for t in range(time_horizon):
+                    terms = [
+                        f"{float(needs[res_name])}*{z}"
+                        for t_name, needs in needs_by_task.items()
+                        if needs.get(res_name)
+                        for tau, z in starts_of[t_name]
+                        if tau <= t < tau + durations[names.index(t_name)]
+                    ]
+                    if terms:
+                        constraints.append(
+                            Constraint(
+                                name=f"pool_{self.sanitize_name(res_name)}_{t}",
+                                expression=f"{' + '.join(terms)} <= {limit}",
+                            )
+                        )
+
+        pool = sum(by_name.values()) if not needs_by_task else 0.0
+        # The figure on the task is the whole programme's enrolment, spread
+        # across its duration. Reading 500 patients as a monthly draw made a
+        # normal phase III trial infeasible against any real site network.
+        draws = [
+            (t_name, round(float(task.get(key)) / max(1, duration), 4))
+            for task, t_name, duration in zip(tasks, names, durations, strict=True)
+            for key in ("patients_needed", "resource_units", "units_needed")
+            if task.get(key) is not None
+        ]
+        if pool > 0 and draws:
+            for t in range(time_horizon):
+                terms = [
+                    f"{amount}*{z}"
+                    for t_name, amount in draws
+                    for tau, z in starts_of[t_name]
+                    if tau <= t < tau + durations[names.index(t_name)]
+                ]
+                if terms:
+                    constraints.append(
+                        Constraint(
+                            name=f"pool_{t}",
+                            expression=f"{' + '.join(terms)} <= {pool}",
+                        )
+                    )
 
         # Real concurrency: at most num_crews tasks active in any period. Active
         # at t = started within the last duration periods.
