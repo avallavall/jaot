@@ -16,9 +16,9 @@ templates:
     category: telecom
     tags: [telecom, infrastructure, wireless, network-planning]
     problem_type_tags: [MIP, facility-location]
-    generator_type: facility_location
+    generator_type: covering
     generator_params:
-      capacity_constrained: false
+      coverage_format: index_pairs
     input_schema:
       type: object
       properties:

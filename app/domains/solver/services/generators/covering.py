@@ -17,6 +17,10 @@ from app.schemas.optimization import (
     VariableType,
 )
 
+#: Where a set states what it costs. A covering card whose sets carry
+#: "fixed_cost" or "cost_per_unit" is not a card without costs.
+_COST_KEYS = ("cost", "fixed_cost", "cost_per_unit", "opening_cost", "price")
+
 
 class CoveringGenerator(BaseGenerator):
     """Generate set-covering/partitioning problems.
@@ -33,9 +37,11 @@ class CoveringGenerator(BaseGenerator):
             [
                 "sets",
                 "candidate_pairings",
+                "candidate_sites",
                 "stations",
                 "options",
             ],
+            fallback=False,
         )
         num_elements = user_input.get("num_elements", 0)
         mode = params.get("mode", "cover")
@@ -47,14 +53,37 @@ class CoveringGenerator(BaseGenerator):
                 "elements",
                 "flight_legs",
                 "zones",
+                "demand_zones",
+                "communities",
                 "demands",
             ],
+            fallback=False,
         )
 
         # Coverage matrix: can be list-of-lists (2D) or list-of-dicts (sparse)
         coverage_matrix_raw = user_input.get("coverage_matrix")
         coverage_matrix: list[list[int]] | None = None
         sparse_coverage: dict[str, set[str]] | None = None
+
+        # Three shapes reach this field. A dense 0/1 grid, a list of
+        # {station, zone} dicts, and a list of [set_index, element_index]
+        # pairs. The pair list used to be read as a dense grid, which turned
+        # "site 0 covers zone 0" into "site 0 covers nothing", so a card could
+        # not state its coverage at all.
+        if params.get("coverage_format") == "index_pairs":
+            pairs: dict[int, set[int]] = {}
+            for entry in coverage_matrix_raw or []:
+                if not isinstance(entry, (list, tuple)) or len(entry) != 2:
+                    raise ValueError(
+                        f"coverage_format 'index_pairs' needs [set, element] rows, got {entry!r}"
+                    )
+                pairs.setdefault(int(entry[0]), set()).add(int(entry[1]))
+            width = max((max(v) for v in pairs.values() if v), default=-1) + 1
+            coverage_matrix = [
+                [1 if e in pairs.get(i, set()) else 0 for e in range(width)]
+                for i in range(len(sets))
+            ]
+            coverage_matrix_raw = None
 
         if coverage_matrix_raw and isinstance(coverage_matrix_raw, list):
             if coverage_matrix_raw and isinstance(coverage_matrix_raw[0], dict):
@@ -94,7 +123,17 @@ class CoveringGenerator(BaseGenerator):
 
         for i, s in enumerate(sets):
             s_name = self.sanitize_name(s.get("name", f"set_{i}"))
-            cost = s.get("cost", 1)
+            # A missing cost used to become 1, which turns "cheapest cover"
+            # into "fewest sets" — a different answer that still looks optimal.
+            cost = next(
+                (float(s[key]) for key in _COST_KEYS if s.get(key) is not None),
+                None,
+            )
+            if cost is None:
+                raise ValueError(
+                    f"Set '{s.get('name', i)}' states no cost. "
+                    f"Expected one of: {', '.join(_COST_KEYS)}."
+                )
             variables.append(Variable(name=s_name, type=VariableType.BINARY))
             cost_terms.append(f"{cost}*{s_name}")
 
@@ -160,6 +199,17 @@ class CoveringGenerator(BaseGenerator):
                     f"No set covers element(s): {', '.join(uncoverable)}. "
                     "Every element must appear in at least one set's coverage."
                 )
+
+        # A cap on how many sets may be chosen (p-median style). Public
+        # facility cards state it as max_facilities.
+        max_sets = user_input.get("max_sets", user_input.get("max_facilities"))
+        if max_sets is not None and float(max_sets) > 0:
+            constraints.append(
+                Constraint(
+                    name="max_sets",
+                    expression=f"{' + '.join(v.name for v in variables)} <= {float(max_sets)}",
+                )
+            )
 
         return OptimizationProblem(
             name="covering",

@@ -18,7 +18,7 @@ templates:
     category: government
     tags: [government, urban-planning, facility-location, public-services]
     problem_type_tags: [MIP, facility-location]
-    generator_type: facility_location
+    generator_type: covering
     generator_params: {}
     input_schema:
       type: object
@@ -64,11 +64,11 @@ templates:
         minimum: 1
     example_input:
       candidate_sites:
-        - {name: "Central Park Site", cost: 2500000, capacity: 800}
-        - {name: "Eastside Lot", cost: 1800000, capacity: 600}
-        - {name: "Northgate Mall (retrofit)", cost: 1200000, capacity: 500}
-        - {name: "Riverside Plot", cost: 2100000, capacity: 700}
-        - {name: "Southend Vacant Land", cost: 1500000, capacity: 650}
+        - {name: "Central Park Site", cost: 2500000, covers: [0, 5]}
+        - {name: "Eastside Lot", cost: 1800000, covers: [0, 1]}
+        - {name: "Northgate Mall (retrofit)", cost: 1200000, covers: [2, 5]}
+        - {name: "Riverside Plot", cost: 2100000, covers: [2, 3]}
+        - {name: "Southend Vacant Land", cost: 1500000, covers: [3, 4]}
       communities:
         - {name: "Downtown Core", population: 15000, underserved: false}
         - {name: "East District", population: 22000, underserved: true}
