@@ -56,8 +56,6 @@ UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
         # scheduling: still on the shift-covering model
         "train_timetabling",
         "vessel_scheduling",
-        # production: reactor throughput, conversion and operating cost go unread
-        "reactor_optimization",
     }
 )
 
@@ -264,6 +262,11 @@ KNOWN_OPTIMA: dict[str, float] = {
     # 6 + 12 + 18 + 18 months. The two pivotal arms cannot run together: each
     # draws 1600/18 = 88.9 patients a month against a site network of 175.
     "drug_trial_scheduling": 54.0,
+    # 320 t of polyethylene and 200 t of polypropylene, both capped by
+    # feedstock. Margins of 45 - 2.5x8 = 25 and 52 - 3.0x10 = 22, so 12400,
+    # less 500 units on the cheapest reactor at 12/0.85 and the last 20 at
+    # 15/0.9.
+    "reactor_optimization": 5007.84316,
     # Brute force over all 255 subsets agrees: 7.8M of the 8M budget, weighted
     # risk 0.1104 against a 0.13 ceiling.
     "property_portfolio": 494100.0,

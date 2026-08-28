@@ -52,7 +52,18 @@ class ProductionGenerator(BaseGenerator):
                 )
             )
 
-            profit_terms.append(f"{profit}*{name}")
+            # What the card calls profit is the price less what the unit eats.
+            # Reading only the price made every feedstock's cost decoration and
+            # a card that says "at minimum cost" maximize revenue instead.
+            feed_cost = 0.0
+            for r in resources:
+                per_unit = r.get("cost_per_unit", r.get("cost"))
+                usage = (r.get("usage") or {}).get(
+                    p.get("name", ""), (r.get("usage") or {}).get(name)
+                )
+                if per_unit is not None and usage:
+                    feed_cost += float(per_unit) * float(usage)
+            profit_terms.append(f"{round(float(profit) - feed_cost, 6)}*{name}")
 
         constraints: list[Constraint] = []
 
@@ -72,6 +83,53 @@ class ProductionGenerator(BaseGenerator):
                     Constraint(
                         name=self.sanitize_name(r_name),
                         expression=f"{' + '.join(usage_terms)} <= {available}",
+                    )
+                )
+
+        # Where the work physically happens. "resources" falls back to
+        # raw_materials first, so a card listing BOTH raw materials and reactors
+        # had its reactors read by nothing: no throughput limit, no operating
+        # cost, and the plan was free to make its maximum of every product on a
+        # plant that could not hold it.
+        reactors = user_input.get("reactors") or user_input.get("machines") or []
+        if reactors and products:
+            for r in reactors:
+                r_name = self.sanitize_name(r.get("name", "reactor"))
+                throughput = r.get("max_throughput", r.get("capacity"))
+                conversion = float(r.get("conversion_rate", 1) or 1)
+                op_cost = float(r.get("operating_cost", 0) or 0)
+                if throughput is None:
+                    raise ValueError(f"Reactor '{r.get('name', r_name)}' states no throughput.")
+
+                load_terms = []
+                for p in products:
+                    p_name = self.sanitize_name(p.get("name", ""))
+                    run = f"run_{p_name}_{r_name}"
+                    variables.append(
+                        Variable(name=run, type=VariableType.CONTINUOUS, lower_bound=0)
+                    )
+                    load_terms.append(run)
+                    # A less efficient reactor burns more feed for the same
+                    # output, so its hour costs more per unit produced.
+                    profit_terms.append(f"-{round(op_cost / conversion, 6)}*{run}")
+
+                constraints.append(
+                    Constraint(
+                        name=f"throughput_{r_name}",
+                        expression=f"{' + '.join(load_terms)} <= {float(throughput)}",
+                    )
+                )
+
+            # Everything produced has to have run somewhere.
+            for p in products:
+                p_name = self.sanitize_name(p.get("name", ""))
+                runs = [
+                    f"run_{p_name}_{self.sanitize_name(r.get('name', 'reactor'))}" for r in reactors
+                ]
+                constraints.append(
+                    Constraint(
+                        name=f"made_on_{p_name}",
+                        expression=f"{' + '.join(runs)} - {p_name} == 0",
                     )
                 )
 
