@@ -147,6 +147,9 @@ templates:
         description: "Total liters to produce"
         required: true
         minimum: 1
+    # the recipe specifies the active ingredient and the stabilizer; solvent is
+    #   whatever is left, so no row constrains it
+    context_fields: [solvent]
     example_input:
       feedstocks:
         - {name: "Solvent-A", cost_per_liter: 3.20, available: 2000, composition: {active_ingredient: 40, solvent: 55, stabilizer: 5}}

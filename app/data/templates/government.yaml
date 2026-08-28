@@ -156,6 +156,11 @@ templates:
             station: {type: string}
             zone: {type: string}
             response_minutes: {type: number}
+    # how many units a station houses and how busy a zone is explain why the
+    #   coverage requirement is what it is; this card decides which stations to
+    #   build, not how to crew them. response_minutes is why a station-zone pair
+    #   is in the coverage matrix at all: being listed IS the coverage
+    context_fields: [capacity, daily_calls, response_minutes]
     example_input:
       stations:
         - {name: "Station-Central", capacity: 3, cost_per_unit: 180000}

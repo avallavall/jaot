@@ -56,12 +56,8 @@ UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
         # scheduling: still on the shift-covering model
         "train_timetabling",
         "vessel_scheduling",
-        # production / blending: throughput and one composition component
+        # production: reactor throughput, conversion and operating cost go unread
         "reactor_optimization",
-        "chemical_blending",
-        "markdown_pricing",
-        "ad_campaign_budget",
-        "emergency_response_allocation",
     }
 )
 

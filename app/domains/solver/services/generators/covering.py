@@ -151,11 +151,22 @@ class CoveringGenerator(BaseGenerator):
                     s_name = self.sanitize_name(s_raw_name)
                     if s_raw_name in sparse_coverage and elem_raw in sparse_coverage[s_raw_name]:
                         covering_vars.append(s_name)
+                # Same rule as the dense branch: an element may ask to be
+                # covered more than once.
+                need = next(
+                    (
+                        el.get("min_coverage", el.get("required_coverage"))
+                        for el in elements
+                        if isinstance(el, dict) and str(el.get("name", "")) == elem_raw
+                    ),
+                    None,
+                )
+                row_op = f">= {float(need)}" if need is not None and mode != "partition" else op
                 if covering_vars:
                     constraints.append(
                         Constraint(
                             name=f"cover_{self.sanitize_name(elem_raw)}",
-                            expression=f"{' + '.join(covering_vars)} {op}",
+                            expression=f"{' + '.join(covering_vars)} {row_op}",
                         )
                     )
         else:
@@ -181,11 +192,19 @@ class CoveringGenerator(BaseGenerator):
                     if elements and e < len(elements) and isinstance(elements[e], dict)
                     else str(e)
                 )
+                # An element may need covering more than once. A city centre
+                # asking for two stations within reach got the same ">= 1" as
+                # everywhere else, so min_coverage never reached the model.
+                need = None
+                if elements and e < len(elements) and isinstance(elements[e], dict):
+                    need = elements[e].get("min_coverage", elements[e].get("required_coverage"))
+                row_op = f">= {float(need)}" if need is not None and mode != "partition" else op
+
                 if covering_vars:
                     constraints.append(
                         Constraint(
                             name=f"cover_{elem_name}",
-                            expression=f"{' + '.join(covering_vars)} {op}",
+                            expression=f"{' + '.join(covering_vars)} {row_op}",
                         )
                     )
                 else:

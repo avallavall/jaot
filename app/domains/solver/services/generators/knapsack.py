@@ -150,7 +150,23 @@ class KnapsackGenerator(BaseGenerator):
             value = _find_field(item, _VALUE_FIELDS)
             weight = _find_field(item, _WEIGHT_FIELDS)
 
-            variables.append(Variable(name=name, type=VariableType.BINARY))
+            # A channel you buy 5000 impressions of is not a yes/no item. When
+            # the card states how many units may be bought, the variable counts
+            # them: with a binary, min_units and max_units could not reach the
+            # model at all and the answer was "run this channel" with no volume.
+            low = item.get("min_units", item.get("min_quantity"))
+            high = item.get("max_units", item.get("max_quantity"))
+            if low is not None or high is not None:
+                variables.append(
+                    Variable(
+                        name=name,
+                        type=VariableType.INTEGER,
+                        lower_bound=float(low) if low is not None else 0,
+                        upper_bound=float(high) if high is not None else None,
+                    )
+                )
+            else:
+                variables.append(Variable(name=name, type=VariableType.BINARY))
 
             value_terms.append(f"{value}*{name}")
             weight_terms.append(f"{weight}*{name}")

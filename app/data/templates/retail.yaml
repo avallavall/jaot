@@ -166,10 +166,10 @@ templates:
         default: 0.8
     example_input:
       products:
-        - {name: jacket, base_price: 150, inventory: 50, elasticity: 0.6, base_demand: 10}
-        - {name: dress, base_price: 80, inventory: 80, elasticity: 1.0, base_demand: 15}
+        - {name: jacket, base_price: 150, inventory: 12, elasticity: 0.6, base_demand: 10}
+        - {name: dress, base_price: 80, inventory: 22, elasticity: 1.0, base_demand: 15}
         - {name: shirt, base_price: 45, inventory: 200, elasticity: 2.5, base_demand: 40}
-        - {name: hat, base_price: 25, inventory: 120, elasticity: 1.2, base_demand: 30}
+        - {name: hat, base_price: 25, inventory: 42, elasticity: 1.2, base_demand: 30}
     is_featured: false
     estimated_variables: 8
     estimated_constraints: 8
