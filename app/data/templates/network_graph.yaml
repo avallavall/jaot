@@ -197,16 +197,16 @@ templates:
         - {id: D, supply: 0}
         - {id: sink, supply: -100}
       arcs:
-        - {from: source, to: A, cost: 0, capacity: 16}
-        - {from: source, to: B, cost: 0, capacity: 13}
-        - {from: A, to: B, cost: 0, capacity: 4}
-        - {from: A, to: C, cost: 0, capacity: 12}
-        - {from: B, to: A, cost: 0, capacity: 10}
-        - {from: B, to: D, cost: 0, capacity: 14}
-        - {from: C, to: B, cost: 0, capacity: 9}
-        - {from: C, to: sink, cost: 0, capacity: 20}
-        - {from: D, to: C, cost: 0, capacity: 7}
-        - {from: D, to: sink, cost: 0, capacity: 4}
+        - {from: source, to: A, capacity: 16}
+        - {from: source, to: B, capacity: 13}
+        - {from: A, to: B, capacity: 4}
+        - {from: A, to: C, capacity: 12}
+        - {from: B, to: A, capacity: 10}
+        - {from: B, to: D, capacity: 14}
+        - {from: C, to: B, capacity: 9}
+        - {from: C, to: sink, capacity: 20}
+        - {from: D, to: C, capacity: 7}
+        - {from: D, to: sink, capacity: 4}
     is_featured: false
     estimated_variables: 10
     estimated_constraints: 6

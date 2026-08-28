@@ -215,6 +215,10 @@ templates:
         default: 2
         minimum: 1
         maximum: 4
+    # a link's bandwidth says what it carries once built; this card decides
+    #   which links to build so every node has two independent paths, which
+    #   is a question about connectivity and cost, not throughput
+    context_fields: [capacity]
     example_input:
       nodes:
         - {name: "DataCenter-HQ"}

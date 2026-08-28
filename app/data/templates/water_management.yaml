@@ -197,7 +197,12 @@ templates:
     tags: [water, wastewater, treatment, environmental]
     problem_type_tags: [LP, network-flow]
     generator_type: network_flow
-    generator_params: {}
+    generator_params:
+      arc_limit:
+        name: discharge_limit
+        from_field: contamination
+        to_complement: efficiency
+        max_field: max_discharge_units
     input_schema:
       type: object
       properties:
@@ -233,13 +238,14 @@ templates:
             cost_per_unit: {type: number}
             efficiency: {type: number}
     example_input:
+      max_discharge_units: 900
       sources:
         - {name: "Industrial-District", flow_volume: 5000, contamination: 0.85}
         - {name: "Residential-North", flow_volume: 8000, contamination: 0.30}
         - {name: "Commercial-Center", flow_volume: 3000, contamination: 0.45}
         - {name: "Hospital-Complex", flow_volume: 1500, contamination: 0.95}
       plants:
-        - {name: "Primary-Plant-West", capacity: 8000, cost_per_unit: 2.5, efficiency: 0.80}
+        - {name: "Primary-Plant-West", capacity: 11000, cost_per_unit: 2.5, efficiency: 0.80}
         - {name: "Advanced-Plant-East", capacity: 6000, cost_per_unit: 4.0, efficiency: 0.95}
         - {name: "Tertiary-Plant-South", capacity: 3500, cost_per_unit: 6.0, efficiency: 0.99}
     scenario_description: >

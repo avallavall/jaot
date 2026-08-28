@@ -98,20 +98,45 @@ class NetworkFlowGenerator(BaseGenerator):
 
         for d in sinks:
             d_name = d.get("name", d.get("id", f"sink_{len(nodes)}"))
-            demand = d.get(
-                "demand",
-                d.get(
-                    "capacity",
-                    d.get("required", d.get("capacity_tph", d.get("flow_volume", 10))),
-                ),
+            # A plant's capacity is how much it CAN take, not how much it must.
+            # Reading it as a demand forced every plant to run full, so the
+            # example only worked because someone had tuned total capacity to
+            # equal total flow, and giving the network any slack made it
+            # infeasible.
+            stated_demand = next(
+                (d[k] for k in ("demand", "required", "flow_volume") if d.get(k) is not None),
+                None,
             )
-            nodes.append({"name": d_name, "supply": -demand})
+            ceiling = next(
+                (
+                    d[k]
+                    for k in ("capacity", "capacity_tph", "max_capacity")
+                    if d.get(k) is not None
+                ),
+                None,
+            )
+            nodes.append(
+                {
+                    "name": d_name,
+                    "supply": -(stated_demand if stated_demand is not None else (ceiling or 10)),
+                    "ceiling_only": stated_demand is None and ceiling is not None,
+                }
+            )
 
+        # What it costs to send a unit down this arc. A flat 1 makes every route
+        # cost the same, so the objective is the total flow again and any
+        # routing ties for "optimal" — which is what wastewater_treatment_
+        # allocation was doing while its plants each stated a price per unit.
+        _COST_KEYS = ("cost_per_unit", "processing_cost", "unit_cost", "cost", "price_per_unit")
         for s in sources:
             s_name = s.get("name", "")
+            s_cost = next((float(s[k]) for k in _COST_KEYS if s.get(k) is not None), 0.0)
             for d in sinks:
                 d_name = d.get("name", "")
-                cost = 1  # default cost
+                d_cost = next((float(d[k]) for k in _COST_KEYS if d.get(k) is not None), 0.0)
+                cost = s_cost + d_cost
+                if cost == 0:
+                    cost = 1
                 arcs.append({"from": s_name, "to": d_name, "cost": cost, "capacity": None})
 
         return nodes, arcs
@@ -283,6 +308,43 @@ class NetworkFlowGenerator(BaseGenerator):
 
         constraints: list[Constraint] = []
 
+        # A second quantity the flow carries, with its own ceiling. Wastewater
+        # leaving a plant is the flow times how dirty it arrived times how much
+        # the plant fails to remove; the card promises a discharge limit and
+        # nothing was writing one, so contamination and efficiency sat in the
+        # input doing nothing.
+        arc_limit = params.get("arc_limit")
+        if arc_limit:
+            by_name = {
+                str(row.get("name", row.get("id", ""))): row
+                for group in ("sources", "plants", "nodes", "sinks")
+                for row in (user_input.get(group) or [])
+                if isinstance(row, dict)
+            }
+            from_field = arc_limit["from_field"]
+            to_complement = arc_limit.get("to_complement")
+            ceiling = user_input.get(arc_limit["max_field"])
+            if ceiling is None:
+                raise ValueError(f"Input states no '{arc_limit['max_field']}' to cap the arcs.")
+            terms = []
+            for arc in arcs:
+                head = by_name.get(str(arc.get("from", "")))
+                tail = by_name.get(str(arc.get("to", "")))
+                if head is None or head.get(from_field) is None:
+                    continue
+                weight = float(head[from_field])
+                if to_complement and tail is not None and tail.get(to_complement) is not None:
+                    weight *= 1 - float(tail[to_complement])
+                terms.append(f"{round(weight, 6)}*{arc['_var_name']}")
+            if not terms:
+                raise ValueError(f"arc_limit names '{from_field}' but no arc head carries it.")
+            constraints.append(
+                Constraint(
+                    name=arc_limit.get("name", "arc_limit"),
+                    expression=f"{' + '.join(terms)} <= {float(ceiling)}",
+                )
+            )
+
         # mode="max_flow" (template param): maximize the flow reaching the
         # sinks instead of forcing pre-computed supplies through at min cost.
         # The shipped max-flow card had zero costs and supplies equal to the
@@ -299,6 +361,11 @@ class NetworkFlowGenerator(BaseGenerator):
         total_pos = sum(s for s in node_supply.values() if s > 0)
         total_neg = -sum(s for s in node_supply.values() if s < 0)
         relax_supply_rows = total_pos > total_neg
+        ceiling_only = {
+            self.sanitize_name(str(n.get("name", n.get("id", ""))))
+            for n in nodes
+            if isinstance(n, dict) and n.get("ceiling_only")
+        }
 
         # Flow conservation at each node
         sink_inflow_terms: list[str] = []
@@ -351,7 +418,15 @@ class NetworkFlowGenerator(BaseGenerator):
                     )
                 continue
 
-            op = "<=" if relax_supply_rows and supply > 0 else "=="
+            if node_name in ceiling_only:
+                # out - in >= -capacity, i.e. this node absorbs at most its
+                # capacity. The supply figure is negative, so the direction
+                # reads backwards from "at most".
+                op = ">="
+            elif relax_supply_rows and supply > 0:
+                op = "<="
+            else:
+                op = "=="
             constraints.append(
                 Constraint(
                     name=f"flow_{node_name}",

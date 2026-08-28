@@ -56,10 +56,6 @@ UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
         # scheduling: still on the shift-covering model
         "train_timetabling",
         "vessel_scheduling",
-        # network: arc costs and contamination levels go unread
-        "max_flow",
-        "network_redundancy",
-        "wastewater_treatment_allocation",
         # production / blending: throughput and one composition component
         "reactor_optimization",
         "chemical_blending",
@@ -71,13 +67,21 @@ UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
 
 FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset(
     {
-        "cash_flow_planning",
         "tournament_scheduling",
         "train_timetabling",
         "vessel_scheduling",
-        "wastewater_treatment_allocation",
     }
 )
+
+
+#: Cards whose objective genuinely carries one coefficient throughout. This is
+#: NOT the ratchet: nothing here is debt, and an entry needs a reason that
+#: survives reading. A single credit line has a single rate, so minimizing
+#: "borrowing x rate" over the periods is the same thing as minimizing total
+#: borrowing — and the period balance rows are what tell the variables apart.
+FLAT_OBJECTIVE_IS_CORRECT: dict[str, str] = {
+    "cash_flow_planning": "one credit line at one rate; the balance rows distinguish the periods",
+}
 
 
 def _build(template):
@@ -207,6 +211,8 @@ def test_every_number_in_the_example_reaches_the_model(template) -> None:
 def test_objective_distinguishes_between_solutions(template) -> None:
     """One repeated coefficient means every answer ties, and "optimal" means nothing."""
     problem = _build(template)
+    if template.id in FLAT_OBJECTIVE_IS_CORRECT:
+        pytest.skip(FLAT_OBJECTIVE_IS_CORRECT[template.id])
     coefficients = re.findall(r"(-?\d+(?:\.\d+)?)\s*\*", problem.objective.expression)
     if len(coefficients) < 2:
         pytest.skip("objective has fewer than two terms")
