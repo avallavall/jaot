@@ -179,8 +179,8 @@ templates:
     category: maritime
     tags: [maritime, port, berth-allocation, operations]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
-    generator_params: {}
+    generator_type: windowed_tasking
+    generator_params: {mode: serve_all}
     input_schema:
       type: object
       properties:

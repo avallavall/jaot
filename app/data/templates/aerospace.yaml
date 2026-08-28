@@ -17,7 +17,7 @@ templates:
     category: aerospace
     tags: [aerospace, satellite, scheduling, earth-observation]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
+    generator_type: windowed_tasking
     generator_params: {}
     input_schema:
       type: object
@@ -73,9 +73,9 @@ templates:
         - {name: "Pipeline-Inspect-Alaska", duration: 5, priority: 65, window_start: 100, window_end: 160}
         - {name: "Deforestation-Amazon", duration: 10, priority: 80, window_start: 50, window_end: 130}
       satellites:
-        - {name: "SAT-Alpha", capacity_minutes: 30}
-        - {name: "SAT-Beta", capacity_minutes: 25}
-        - {name: "SAT-Gamma", capacity_minutes: 35}
+        - {name: "SAT-Alpha", capacity_minutes: 20}
+        - {name: "SAT-Beta", capacity_minutes: 16}
+        - {name: "SAT-Gamma", capacity_minutes: 22}
       time_horizon: 180
     scenario_description: >
       An Earth-observation company operates three satellites and has eight imaging

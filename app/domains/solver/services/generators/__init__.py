@@ -43,6 +43,9 @@ from app.domains.solver.services.generators.scheduling import SchedulingGenerato
 from app.domains.solver.services.generators.set_cover import SetCoverGenerator
 from app.domains.solver.services.generators.spanning_tree import SpanningTreeGenerator
 from app.domains.solver.services.generators.strip_packing import StripPackingGenerator
+from app.domains.solver.services.generators.windowed_tasking import (
+    WindowedTaskingGenerator,
+)
 
 # Register all generators
 GeneratorRegistry.register("assignment", AssignmentGenerator)
@@ -73,6 +76,7 @@ GeneratorRegistry.register("renewable_curtailment", RenewableCurtailmentGenerato
 GeneratorRegistry.register("quality_control", QualityControlGenerator)
 GeneratorRegistry.register("markdown_pricing", MarkdownPricingGenerator)
 GeneratorRegistry.register("strip_packing", StripPackingGenerator)
+GeneratorRegistry.register("windowed_tasking", WindowedTaskingGenerator)
 GeneratorRegistry.register("spanning_tree", SpanningTreeGenerator)
 GeneratorRegistry.register("mdpdp", MDPDPGenerator)
 GeneratorRegistry.register("period_selection", PeriodSelectionGenerator)
@@ -123,4 +127,5 @@ __all__ = [
     "SetCoverGenerator",
     "SpanningTreeGenerator",
     "StripPackingGenerator",
+    "WindowedTaskingGenerator",
 ]
