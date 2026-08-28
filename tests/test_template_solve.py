@@ -2,7 +2,7 @@
 
 For each of the 100+ official templates:
 - Generation produces a valid OptimizationProblem (variables, objective, constraints)
-- SCIP solver returns optimal or feasible status
+- SCIP solver returns optimal or feasible status (every template, no exemptions)
 - Integer/binary templates produce MIP problems, continuous-only produce LP
 - No template generation raises an unhandled exception
 
@@ -78,22 +78,6 @@ def test_template_variable_types_consistent(template):
 # Slow tests: full SCIP solve
 
 
-# Templates where the domain-specific input auto-mapping produces
-# approximate formulations that may be infeasible or unbounded.
-# These still pass generation tests; solver status is tracked as known issues.
-_SOLVER_KNOWN_ISSUES: set[str] = {
-    "media_mix_optimization",  # portfolio fraction vs dollar bounds
-    "reactor_optimization",  # unbounded without reactor capacity mapping
-    "pipeline_network_flow",  # arc capacities < demand in example data
-    "claims_adjuster_assignment",  # more tasks than workers (infeasible ==1)
-    "fleet_dispatch_mining",  # auto-generated arcs lack capacity balance
-    "max_flow",  # supply/demand imbalance in example data
-    "drug_distribution",  # multi-product demand exceeds route capacity
-    "tournament_scheduling",  # implicit resource constraints not modeled
-    "pick_route_optimization",  # TSP needs distance data for all pairs
-    "water_distribution_network",  # pipe capacities < junction demands
-    "wastewater_treatment_allocation",  # capacity < total source flow
-}
 
 
 @pytest.mark.slow
@@ -117,23 +101,16 @@ def test_template_solves_successfully(template):
         result.objective_value,
     )
 
-    if template.id in _SOLVER_KNOWN_ISSUES:
-        # Known issues: just assert the solver didn't crash (status is set)
-        assert result.status is not None, f"Template {template.id} returned None status"
-    else:
-        assert result.status in ("optimal", "feasible"), (
-            f"Template {template.id} got status {result.status}"
-            f"{': ' + (result.error_message or '') if result.error_message else ''}"
-        )
+    assert result.status in ("optimal", "feasible"), (
+        f"Template {template.id} got status {result.status}"
+        f"{': ' + (result.error_message or '') if result.error_message else ''}"
+    )
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize("template", ALL_TEMPLATES, ids=lambda t: t.id)
 def test_template_solve_returns_solution(template):
     """Solved templates return variable values in the solution dict."""
-    if template.id in _SOLVER_KNOWN_ISSUES:
-        pytest.skip(f"Known solver issue for {template.id}")
-
     generator = get_generator(template.generator_type)
     problem = generator.generate(template.example_input, template.generator_params)
 

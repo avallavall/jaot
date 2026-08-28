@@ -49,6 +49,13 @@ class TemplateDefinition(BaseModel):
     input_schema: dict[str, Any]
     input_fields: list[TemplateInputField]
     example_input: dict[str, Any]
+    #: Numeric fields in ``example_input`` that the model deliberately does NOT
+    #: read — a zone's population on a card that only has to cover every zone,
+    #: a vessel's crane count. Every other number must reach the model, and
+    #: ``tests/test_template_model_quality.py`` fails the build when one does
+    #: not. Declaring the exceptions here keeps them reviewable instead of
+    #: silent.
+    context_fields: list[str] = []
     scenario_description: str = ""
     is_featured: bool = False
     estimated_variables: int | None = None
