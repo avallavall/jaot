@@ -57,6 +57,9 @@ templates:
         description: "Maximum area that can be harvested in any single period"
         required: true
         minimum: 0
+    # a stand's age explains why its timber is worth what it is; the model reads
+    #   the volume and the price, not the age
+    context_fields: [age_years]
     example_input:
       stands:
         - {name: "Stand-A", area_ha: 25, timber_volume: 4500, revenue_per_m3: 65, age_years: 45, adjacent_to: ["Stand-B"]}
@@ -225,6 +228,9 @@ templates:
             type: {type: string}
             effectiveness: {type: number}
             cost: {type: number}
+    # the fire's size, spread and terrain are why it takes the suppression
+    #   effectiveness it does; that requirement is what the model covers
+    context_fields: [current_ha, growth_rate_ha_hr, difficulty]
     example_input:
       fires:
         - {name: "Ridge-Fire", current_ha: 120, growth_rate_ha_hr: 15, difficulty: 8, required_effectiveness: 25}

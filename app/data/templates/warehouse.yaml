@@ -23,6 +23,7 @@ templates:
         - multiply: [daily_picks, distance_to_dock]
       require:
         - equal: [size_class, size_class]
+        - at_most: [weight_kg, max_weight_kg]
       worker_rule: exactly_one
       task_rule: at_most_one
     input_schema:
@@ -70,13 +71,13 @@ templates:
         - {name: "Accessory-Q (seasonal)", daily_picks: 10, size_class: "case", weight_kg: 3}
         - {name: "Bulk-Material-Z", daily_picks: 5, size_class: "pallet", weight_kg: 40}
       slots:
-        - {name: "A-01-Floor", size_class: "pallet", distance_to_dock: 5, level: "floor"}
-        - {name: "A-02-Floor", size_class: "pallet", distance_to_dock: 8, level: "floor"}
-        - {name: "B-01-Mid", size_class: "case", distance_to_dock: 10, level: "mid"}
-        - {name: "B-02-Mid", size_class: "case", distance_to_dock: 15, level: "mid"}
-        - {name: "B-03-Mid", size_class: "case", distance_to_dock: 20, level: "mid"}
-        - {name: "C-01-High", size_class: "each", distance_to_dock: 12, level: "high"}
-        - {name: "C-02-High", size_class: "each", distance_to_dock: 18, level: "high"}
+        - {name: "A-01-Floor", size_class: "pallet", distance_to_dock: 5, level: "floor", max_weight_kg: 45}
+        - {name: "A-02-Floor", size_class: "pallet", distance_to_dock: 8, level: "floor", max_weight_kg: 30}
+        - {name: "B-01-Mid", size_class: "case", distance_to_dock: 10, level: "mid", max_weight_kg: 6}
+        - {name: "B-02-Mid", size_class: "case", distance_to_dock: 15, level: "mid", max_weight_kg: 10}
+        - {name: "B-03-Mid", size_class: "case", distance_to_dock: 20, level: "mid", max_weight_kg: 8}
+        - {name: "C-01-High", size_class: "each", distance_to_dock: 12, level: "high", max_weight_kg: 2}
+        - {name: "C-02-High", size_class: "each", distance_to_dock: 18, level: "high", max_weight_kg: 0.4}
     scenario_description: >
       An e-commerce fulfillment center has seven SKUs that need slot assignments
       across seven warehouse locations. High-pick-frequency items should be closest

@@ -114,6 +114,11 @@ class AssignmentGenerator(BaseGenerator):
             elif kind == "at_least":
                 if float(worker.get(w_field, 0)) < float(task.get(t_field, 0)):
                     return False
+            elif kind == "at_most":
+                # The limit sits on the task side: a 40 kg pallet needs a slot
+                # rated for it, so worker[field] must not exceed task[field].
+                if float(worker.get(w_field, 0)) > float(task.get(t_field, 0)):
+                    return False
             else:
                 raise ValueError(f"Unknown assignment compatibility rule: {kind!r}")
         return True

@@ -214,6 +214,9 @@ templates:
         description: "Available haul trucks"
         required: true
         minimum: 1
+    # the haul fleet is the reason the shovels have the loading rates they do; the
+    #   model moves tonnes per hour, not individual trucks
+    context_fields: [trucks]
     example_input:
       shovels:
         - {name: "Shovel-1-Pit-North", loading_rate_tph: 800}

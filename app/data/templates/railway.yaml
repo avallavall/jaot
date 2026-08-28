@@ -219,6 +219,9 @@ templates:
             day: {type: integer}
             start_hour: {type: integer}
             duration_hours: {type: integer}
+    # a possession window is placed by its day and its length; the hour it opens
+    #   is descriptive
+    context_fields: [start_hour]
     example_input:
       sections:
         - {name: "Section-A (Main Line)", duration_hours: 6, deadline_day: 14, trains_affected: 24}

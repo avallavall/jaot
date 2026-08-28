@@ -83,18 +83,6 @@ UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
         "markdown_pricing",
         "ad_campaign_budget",
         "emergency_response_allocation",
-        # Repaired cards still carrying descriptive figures their model does not
-        # optimise over. Each needs either a use or a context_fields entry.
-        "cell_tower_placement",
-        "public_facility_location",
-        "claims_adjuster_assignment",
-        "fleet_dispatch_mining",
-        "harvest_scheduling",
-        "port_berth_allocation",
-        "rolling_stock_assignment",
-        "track_maintenance_scheduling",
-        "warehouse_slotting",
-        "wildfire_resource_deployment",
     }
 )
 
@@ -148,6 +136,30 @@ def _set_path(obj, path, value) -> None:
     cursor[path[-1]] = value
 
 
+def _model_moves(template, path, value, baseline: str) -> bool:
+    """Does changing this one number change the model, in either direction?"""
+    candidates: list[float | int] = []
+    if isinstance(value, int):
+        candidates = [value * 2 + 7, value // 2 - 1]
+    else:
+        candidates = [value * 1.37 + 3.1, value * 0.41 - 1.7]
+
+    for changed in candidates:
+        if changed == value:
+            continue
+        probe = copy.deepcopy(template.example_input)
+        _set_path(probe, path, changed)
+        try:
+            moved = _fingerprint(
+                get_generator(template.generator_type).generate(probe, template.generator_params)
+            )
+        except Exception:  # noqa: BLE001 - a rejected perturbation means it was read
+            return True
+        if moved != baseline:
+            return True
+    return False
+
+
 def _field_name(path) -> str:
     """The last non-index element of a path — the field the number belongs to."""
     for step in reversed(path):
@@ -180,19 +192,12 @@ def test_every_number_in_the_example_reaches_the_model(template) -> None:
     for path, value in _numeric_paths(template.example_input):
         if _field_name(path) in declared:
             continue
-        probe = copy.deepcopy(template.example_input)
-        changed = int(value * 2 + 7) if isinstance(value, int) else value * 1.37 + 3.1
-        if changed == value:
-            changed = value + 1
-        _set_path(probe, path, changed)
-        try:
-            moved = _fingerprint(
-                get_generator(template.generator_type).generate(probe, template.generator_params)
-            )
-        except Exception:  # noqa: BLE001 - a rejected perturbation means it was read
+        # Probe up AND down. A limit with slack in it does not move the model
+        # when it is loosened, so raising alone would report a berth's depth or
+        # a unit's seat count as unread when the model reads both.
+        if _model_moves(template, path, value, baseline):
             continue
-        if moved == baseline:
-            ignored.append(".".join(str(p) for p in path))
+        ignored.append(".".join(str(p) for p in path))
 
     assert not ignored, (
         f"{template.id}: changing these numbers leaves the model identical, so the "
@@ -234,9 +239,11 @@ def test_objective_distinguishes_between_solutions(template) -> None:
 # Optima worked out by hand from the example input. Each one pins a formulation,
 # not just a number: change what the model means and these move.
 KNOWN_OPTIMA: dict[str, float] = {
-    # 30x5 + 5x8 + 85x10 + 45x15 + 10x20 + 60x12 + 20x18, each SKU in a slot of
-    # its own size class.
-    "warehouse_slotting": 2995.0,
+    # Each SKU in a slot of its own size class AND rated for its weight: the
+    # 40 kg pallet has exactly one home (A-01, rated 45) and the 8 kg case is
+    # shut out of the nearest bin (B-01, rated 6). 25 + 240 + 850 + 675 + 200
+    # + 720 + 360.
+    "warehouse_slotting": 3070.0,
     # The four complexities, every claim reaching an in-region specialist, so no
     # urgency-scaled travel penalty is paid.
     "claims_adjuster_assignment": 16.0,

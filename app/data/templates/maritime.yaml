@@ -215,6 +215,9 @@ templates:
             name: {type: string}
             max_draft_m: {type: number}
             cranes: {type: integer}
+    # crane count describes the berth; handling time is stated per vessel, so the
+    #   model does not derive it from cranes
+    context_fields: [cranes]
     example_input:
       vessels:
         - {name: "MSC Harmony", arrival_hour: 0, handling_hours: 12, draft_m: 14.5}

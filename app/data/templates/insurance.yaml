@@ -140,7 +140,7 @@ templates:
         - {name: "Alice Chen", specialization: ["auto", "property"], region: "North", max_cases: 3}
         - {name: "Bob Torres", specialization: ["property", "liability"], region: "South", max_cases: 3}
         - {name: "Carol Wu", specialization: ["auto", "cyber"], region: "West", max_cases: 3}
-        - {name: "Dan Patel", specialization: ["liability", "auto"], region: "East", max_cases: 3}
+        - {name: "Dan Patel", specialization: ["liability", "auto", "cyber"], region: "East", max_cases: 3}
     scenario_description: >
       An insurance company has eight pending claims across four regions and four
       claim types. Four adjusters are available, each with different

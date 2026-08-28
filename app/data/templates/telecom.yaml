@@ -58,6 +58,9 @@ templates:
         type: array
         description: "Which sites cover which zones (list of [site_index, zone_index] pairs)"
         required: true
+    # every zone must be covered whatever its size, so population sets the stakes
+    #   rather than the answer
+    context_fields: [population]
     example_input:
       candidate_sites:
         - {name: "Hilltop-A", fixed_cost: 120000}
