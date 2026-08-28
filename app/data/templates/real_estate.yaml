@@ -17,7 +17,12 @@ templates:
     tags: [real-estate, investment, portfolio, REIT]
     problem_type_tags: [MIP, portfolio]
     generator_type: portfolio
-    generator_params: {}
+    generator_params:
+      weight_field: price
+      return_field: expected_return
+      return_mode: rate_on_weight
+      risk_field: risk
+      risk_limit_field: max_portfolio_risk
     input_schema:
       type: object
       properties:
@@ -59,6 +64,7 @@ templates:
         - {name: "Cold Storage Facility", expected_return: 0.054, risk: 0.07, price: 2100000, property_type: "industrial"}
         - {name: "Beachfront Condos", expected_return: 0.090, risk: 0.25, price: 3800000, property_type: "residential"}
       budget: 8000000
+      max_portfolio_risk: 0.13
     scenario_description: >
       A real estate investment trust has $8M to deploy across eight candidate
       properties spanning residential, commercial, and industrial segments. Each
@@ -161,7 +167,8 @@ templates:
     tags: [real-estate, commercial, tenant-mix, retail]
     problem_type_tags: [MIP, knapsack]
     generator_type: knapsack
-    generator_params: {}
+    generator_params:
+      min_totals: {foot_traffic_score: 30}
     input_schema:
       type: object
       properties:

@@ -143,6 +143,7 @@ class KnapsackGenerator(BaseGenerator):
         value_terms: list[str] = []
         weight_terms: list[str] = []
         dimension_terms: dict[str, list[str]] = {}
+        constraints_from_min_totals: list[Constraint] = []
 
         for i, item in enumerate(items):
             name = self.sanitize_name(item.get("name", f"item_{i}"))
@@ -163,7 +164,22 @@ class KnapsackGenerator(BaseGenerator):
         target = _find_scalar(user_input, _TARGET_FIELDS)
         capacity = _find_capacity(user_input)
 
-        constraints: list[Constraint] = []
+        # A floor on the total of some other item field. A shopping centre
+        # maximizes rent, but the mix still has to pull enough footfall, and
+        # that second figure was sitting in the data doing nothing.
+        for field, floor in (params.get("min_totals") or {}).items():
+            terms = [
+                f"{float(item[field])}*{self.sanitize_name(item.get('name', f'item_{i}'))}"
+                for i, item in enumerate(items)
+                if item.get(field) is not None
+            ]
+            if not terms:
+                raise ValueError(f"min_totals names '{field}' but no item carries it.")
+            constraints_from_min_totals.append(
+                Constraint(name=f"min_{field}", expression=f"{' + '.join(terms)} >= {float(floor)}")
+            )
+
+        constraints: list[Constraint] = list(constraints_from_min_totals)
         # Every stated limit becomes a row, not just the first one found.
         written: set[str] = set()
         for label, cap_fields, _item_field in _LIMIT_DIMENSIONS:

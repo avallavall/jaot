@@ -39,9 +39,123 @@ class PortfolioGenerator(BaseGenerator):
                 return float(user_input[field])
         return 100000.0
 
+    def _generate_selection(
+        self,
+        user_input: dict[str, Any],
+        assets: list[dict[str, Any]],
+        total_budget: float,
+        params: dict[str, Any],
+    ) -> OptimizationProblem:
+        """Pick whole assets, each consuming a stated amount of capital.
+
+        The card says which field carries that amount (``weight_field``), how
+        the return is stated (``return_field``, and ``return_mode`` when it is a
+        rate on the weight rather than an absolute figure), and what eats into
+        it (``return_discount_field``: an expected loss ratio nets a premium
+        down). Saying it beats guessing, and it is what makes every number in
+        the input reach the model.
+        """
+        weight_field = params["weight_field"]
+        return_field = params.get("return_field", "expected_return")
+        return_mode = params.get("return_mode", "absolute")
+        discount_field = params.get("return_discount_field")
+        risk_field = params.get("risk_field", "risk")
+        risk_limit_field = params.get("risk_limit_field")
+
+        variables: list[Variable] = []
+        constraints: list[Constraint] = []
+        return_terms: list[str] = []
+        weight_terms: list[str] = []
+        risk_terms: list[str] = []
+
+        for i, asset in enumerate(assets):
+            a_name = self.sanitize_name(asset.get("name", f"asset_{i}"))
+            weight = asset.get(weight_field)
+            if weight is None:
+                raise ValueError(
+                    f"Asset '{asset.get('name', i)}' states no '{weight_field}', so the "
+                    "budget cannot know what it consumes."
+                )
+            weight = float(weight)
+
+            raw_return = asset.get(return_field)
+            if raw_return is None:
+                raise ValueError(f"Asset '{asset.get('name', i)}' states no '{return_field}'.")
+            value = (
+                float(raw_return) * weight if return_mode == "rate_on_weight" else float(raw_return)
+            )
+            if discount_field is not None:
+                discount = asset.get(discount_field)
+                if discount is None:
+                    raise ValueError(
+                        f"Asset '{asset.get('name', i)}' states no '{discount_field}'."
+                    )
+                value *= 1 - float(discount)
+
+            variables.append(Variable(name=a_name, type=VariableType.BINARY))
+            return_terms.append(f"{round(value, 6)}*{a_name}")
+            weight_terms.append(f"{weight}*{a_name}")
+
+            risk = asset.get(risk_field)
+            if risk is not None:
+                risk_terms.append(f"{round(float(risk) * weight, 6)}*{a_name}")
+
+        constraints.append(
+            Constraint(
+                name="budget",
+                expression=f"{' + '.join(weight_terms)} <= {total_budget}",
+            )
+        )
+
+        # A weighted risk ceiling, stated as a rate on the money committed.
+        if risk_limit_field and risk_terms:
+            limit = user_input.get(risk_limit_field)
+            if limit is None:
+                raise ValueError(f"Input states no '{risk_limit_field}' to cap risk with.")
+            # sum(risk_i * w_i * x_i) <= limit * sum(w_i * x_i)
+            scaled = " + ".join(
+                f"{round(float(w.split('*')[0]) * float(limit), 6)}*{w.split('*')[1]}"
+                for w in weight_terms
+            )
+            constraints.append(
+                Constraint(
+                    name="risk_limit",
+                    expression=f"{' + '.join(risk_terms)} - ({scaled}) <= 0",
+                )
+            )
+
+        max_assets = user_input.get("max_assets", 0)
+        if max_assets and float(max_assets) > 0:
+            constraints.append(
+                Constraint(
+                    name="max_assets",
+                    expression=f"{' + '.join(v.name for v in variables)} <= {float(max_assets)}",
+                )
+            )
+
+        return OptimizationProblem(
+            name="portfolio_selection",
+            description=(
+                f"Select from {len(assets)} assets within a budget of {total_budget:,.0f}"
+            ),
+            variables=variables,
+            objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression=" + ".join(return_terms)),
+            constraints=constraints,
+            options=SolverOptions(time_limit_seconds=60),
+        )
+
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
         assets = self._find_assets(user_input)
         total_budget = self._find_budget(user_input)
+
+        # Whole-asset selection. A property or an insurance policy is taken or
+        # not, and it consumes a stated amount of capital or exposure. Treating
+        # it as a fraction in [0, 1] and then writing "sum of fractions <=
+        # 8000000" made the budget unreachable, so the answer was always "buy
+        # every one of them" and the prices were never read at all.
+        weight_field = params.get("weight_field")
+        if weight_field:
+            return self._generate_selection(user_input, assets, total_budget, params)
         max_risk = user_input.get("max_risk", 0)
         min_return = user_input.get("min_return", 0)
         max_assets = user_input.get("max_assets", 0)

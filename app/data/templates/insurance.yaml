@@ -18,7 +18,11 @@ templates:
     tags: [insurance, underwriting, risk-management, portfolio]
     problem_type_tags: [MIP, portfolio]
     generator_type: portfolio
-    generator_params: {}
+    generator_params:
+      weight_field: sum_insured
+      return_field: premium
+      return_mode: absolute
+      return_discount_field: expected_loss_ratio
     input_schema:
       type: object
       properties:

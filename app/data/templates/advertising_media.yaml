@@ -125,6 +125,7 @@ templates:
         - {name: "Influencer Marketing", expected_return: 0.40, risk: 0.30, min_spend: 0, max_spend: 15000}
         - {name: "Print/Direct Mail", expected_return: 0.12, risk: 0.08, min_spend: 0, max_spend: 10000}
       total_budget: 80000
+      max_risk: 11000
     scenario_description: >
       A DTC brand has $80,000 monthly to spend across six media channels. Each
       channel has a different expected ROI and variance (risk that actual returns

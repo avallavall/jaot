@@ -53,11 +53,6 @@ register_default_adapters()
 
 UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
     {
-        # portfolio: risk and exposure figures go unread
-        "media_mix_optimization",
-        "risk_pool_optimization",
-        "property_portfolio",
-        "tenant_mix_optimization",
         # scheduling: durations, deadlines and resource needs go unread
         "project_scheduling",
         "production_line_scheduling",
@@ -268,6 +263,9 @@ KNOWN_OPTIMA: dict[str, float] = {
     # 109 metres of order against 12-metre bars: ceil(109/12) = 10 is the
     # material lower bound, so the plan provably cannot do better.
     "one_d_cutting_stock": 10.0,
+    # Brute force over all 255 subsets agrees: 7.8M of the 8M budget, weighted
+    # risk 0.1104 against a 0.13 ceiling.
+    "property_portfolio": 494100.0,
     # Everything ships except Rolls-Paper, the lowest value per cubic metre at
     # 500 against 527 and 533. 67700 - 2500.
     "container_loading": 65200.0,
