@@ -129,11 +129,11 @@ templates:
         - {name: "Jet-Dye-1", available_hours: 16, capacity_kg: 1000}
         - {name: "Jet-Dye-2", available_hours: 16, capacity_kg: 800}
     scenario_description: >
-      A textile dyeing plant has two jet-dye machines running 16-hour shifts. Six
-      dyeing jobs in different colors must be completed by their deadlines. The
-      plant wants to sequence jobs to minimize changeover cost -- switching from
-      dark to light colors requires a 90-minute cleaning cycle, while light-to-dark
-      needs only 30 minutes.
+      A textile dyeing plant has two jet-dye machines running 16-hour shifts.
+      Six dyeing jobs in different colors must be completed by their deadlines.
+      The plant wants to sequence jobs to minimize changeover cost. Switching
+      from dark to light colors requires a 90-minute cleaning cycle, while
+      light-to-dark needs only 30 minutes.
     is_featured: false
     estimated_variables: 36
     estimated_constraints: 25

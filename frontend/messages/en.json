@@ -4071,7 +4071,7 @@
     "harvest_scheduling": {
       "displayName": "Harvest Scheduling",
       "shortDescription": "Schedule timber harvesting across forest stands over multiple periods to maximize revenue while ensuring sustainability.",
-      "description": "Plans which forest stands to harvest in each period of a multi-year horizon. Each stand has a timber volume, species mix, age, and expected revenue at harvest. The model maximizes total discounted revenue while respecting sustainability constraints: maximum area harvested per period, adjacency rules (no two neighboring stands harvested in the same period), and minimum ending forest inventory. Fundamental for forest management companies and public land agencies.\n",
+      "description": "Plans which forest stands to harvest in each period of a multi-year horizon. Each stand has a timber volume, species mix, age, and expected revenue at harvest. The model maximizes total discounted revenue while respecting sustainability constraints: maximum area harvested per period and adjacency rules (no two neighboring stands harvested in the same period). Fundamental for forest management companies and public land agencies.\n",
       "scenarioDescription": "A forestry company manages 158 hectares across six stands of Douglas fir and spruce. Over a four-year plan, no more than 40 hectares may be harvested per year to comply with sustainability regulations. Older stands yield higher-value timber. The company wants to maximize total harvest revenue while maintaining sustainable practices.\n",
       "categoryDisplayName": "Forestry"
     },
@@ -4266,9 +4266,9 @@
     },
     "production_line_scheduling": {
       "displayName": "Production Line Scheduling",
-      "shortDescription": "Schedule food products across production lines to minimize changeover times and meet daily order deadlines.",
-      "description": "Assigns food product orders to production lines and sequences them to minimize total changeover (cleaning) time. Changeover duration depends on the product pair (allergen cleaning takes longer). Each order has a volume, a production rate, and a delivery deadline. The model ensures all orders are completed on time, lines do not exceed their daily capacity, and allergen contamination rules are respected.\n",
-      "scenarioDescription": "A snack factory runs two production lines for 16 hours each. Six orders for different products must be completed by their deadlines. Switching between certain products (especially those with allergen concerns like peanut butter) requires lengthy cleaning. The scheduler needs to assign and sequence orders to minimize total changeover time while meeting all deadlines.\n",
+      "shortDescription": "Assign food production orders to lines so every order is produced within each line's available hours.",
+      "description": "Assigns food product orders to production lines. Each order has a production time in hours. Each line has a daily hour budget. The model puts every order on a line, keeps every line inside its available hours, and does it at the lowest production cost. Sequencing within a line and product-pair changeover (cleaning) times are not part of this model. The line supervisor plans those afterwards.\n",
+      "scenarioDescription": "A snack factory runs two production lines for 16 hours each. Six orders for different products are waiting. Each order takes a known number of production hours. The planner must place every order on a line without going over that line's available hours, at the lowest production cost.\n",
       "categoryDisplayName": "Food & Beverage"
     },
     "production_planning": {
@@ -4455,9 +4455,9 @@
     },
     "track_maintenance_scheduling": {
       "displayName": "Track Maintenance",
-      "shortDescription": "Schedule track maintenance windows to minimize service disruption while keeping infrastructure safe.",
-      "description": "Plans when to perform maintenance on track sections over a planning horizon. Each section has a degradation state and a maintenance deadline. Maintenance requires a track possession (closure) window during which no trains can run. The model minimizes total service disruption (cancelled or rerouted trains) while ensuring every section is maintained before its safety deadline. Helps infrastructure managers coordinate maintenance with timetable planners.\n",
-      "scenarioDescription": "A rail infrastructure company has four track sections requiring scheduled maintenance. Six overnight and weekend windows are available over the next three weeks. Each maintenance closure disrupts a different number of train services. The planner must schedule all maintenance before safety deadlines while minimizing total service disruptions.\n",
+      "shortDescription": "Fit every track section into a maintenance window before its safety deadline, taking the busiest sections first.",
+      "description": "Plans when to perform maintenance on track sections over a planning horizon. Each section has a maintenance deadline and a work duration. Maintenance requires a track possession (closure) window with enough hours in it. The model fits every section into a window before its safety deadline. It sends the most heavily used sections to the earliest feasible windows. Helps infrastructure managers coordinate maintenance with timetable planners.\n",
+      "scenarioDescription": "A rail infrastructure manager has four track sections due for maintenance. Six overnight and weekend windows are available over the next three weeks. Each window has a limited number of work hours, and each section carries a different number of train services. Every section must be maintained before its safety deadline, and the planner wants the busiest sections done in the earliest windows.\n",
       "categoryDisplayName": "Railway"
     },
     "train_timetabling": {

@@ -10,7 +10,7 @@ templates:
       Plans which forest stands to harvest in each period of a multi-year horizon.
       Each stand has a timber volume, species mix, age, and expected revenue at
       harvest. The model maximizes total discounted revenue while respecting
-      sustainability constraints -- maximum area harvested per period and
+      sustainability constraints: maximum area harvested per period and
       adjacency rules (no two neighboring stands harvested in the same period).
       Fundamental for forest management companies and public land agencies.
     category: forestry

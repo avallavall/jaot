@@ -15,7 +15,7 @@ templates:
       to purchase.
     scenario_description: >
       An agri-cooperative needs to produce 1,000 kg of NPK fertilizer. Four raw
-      materials are available -- urea (46% N), DAP (18% N, 46% P), MOP (60% K),
+      materials are available: urea (46% N), DAP (18% N, 46% P), MOP (60% K),
       and inert filler. Target blend: 15-20% N, 10-15% P, 12-18% K. Prices range
       from EUR 50 (filler) to EUR 480 (DAP) per tonne.
     category: agriculture

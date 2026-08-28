@@ -163,14 +163,15 @@ templates:
   - id: track_maintenance_scheduling
     name: Track Maintenance Scheduling
     display_name: Track Maintenance
-    short_description: Schedule track maintenance windows to minimize service disruption while keeping infrastructure safe.
+    short_description: Fit every track section into a maintenance window before its safety deadline, taking the busiest sections first.
     description: >
-      Plans when to perform maintenance on track sections over a planning horizon.
-      Each section has a maintenance deadline and a work duration; maintenance
-      requires a track possession (closure) window with enough hours in it. The
-      model fits every section into a window before its safety deadline and sends
-      the most heavily used sections to the earliest feasible windows. Helps
-      infrastructure managers coordinate maintenance with timetable planners.
+      Plans when to perform maintenance on track sections over a planning
+      horizon. Each section has a maintenance deadline and a work duration.
+      Maintenance requires a track possession (closure) window with enough hours
+      in it. The model fits every section into a window before its safety
+      deadline. It sends the most heavily used sections to the earliest feasible
+      windows. Helps infrastructure managers coordinate maintenance with
+      timetable planners.
     category: railway
     tags: [railway, maintenance, infrastructure, planning]
     problem_type_tags: [MIP, scheduling]
@@ -224,11 +225,12 @@ templates:
         - {day: 14, start_hour: 22, duration_hours: 8}
         - {day: 18, start_hour: 0, duration_hours: 10}
     scenario_description: >
-      A rail infrastructure company has four track sections requiring scheduled
-      maintenance. Six overnight and weekend windows are available over the next
-      three weeks. Each maintenance closure disrupts a different number of train
-      services. The planner must schedule all maintenance before safety deadlines
-      while minimizing total service disruptions.
+      A rail infrastructure manager has four track sections due for maintenance.
+      Six overnight and weekend windows are available over the next three weeks.
+      Each window has a limited number of work hours, and each section carries a
+      different number of train services. Every section must be maintained
+      before its safety deadline, and the planner wants the busiest sections
+      done in the earliest windows.
     is_featured: false
     estimated_variables: 24
     estimated_constraints: 10

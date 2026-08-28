@@ -91,11 +91,11 @@ templates:
     short_description: Assign food production orders to lines so every order is produced within each line's available hours.
     description: >
       Assigns food product orders to production lines. Each order has a
-      production time in hours and each line a daily hour budget; the model
-      guarantees every order lands on a line and no line exceeds its available
-      hours, at minimum production cost. Sequencing within a line and
-      product-pair changeover (cleaning) times are planned downstream by the
-      line supervisor -- they are not part of this model.
+      production time in hours. Each line has a daily hour budget. The model
+      puts every order on a line, keeps every line inside its available hours,
+      and does it at the lowest production cost. Sequencing within a line and
+      product-pair changeover (cleaning) times are not part of this model. The
+      line supervisor plans those afterwards.
     category: food_beverage
     tags: [food, production, scheduling, changeover]
     problem_type_tags: [MIP, scheduling]
@@ -166,11 +166,10 @@ templates:
         - {from_product: "chocolate", to_product: "cookies_nf", hours: 1.0}
         - {from_product: "granola", to_product: "cereal_af", hours: 1.5}
     scenario_description: >
-      A snack factory runs two production lines for 16 hours each. Six orders for
-      different products must be completed by their deadlines. Switching between
-      certain products (especially those with allergen concerns like peanut butter)
-      requires lengthy cleaning. The scheduler needs to assign and sequence orders
-      to minimize total changeover time while meeting all deadlines.
+      A snack factory runs two production lines for 16 hours each. Six orders
+      for different products are waiting. Each order takes a known number of
+      production hours. The planner must place every order on a line without
+      going over that line's available hours, at the lowest production cost.
     is_featured: false
     estimated_variables: 48
     estimated_constraints: 35

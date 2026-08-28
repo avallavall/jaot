@@ -97,7 +97,7 @@ templates:
       across stations to ensure every zone in the jurisdiction can be reached
       within a target response time. Each station has a capacity for units, and
       each zone has a demand rate for emergencies. The model minimizes total
-      deployment cost while ensuring coverage requirements are met -- every zone
+      deployment cost while ensuring coverage requirements are met: every zone
       must be reachable by at least one unit within the response time, and
       high-demand zones need backup coverage. A set-covering formulation used
       by emergency management agencies.

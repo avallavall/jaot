@@ -3897,287 +3897,287 @@
       "displayName": "Ubicación de Instalaciones con Capacidad",
       "shortDescription": "Abre instalaciones y asigna clientes bajo límites estrictos de capacidad para minimizar el coste total de la red.",
       "description": "Decide qué instalaciones abrir de un conjunto de ubicaciones candidatas y asigna cada cliente a una instalación abierta, respetando la capacidad máxima de cada una. El objetivo es minimizar la suma de costes fijos de apertura y costes de transporte variables. Es un modelo clásico de logística y diseño de cadenas de suministro.\n",
-      "scenarioDescription": "Una empresa logística evalúa 5 posibles ubicaciones de almacén para atender a 20 clientes. Cada almacén tiene un coste fijo de apertura y una capacidad máxima. Los costes de envío varían según la distancia. La empresa quiere minimizar el coste total de apertura más envío.\n",
+      "scenarioDescription": "Un distribuidor farmacéutico debe abrir centros regionales entre 4 candidatos para atender a 6 grupos hospitalarios. Cada centro tiene un coste de apertura y una capacidad de almacenamiento. Cada grupo hospitalario tiene una demanda mensual. El objetivo es minimizar el coste total cubriendo toda la demanda sin superar la capacidad de ningún centro.\n",
       "categoryDisplayName": "Ubicación de Instalaciones"
     },
     "cash_flow_planning": {
       "displayName": "Planificación de Flujo de Caja",
       "shortDescription": "Programa pagos y cobros entre períodos para minimizar los costes de financiación cumpliendo todas las obligaciones a tiempo.",
       "description": "Optimiza el calendario de pagos y cobros a lo largo de múltiples períodos para minimizar los costes de endeudamiento o maximizar los intereses ganados sobre el efectivo ocioso. Incluye restricciones de saldo mínimo de caja, fechas de vencimiento de pagos y límites de línea de crédito. El modelo determina cuándo pagar cada factura y cuándo solicitar cobros anticipados.\n",
-      "scenarioDescription": "Una empresa constructora tiene 15 facturas por pagar y 10 cobros pendientes durante los próximos 6 meses. La línea de crédito cobra un 8% anual. El tesorero quiere programar los pagos para minimizar los intereses totales sin incumplir ninguna fecha de vencimiento.\n",
+      "scenarioDescription": "Una empresa constructora debe gestionar su tesorería durante 6 meses. Los gastos mensuales van de 40.000 EUR a 80.000 EUR, los cobros de clientes llegan en fechas escalonadas y en el mes 3 vence una compra de equipos de 50.000 EUR. La línea de crédito cobra un 0,8% mensual.\n",
       "categoryDisplayName": "Finanzas e Inversión"
     },
     "cell_tower_placement": {
       "displayName": "Ubicación de Torres de Telefonía",
       "shortDescription": "Determina ubicaciones óptimas para torres de telefonía para maximizar la cobertura de población minimizando los costes de infraestructura.",
       "description": "Selecciona ubicaciones para nuevas torres de telefonía de un conjunto de emplazamientos candidatos para maximizar la cobertura de población. Cada torre tiene un radio de cobertura y un coste de instalación. El modelo equilibra el gasto en infraestructura con el objetivo de cobertura, incluyendo posibles restricciones de superposición y requisitos de cobertura mínima por zona.\n",
-      "scenarioDescription": "Un operador móvil tiene 10 emplazamientos candidatos para torres en una zona rural. Cada torre cubre un radio de 5 km y cuesta entre 50.000 y 120.000 EUR. El operador quiere cubrir al menos el 95% de la población de la zona con un presupuesto de 400.000 EUR.\n",
+      "scenarioDescription": "Un operador de telecomunicaciones regional amplía su cobertura 5G en una ciudad mediana dividida en cinco zonas de demanda. Se han estudiado cinco emplazamientos candidatos; cada uno tiene un coste de instalación distinto según el alquiler del suelo y la disponibilidad de energía. El operador necesita que cada zona quede cubierta por al menos una torre gastando lo mínimo posible en infraestructura.\n",
       "categoryDisplayName": "Telecomunicaciones"
     },
     "chemical_blending": {
       "displayName": "Mezcla Química",
       "shortDescription": "Mezcla productos químicos para producir artículos que cumplan especificaciones estrictas de pureza y composición al mínimo coste.",
       "description": "Determina las proporciones óptimas de mezcla de materias primas químicas para producir productos finales que cumplan especificaciones de composición. Cada materia prima tiene un coste, una disponibilidad y un perfil de composición. El modelo minimiza el coste total de las materias primas cumpliendo las especificaciones de pureza y los requisitos de volumen de producción.\n",
-      "scenarioDescription": "Una planta química tiene 6 materias primas para producir 3 productos de mezcla. Cada producto requiere rangos específicos de concentración para 4 componentes. Las materias primas tienen diferentes costes y disponibilidades. El ingeniero de procesos quiere la mezcla de menor coste que cumpla todas las especificaciones.\n",
+      "scenarioDescription": "Un fabricante de productos químicos especiales necesita producir 3.000 litros de una solución de limpieza industrial. El producto debe contener entre un 50% y un 65% de principio activo y entre un 8% y un 15% de estabilizante. Hay cuatro materias primas disponibles en cantidades limitadas y a costes distintos. El químico de formulación quiere la mezcla más barata que cumpla todas las especificaciones.\n",
       "categoryDisplayName": "Ingeniería Química"
     },
     "claims_adjuster_assignment": {
       "displayName": "Asignación de Ajustadores",
       "shortDescription": "Asigna reclamaciones de seguros a ajustadores según experiencia, carga de trabajo y geografía para minimizar el tiempo de procesamiento.",
       "description": "Asigna reclamaciones de seguros entrantes a ajustadores disponibles considerando la especialización del ajustador, la carga de trabajo actual, la proximidad geográfica y la complejidad de la reclamación. El objetivo es minimizar el tiempo total de procesamiento y garantizar una distribución equilibrada de la carga de trabajo.\n",
-      "scenarioDescription": "Una aseguradora tiene 30 reclamaciones nuevas y 8 ajustadores disponibles. Cada ajustador tiene especialidades (auto, hogar, comercial), una zona geográfica y una capacidad máxima semanal. La empresa quiere asignar las reclamaciones para minimizar el tiempo total de resolución.\n",
+      "scenarioDescription": "Una aseguradora tiene ocho reclamaciones pendientes repartidas en cuatro regiones y cuatro tipos de siniestro. Hay cuatro peritos disponibles, cada uno con especialidades y territorios distintos, que pueden llevar hasta tres casos cada uno. El responsable de siniestros quiere asignar las reclamaciones a los peritos minimizando el tiempo total de tramitación, dando prioridad a las urgentes y respetando la especialidad.\n",
       "categoryDisplayName": "Seguros"
     },
     "constraint_satisfaction_demo": {
       "displayName": "Satisfacción de Restricciones",
       "shortDescription": "Encuentra cualquier solución factible que satisfaga todas las restricciones, sin objetivo de optimización.",
       "description": "Modelo de demostración que busca cualquier solución que cumpla todas las restricciones definidas, sin función objetivo de maximización o minimización. Útil para verificar la factibilidad de un conjunto de restricciones o como punto de partida para modelos más complejos.\n",
-      "scenarioDescription": "Un planificador quiere verificar si es posible asignar 5 tareas a 3 trabajadores cumpliendo todas las restricciones de disponibilidad, cualificación y no solapamiento. No hay función objetivo; solo se busca una asignación válida.\n",
+      "scenarioDescription": "Un organizador de congresos debe asignar 4 ponentes a 4 franjas horarias. Cada ponente tiene horas en las que no puede intervenir. Al organizador no le importa qué franja le toca a cada ponente. Lo que importa es que todos los ponentes tengan hueco y que ninguna franja quede duplicada.\n",
       "categoryDisplayName": "Uso General"
     },
     "container_loading": {
       "displayName": "Carga de Contenedores",
       "shortDescription": "Empaqueta artículos de carga en contenedores de envío para maximizar la utilización del espacio respetando límites de peso y reglas de apilamiento.",
       "description": "Optimiza la carga de artículos de carga en contenedores de envío marítimo maximizando la utilización del espacio. Cada artículo tiene dimensiones, peso y requisitos de apilamiento. El modelo respeta límites de peso del contenedor, restricciones de apilamiento y posibles requisitos de agrupación de destino.\n",
-      "scenarioDescription": "Una naviera debe cargar 25 palés de diferentes tamaños y pesos en un contenedor de 20 pies. El contenedor tiene un límite de 28 toneladas. Algunos artículos frágiles no pueden tener peso encima. El operador quiere maximizar el volumen utilizado.\n",
+      "scenarioDescription": "Un transitario debe cargar diez expediciones en tres contenedores disponibles (dos de 40 pies y uno de 20 pies) en una terminal portuaria. Las mercancías van desde textiles ligeros hasta maquinaria pesada. El transitario quiere maximizar el valor total de la carga embarcada respetando los límites de volumen y peso de cada contenedor.\n",
       "categoryDisplayName": "Marítimo"
     },
     "course_scheduling": {
       "displayName": "Programación de Cursos",
       "shortDescription": "Asigna cursos a aulas y franjas horarias para evitar conflictos y maximizar la utilización de salas.",
       "description": "Asigna cursos a aulas y franjas horarias evitando conflictos de horarios para profesores y estudiantes. Cada curso tiene requisitos de capacidad de sala, equipamiento y duración. El modelo maximiza la utilización de las salas respetando las preferencias de los profesores y las restricciones de disponibilidad.\n",
-      "scenarioDescription": "Una facultad universitaria tiene 20 cursos, 8 aulas y 25 franjas horarias semanales. Cada curso necesita un tipo de sala específico (laboratorio, auditorio, aula normal). Ningún profesor puede impartir dos cursos simultáneamente. El coordinador quiere un horario sin conflictos que maximice el uso de las salas.\n",
+      "scenarioDescription": "Un departamento universitario debe programar 8 asignaturas en 4 aulas y 5 franjas horarias diarias durante el semestre. Tres profesores imparten entre 2 y 3 asignaturas cada uno. La capacidad de las aulas va de 30 a 120 plazas. El coordinador quiere un horario sin conflictos que dé cabida a todas las asignaturas.\n",
       "categoryDisplayName": "Educación y Academia"
     },
     "crop_rotation": {
       "displayName": "Rotación de Cultivos",
       "shortDescription": "Selecciona qué cultivos sembrar en cada campo y temporada para maximizar el beneficio manteniendo la salud del suelo.",
       "description": "Planifica la rotación de cultivos en múltiples campos a lo largo de varias temporadas. Cada cultivo tiene un beneficio esperado, requisitos de nutrientes y efectos sobre la salud del suelo. El modelo maximiza el beneficio total respetando las restricciones de rotación (no repetir el mismo cultivo consecutivamente) y los requisitos de restauración del suelo.\n",
-      "scenarioDescription": "Un agricultor tiene 6 campos y planifica 4 temporadas. Dispone de 8 cultivos candidatos con diferentes márgenes de beneficio. Las leguminosas restauran el nitrógeno pero tienen menor margen. El agricultor quiere el plan de rotación que maximice el beneficio total a 4 años.\n",
+      "scenarioDescription": "Una explotación tiene 4 parcelas y planifica 3 temporadas por delante. Seis cultivos posibles (trigo, maíz, soja, girasol, cebada y barbecho) tienen beneficios por hectárea, necesidades de agua e impacto sobre el nitrógeno distintos. La soja fija nitrógeno; el maíz lo agota. El agua disponible está limitada a 800 m3 por temporada.\n",
       "categoryDisplayName": "Agricultura y Ganadería"
     },
     "custom": {
       "displayName": "Problema Personalizado",
       "shortDescription": "Define tu propio problema de optimización con variables, restricciones y una función objetivo personalizadas.",
       "description": "Punto de partida en blanco para definir un modelo de optimización completamente personalizado. Define tus propias variables de decisión, restricciones y función objetivo. Ideal para problemas que no encajan en ninguna plantilla predefinida o para experimentar con formulaciones propias.\n",
-      "scenarioDescription": "Un analista quiere modelar un problema único de su organización que no encaja en ninguna plantilla estándar. Necesita definir variables, restricciones y un objetivo desde cero utilizando el editor visual.\n",
+      "scenarioDescription": "Un científico de datos quiere resolver un problema propio de asignación de recursos: maximizar 5x + 3y + 2z sujeto a restricciones de recursos y de producción, donde x, y y z son variables de decisión enteras acotadas entre 0 y 50.\n",
       "categoryDisplayName": "Uso General"
     },
     "demand_allocation": {
       "displayName": "Asignación de Demanda",
       "shortDescription": "Asigna la demanda de clientes entre almacenes y plantas para minimizar el coste total de cumplimiento y envío.",
       "description": "Distribuye la demanda de los clientes entre múltiples almacenes y plantas de producción para minimizar el coste total de cumplimiento. Incluye costes de producción, almacenamiento y transporte. El modelo respeta las capacidades de producción, los niveles de inventario y los requisitos de nivel de servicio.\n",
-      "scenarioDescription": "Una empresa tiene 3 plantas de producción y 5 almacenes que atienden a 15 clientes. Cada planta tiene costes de producción y capacidades diferentes. Los costes de envío varían según las rutas. El director de operaciones quiere la asignación que minimice el coste total.\n",
+      "scenarioDescription": "Una empresa de bebidas tiene 3 plantas embotelladoras y 6 distribuidores regionales. Cada planta tiene una capacidad de producción semanal y cada ruta planta-distribuidor tiene un coste de transporte por caja. La demanda total de los distribuidores es de 15.000 cajas. El equipo de logística necesita el plan de asignación más barato.\n",
       "categoryDisplayName": "Gestión de Cadena de Suministro"
     },
     "diet_optimization": {
       "displayName": "Optimización de Dieta",
       "shortDescription": "Encuentra la combinación de alimentos de menor coste que cumpla todos los requisitos nutricionales diarios.",
       "description": "Selecciona la combinación de alimentos de menor coste que satisface todos los requisitos nutricionales diarios (calorías, proteínas, grasas, vitaminas, minerales). Cada alimento tiene un coste, un perfil nutricional y límites de porción. Es el problema clásico de dieta en programación lineal.\n",
-      "scenarioDescription": "Un nutricionista tiene 15 alimentos disponibles con diferentes costes y perfiles nutricionales. El plan de dieta debe proporcionar entre 2.000 y 2.500 kcal, al menos 50 g de proteínas y cumplir los requisitos de 8 micronutrientes. El objetivo es minimizar el coste diario de la alimentación.\n",
+      "scenarioDescription": "El responsable del comedor de una universidad debe diseñar un menú diario con 5 alimentos básicos (pan, leche, huevos, pollo y arroz). Cada alimento tiene un coste por ración y un contenido nutricional conocidos. El menú debe aportar al menos 2.000 kcal, 50 g de proteína, 800 mg de calcio y 25 g de fibra al menor coste posible.\n",
       "categoryDisplayName": "Salud y Nutrición"
     },
     "drug_distribution": {
       "displayName": "Distribución Farmacéutica",
       "shortDescription": "Planifica rutas de envío farmacéutico desde almacenes a farmacias y hospitales minimizando costes logísticos con restricciones de temperatura.",
       "description": "Optimiza las rutas de distribución de productos farmacéuticos desde centros de distribución a farmacias y hospitales. Incluye restricciones de cadena de frío, ventanas de tiempo de entrega y requisitos de trazabilidad. El modelo minimiza los costes logísticos totales garantizando la integridad del producto.\n",
-      "scenarioDescription": "Un distribuidor farmacéutico debe entregar 40 pedidos desde 2 almacenes a farmacias y hospitales. Algunos productos requieren refrigeración. Las entregas a hospitales tienen ventanas de tiempo estrictas. El gestor logístico quiere minimizar el coste total de transporte.\n",
+      "scenarioDescription": "Un distribuidor farmacéutico opera dos almacenes y debe entregar vacunas (cadena de frío), comprimidos e insulina (cadena de frío) a cinco destinos. Dispone de dos furgonetas refrigeradas y una furgoneta normal. Las vacunas y la insulina necesitan vehículo con cadena de frío. El gestor logístico quiere planificar rutas que lo entreguen todo a tiempo al mínimo coste.\n",
       "categoryDisplayName": "Farmacéutica"
     },
     "drug_trial_scheduling": {
       "displayName": "Programación de Ensayos Clínicos",
       "shortDescription": "Programa fases de ensayos clínicos entre centros y períodos para minimizar el tiempo de comercialización respetando restricciones regulatorias y de recursos.",
       "description": "Planifica la programación de fases de ensayos clínicos en múltiples centros de investigación. Cada fase tiene requisitos de duración, número de pacientes y equipamiento. El modelo minimiza el tiempo total hasta la comercialización respetando las dependencias entre fases, la disponibilidad de centros y las restricciones regulatorias.\n",
-      "scenarioDescription": "Una farmacéutica planifica un ensayo clínico de 3 fases en 4 centros de investigación. La Fase II no puede empezar hasta completar la Fase I. Cada centro tiene capacidad limitada de pacientes. El director de desarrollo clínico quiere el cronograma que minimice el tiempo total del ensayo.\n",
+      "scenarioDescription": "Una empresa de biotecnología planifica un nuevo fármaco oncológico a través de cuatro fases de ensayo. La Fase I (seguridad) debe terminar antes de la Fase II (eficacia), que debe acabar antes de dos estudios pivotales de Fase III en paralelo. Cinco hospitales cualificados tienen una capacidad mensual limitada de reclutamiento de pacientes. La empresa quiere llegar a la presentación ante la FDA lo antes posible dentro de una ventana de cuatro años.\n",
       "categoryDisplayName": "Farmacéutica"
     },
     "dye_batch_scheduling": {
       "displayName": "Programación de Teñido por Lotes",
       "shortDescription": "Programa lotes de teñido de telas para minimizar costes de cambio de color y consumo de agua cumpliendo plazos de entrega.",
       "description": "Optimiza la secuencia de lotes de teñido en máquinas de tintura para minimizar los costes de cambio de color y el consumo de agua. Cada lote tiene un color, un volumen y una fecha de entrega. Los cambios entre colores oscuros y claros requieren ciclos de limpieza más largos. El modelo programa los lotes para minimizar tiempos de inactividad y desperdicio.\n",
-      "scenarioDescription": "Una fábrica textil tiene 3 máquinas de teñido y 20 lotes pendientes en 8 colores diferentes. Los cambios de color oscuro a claro requieren 2 horas de limpieza frente a 30 minutos para cambios similares. Todos los lotes deben completarse en 5 días.\n",
+      "scenarioDescription": "Una planta textil de tintura tiene dos máquinas de tintura por chorro que trabajan en turnos de 16 horas. Seis trabajos de tintura en colores distintos deben terminarse antes de sus fechas límite. La planta quiere secuenciar los trabajos minimizando el coste de cambio. Pasar de colores oscuros a claros exige un ciclo de limpieza de 90 minutos, mientras que de claro a oscuro bastan 30 minutos.\n",
       "categoryDisplayName": "Textil"
     },
     "emergency_response_allocation": {
       "displayName": "Asignación de Respuesta de Emergencia",
       "shortDescription": "Asigna unidades de respuesta de emergencia a zonas para garantizar que cada área esté cubierta dentro de los objetivos de tiempo de respuesta.",
       "description": "Distribuye unidades de respuesta de emergencia (ambulancias, bomberos, policía) entre zonas geográficas para garantizar que todas las áreas tengan cobertura dentro de los tiempos de respuesta objetivo. El modelo equilibra la cobertura equitativa con la eficiencia del despliegue.\n",
-      "scenarioDescription": "Un municipio tiene 12 zonas y 8 unidades de emergencia disponibles. Cada zona tiene una población y un nivel de riesgo. El objetivo es que toda zona tenga una unidad a menos de 10 minutos. El coordinador de emergencias quiere la distribución óptima de las unidades.\n",
+      "scenarioDescription": "El servicio de emergencias de una ciudad tiene cinco parques y debe repartir ambulancias entre seis zonas de respuesta. La zona centro (Zona A) es la que más avisos recibe y necesita cobertura de dos unidades. Las zonas periféricas necesitan al menos una unidad a menos de diez minutos. El servicio quiere colocar el menor número posible de unidades cubriendo todos los requisitos al menor coste anual.\n",
       "categoryDisplayName": "Gobierno"
     },
     "emission_reduction_planning": {
       "displayName": "Planificación de Reducción de Emisiones",
       "shortDescription": "Selecciona proyectos de reducción de emisiones para alcanzar un objetivo de CO2 al mínimo coste total de inversión.",
-      "description": "Selecciona un conjunto de proyectos de reducción de emisiones de un portafolio de opciones para alcanzar un objetivo de reducción de CO2 al mínimo coste. Cada proyecto tiene un coste de inversión, una reducción de emisiones estimada y un plazo de implementación. El modelo puede incluir restricciones de presupuesto anual y dependencias entre proyectos.\n",
-      "scenarioDescription": "Una empresa industrial tiene 12 proyectos candidatos de reducción de emisiones. Cada uno tiene un coste y una reducción de CO2 estimada. La empresa debe reducir sus emisiones un 30% en 5 años con un presupuesto de 2 millones EUR. El director de sostenibilidad quiere la combinación de proyectos óptima.\n",
+      "description": "Elige entre una cartera de iniciativas de reducción de emisiones (eficiencia energética, instalaciones renovables, cambios de proceso) para alcanzar un objetivo corporativo o normativo de reducción de CO2 al mínimo coste total. Cada iniciativa tiene un coste de implantación, una reducción anual de CO2 y dependencias opcionales. El solver elige la combinación más barata que alcanza el objetivo. Útil para planificación de sostenibilidad corporativa y para política climática pública.\n",
+      "scenarioDescription": "Una empresa industrial debe reducir sus emisiones anuales de CO2 en 500 toneladas para cumplir la nueva normativa. Ocho proyectos candidatos van desde iluminación LED (5.000 EUR, 30 t de reducción) hasta una instalación solar (80.000 EUR, 200 t de reducción). El responsable de sostenibilidad quiere el plan más barato que alcance el objetivo.\n",
       "categoryDisplayName": "Medio Ambiente y Sostenibilidad"
     },
     "employee_scheduling": {
       "displayName": "Programación de Empleados",
       "shortDescription": "Crea horarios de turnos óptimos que cumplan los requisitos de cobertura minimizando el coste laboral y respetando la disponibilidad.",
       "description": "Genera horarios de turnos para empleados que cubran los requisitos de personal en cada franja horaria al mínimo coste laboral. Incluye restricciones de disponibilidad, horas máximas semanales, descansos obligatorios entre turnos y preferencias de los empleados. El modelo equilibra la cobertura con la equidad en la distribución de turnos.\n",
-      "scenarioDescription": "Un comercio tiene 15 empleados y necesita cobertura para 3 turnos diarios durante 7 días. Cada turno requiere entre 3 y 5 personas. Los empleados tienen disponibilidades diferentes y no pueden trabajar más de 40 horas semanales. El gerente quiere el horario de menor coste con cobertura completa.\n",
+      "scenarioDescription": "Una panadería tiene 5 empleados que cubren 7 turnos a lo largo de la semana. Cada turno necesita entre 1 y 3 personas. Alicia cobra 25 EUR/h pero no puede trabajar el sábado por la noche. Bruno es más barato, a 22 EUR/h. El encargado quiere el cuadrante más barato que cubra todos los turnos.\n",
       "categoryDisplayName": "Recursos Humanos y Personal"
     },
     "energy_storage_dispatch": {
       "displayName": "Despacho de Almacenamiento de Energía",
       "shortDescription": "Programa cuándo cargar y descargar un sistema de baterías para maximizar el beneficio de arbitraje con tarifas eléctricas por horario.",
       "description": "Optimiza el programa de carga y descarga de un sistema de almacenamiento de energía por baterías para maximizar el beneficio del arbitraje de precios eléctricos. El modelo considera las tarifas por horario, la eficiencia de carga/descarga, la capacidad de la batería y los ciclos de degradación. Decide cuándo comprar electricidad barata para almacenar y cuándo vender durante los picos de precio.\n",
-      "scenarioDescription": "Una instalación tiene una batería de 500 kWh con eficiencia del 90%. Los precios eléctricos varían entre 0,03 y 0,25 EUR/kWh a lo largo del día. La batería puede cargar o descargar a 100 kW. El operador quiere maximizar el beneficio diario del arbitraje de precios.\n",
+      "scenarioDescription": "Un edificio comercial tiene una batería de 500 kWh (carga y descarga máxima de 100 kW, 90% de eficiencia de ida y vuelta). La electricidad cuesta 0,08 EUR/kWh de noche, 0,15 EUR/kWh a mediodía y 0,25 EUR/kWh en hora punta (17:00-20:00). El responsable de las instalaciones quiere maximizar el ahorro desplazando consumo a las horas valle.\n",
       "categoryDisplayName": "Energía y Servicios Públicos"
     },
     "equipment_allocation": {
       "displayName": "Asignación de Equipos",
       "shortDescription": "Asigna maquinaria pesada a obras de construcción para minimizar los costes de alquiler y tiempo de inactividad.",
       "description": "Asigna equipos de construcción pesados (grúas, excavadoras, compactadoras) a múltiples obras activas para minimizar los costes totales de alquiler, transporte entre obras y tiempo de inactividad. Cada obra tiene requisitos de equipos por período y cada equipo tiene un coste de movilización.\n",
-      "scenarioDescription": "Una constructora tiene 8 equipos pesados y 5 obras activas durante los próximos 3 meses. Cada obra necesita equipos específicos en períodos concretos. Mover un equipo entre obras cuesta entre 2.000 y 5.000 EUR. El director de obras quiere minimizar el coste total de equipos.\n",
+      "scenarioDescription": "Una constructora tiene cinco máquinas pesadas repartidas entre dos obras activas y un almacén. Tres obras necesitan maquinaria concreta la semana que viene. Mover una máquina entre obras cuesta dinero y la maquinaria parada genera gastos de almacenaje. El responsable de flota necesita asignar las máquinas a las obras al mínimo coste total.\n",
       "categoryDisplayName": "Construcción"
     },
     "fabric_cutting": {
       "displayName": "Corte de Tela",
       "shortDescription": "Minimiza el desperdicio de tela optimizando los patrones de corte para piezas de prendas en rollos de tela.",
       "description": "Optimiza los patrones de corte de piezas de prendas sobre rollos de tela para minimizar el material desperdiciado. Cada pieza tiene dimensiones y cantidad requerida. El modelo selecciona los mejores patrones de corte y la cantidad de rollos a usar para cumplir la demanda de producción al mínimo desperdicio.\n",
-      "scenarioDescription": "Una fábrica de confección necesita cortar 500 piezas de 6 tipos diferentes de rollos de tela de 1,5 m de ancho. Cada tipo de pieza tiene dimensiones y cantidades específicas. El responsable de producción quiere minimizar el número de rollos utilizados y el desperdicio de tela.\n",
+      "scenarioDescription": "Una fábrica de confección está cortando tela para una tirada de camisas. La tela viene en rollos de 150 cm de ancho. Hay que cortar siete piezas de patrón distintas (delanteros en S/M/L, mangas en S/M/L y cuellos) en cantidades concretas. El responsable de la sala de corte quiere minimizar el número de rollos usados buscando la mejor combinación de patrones de corte.\n",
       "categoryDisplayName": "Textil"
     },
     "fertilizer_mixing": {
       "displayName": "Mezcla de Fertilizantes",
       "shortDescription": "Mezcla materias primas en una mezcla de fertilizante que cumpla los objetivos de nutrientes (N-P-K) al mínimo coste.",
       "description": "Determina las proporciones óptimas de mezcla de materias primas para producir un fertilizante que cumpla las especificaciones de nutrientes (nitrógeno, fósforo, potasio). Cada materia prima tiene un coste, un perfil de nutrientes y una disponibilidad. El modelo minimiza el coste total cumpliendo los requisitos de composición.\n",
-      "scenarioDescription": "Una cooperativa agrícola dispone de 5 materias primas para producir un fertilizante con especificaciones de N-P-K de 15-10-20. Cada materia prima tiene diferente concentración de nutrientes y precio. El agrónomo quiere la mezcla de menor coste que cumpla las especificaciones.\n",
+      "scenarioDescription": "Una cooperativa agrícola necesita producir 1.000 kg de fertilizante NPK. Dispone de cuatro materias primas: urea (46% N), DAP (18% N, 46% P), MOP (60% K) y una carga inerte. Mezcla objetivo: 15-20% N, 10-15% P, 12-18% K. Los precios van de 50 EUR (carga inerte) a 480 EUR (DAP) por tonelada.\n",
       "categoryDisplayName": "Agricultura y Ganadería"
     },
     "fleet_dispatch_mining": {
       "displayName": "Despacho de Flota",
       "shortDescription": "Despacha camiones de transporte entre palas y vertederos para maximizar el rendimiento de producción.",
       "description": "Optimiza la asignación de camiones de acarreo entre palas cargadoras y puntos de descarga en una operación minera a cielo abierto. El modelo maximiza el rendimiento total de producción (toneladas/hora) considerando los tiempos de ciclo, la capacidad de los camiones y la productividad de las palas. Incluye restricciones de cola y mantenimiento.\n",
-      "scenarioDescription": "Una mina a cielo abierto tiene 4 palas cargadoras y 2 puntos de descarga con 10 camiones disponibles. Cada ruta pala-vertedero tiene un tiempo de ciclo diferente. Las palas tienen diferentes productividades. El despachador quiere maximizar las toneladas movidas por hora.\n",
+      "scenarioDescription": "Una mina de cobre a cielo abierto opera tres palas y envía material a una trituradora y a una escombrera. Hay doce camiones de acarreo disponibles para el turno. El optimizador de despacho decide cómo enrutar los camiones entre palas y descargas para mover el máximo tonelaje manteniendo las palas ocupadas y evitando atascos en la trituradora.\n",
       "categoryDisplayName": "Minería"
     },
     "fleet_sizing": {
       "displayName": "Dimensionamiento de Flota",
       "shortDescription": "Determina el número y tipo óptimo de vehículos para operar en un conjunto de rutas de reparto y niveles de demanda.",
       "description": "Decide cuántos vehículos de cada tipo (furgonetas, camiones, tráileres) debe tener una flota de distribución para cubrir todas las rutas y niveles de demanda al mínimo coste total. El modelo equilibra los costes fijos de los vehículos, los costes operativos variables y el nivel de servicio requerido.\n",
-      "scenarioDescription": "Una empresa de distribución tiene 12 rutas de reparto con demandas variables por día de la semana. Puede elegir entre furgonetas (500 kg), camiones medianos (2 t) y camiones grandes (5 t). El director logístico quiere la composición de flota que minimice el coste total.\n",
+      "scenarioDescription": "Una empresa de mensajería atiende 5 zonas de la ciudad con volúmenes diarios de 50 a 300 paquetes. Hay tres tipos de vehículo disponibles: bicicletas (20 paquetes, 30 EUR/día), furgonetas (80 paquetes, 90 EUR/día) y camiones (200 paquetes, 180 EUR/día). El responsable de logística quiere la flota más barata que aguante la demanda punta.\n",
       "categoryDisplayName": "Logística y Distribución"
     },
     "flight_crew_pairing": {
       "displayName": "Emparejamiento de Tripulaciones",
       "shortDescription": "Construye emparejamientos de tripulación de coste mínimo que cubran todos los tramos de vuelo programados respetando las regulaciones de tiempo de servicio.",
       "description": "Genera secuencias de vuelos (pairings) para tripulaciones de cabina que cubran todos los tramos programados al mínimo coste. Cada pairing comienza y termina en la misma base. El modelo respeta los límites de horas de vuelo, tiempos de descanso obligatorios y regulaciones de duty time. Incluye costes por pernocta fuera de base.\n",
-      "scenarioDescription": "Una aerolínea tiene 30 tramos de vuelo diarios entre 6 ciudades y 3 bases de tripulación. Los pairings no pueden exceder 4 días ni 8 horas de vuelo diarias. La aerolínea quiere el conjunto de pairings que cubra todos los vuelos al menor coste.\n",
+      "scenarioDescription": "Una aerolínea regional debe construir los pairings de tripulación para el calendario del mes que viene, con ocho tramos de vuelo entre seis ciudades. Se han enumerado ocho pairings candidatos, cada uno con un coste distinto (hotel, dietas y posicionamiento). Cada tramo debe quedar cubierto por exactamente un pairing minimizando el coste total de tripulación.\n",
       "categoryDisplayName": "Aeroespacial"
     },
     "harvest_scheduling": {
       "displayName": "Programación de Cosecha",
       "shortDescription": "Programa la tala de madera en rodales forestales a lo largo de múltiples períodos para maximizar los ingresos garantizando la sostenibilidad.",
-      "description": "Planifica la cosecha de madera en rodales forestales a lo largo de múltiples períodos. Cada rodal tiene un volumen de madera, una edad y una tasa de crecimiento. El modelo maximiza el valor neto actual de los ingresos por madera respetando las restricciones de sostenibilidad (volumen máximo por período, regeneración) y los requisitos de acceso vial.\n",
-      "scenarioDescription": "Una empresa forestal gestiona 15 rodales durante un horizonte de 4 períodos de 5 años. Cada rodal tiene diferente volumen y valor de madera. No se puede cosechar más del 25% del área total por período. El ingeniero forestal quiere el plan que maximice el valor neto actual.\n",
+      "description": "Planifica qué rodales forestales se talan en cada período de un horizonte de varios años. Cada rodal tiene un volumen de madera, una mezcla de especies, una edad y un ingreso previsto en el momento de la tala. El modelo maximiza el ingreso total descontado respetando las restricciones de sostenibilidad: superficie máxima talada por período y reglas de adyacencia (no se talan dos rodales vecinos en el mismo período). Fundamental para empresas de gestión forestal y organismos de suelo público.\n",
+      "scenarioDescription": "Una empresa forestal gestiona 158 hectáreas repartidas en seis rodales de abeto de Douglas y pícea. En un plan a cuatro años no se pueden talar más de 40 hectáreas al año para cumplir la normativa de sostenibilidad. Los rodales más viejos dan madera de mayor valor. La empresa quiere maximizar el ingreso total de la tala manteniendo prácticas sostenibles.\n",
       "categoryDisplayName": "Silvicultura"
     },
     "ingredient_sourcing": {
       "displayName": "Aprovisionamiento de Ingredientes",
       "shortDescription": "Selecciona proveedores y cantidades de pedido para ingredientes alimentarios para minimizar costes de aprovisionamiento garantizando calidad y fiabilidad de entrega.",
       "description": "Optimiza la selección de proveedores y las cantidades de compra para ingredientes alimentarios. Cada proveedor tiene un precio, un plazo de entrega, un nivel de calidad y una capacidad máxima. El modelo minimiza el coste total de aprovisionamiento cumpliendo los requisitos de calidad mínima, diversificación de proveedores y fiabilidad de entrega.\n",
-      "scenarioDescription": "Una empresa de alimentación necesita 5 ingredientes de 8 proveedores potenciales. Cada proveedor tiene diferentes precios, capacidades y puntuaciones de calidad. La empresa requiere al menos 2 proveedores por ingrediente. El director de compras quiere minimizar el coste total garantizando la calidad.\n",
+      "scenarioDescription": "Un fabricante de chocolate necesita aprovisionar tres ingredientes clave para la producción del próximo trimestre. Varios proveedores ofrecen precios y capacidades distintos. Cada proveedor tiene un pedido mínimo. El responsable de compras quiere el plan de aprovisionamiento más barato que cubra la demanda de todos los ingredientes respetando las condiciones de los proveedores.\n",
       "categoryDisplayName": "Alimentación y Bebidas"
     },
     "inventory_optimization": {
       "displayName": "Optimización de Inventario",
       "shortDescription": "Determina cantidades óptimas de reorden y niveles de stock de seguridad para minimizar los costes de almacenamiento y rotura.",
       "description": "Calcula las cantidades óptimas de reorden y los niveles de stock de seguridad para minimizar la suma de costes de almacenamiento, costes de pedido y costes de rotura de stock. El modelo considera la variabilidad de la demanda, los plazos de entrega y los niveles de servicio objetivo.\n",
-      "scenarioDescription": "Un distribuidor gestiona 20 SKU con demanda variable. Cada SKU tiene un coste de almacenamiento, un coste de pedido y un plazo de entrega. El objetivo es un nivel de servicio del 95%. El responsable de inventario quiere los parámetros de reorden que minimicen el coste total.\n",
+      "scenarioDescription": "Un distribuidor de electrónica de consumo gestiona 5 líneas de producto con una demanda semanal de entre 50 y 300 unidades. La capacidad del almacén es de 2.000 unidades en total. El coste de almacenamiento es de 0,50 EUR por unidad y semana, y la penalización por rotura de stock es de 5 EUR por unidad. El plazo de entrega es de 2 semanas. El responsable de la cadena de suministro quiere un plan de pedidos a 6 semanas.\n",
       "categoryDisplayName": "Gestión de Cadena de Suministro"
     },
     "inventory_replenishment": {
       "displayName": "Reposición de Inventario",
       "shortDescription": "Planifica cuándo y cuánto reordenar para cada SKU para minimizar los costes totales de almacenamiento y pedido.",
       "description": "Genera un plan de reposición de inventario que determina cuándo y cuánto reordenar para cada SKU a lo largo de un horizonte de planificación. El modelo minimiza los costes totales de almacenamiento, costes de pedido y costes de penalización por faltante, respetando las capacidades de almacenamiento y los lotes mínimos de pedido.\n",
-      "scenarioDescription": "Un almacén gestiona 25 SKU durante las próximas 12 semanas. Cada SKU tiene una demanda semanal prevista, un coste de almacenamiento y un lote mínimo de pedido. El almacén tiene capacidad limitada. El planificador quiere el programa de reposición de menor coste total.\n",
+      "scenarioDescription": "Un almacén de material de oficina gestiona cuatro categorías de SKU en un horizonte de seis semanas. Cada SKU tiene previsiones de demanda semanal que varían. Hacer un pedido tiene un coste fijo, sea cual sea la cantidad, y mantener existencias cuesta dinero cada semana. El planificador de inventario quiere decidir cuándo pedir y cuánto pedir para minimizar el coste total cubriendo toda la demanda.\n",
       "categoryDisplayName": "Almacén"
     },
     "irrigation_scheduling": {
       "displayName": "Programación de Riego",
       "shortDescription": "Programa la distribución de agua entre campos y franjas horarias para minimizar el uso de agua cumpliendo los requisitos de los cultivos.",
       "description": "Optimiza el programa de distribución de agua de riego entre múltiples campos y franjas horarias. Cada campo tiene requisitos hídricos según el cultivo y la etapa de crecimiento. El modelo minimiza el consumo total de agua (o su coste) garantizando que cada campo reciba la cantidad necesaria, respetando la capacidad del sistema de riego.\n",
-      "scenarioDescription": "Una explotación agrícola tiene 8 campos con diferentes cultivos y un sistema de riego que puede atender 3 campos simultáneamente. El agua disponible es limitada. Cada cultivo tiene una ventana óptima de riego. El agricultor quiere el programa que minimice el consumo de agua cumpliendo las necesidades de todos los cultivos.\n",
+      "scenarioDescription": "Una explotación tiene 4 parcelas con cultivos distintos y 6 turnos de riego diarios. La bomba principal da 120 m3/hora. La parcela A (tomates) necesita 40 m3/día; la parcela B (lechugas) necesita 25 m3/día. El agricultor quiere minimizar el consumo total de agua manteniendo cada cultivo por encima de su umbral mínimo de hidratación.\n",
       "categoryDisplayName": "Agricultura y Ganadería"
     },
     "job_shop_scheduling": {
       "displayName": "Programación de Taller",
       "shortDescription": "Programa trabajos en máquinas para minimizar el tiempo total de finalización (makespan) respetando las restricciones de orden de procesamiento.",
       "description": "Programa un conjunto de trabajos en un conjunto de máquinas, donde cada trabajo debe pasar por las máquinas en un orden específico. El objetivo es minimizar el makespan (tiempo total de finalización del último trabajo). Cada operación tiene una duración y una máquina asignada. Las máquinas procesan un trabajo a la vez.\n",
-      "scenarioDescription": "Un taller tiene 5 máquinas y 8 trabajos. Cada trabajo requiere una secuencia de operaciones en diferentes máquinas con tiempos de procesamiento de 10 a 60 minutos. El responsable de producción quiere el programa que minimice el tiempo total para completar todos los trabajos.\n",
+      "scenarioDescription": "Un taller metalúrgico tiene 3 máquinas (torno, fresadora y taladro). Cuatro pedidos de cliente requieren cada uno entre 2 y 3 operaciones de mecanizado en una secuencia fija. Los tiempos de proceso van de 1 a 5 horas. El jefe de taller necesita un programa que termine todos los pedidos lo antes posible.\n",
       "categoryDisplayName": "Fabricación y Producción"
     },
     "knapsack": {
       "displayName": "Selección de Artículos (Knapsack)",
       "shortDescription": "Selecciona la mejor combinación de artículos para maximizar el valor manteniéndose dentro de un único límite de capacidad.",
-      "description": "Selecciona un subconjunto de artículos que maximice el valor total sin exceder una capacidad fija. Cada artículo tiene un valor y un peso. Es el problema clásico de la mochila (knapsack), aplicable a selección de proyectos, carga de vehículos y asignación de recursos con una única restricción de capacidad.\n",
-      "scenarioDescription": "Un excursionista debe seleccionar artículos para una mochila de 15 kg de entre 12 objetos con diferentes pesos y utilidades. Quiere maximizar la utilidad total del equipaje sin exceder el límite de peso.\n",
+      "description": "El clásico problema de la mochila 0-1: dado un conjunto de artículos, cada uno con un valor y un peso, elige cuáles llevar para maximizar el valor total sin superar la capacidad de peso del contenedor. Cada artículo se incluye entero o se descarta. Úsalo para carga de mercancía, selección de proyectos o cualquier caso en el que eliges de una lista de opciones indivisibles bajo una única restricción de recursos.\n",
+      "scenarioDescription": "Un viajero prepara una maleta de 50 kg para un viaje internacional. Ocho artículos compiten por el espacio: portátil, cámara, auriculares, libro, tableta, cargador, ropa y zapatos. Cada artículo tiene un valor subjetivo y un peso. El objetivo es maximizar el valor total sin pasarse del límite de peso.\n",
       "categoryDisplayName": "Logística y Distribución"
     },
     "launch_vehicle_payload": {
       "displayName": "Optimización de Carga Útil",
       "shortDescription": "Selecciona y distribuye cargas útiles de satélites para un vehículo de lanzamiento para maximizar el valor de misión total dentro de los límites de masa y volumen.",
       "description": "Selecciona qué satélites o cargas útiles incluir en un lanzamiento espacial para maximizar el valor total de la misión. Cada carga útil tiene una masa, un volumen y un valor de misión. El modelo respeta los límites de masa y volumen del vehículo de lanzamiento, así como posibles restricciones de compatibilidad entre cargas.\n",
-      "scenarioDescription": "Un operador de lanzamiento tiene 10 cargas útiles candidatas para un cohete con capacidad de 5.000 kg y 30 m³. Cada carga tiene diferente masa, volumen y valor de contrato. Dos cargas son incompatibles entre sí. El planificador quiere maximizar el valor total del lanzamiento.\n",
+      "scenarioDescription": "Un operador de lanzamiento planifica una misión compartida a órbita heliosíncrona. Seis cargas útiles han pedido plaza en el manifiesto. El cohete puede llevar 500 kg y la cofia tiene 4,0 m3 de volumen aprovechable. El planificador de la misión debe elegir las cargas que maximicen el ingreso total del lanzamiento dentro de los límites de masa y volumen.\n",
       "categoryDisplayName": "Aeroespacial"
     },
     "loan_portfolio": {
       "displayName": "Cartera de Préstamos",
       "shortDescription": "Selecciona qué solicitudes de préstamo aprobar para maximizar los ingresos por intereses manteniéndose dentro de los límites de riesgo y capital.",
       "description": "Decide qué solicitudes de préstamo aprobar de un conjunto de candidatos para maximizar los ingresos totales por intereses. Cada préstamo tiene un tipo de interés, un riesgo de impago y un requisito de capital. El modelo respeta los límites de exposición total, las restricciones de diversificación sectorial y los requisitos de capital regulatorio.\n",
-      "scenarioDescription": "Un banco tiene 50 solicitudes de préstamo con diferentes importes, tipos de interés y calificaciones de riesgo. El capital disponible es de 10 millones EUR. La exposición máxima a cualquier sector es del 30%. El analista de crédito quiere la cartera que maximice los ingresos esperados por intereses.\n",
+      "scenarioDescription": "Un banco regional dispone de 2 millones EUR de capital para prestar y tiene 10 solicitudes de préstamo de entre 50.000 EUR y 500.000 EUR. Cada préstamo tiene un tipo de interés anual previsto y una calificación de riesgo de 1 (bajo) a 5 (alto). El consejo quiere que el riesgo medio de la cartera quede por debajo de 3,0.\n",
       "categoryDisplayName": "Finanzas e Inversión"
     },
     "markdown_pricing": {
       "displayName": "Precios de Liquidación",
       "shortDescription": "Establece precios óptimos de liquidación para inventario de fin de temporada para maximizar los ingresos totales mientras se agota el stock.",
       "description": "Determina los precios de liquidación óptimos para productos de fin de temporada para maximizar los ingresos totales. Cada producto tiene un inventario restante, una elasticidad de demanda al precio y un precio mínimo aceptable. El modelo encuentra los precios que vacían el inventario maximizando los ingresos.\n",
-      "scenarioDescription": "Una tienda de moda tiene 20 productos de temporada con inventario sobrante. Cada producto tiene entre 10 y 200 unidades restantes. Los descuentos van del 20% al 70%. La tienda quiere vaciar todo el inventario en 4 semanas maximizando los ingresos por liquidación.\n",
+      "scenarioDescription": "Una cadena de moda tiene 8 artículos de fin de temporada con entre 20 y 200 unidades en stock. Los precios base van de 25 EUR a 150 EUR. El responsable de compras estima la elasticidad de la demanda a partir de las ventas anteriores. El objetivo es liquidar al menos el 80% del inventario maximizando el ingreso total de la liquidación.\n",
       "categoryDisplayName": "Comercio Minorista"
     },
     "material_procurement": {
       "displayName": "Aprovisionamiento de Materiales",
       "shortDescription": "Selecciona proveedores y cantidades de pedido para materiales de construcción para minimizar el coste total de aprovisionamiento con restricciones de entrega.",
       "description": "Optimiza las decisiones de compra de materiales de construcción seleccionando proveedores y cantidades de pedido. Cada proveedor tiene precios, plazos de entrega y cantidades mínimas de pedido diferentes. El modelo minimiza el coste total de aprovisionamiento cumpliendo los requisitos de obra y las restricciones de calendario de entrega.\n",
-      "scenarioDescription": "Una constructora necesita 8 tipos de materiales para un proyecto de 6 meses. Dispone de 5 proveedores con diferentes precios y plazos. Algunos materiales tienen cantidades mínimas de pedido. El director de compras quiere minimizar el coste total cumpliendo el calendario de obra.\n",
+      "scenarioDescription": "El jefe de obra de un proyecto de construcción debe comprar hormigón, acero corrugado y madera para un edificio nuevo. Dos proveedores ofrecen cada material a precios y capacidades distintos. Algunos proveedores tienen precios unitarios más bajos pero gastos de entrega más altos. El jefe de obra quiere la combinación de proveedores más barata que cubra todas las necesidades de material.\n",
       "categoryDisplayName": "Construcción"
     },
     "max_flow": {
       "displayName": "Flujo Máximo",
       "shortDescription": "Envía la cantidad máxima de flujo desde el origen al destino a través de una red con capacidades.",
       "description": "Encuentra el flujo máximo que puede enviarse desde un nodo origen a un nodo destino a través de una red dirigida con capacidades en los arcos. Es un problema fundamental de optimización en redes con aplicaciones en transporte, telecomunicaciones y logística.\n",
-      "scenarioDescription": "Una red de distribución tiene 8 nodos y 12 arcos con diferentes capacidades. El agua debe fluir desde la estación de bombeo (origen) hasta la planta de tratamiento (destino). El ingeniero quiere determinar el flujo máximo posible a través de la red.\n",
+      "scenarioDescription": "Una empresa de aguas debe determinar el caudal máximo desde un embalse (origen) hasta una planta de tratamiento (destino) a través de una red de tuberías con 5 nudos intermedios. Cada tubería tiene un caudal máximo en litros por segundo. El ingeniero quiere conocer el cuello de botella de la red.\n",
       "categoryDisplayName": "Optimización de Redes y Grafos"
     },
     "media_mix_optimization": {
       "displayName": "Optimización del Mix de Medios",
       "shortDescription": "Encuentra la combinación óptima de gasto en medios entre plataformas para maximizar el ROI con rendimientos decrecientes y efectos cruzados entre canales.",
       "description": "Determina la distribución óptima del presupuesto publicitario entre plataformas de medios (búsqueda, social, display, vídeo, TV) para maximizar el retorno global. El modelo considera rendimientos decrecientes por canal, efectos de sinergia entre canales y restricciones de presupuesto mínimo/máximo por plataforma.\n",
-      "scenarioDescription": "Una marca de e-commerce tiene un presupuesto mensual de 50.000 EUR para 5 plataformas publicitarias. Cada plataforma muestra rendimientos decrecientes tras cierto umbral. La combinación de búsqueda + social genera un efecto de sinergia del 15%. El director de marketing quiere la distribución que maximice el ROI total.\n",
+      "scenarioDescription": "Una marca de venta directa dispone de 80.000 $ al mes para repartir entre seis canales de medios. Cada canal tiene un ROI esperado y una varianza distintos (el riesgo de que el retorno real se desvíe del previsto). El equipo de marketing quiere una combinación de medios diversificada que maximice el retorno esperado controlando el riesgo total de la campaña.\n",
       "categoryDisplayName": "Publicidad y Medios"
     },
     "mine_production_scheduling": {
       "displayName": "Programación de Producción Minera",
       "shortDescription": "Programa bloques de extracción en períodos para maximizar el valor neto actual cumpliendo restricciones de mezcla y capacidad.",
       "description": "Planifica la secuencia de extracción de bloques de mineral a lo largo de múltiples períodos para maximizar el valor neto actual (VNA). Cada bloque tiene un tonelaje, una ley de mineral y un coste de extracción. El modelo respeta las precedencias de extracción, las capacidades de planta y los requisitos de mezcla de mineral.\n",
-      "scenarioDescription": "Una mina tiene un modelo de bloques con 100 bloques candidatos para extracción durante 5 años. Cada bloque tiene un tonelaje y una ley de oro. La planta procesa 1 millón de toneladas/año. La ley de alimentación debe estar entre 2 y 4 g/t. El planificador quiere el programa que maximice el VNA.\n",
+      "scenarioDescription": "Una mina de cobre tiene seis bloques de mineral repartidos en tres niveles de banco. La planta de proceso puede tratar 10.000 toneladas al año. Los bloques de los niveles superiores deben extraerse antes que los inferiores. El planificador de la mina debe decidir qué bloques extraer en cada uno de los tres años para maximizar el valor actual neto total del cobre extraído.\n",
       "categoryDisplayName": "Minería"
     },
     "minimum_spanning_tree": {
       "displayName": "Árbol de Expansión Mínimo",
       "shortDescription": "Conecta todos los nodos de una red al mínimo coste total de aristas sin ciclos.",
       "description": "Encuentra el subconjunto de aristas que conecta todos los nodos de un grafo al mínimo coste total sin formar ciclos. Es un problema clásico de optimización de redes con aplicaciones en diseño de redes de telecomunicaciones, distribución eléctrica y conexión de infraestructuras.\n",
-      "scenarioDescription": "Una empresa de telecomunicaciones necesita conectar 10 torres de comunicación con fibra óptica. Hay 20 posibles conexiones con diferentes costes de instalación. El ingeniero quiere conectar todas las torres al menor coste total sin conexiones redundantes.\n",
+      "scenarioDescription": "Una empresa de servicios debe conectar 6 pueblos con fibra óptica. Tender cable entre cada par tiene un coste distinto según el terreno. La empresa quiere que todos los pueblos queden conectados con el mínimo coste total de cable.\n",
       "categoryDisplayName": "Optimización de Redes y Grafos"
     },
     "multi_modal_freight": {
       "displayName": "Transporte Múltimodal de Carga",
       "shortDescription": "Elige la mejor combinación de modos de transporte (carretera, ferrocarril, marítimo) para cada tramo de envío para minimizar el coste y tiempo totales.",
       "description": "Optimiza la selección de modos de transporte (carretera, ferrocarril, marítimo) para cada tramo de un envío de carga para minimizar el coste y/o el tiempo total de tránsito. Cada modo tiene un coste, un tiempo de tránsito y una capacidad. El modelo respeta las conexiones entre modos, los horarios de transbordo y los plazos de entrega.\n",
-      "scenarioDescription": "Un exportador debe enviar 200 toneladas de producto desde una fábrica interior a un puerto extranjero. El trayecto tiene 3 tramos con opciones de carretera, ferrocarril y marítimo. Cada combinación tiene diferentes costes y tiempos. El gestor logístico quiere la combinación que minimice el coste total cumpliendo el plazo de entrega.\n",
+      "scenarioDescription": "Un fabricante envía mercancía desde una fábrica a 3 puertos de exportación, pasando por 2 centros intermedios. En cada tramo hay opciones de camión, tren y barcaza con coste, tiempo y CO2 distintos. El envío total es de 500 toneladas con un plazo de 5 días. El equipo de logística quiere el plan más barato que cumpla el plazo.\n",
       "categoryDisplayName": "Transporte y Logística"
     },
     "multi_objective_demo": {
@@ -4191,378 +4191,378 @@
       "displayName": "Redundancia de Red",
       "shortDescription": "Diseña una red redundante de coste mínimo asegurando que cada nodo tenga al menos dos caminos independientes.",
       "description": "Diseña una red de comunicaciones de coste mínimo que garantice que cada nodo tenga al menos dos caminos independientes hacia el nodo central. Cada enlace tiene un coste de instalación y una capacidad. El modelo asegura la tolerancia a fallos: si un enlace falla, todos los nodos siguen conectados.\n",
-      "scenarioDescription": "Un proveedor de servicios de internet tiene 12 nodos de red. Hay 25 posibles enlaces con diferentes costes. El ingeniero de red quiere diseñar la topología de menor coste donde la caída de cualquier enlace no desconecte ningún nodo.\n",
+      "scenarioDescription": "Un proveedor de internet regional está construyendo una red troncal de fibra que conecta su centro de datos con cinco nodos a través de un intercambiador central. Se han estudiado nueve rutas de fibra candidatas. El proveedor exige que cada nodo tenga al menos dos caminos independientes hasta el centro de datos, para que un solo corte de fibra no deje el servicio caído.\n",
       "categoryDisplayName": "Telecomunicaciones"
     },
     "nurse_scheduling": {
       "displayName": "Programación de Enfermería",
       "shortDescription": "Crea horarios semanales de turnos de enfermería que cubran los requisitos de unidad respetando las normas laborales y las preferencias.",
       "description": "Genera horarios semanales para enfermeras asignando turnos (mañana, tarde, noche) en diferentes unidades hospitalarias. El modelo cumple los requisitos mínimos de personal por unidad y turno, respeta las regulaciones laborales (horas máximas, descansos entre turnos) y considera las preferencias y especialidades del personal.\n",
-      "scenarioDescription": "Un hospital tiene 20 enfermeras y 4 unidades. Cada unidad necesita 3 enfermeras en turno de mañana, 3 en tarde y 2 en noche. Las enfermeras no pueden hacer más de 5 turnos por semana ni 2 noches consecutivas. La supervisora quiere un horario equitativo que cubra todas las necesidades.\n",
+      "scenarioDescription": "Una planta de hospital tiene 8 enfermeras que cubren 14 turnos por semana (mañana y tarde, 7 días). Cada turno necesita entre 2 y 3 enfermeras. Las enfermeras trabajan como máximo 40 horas semanales, con al menos 10 horas entre turnos, y algunas han pedido días libres. La supervisora quiere el cuadrante más barato que cumpla todas las reglas.\n",
       "categoryDisplayName": "Salud y Nutrición"
     },
     "one_d_cutting_stock": {
       "displayName": "Corte de Material 1D",
       "shortDescription": "Corta material en stock de longitud estándar en pedidos de clientes para minimizar el desperdicio total.",
       "description": "Optimiza los patrones de corte para barras, tubos o rollos de longitud estándar para satisfacer pedidos de diferentes longitudes minimizando el desperdicio total de material. Cada pedido tiene una longitud y una cantidad requerida. El modelo selecciona los patrones de corte y sus frecuencias.\n",
-      "scenarioDescription": "Una empresa siderúrgica tiene barras de 6 metros de longitud y 15 pedidos de diferentes longitudes (0,5 a 4 metros). Cada pedido tiene entre 5 y 50 unidades. El responsable de producción quiere minimizar el número de barras utilizadas y el desperdicio.\n",
+      "scenarioDescription": "Un proveedor de acero corta barras estándar de 12 metros en 5 longitudes de pedido (2 m, 3 m, 4 m, 5 m y 7 m) con cantidades distintas. El recorte de cada barra es desperdicio. El responsable de producción quiere minimizar el número de barras utilizadas.\n",
       "categoryDisplayName": "Corte y Empaquetado"
     },
     "operating_room_scheduling": {
       "displayName": "Programación de Quirófanos",
       "shortDescription": "Programa cirugías en quirófanos y bloques horarios para maximizar el rendimiento respetando la disponibilidad de cirujanos y equipos.",
       "description": "Asigna cirugías a quirófanos y bloques horarios para maximizar el número de cirugías realizadas (o minimizar los tiempos de espera). El modelo respeta la disponibilidad de cirujanos, el equipamiento específico de cada quirófano y los tiempos de preparación entre cirugías. Incluye prioridades de urgencia.\n",
-      "scenarioDescription": "Un hospital tiene 4 quirófanos y 15 cirugías programadas para una semana. Cada cirugía requiere un cirujano específico, equipamiento y una duración estimada. Los quirófanos están disponibles 10 horas al día. El coordinador quiere programar todas las cirugías minimizando los tiempos de espera.\n",
+      "scenarioDescription": "Un hospital tiene 3 quirófanos disponibles en 5 bloques horarios diarios (de 08:00 a 16:00 en franjas de 90 minutos). Hay diez cirugías programadas pendientes, de duración variable (de 45 a 180 minutos). Hay tres cirujanos disponibles con agendas distintas. El coordinador quirúrgico quiere encajar el mayor número posible de casos en el programa de mañana.\n",
       "categoryDisplayName": "Salud y Nutrición"
     },
     "ore_blending": {
       "displayName": "Mezcla de Mineral",
       "shortDescription": "Mezcla mineral de múltiples fuentes para cumplir especificaciones de calidad al mínimo coste.",
       "description": "Determina las proporciones óptimas de mezcla de mineral de diferentes fuentes para producir un producto que cumpla las especificaciones de calidad (ley de mineral, contenido de impurezas). Cada fuente tiene un coste, una disponibilidad y un perfil de composición. El modelo minimiza el coste total de la mezcla cumpliendo todas las especificaciones.\n",
-      "scenarioDescription": "Una fundición tiene 6 fuentes de mineral con diferentes leyes de cobre (1-5%) y niveles de impurezas. La mezcla final debe tener una ley de cobre entre 2,5% y 3,5% y las impurezas no deben exceder el 0,5%. El metalurgista quiere la mezcla de menor coste.\n",
+      "scenarioDescription": "Una mina de hierro envía 15.000 toneladas por semana a un cliente portuario que exige al menos un 62% de hierro, no más de un 5% de sílice y un 8,5% de humedad como máximo. La mina tiene cuatro fuentes de mineral con calidades y costes de manipulación distintos. El planificador de mezcla necesita la combinación más barata que cumpla todas las especificaciones.\n",
       "categoryDisplayName": "Minería"
     },
     "pick_route_optimization": {
       "displayName": "Optimización de Ruta de Picking",
       "shortDescription": "Optimiza la secuencia de recogidas en un pedido de almacén para minimizar la distancia total recorrida.",
       "description": "Determina la secuencia óptima de recogida de artículos en un almacén para minimizar la distancia total recorrida por el operario. Cada artículo tiene una ubicación en el almacén. El modelo encuentra la ruta más corta que visita todas las ubicaciones necesarias y regresa al punto de partida.\n",
-      "scenarioDescription": "Un operario de almacén debe recoger 15 artículos de un pedido ubicados en diferentes pasillos y niveles. El almacén tiene 10 pasillos con estanterías a ambos lados. El responsable de operaciones quiere la ruta de recogida que minimice el tiempo total del operario.\n",
+      "scenarioDescription": "Un operario de un almacén de comercio electrónico debe recoger artículos de seis ubicaciones repartidas en cuatro pasillos y volver a la zona de empaquetado. La distribución del almacén hace que las distancias entre ubicaciones varíen. El optimizador de rutas de picking busca la secuencia de visitas más corta para minimizar el recorrido a pie de este pedido.\n",
       "categoryDisplayName": "Almacén"
     },
     "pipeline_network_flow": {
       "displayName": "Red de Tuberías",
       "shortDescription": "Encamina productos químicos a través de una red de tuberías para minimizar los costes de bombeo cumpliendo los requisitos de entrega.",
       "description": "Optimiza el flujo de productos químicos a través de una red de tuberías desde plantas de producción a puntos de consumo. Cada tubería tiene una capacidad, un coste de bombeo por unidad y restricciones de compatibilidad de productos. El modelo minimiza el coste total de bombeo cumpliendo todas las demandas de entrega.\n",
-      "scenarioDescription": "Una red de tuberías petroquímicas conecta 3 refinerías con 5 terminales de distribución a través de 15 tramos de tubería. Cada tramo tiene una capacidad y un coste de bombeo diferente. Las refinerías producen diferentes volúmenes. El operador quiere minimizar el coste total de distribución.\n",
+      "scenarioDescription": "Una empresa petroquímica distribuye producto desde dos refinerías a tres clientes industriales a través de una red de tuberías con dos parques de tanques intermedios. El coste de bombeo varía según el tramo. El planificador de distribución debe enrutar 8.000 barriles al día por la red al mínimo coste.\n",
       "categoryDisplayName": "Ingeniería Química"
     },
     "port_berth_allocation": {
       "displayName": "Asignación de Atracaderos",
       "shortDescription": "Asigna buques entrantes a atracaderos del puerto para minimizar el tiempo total de espera y manipulación.",
       "description": "Asigna buques entrantes a atracaderos portuarios para minimizar el tiempo total de espera y el coste de manipulación. Cada buque tiene un tiempo de llegada, una duración de operaciones y requisitos de calado. Cada atracadero tiene un calado máximo, equipamiento disponible y una tasa de manipulación. El modelo evita solapamientos.\n",
-      "scenarioDescription": "Un puerto tiene 4 atracaderos y 12 buques programados para la semana. Cada buque tiene un tiempo de llegada, una eslora y un tiempo estimado de operaciones. Los atracaderos tienen diferentes calados máximos. El capitán del puerto quiere minimizar el tiempo total de espera de los buques.\n",
+      "scenarioDescription": "Una terminal de contenedores tiene tres atraques con calados y disponibilidad de grúas distintos. Se esperan cinco buques portacontenedores en una ventana de 10 horas, cada uno con un calado y un volumen de carga diferentes. El planificador del puerto debe asignar buques a atraques y programar los tiempos de servicio minimizando el tiempo total de estancia.\n",
       "categoryDisplayName": "Marítimo"
     },
     "portfolio_optimization": {
       "displayName": "Optimización de Cartera",
       "shortDescription": "Construye una cartera de inversión que maximice el retorno esperado para una tolerancia al riesgo dada, con límites opcionales de cardinalidad y sector.",
       "description": "Selecciona la composición óptima de una cartera de inversión que maximice el retorno esperado para un nivel de riesgo dado (medido por la varianza). El modelo de Markowitz incluye restricciones opcionales de cardinalidad (número máximo de activos), límites de exposición por sector y posiciones mínimas. Genera carteras en la frontera eficiente.\n",
-      "scenarioDescription": "Un gestor de fondos tiene 20 activos candidatos con datos históricos de retorno y correlaciones. El inversor tolera una volatilidad anual máxima del 12%. La cartera debe tener entre 5 y 10 activos y no más del 25% en un solo sector. El gestor quiere la cartera de máximo retorno esperado.\n",
+      "scenarioDescription": "Un asesor financiero gestiona una cartera de 100.000 EUR con seis clases de activo: un ETF del S&P 500, bonos europeos, un ETF tecnológico, inmobiliario, oro y mercados emergentes. El cliente quiere al menos un 7% de retorno anual pero no más de un 15% de riesgo de cartera, con un máximo del 60% en renta variable.\n",
       "categoryDisplayName": "Finanzas e Inversión"
     },
     "power_generation_mix": {
       "displayName": "Mix de Generación Eléctrica",
       "shortDescription": "Determina la combinación óptima de centrales a operar cada hora para cubrir la demanda al mínimo coste de combustible y emisiones.",
-      "description": "Optimiza el despacho de centrales eléctricas (gas, carbón, nuclear, renovables) hora a hora para cubrir la demanda al mínimo coste total de combustible y emisiones. Cada central tiene un coste variable, un rango de operación (mínimo-máximo), tiempos de arranque y parada, y un factor de emisiones. El modelo incluye restricciones de rampa y reserva de capacidad.\n",
-      "scenarioDescription": "Un operador eléctrico gestiona 8 centrales de diferentes tipos para cubrir la demanda de un día (24 horas). La demanda varía entre 500 MW (madrugada) y 1.500 MW (pico). Cada central tiene costes variables y restricciones de rampa. El despachador quiere el programa de generación de menor coste.\n",
+      "description": "Programa la producción de varias centrales eléctricas (gas, carbón, solar, eólica, nuclear) a lo largo del tiempo para cubrir la demanda horaria al mínimo coste total. Cada central tiene un rango de capacidad, un coste de combustible por MWh, una rampa y unas emisiones de CO2. El solver decide cuánto produce cada central cada hora respetando el tiempo mínimo de funcionamiento, los límites de rampa y un tope de emisiones opcional. El resultado es un programa de despacho y el desglose del coste total.\n",
+      "scenarioDescription": "Un operador de red regional gestiona 5 generadores: una turbina de gas (50-200 MW, 45 EUR/MWh), una central de carbón (100-300 MW, 30 EUR/MWh), solar (0-80 MW, 0 EUR/MWh pero intermitente), eólica (0-120 MW, 0 EUR/MWh) y una central de punta (0-100 MW, 70 EUR/MWh). La demanda llega a 450 MW en la hora 14 y baja a 200 MW de madrugada. El operador quiere el plan de despacho más barato para una ventana de 24 horas.\n",
       "categoryDisplayName": "Energía y Servicios Públicos"
     },
     "production_batch_planning": {
       "displayName": "Planificación de Lotes de Producción",
       "shortDescription": "Planifica lotes de producción de múltiples productos farmacéuticos para cubrir la demanda minimizando costes de configuración y desperdicio.",
       "description": "Planifica la secuencia y tamaño de lotes de producción para múltiples productos farmacéuticos. Cada producto tiene una demanda, un tamaño mínimo de lote y un coste de configuración. El modelo minimiza los costes totales de producción incluyendo configuración, almacenamiento y desperdicio por caducidad, cumpliendo todas las demandas a tiempo.\n",
-      "scenarioDescription": "Una planta farmacéutica produce 6 medicamentos en 2 líneas de producción. Cada cambio de producto requiere un tiempo de limpieza de 4-8 horas. Los productos tienen vidas útiles de 6-24 meses. La demanda mensual varía. El planificador quiere el programa de lotes que minimice el coste total trimestral.\n",
+      "scenarioDescription": "Una planta farmacéutica opera dos reactores para producir tres medicamentos en un horizonte de cuatro semanas. Cada producto tiene una demanda semanal que hay que cubrir con producción o con existencias. Cambiar un reactor de producto exige una validación de limpieza cara. El planificador de producción debe decidir cuántos lotes de cada producto fabricar cada semana para minimizar el coste total.\n",
       "categoryDisplayName": "Farmacéutica"
     },
     "production_line_scheduling": {
       "displayName": "Programación de Líneas de Producción",
-      "shortDescription": "Programa productos alimentarios en líneas de producción para minimizar los tiempos de cambio y cumplir los plazos de pedido diarios.",
-      "description": "Programa la secuencia de producción de productos alimentarios en múltiples líneas para minimizar los tiempos de cambio (limpieza entre productos diferentes) y cumplir los plazos de pedido. El modelo considera restricciones de alérgenos (producir sin alérgenos antes que con alérgenos), disponibilidad de ingredientes y capacidad de almacenamiento refrigerado.\n",
-      "scenarioDescription": "Una planta de alimentos tiene 3 líneas de producción y 12 productos para producir esta semana. Los cambios entre productos lácteos y no lácteos requieren limpieza extensa. Cada producto tiene un plazo de entrega. El responsable de producción quiere minimizar el tiempo total de cambio.\n",
+      "shortDescription": "Asigna pedidos de producción alimentaria a líneas para que cada pedido se produzca dentro de las horas disponibles de su línea.",
+      "description": "Asigna pedidos de productos alimentarios a líneas de producción. Cada pedido tiene un tiempo de producción en horas. Cada línea tiene un presupuesto de horas al día. El modelo coloca cada pedido en una línea, mantiene cada línea dentro de sus horas disponibles y lo hace al menor coste de producción. La secuencia dentro de una línea y los tiempos de cambio (limpieza) entre pares de productos no forman parte de este modelo. El jefe de línea los planifica después.\n",
+      "scenarioDescription": "Una fábrica de aperitivos tiene dos líneas de producción que trabajan 16 horas cada una. Hay seis pedidos de productos distintos esperando. Cada pedido necesita un número conocido de horas de producción. El planificador debe colocar cada pedido en una línea sin superar las horas disponibles de esa línea, al menor coste de producción.\n",
       "categoryDisplayName": "Alimentación y Bebidas"
     },
     "production_planning": {
       "displayName": "Planificación de Producción",
       "shortDescription": "Determina cantidades óptimas de producción para múltiples productos para maximizar el beneficio bajo restricciones de recursos.",
       "description": "Calcula las cantidades óptimas de producción para múltiples productos para maximizar el beneficio total. Cada producto tiene un margen de beneficio, requisitos de recursos (materias primas, mano de obra, tiempo de máquina) y límites de demanda. El modelo maximiza el beneficio respetando las disponibilidades de recursos.\n",
-      "scenarioDescription": "Una fábrica produce 4 tipos de productos con 3 recursos compartidos (material, mano de obra, tiempo de máquina). Cada producto tiene un margen y unos consumos de recursos diferentes. Los recursos disponibles son limitados. El director de producción quiere el mix de producción que maximice el beneficio total.\n",
+      "scenarioDescription": "Un taller de muebles fabrica sillas, mesas y escritorios. Cada producto necesita madera, horas de mano de obra y tornillos en cantidades distintas. La madera está limitada a 500 unidades, la mano de obra a 200 horas y los tornillos a 1.000. El dueño del taller quiere saber cuántas unidades de cada artículo fabricar este mes.\n",
       "categoryDisplayName": "Fabricación y Producción"
     },
     "project_scheduling": {
       "displayName": "Programación de Proyectos",
       "shortDescription": "Programa actividades de construcción entre oficios para minimizar la duración del proyecto respetando las dependencias y los límites de recursos.",
       "description": "Programa actividades de un proyecto de construcción asignando fechas de inicio y recursos para minimizar la duración total del proyecto. Cada actividad tiene una duración, un requisito de recursos y dependencias con otras actividades. El modelo respeta las restricciones de precedencia y la disponibilidad limitada de recursos.\n",
-      "scenarioDescription": "Un proyecto de construcción tiene 25 actividades con dependencias entre ellas. Hay 4 tipos de recursos (albañiles, electricistas, fontaneros, gruistas) con disponibilidades limitadas. El jefe de obra quiere el cronograma que minimice la duración total del proyecto.\n",
+      "scenarioDescription": "Un contratista general construye un edificio comercial con nueve actividades principales, desde la preparación del terreno hasta los acabados. Cada día dispone de diez operarios y una grúa. Las actividades tienen un orden estricto (no se puede poner pladur antes de terminar la fontanería). El contratista quiere el calendario más corto posible que respete todas las dependencias y los límites de recursos.\n",
       "categoryDisplayName": "Construcción"
     },
     "property_portfolio": {
       "displayName": "Cartera Inmobiliaria",
       "shortDescription": "Selecciona la mejor combinación de propiedades para maximizar los retornos ajustados al riesgo dentro de un presupuesto de capital.",
       "description": "Selecciona propiedades inmobiliarias de un conjunto de candidatas para construir una cartera que maximice el retorno ajustado al riesgo. Cada propiedad tiene un precio, un retorno esperado, un nivel de riesgo y un tipo (residencial, comercial, industrial). El modelo respeta el presupuesto de capital y las restricciones de diversificación.\n",
-      "scenarioDescription": "Un fondo inmobiliario tiene 15 propiedades candidatas con un presupuesto de 5 millones EUR. Las propiedades varían entre residencial, comercial e industrial. El gestor quiere un máximo del 40% en un solo tipo. El objetivo es maximizar el retorno total ajustado al riesgo.\n",
+      "scenarioDescription": "Una sociedad de inversión inmobiliaria tiene 8 millones $ para invertir en ocho inmuebles candidatos de los segmentos residencial, comercial e industrial. Cada inmueble tiene una rentabilidad, un perfil de riesgo y un coste de adquisición distintos. El gestor del fondo quiere maximizar el retorno esperado manteniendo el riesgo global de la cartera bajo control.\n",
       "categoryDisplayName": "Inmobiliaria"
     },
     "public_budget_allocation": {
       "displayName": "Asignación de Presupuesto Público",
       "shortDescription": "Asigna un presupuesto gubernamental entre programas y departamentos para maximizar el beneficio público dentro de las restricciones fiscales.",
       "description": "Distribuye un presupuesto gubernamental entre programas y departamentos para maximizar el beneficio público total. Cada programa tiene un coste, un impacto estimado en la población y restricciones de financiación mínima. El modelo equilibra la eficiencia con la equidad, asegurando que todos los sectores reciban financiación adecuada.\n",
-      "scenarioDescription": "Un ayuntamiento tiene un presupuesto anual de 10 millones EUR para distribuir entre 8 áreas: educación, salud, seguridad, transporte, medio ambiente, cultura, servicios sociales y deporte. Cada área tiene un mínimo garantizado y un impacto estimado por euro invertido. El alcalde quiere maximizar el beneficio ciudadano total.\n",
+      "scenarioDescription": "Un ayuntamiento tiene un presupuesto anual de 40 millones $ para repartir entre siete concejalías. Cada concejalía tiene una financiación mínima necesaria y un máximo que puede absorber. Evaluaciones independientes han estimado el beneficio social por euro de cada programa. El pleno quiere el reparto que maximice el beneficio público total dentro del presupuesto.\n",
       "categoryDisplayName": "Gobierno"
     },
     "public_facility_location": {
       "displayName": "Ubicación de Instalaciones Públicas",
       "shortDescription": "Determina ubicaciones óptimas para instalaciones públicas (escuelas, hospitales, estaciones de bomberos) para maximizar la equidad en la cobertura de la población.",
       "description": "Selecciona las ubicaciones óptimas para instalaciones públicas como escuelas, hospitales o estaciones de bomberos. El modelo maximiza la cobertura equitativa de la población, asegurando que todos los ciudadanos tengan acceso a servicios dentro de una distancia o tiempo razonable. Incluye restricciones de presupuesto y capacidad.\n",
-      "scenarioDescription": "Un municipio quiere abrir 3 nuevos centros de salud de entre 8 ubicaciones candidatas. Cada ubicación tiene un coste de construcción y una capacidad de atención. La población se distribuye en 20 barrios. El planificador quiere minimizar la distancia máxima de cualquier barrio al centro más cercano.\n",
+      "scenarioDescription": "Un ayuntamiento tiene presupuesto para construir tres nuevos centros de salud comunitarios. Se han localizado cinco emplazamientos candidatos por la ciudad, con costes de construcción y capacidades distintos. Seis barrios necesitan servicio y tres están hoy considerados desatendidos. El área de urbanismo quiere elegir tres emplazamientos que maximicen la población cubierta, dando prioridad a los barrios desatendidos.\n",
       "categoryDisplayName": "Gobierno"
     },
     "quality_control_sampling": {
       "displayName": "Muestreo de Control de Calidad",
       "shortDescription": "Elige cuántos artículos muestrear de cada lote de producción para cumplir los objetivos de detección de defectos al mínimo coste de inspección.",
       "description": "Determina el tamaño óptimo de muestra de inspección para cada lote de producción para cumplir los objetivos de detección de defectos al mínimo coste. Cada lote tiene un tamaño, una tasa histórica de defectos y un coste de inspección por unidad. El modelo equilibra el coste de inspección con el riesgo de aceptar lotes defectuosos.\n",
-      "scenarioDescription": "Una fábrica produce 10 lotes diarios con tasas históricas de defectos del 1-8%. La inspección cuesta 5 EUR por unidad. El objetivo es detectar defectos con un 95% de confianza. El responsable de calidad quiere el plan de muestreo que minimice el coste total de inspección.\n",
+      "scenarioDescription": "Un fabricante de alimentos tiene 5 líneas de producción, cada una con lotes de entre 500 y 2.000 unidades al día. Las tasas históricas de defectos van del 0,5% al 3%. Calidad debe detectar al menos el 95% de los defectos en todas las líneas con un presupuesto de 800 EUR al día para inspecciones.\n",
       "categoryDisplayName": "Fabricación y Producción"
     },
     "raw_material_purchasing": {
       "displayName": "Compra de Materias Primas",
       "shortDescription": "Decide cuánto comprar de cada materia prima y a qué proveedor para cubrir las necesidades de producción al menor coste total.",
       "description": "Optimiza las decisiones de compra de materias primas seleccionando proveedores y cantidades para minimizar el coste total de adquisición. Cada proveedor tiene precios, descuentos por volumen, plazos de entrega y niveles de calidad diferentes. El modelo cumple los requisitos de producción respetando el presupuesto y las restricciones de almacenamiento.\n",
-      "scenarioDescription": "Una fábrica necesita 5 materias primas para su producción mensual. Tiene 4 proveedores con diferentes precios y descuentos por volumen. El almacén tiene capacidad limitada. El director de compras quiere la estrategia de aprovisionamiento de menor coste total.\n",
+      "scenarioDescription": "Un fabricante de plásticos necesita 3 tipos de resina para la producción del mes que viene. Cuatro proveedores ofrecen precios y plazos distintos. El proveedor A tiene un pedido mínimo de 5 toneladas pero el mejor precio. El responsable de compras debe cubrir una demanda de 20 toneladas en total al menor coste.\n",
       "categoryDisplayName": "Fabricación y Producción"
     },
     "reactor_optimization": {
       "displayName": "Optimización de Reactor",
       "shortDescription": "Optimiza velocidades de alimentación y condiciones de operación en una red de reactores para maximizar el rendimiento del producto al mínimo coste.",
       "description": "Optimiza los parámetros de operación de una red de reactores químicos (caudales de alimentación, temperaturas, presiones) para maximizar el rendimiento del producto deseado al mínimo coste de operación. El modelo incluye restricciones de seguridad, balances de masa y energía, y especificaciones de calidad del producto.\n",
-      "scenarioDescription": "Una planta química tiene una red de 3 reactores en serie. Cada reactor tiene rangos operativos de temperatura (150-300°C) y presión (5-20 bar). Las velocidades de alimentación van de 100 a 500 kg/h. El ingeniero de procesos quiere las condiciones que maximicen el rendimiento manteniendo la calidad.\n",
+      "scenarioDescription": "Una planta de polímeros opera tres reactores (dos CSTR y un PFR) para convertir etileno y propileno en polietileno y polipropileno. Cada reactor tiene capacidades de producción y eficiencias de conversión distintas. El suministro de materia prima es limitado este trimestre. El director de planta debe repartir las alimentaciones entre reactores para maximizar el beneficio cumpliendo los objetivos mínimos de producción.\n",
       "categoryDisplayName": "Ingeniería Química"
     },
     "recipe_optimization": {
       "displayName": "Optimización de Recetas",
       "shortDescription": "Optimiza las proporciones de ingredientes en recetas de alimentos para minimizar costes cumpliendo especificaciones nutricionales y de sabor.",
       "description": "Ajusta las proporciones de ingredientes en recetas de producción alimentaria para minimizar el coste total cumpliendo las especificaciones nutricionales, de textura y de sabor. Cada ingrediente tiene un coste, un perfil nutricional y límites de uso. El modelo respeta las regulaciones de etiquetado y las expectativas del consumidor.\n",
-      "scenarioDescription": "Una empresa de alimentos tiene una receta de sopa con 10 ingredientes. Cada ingrediente tiene un coste y un perfil nutricional. La sopa debe cumplir valores mínimos de proteínas y máximos de sodio. El formulador quiere la receta de menor coste que cumpla todas las especificaciones.\n",
+      "scenarioDescription": "Un fabricante de barritas de granola necesita producir un lote de 500 kg. El producto debe cumplir objetivos nutricionales concretos (proteína mínima, grasa y calorías controladas, fibra mínima). Hay seis ingredientes disponibles a costes distintos. El tecnólogo de alimentos quiere la formulación más barata que cumpla todos los requisitos del etiquetado nutricional.\n",
       "categoryDisplayName": "Alimentación y Bebidas"
     },
     "renewable_curtailment": {
       "displayName": "Restricción de Renovables",
       "shortDescription": "Asigna capacidad de red a fuentes renovables para minimizar la energía limpia desperdiciada (restringida).",
       "description": "Optimiza la asignación de capacidad de red eléctrica a fuentes de generación renovable para minimizar la energía limpia que debe restringirse (no inyectarse a la red). El modelo considera las previsiones de generación solar y eólica, la capacidad de la red, la demanda y las restricciones de estabilidad del sistema.\n",
-      "scenarioDescription": "Un operador de red tiene 5 parques eólicos y 3 parques solares conectados a una línea de transmisión de 500 MW. En ciertas horas la generación renovable supera la capacidad de evacuación. El operador quiere la estrategia de restricción que minimice la energía limpia desperdiciada.\n",
+      "scenarioDescription": "Una región de la red tiene 3 huertos solares y 2 parques eólicos conectados por líneas de transporte con un límite combinado de 400 MW. En un día soleado y con viento, la producción renovable total podría llegar a 550 MW. El operador de la red debe repartir la capacidad para minimizar el total de MWh recortados a lo largo de 12 horas.\n",
       "categoryDisplayName": "Energía y Servicios Públicos"
     },
     "renovation_scheduling": {
       "displayName": "Programación de Renovaciones",
       "shortDescription": "Programa tareas de renovación en múltiples propiedades para minimizar la duración total del proyecto y los costes de contratistas.",
       "description": "Programa las tareas de renovación de múltiples propiedades inmobiliarias asignando contratistas y fechas para minimizar la duración total y los costes. Cada tarea tiene una duración, un requisito de contratista y dependencias. El modelo equilibra el uso de contratistas para evitar períodos de inactividad y sobrecargas.\n",
-      "scenarioDescription": "Una empresa inmobiliaria debe renovar 4 apartamentos con 6 tipos de tareas cada uno (electricidad, fontanería, pintura, etc.). Dispone de 3 equipos de contratistas. Algunas tareas tienen dependencias (la electricidad antes de la pintura). El gerente quiere completar todo en el menor tiempo posible.\n",
+      "scenarioDescription": "Una empresa de gestión inmobiliaria está reformando viviendas en dos bloques de pisos a la vez. Hay que completar ocho tareas repartidas entre los dos edificios, cada una con su duración y sus dependencias (por ejemplo, fontanería antes que pintura). Solo hay tres cuadrillas de contratistas. La empresa quiere terminar todas las reformas en 15 días.\n",
       "categoryDisplayName": "Inmobiliaria"
     },
     "reservoir_operation": {
       "displayName": "Operación de Embalse",
       "shortDescription": "Planifica los desembalses de un embalse en múltiples períodos para equilibrar riego, generación eléctrica y control de inundaciones.",
       "description": "Optimiza las decisiones de desembalse de un embalse a lo largo de múltiples períodos para equilibrar múltiples usos: riego agrícola, generación hidroeléctrica, abastecimiento urbano y control de inundaciones. El modelo considera las aportaciones estacionales, los niveles mínimos y máximos del embalse, y las demandas aguas abajo.\n",
-      "scenarioDescription": "Un embalse multipropósito debe planificar los desembalses para los próximos 12 meses. Las aportaciones varían estacionalmente. La demanda de riego es alta en verano, la generación eléctrica es más valiosa en invierno. El nivel del embalse debe mantenerse entre el 30% y el 90%. El gestor quiere el plan que maximice el beneficio total.\n",
+      "scenarioDescription": "Una autoridad del agua gestiona un embalse que sirve para riego y para producción hidroeléctrica en un horizonte de seis meses de estación seca. Las aportaciones son máximas en los meses 1 y 2 (cola de lluvias) y caen con fuerza en el mes 4. Los regantes aguas abajo necesitan más agua a medida que avanza la estación seca. La autoridad debe planificar los desembalses mensuales para cubrir el riego, generar ingresos por electricidad y mantener el embalse dentro de sus límites seguros.\n",
       "categoryDisplayName": "Gestión del Agua"
     },
     "revenue_maximization": {
       "displayName": "Maximización de Ingresos",
       "shortDescription": "Decide cuántas unidades de cada producto vender en cada canal para maximizar los ingresos totales bajo límites de capacidad y demanda.",
       "description": "Determina las cantidades óptimas de venta de cada producto por canal de distribución para maximizar los ingresos totales. Cada canal tiene un precio, una demanda máxima y costes de distribución. El modelo respeta las capacidades de producción, los compromisos de volumen mínimo y las restricciones de exclusividad por canal.\n",
-      "scenarioDescription": "Una empresa tiene 5 productos y 3 canales de venta (online, tienda propia, distribuidores). Cada canal tiene precios y demandas diferentes. La producción total es limitada. Algunos productos tienen compromisos mínimos con distribuidores. El director comercial quiere la distribución que maximice los ingresos totales.\n",
+      "scenarioDescription": "Una cadena de electrónica vende 4 líneas de producto (portátiles, tabletas, teléfonos y accesorios) a través de 3 canales (online, tiendas y mayorista). Cada canal tiene una capacidad de servicio limitada y márgenes distintos. La capacidad total del almacén es de 5.000 unidades por semana.\n",
       "categoryDisplayName": "Finanzas e Inversión"
     },
     "risk_pool_optimization": {
       "displayName": "Optimización de Pool de Riesgo",
       "shortDescription": "Construye una cartera de seguros óptima seleccionando pólizas que maximicen los ingresos por primas controlando la exposición al riesgo agregado.",
       "description": "Selecciona pólizas de seguros para formar un pool que maximice los ingresos netos por primas controlando la exposición al riesgo agregado. Cada póliza tiene una prima, una pérdida esperada, una varianza y una correlación con otras pólizas. El modelo respeta los límites de reaseguro y las restricciones de solvencia.\n",
-      "scenarioDescription": "Una aseguradora tiene 40 pólizas candidatas para su cartera. Cada póliza tiene una prima anual y un perfil de riesgo. La exposición máxima agregada es de 5 millones EUR. La correlación entre pólizas del mismo tipo es del 30%. El actuario quiere la cartera que maximice el beneficio esperado.\n",
+      "scenarioDescription": "Una aseguradora mediana está revisando ocho solicitudes de póliza para el próximo año. Cada póliza tiene una prima, una siniestralidad esperada y una clase de riesgo distintas. El apetito de riesgo de la compañía limita la suma asegurada total a 18 millones $. El equipo de suscripción quiere elegir la combinación de pólizas más rentable sin salirse del presupuesto de riesgo agregado.\n",
       "categoryDisplayName": "Seguros"
     },
     "rolling_stock_assignment": {
       "displayName": "Asignación de Material Rodante",
       "shortDescription": "Asigna unidades de tren a servicios programados para minimizar los reposicionamientos en vacío ajustando la capacidad a la demanda.",
       "description": "Asigna trenes (locomotoras, coches) a servicios programados para minimizar los kilómetros en vacío (reposicionamientos sin pasajeros) ajustando la capacidad a la demanda prevista. El modelo considera los tipos de unidad, las capacidades de mantenimiento en cada depósito y las restricciones de composición de trenes.\n",
-      "scenarioDescription": "Un operador ferroviario tiene 15 trenes de 3 tipos diferentes y 25 servicios diarios entre 8 estaciones. Cada servicio tiene una demanda prevista. Los trenes se mantienen en 2 depósitos. El planificador quiere minimizar los movimientos en vacío cubriendo todos los servicios.\n",
+      "scenarioDescription": "Deutsche Bahn tiene cinco unidades de tren estacionadas por la noche en cuatro estaciones y debe asignarlas a cinco servicios de mañana y de tarde. Cada servicio tiene un número previsto de viajeros que determina las plazas necesarias. El planificador quiere minimizar los desplazamientos en vacío asegurando que ningún servicio salga con plazas insuficientes.\n",
       "categoryDisplayName": "Ferroviario"
     },
     "satellite_scheduling": {
       "displayName": "Programación de Satélites",
       "shortDescription": "Programa tareas de observación en una constelación de satélites para maximizar las solicitudes completadas dentro de las ventanas de visibilidad.",
       "description": "Programa tareas de observación terrestre para una constelación de satélites maximizando el número de solicitudes completadas. Cada satélite tiene ventanas de visibilidad sobre las áreas de interés, capacidad de almacenamiento de datos y restricciones de energía. El modelo asigna tareas a satélites y franjas horarias respetando las restricciones operativas.\n",
-      "scenarioDescription": "Una agencia espacial tiene 4 satélites de observación y 30 solicitudes de imagen. Cada satélite tiene 3-5 ventanas de visibilidad por día sobre las áreas de interés. Cada imagen requiere almacenamiento y energía. El planificador quiere completar el máximo número de solicitudes en una semana.\n",
+      "scenarioDescription": "Una empresa de observación de la Tierra opera tres satélites y tiene ocho peticiones de imagen para la próxima ventana de tres horas. Las peticiones van desde la vigilancia urgente de un incendio forestal (prioridad alta) hasta estudios rutinarios de crecimiento urbano. Cada satélite tiene una energía limitada para captar imágenes por órbita. El programador debe asignar las tareas a los satélites dentro de sus ventanas de visibilidad para maximizar la puntuación de prioridad total de las observaciones completadas.\n",
       "categoryDisplayName": "Aeroespacial"
     },
     "service_center_placement": {
       "displayName": "Ubicación de Centros de Servicio",
       "shortDescription": "Selecciona ubicaciones de centros de servicio para minimizar el tiempo medio de desplazamiento de los clientes manteniéndose dentro de un presupuesto de aperturas.",
       "description": "Selecciona qué centros de servicio abrir de un conjunto de ubicaciones candidatas para minimizar el tiempo medio de desplazamiento de los clientes. Cada ubicación tiene un coste de apertura, una capacidad y un área de servicio. El modelo respeta el presupuesto total de inversión y los requisitos de cobertura mínima.\n",
-      "scenarioDescription": "Una empresa de servicios evalúa 10 ubicaciones candidatas para abrir centros de atención al cliente. Hay 25 zonas de demanda con diferentes volúmenes. El presupuesto permite abrir 4 centros. El director de operaciones quiere las ubicaciones que minimicen el tiempo medio de viaje de los clientes.\n",
+      "scenarioDescription": "Una empresa de telecomunicaciones planifica su red de servicio técnico. Se están estudiando seis ubicaciones candidatas. Cada una tiene un coste de alquiler distinto y una proximidad diferente a los 10 grupos de clientes. El presupuesto permite abrir como mucho 3 centros. El objetivo es minimizar el tiempo medio de respuesta.\n",
       "categoryDisplayName": "Ubicación de Instalaciones"
     },
     "shortest_path": {
       "displayName": "Camino Más Corto",
       "shortDescription": "Encuentra el camino de menor coste entre dos nodos en una red con aristas ponderadas.",
       "description": "Encuentra el camino de menor coste (o distancia) entre un nodo origen y un nodo destino en una red dirigida con costes en las aristas. Es un problema fundamental de optimización en redes con aplicaciones en navegación, telecomunicaciones y logística.\n",
-      "scenarioDescription": "Una empresa de mensajería necesita encontrar la ruta de menor coste entre dos ciudades a través de una red de carreteras con 15 nodos y 25 arcos. Cada arco tiene un coste de peaje y una distancia. El despachador quiere la ruta que minimice el coste total de transporte.\n",
+      "scenarioDescription": "Un repartidor necesita la ruta más barata desde el almacén (nodo W) hasta el cliente F a través de una red de carreteras con 7 cruces. Cada tramo tiene un coste de peaje. El repartidor quiere la ruta que minimice el peaje total.\n",
       "categoryDisplayName": "Optimización de Redes y Grafos"
     },
     "store_layout": {
       "displayName": "Distribución de Tienda",
       "shortDescription": "Asigna departamentos de productos a zonas de la tienda para maximizar el flujo de clientes y las compras por impulso.",
       "description": "Asigna departamentos o categorías de productos a zonas de una tienda para maximizar el flujo de clientes y las compras por impulso. El modelo considera las relaciones de afinidad entre departamentos (clientes que compran en uno tienden a visitar el otro), la visibilidad de cada zona y los requisitos de espacio.\n",
-      "scenarioDescription": "Un supermercado tiene 8 zonas y 10 departamentos para ubicar (frutas, lácteos, panadería, etc.). Cada zona tiene un flujo de paso y una superficie. Algunos departamentos deben estar cerca (pan y bollería) y otros separados (limpieza y alimentos). El gerente quiere la distribución que maximice las ventas totales.\n",
+      "scenarioDescription": "Un supermercado está de reforma y tiene 6 zonas de tamaños distintos. Hay que colocar ocho secciones (frutería, panadería, lácteos, carnicería, congelados, bebidas, aperitivos y hogar). El equipo de marketing dispone de una matriz de afinidad de compra cruzada obtenida de la tarjeta de fidelización. El gerente quiere una distribución que maximice los pares de alta afinidad que quedan contiguos.\n",
       "categoryDisplayName": "Comercio Minorista"
     },
     "strip_packing": {
       "displayName": "Strip Packing",
       "shortDescription": "Empaqueta artículos rectangulares en una tira de ancho fijo para minimizar la altura total utilizada.",
-      "description": "Ubica piezas rectangulares en una tira de ancho fijo minimizando la altura total utilizada. Cada pieza tiene dimensiones conocidas y no puede rotar (o puede rotar 90°, según la configuración). El modelo evita solapamientos y respeta el ancho de la tira. Aplicable a corte de material, diseño de circuitos y empaquetado industrial.\n",
-      "scenarioDescription": "Un taller de corte debe ubicar 15 piezas rectangulares de diferentes tamaños en una plancha de 120 cm de ancho. Las piezas no pueden solaparse ni rotar. El responsable quiere minimizar la altura total de plancha utilizada para reducir el desperdicio.\n",
+      "description": "Coloca un conjunto de piezas rectangulares en una tira de ancho fijo minimizando la altura total (la longitud) de material usado. Las piezas no pueden solaparse ni rotar (o sí, de forma opcional). Se modela como un problema de empaquetado con restricción de recursos. Habitual en corte textil, trazado de circuitos impresos y diseño de páginas de periódico.\n",
+      "scenarioDescription": "Una máquina de corte de tela trabaja con un rollo de 150 cm de ancho. Hay que colocar ocho piezas de patrón de anchos distintos (de 20 a 60 cm) y alturas distintas (de 10 a 40 cm). El objetivo es minimizar la longitud total de tela consumida.\n",
       "categoryDisplayName": "Corte y Empaquetado"
     },
     "student_assignment": {
       "displayName": "Asignación de Estudiantes",
       "shortDescription": "Asigna estudiantes a secciones de cursos para maximizar la satisfacción de preferencias respetando las capacidades de sección.",
       "description": "Asigna estudiantes a secciones de cursos para maximizar la satisfacción de las preferencias de los estudiantes. Cada estudiante tiene una lista ordenada de preferencias y cada sección tiene una capacidad máxima. El modelo busca la asignación que maximice el número de estudiantes que obtienen sus primeras opciones respetando las capacidades.\n",
-      "scenarioDescription": "Una facultad tiene 100 estudiantes que deben matricularse en 5 asignaturas con 2 secciones cada una. Cada sección tiene 25 plazas. Cada estudiante ha indicado sus preferencias de horario. El coordinador quiere la asignación que maximice la satisfacción global de los estudiantes.\n",
+      "scenarioDescription": "Cuarenta estudiantes deben repartirse en 4 grupos de una asignatura de introducción a la programación (10 plazas cada uno). Cada estudiante ha ordenado los grupos del 1 al 4 según su preferencia. La secretaría quiere la asignación que maximice la satisfacción global del alumnado.\n",
       "categoryDisplayName": "Educación y Academia"
     },
     "supplier_selection": {
       "displayName": "Selección de Proveedores",
       "shortDescription": "Elige proveedores y asigna cantidades de pedido para minimizar el coste total de aprovisionamiento cumpliendo requisitos de calidad y entrega.",
-      "description": "Selecciona proveedores y determina las cantidades de pedido para minimizar el coste total de aprovisionamiento. El modelo considera precios, descuentos por volumen, calidad, plazos de entrega y fiabilidad. Incluye restricciones de diversificación (no depender de un solo proveedor) y requisitos de calidad mínima.\n",
-      "scenarioDescription": "Una empresa necesita aprovisionar 3 componentes de 6 proveedores potenciales. Cada proveedor tiene diferentes precios, descuentos y niveles de calidad. La empresa requiere al menos 2 proveedores por componente. El director de compras quiere la estrategia de menor coste total.\n",
+      "description": "Elige entre un conjunto de proveedores y decide cuánto pedir a cada uno, minimizando el coste total (precio unitario + transporte + coste de fallos de calidad). Cada proveedor tiene límites de capacidad, pedidos mínimos, una valoración de calidad y un plazo de entrega. El solver garantiza que se cubre toda la demanda respetando reglas de diversificación (por ejemplo, no más del 60% a un solo proveedor). La salida es un plan de reparto por proveedor.\n",
+      "scenarioDescription": "Un fabricante de bicicletas necesita 10.000 cuadros por trimestre de entre 5 proveedores candidatos. Los precios van de 35 a 48 EUR por cuadro. El proveedor A es el más barato pero tiene un 3% de defectos y 4 semanas de plazo. El proveedor D es el más caro pero ofrece un 0,5% de defectos y entrega en 1 semana. El equipo de compras quiere la mezcla óptima en coste con menos de un 2% de defectos de media.\n",
       "categoryDisplayName": "Gestión de Cadena de Suministro"
     },
     "team_roster_optimization": {
       "displayName": "Optimización de Plantilla Deportiva",
       "shortDescription": "Selecciona jugadores para una plantilla deportiva para maximizar la valoración de habilidades globales dentro del límite salarial y restricciones de posición.",
-      "description": "Selecciona jugadores de un pool de candidatos para formar una plantilla deportiva que maximice la valoración total de habilidades. Cada jugador tiene un salario, posiciones que puede jugar y puntuaciones de habilidad. El modelo respeta el tope salarial, los requisitos mínimos de jugadores por posición y las restricciones de edad/experiencia.\n",
-      "scenarioDescription": "Un equipo de fútbol tiene un presupuesto de 10 millones EUR y 30 jugadores candidatos para 25 plazas de plantilla. Necesita al menos 3 porteros, 8 defensas, 8 centrocampistas y 6 delanteros. Cada jugador tiene un salario y una puntuación de rendimiento. El director deportivo quiere la plantilla de máximo rendimiento total.\n",
+      "description": "Construye la mejor plantilla deportiva posible eligiendo jugadores de un grupo de candidatos, maximizando la valoración total del equipo sin pasarse del tope salarial. Cada jugador tiene una posición, un salario y una valoración. El solver garantiza que se cumplen los requisitos por posición (por ejemplo, 2 bases, 3 aleros y 1 pívot) y que el salario total no supera el tope. Útil para ligas fantasy, planificación del draft y gestión de plantillas.\n",
+      "scenarioDescription": "El mánager de un equipo de baloncesto fantasy tiene un tope salarial de 50.000 EUR y debe fichar 8 jugadores de entre 15 candidatos. El equipo necesita 2 bases, 3 aleros, 2 pívots y 1 jugador polivalente. Cada jugador tiene una puntuación de rendimiento prevista y un salario. El objetivo es maximizar los puntos previstos totales.\n",
       "categoryDisplayName": "Deportes y Ocio"
     },
     "tenant_mix_optimization": {
       "displayName": "Optimización de Mix de Inquilinos",
       "shortDescription": "Selecciona inquilinos para una propiedad comercial para maximizar los ingresos por alquiler y la sinergia de tráfico peatonal.",
       "description": "Selecciona la combinación óptima de inquilinos para un centro comercial o propiedad comercial. Cada inquilino potencial tiene un alquiler, un atractivo de tráfico y una categoría de negocio. El modelo maximiza los ingresos totales por alquiler más el beneficio de sinergia entre inquilinos complementarios, respetando las restricciones de espacio y diversidad de oferta.\n",
-      "scenarioDescription": "Un centro comercial tiene 10 locales disponibles y 20 inquilinos candidatos de diferentes categorías (moda, restauración, servicios, ocio). Cada inquilino paga un alquiler y genera tráfico. La combinación moda+restauración genera sinergia. El gestor quiere el mix que maximice los ingresos y el atractivo del centro.\n",
+      "scenarioDescription": "Un centro comercial tiene 500 m2 de superficie alquilable en locales de planta baja. Ocho candidatos quieren entrar, cada uno con una oferta de alquiler, unas necesidades de espacio y un poder de atracción de clientes distintos. El gestor de la propiedad quiere elegir los inquilinos que maximicen el ingreso por alquiler y creen una mezcla con mucho tránsito.\n",
       "categoryDisplayName": "Inmobiliaria"
     },
     "timber_transportation": {
       "displayName": "Transporte de Madera",
       "shortDescription": "Planifica rutas de envío de madera desde depósitos forestales a aserraderos para minimizar el coste total de transporte.",
       "description": "Optimiza las rutas de transporte de madera desde depósitos forestales a aserraderos y plantas de procesamiento para minimizar el coste total de transporte. Cada depósito tiene un volumen disponible y cada aserradero tiene una demanda y una capacidad. Las rutas tienen distancias y costes de transporte variables.\n",
-      "scenarioDescription": "Una empresa forestal tiene 4 depósitos con madera disponible y 3 aserraderos con diferentes demandas. Hay 12 rutas posibles con diferentes distancias y costes. Los camiones tienen capacidad de 30 toneladas. El gestor logístico quiere el plan de transporte de menor coste total.\n",
+      "scenarioDescription": "Una empresa maderera tiene tres cargaderos forestales con madera talada que debe llegar a tres fábricas (dos aserraderos y una planta de celulosa). Cada ruta tiene un coste por metro cúbico distinto según la distancia y el estado de los caminos. La empresa debe transportar toda la madera solicitada al mínimo coste total de transporte.\n",
       "categoryDisplayName": "Silvicultura"
     },
     "tournament_scheduling": {
       "displayName": "Programación de Torneos",
       "shortDescription": "Crea un calendario de torneo round-robin que minimice el desplazamiento total o equilibre los partidos de local y visitante.",
       "description": "Genera un calendario de torneo round-robin donde cada equipo juega contra todos los demás. El modelo minimiza el desplazamiento total de los equipos o equilibra los partidos de local y visitante. Incluye restricciones de evitar partidos consecutivos fuera de casa y respetar las disponibilidades de los recintos.\n",
-      "scenarioDescription": "Una liga deportiva tiene 8 equipos que deben jugar un torneo round-robin de ida y vuelta. Cada equipo tiene un estadio con disponibilidades específicas. Ningún equipo puede jugar más de 2 partidos fuera de casa consecutivos. El organizador quiere el calendario que minimice el desplazamiento total.\n",
+      "scenarioDescription": "Una liga regional de baloncesto tiene 6 equipos. Cada equipo juega dos veces contra cada rival (ida y vuelta) a lo largo de 10 jornadas. Ningún equipo debería tener más de 2 partidos fuera de casa seguidos. El organizador quiere un calendario justo y equilibrado.\n",
       "categoryDisplayName": "Deportes y Ocio"
     },
     "track_maintenance_scheduling": {
       "displayName": "Programación de Mantenimiento de Vías",
-      "shortDescription": "Programa ventanas de mantenimiento de vías para minimizar la interrupción del servicio manteniendo la infraestructura segura.",
-      "description": "Programa las ventanas de mantenimiento de tramos de vía férrea para minimizar la interrupción del servicio de trenes. Cada tramo tiene un intervalo máximo entre mantenimientos, una duración de trabajo y un nivel de impacto en el tráfico. El modelo busca concentrar los trabajos en horarios de menor demanda.\n",
-      "scenarioDescription": "Un operador ferroviario tiene 10 tramos de vía que necesitan mantenimiento durante el próximo mes. Cada tramo requiere entre 4 y 12 horas de cierre. Los trabajos nocturnos son más caros pero menos disruptivos. El gestor de infraestructura quiere el programa que minimice el impacto en los servicios de pasajeros.\n",
+      "shortDescription": "Encaja cada tramo de vía en una ventana de mantenimiento antes de su fecha límite de seguridad, empezando por los tramos más cargados.",
+      "description": "Planifica cuándo se hace el mantenimiento de los tramos de vía a lo largo de un horizonte de planificación. Cada tramo tiene una fecha límite de mantenimiento y una duración de trabajo. El mantenimiento necesita una ventana de corte de vía con horas suficientes. El modelo encaja cada tramo en una ventana anterior a su fecha límite de seguridad. Envía los tramos más cargados a las primeras ventanas posibles. Ayuda a los gestores de infraestructura a coordinar el mantenimiento con los planificadores de horarios.\n",
+      "scenarioDescription": "Un gestor de infraestructura ferroviaria tiene cuatro tramos de vía pendientes de mantenimiento. Hay seis ventanas nocturnas y de fin de semana disponibles en las próximas tres semanas. Cada ventana tiene un número limitado de horas de trabajo, y cada tramo soporta un número distinto de servicios de tren. Todos los tramos deben mantenerse antes de su fecha límite de seguridad, y el planificador quiere que los tramos más cargados se hagan en las primeras ventanas.\n",
       "categoryDisplayName": "Ferroviario"
     },
     "train_timetabling": {
       "displayName": "Horarios de Trenes",
       "shortDescription": "Crea horarios de trenes sin conflictos que minimicen el tiempo total de viaje y maximicen la capacidad de la línea.",
       "description": "Genera horarios de trenes sin conflictos para una red ferroviaria maximizando la capacidad de la línea y minimizando los tiempos de viaje. El modelo evita conflictos en tramos de vía única, respeta los tiempos mínimos de estación y los requisitos de conexión entre servicios. Incluye trenes de diferentes velocidades y prioridades.\n",
-      "scenarioDescription": "Un operador tiene 20 servicios de tren en una línea con 8 estaciones. Hay 3 tramos de vía única con apartaderos. Los trenes expresos y locales tienen diferentes velocidades. El planificador quiere el horario que minimice el tiempo total de viaje cumpliendo todas las restricciones de infraestructura.\n",
+      "scenarioDescription": "Los Ferrocarriles Neerlandeses deben programar seis trenes (tres expresos, dos regionales y uno de mercancías) en el corredor Ámsterdam-Róterdam en una ventana de 90 minutos. El corredor tiene dos tramos y exige un intervalo mínimo de 5 minutos entre trenes. Los expresos tienen prioridad alta y deberían salir cerca de su hora preferida, mientras que el mercancías se puede mover si hace falta.\n",
       "categoryDisplayName": "Ferroviario"
     },
     "training_program_selection": {
       "displayName": "Selección de Programas de Formación",
       "shortDescription": "Elige qué cursos de formación ofrecer a los empleados para maximizar la cobertura de competencias dentro de un presupuesto limitado.",
       "description": "Selecciona los cursos de formación a ofrecer a los empleados para maximizar la cobertura de competencias necesarias. Cada curso tiene un coste, una duración y un conjunto de competencias que desarrolla. El modelo maximiza el número de competencias cubiertas (o el nivel de mejora) respetando el presupuesto y las restricciones de tiempo de los empleados.\n",
-      "scenarioDescription": "Una empresa tiene 8 cursos de formación disponibles para 20 empleados. Cada curso cubre diferentes competencias y tiene un coste y duración. El presupuesto total de formación es de 50.000 EUR. Cada empleado puede asistir a un máximo de 3 cursos. El director de RRHH quiere el plan de formación que maximice las competencias adquiridas.\n",
+      "scenarioDescription": "Un departamento de recursos humanos dispone de 15.000 EUR y 10 cursos de formación candidatos que cuestan entre 800 EUR y 3.000 EUR cada uno. La empresa necesita cerrar carencias en 8 áreas de competencia entre 20 empleados. Cada curso cubre entre 1 y 4 competencias. El responsable de recursos humanos quiere el plan de formación con mejor relación calidad-precio.\n",
       "categoryDisplayName": "Recursos Humanos y Personal"
     },
     "transportation_problem": {
       "displayName": "Problema de Transporte",
       "shortDescription": "Envía mercancías desde puntos de suministro a puntos de demanda al mínimo coste total de envío.",
       "description": "Determina las cantidades óptimas de envío desde múltiples puntos de suministro a múltiples puntos de demanda para minimizar el coste total de transporte. Cada origen tiene una oferta y cada destino tiene una demanda. Los costes de envío varían según la ruta. Es un modelo clásico de programación lineal.\n",
-      "scenarioDescription": "Una empresa tiene 3 fábricas y 5 almacenes regionales. Cada fábrica tiene una capacidad de producción y cada almacén tiene una demanda. Los costes de envío varían según el par origen-destino. El director logístico quiere el plan de envío que minimice el coste total de transporte.\n",
+      "scenarioDescription": "Tres fábricas producen 300, 400 y 500 unidades respectivamente. Cuatro tiendas necesitan 250, 350, 200 y 400 unidades. El coste de transporte por unidad varía según el par fábrica-tienda, de 2 EUR a 9 EUR. El responsable de distribución quiere el plan de envío más barato.\n",
       "categoryDisplayName": "Transporte y Logística"
     },
     "transshipment": {
       "displayName": "Problema de Transbordo",
       "shortDescription": "Encamina mercancías a través de centros intermedios desde orígenes a destinos al mínimo coste.",
       "description": "Extiende el problema de transporte clásico incluyendo nodos intermedios (centros de transbordo) por los que la mercancía puede pasar. El modelo decide las rutas y cantidades de envío a través de la red para minimizar el coste total, considerando las capacidades de los nodos intermedios y los costes de manipulación.\n",
-      "scenarioDescription": "Una empresa tiene 2 fábricas, 3 centros de distribución intermedios y 6 clientes finales. La mercancía puede ir directa o pasar por uno o más centros. Cada arco tiene un coste y una capacidad. El planificador quiere la ruta de distribución de menor coste total.\n",
+      "scenarioDescription": "Dos fábricas envían producto a 4 minoristas a través de 2 centros regionales. Enviar directamente de fábrica a minorista es caro. Usar los centros para consolidar sale más barato por unidad pero añade coste de manipulación. El planificador de logística quiere el enrutado de menor coste.\n",
       "categoryDisplayName": "Transporte y Logística"
     },
     "two_d_cutting": {
       "displayName": "Corte de Paneles 2D",
       "shortDescription": "Corta piezas rectangulares de planchas estándar para minimizar el número de planchas utilizadas.",
-      "description": "Optimiza los patrones de corte de piezas rectangulares sobre planchas de material estándar para minimizar el número de planchas utilizadas (o el desperdicio total). Cada pieza tiene dimensiones y cantidad requerida. El modelo genera los patrones de corte óptimos considerando posibles rotaciones y cortes guillotina.\n",
-      "scenarioDescription": "Un taller de carpintería necesita cortar 25 piezas de diferentes tamaños de tableros de 244x122 cm. Las piezas pueden rotarse 90°. Los cortes deben ser tipo guillotina (de lado a lado). El carpintero quiere minimizar el número de tableros utilizados.\n",
+      "description": "Planifica cómo cortar piezas rectangulares a partir de tableros de tamaño estándar (contrachapado, vidrio, chapa) para cubrir los pedidos minimizando el desperdicio de material. Esta versión simplificada usa un enfoque de bin packing donde el área de cada pieza se trata como su «tamaño» y el área del tablero es la «capacidad del contenedor». Para trazados 2D exactos, un paso posterior generaría los cortes de guillotina.\n",
+      "scenarioDescription": "Un taller de corte de vidrio recibe pedidos de 10 piezas rectangulares de tamaños variados. Los tableros estándar son de 2 m x 3 m (6 m2 cada uno). El encargado quiere saber el número mínimo de tableros que hay que cortar.\n",
       "categoryDisplayName": "Corte y Empaquetado"
     },
     "vehicle_routing": {
       "displayName": "Enrutamiento de Vehículos (VRP)",
       "shortDescription": "Planifica rutas de reparto para una flota de vehículos para minimizar la distancia total cumpliendo la demanda de cada cliente.",
       "description": "Planifica las rutas óptimas para una flota de vehículos de reparto que deben visitar un conjunto de clientes. Cada vehículo tiene una capacidad y cada cliente tiene una demanda y una ventana de tiempo. El modelo minimiza la distancia total recorrida (o el número de vehículos) asegurando que cada cliente sea atendido a tiempo.\n",
-      "scenarioDescription": "Una empresa de distribución tiene 4 furgonetas con capacidad de 1.000 kg cada una y 20 clientes con demandas de 50-200 kg. Los clientes tienen ventanas de entrega de 2 horas. El depósito central abre de 7:00 a 19:00. El despachador quiere las rutas que minimicen la distancia total.\n",
+      "scenarioDescription": "Un distribuidor de alimentación opera 2 camiones (con capacidad de 10 palés cada uno) desde un almacén central. Cinco restaurantes necesitan hoy entregas de entre 2 y 6 palés. El responsable de reparto necesita rutas que minimicen los kilómetros totales recorridos.\n",
       "categoryDisplayName": "Logística y Distribución"
     },
     "vessel_scheduling": {
       "displayName": "Programación de Buques",
       "shortDescription": "Programa buques de carga entre puertos y ventanas de tiempo para maximizar la utilización y minimizar los costes de viaje.",
       "description": "Programa los viajes de una flota de buques de carga entre puertos para maximizar la utilización de la flota y minimizar los costes operativos. Cada buque tiene una capacidad, una velocidad y costes de operación. Los puertos tienen ventanas de carga y descarga. El modelo decide la secuencia de puertos para cada buque.\n",
-      "scenarioDescription": "Una naviera tiene 5 buques y 8 puertos con carga disponible. Cada puerto tiene ventanas de operación de 48-72 horas. Los buques tienen diferentes capacidades y velocidades. La naviera quiere el programa que maximice la carga transportada minimizando los costes de combustible.\n",
+      "scenarioDescription": "Una naviera de tramp opera tres buques de carga situados en Singapur, Róterdam y Dubái. Seis cargamentos deben moverse entre esos puertos en una ventana de 30 días. Cada cargamento tiene una fecha límite y un valor de ingreso. La empresa debe decidir qué cargamentos acepta y a qué buque los asigna para maximizar el beneficio después de los costes de operación.\n",
       "categoryDisplayName": "Marítimo"
     },
     "warehouse_layout": {
       "displayName": "Distribución de Almacén",
       "shortDescription": "Asigna categorías de productos a zonas del almacén para minimizar la distancia total de recogida.",
       "description": "Asigna categorías de productos a zonas de un almacén para minimizar la distancia total de desplazamiento durante las operaciones de picking. Los productos de alta rotación se ubican cerca de las zonas de expedición. El modelo considera la frecuencia de pedido, el volumen de cada categoría y las restricciones de compatibilidad entre productos.\n",
-      "scenarioDescription": "Un almacén tiene 6 zonas y 12 categorías de productos. Cada categoría tiene un volumen de pedidos diario y un espacio requerido. Las zonas tienen diferentes distancias a la zona de expedición. El responsable de operaciones quiere la distribución que minimice la distancia total de picking diaria.\n",
+      "scenarioDescription": "Un centro de distribución tiene 6 zonas a distancias distintas del muelle de expedición. Ocho categorías de producto tienen frecuencias de picking semanales diferentes. Las capacidades de las zonas varían. El responsable de operaciones quiere reubicar las categorías para reducir el recorrido medio de picking al menos un 20%.\n",
       "categoryDisplayName": "Logística y Distribución"
     },
     "warehouse_location": {
       "displayName": "Ubicación de Almacenes",
       "shortDescription": "Elige qué ubicaciones de almacén candidatas abrir para minimizar el coste total fijo más de envío cubriendo todos los clientes.",
       "description": "Selecciona qué almacenes abrir de un conjunto de ubicaciones candidatas para minimizar la suma de costes fijos de apertura y costes de envío a los clientes. Cada almacén tiene un coste fijo, una capacidad y costes de envío variables a cada cliente. El modelo asegura que toda la demanda se cubra.\n",
-      "scenarioDescription": "Una empresa evalúa 6 ubicaciones candidatas para almacenes que deben atender a 30 clientes. Cada ubicación tiene un coste anual fijo y una capacidad. Los costes de envío dependen de la distancia. El director de logística quiere la combinación de almacenes que minimice el coste total anual.\n",
+      "scenarioDescription": "Una empresa de logística evalúa 5 emplazamientos candidatos de almacén para atender a 8 regiones de clientes. Los costes de apertura van de 50.000 EUR a 120.000 EUR al año. Los costes de transporte dependen de la distancia. La demanda total es de 10.000 palés al año. El director de operaciones quiere la red con el menor coste anual total.\n",
       "categoryDisplayName": "Ubicación de Instalaciones"
     },
     "warehouse_slotting": {
       "displayName": "Asignación de Ubicaciones en Almacén",
       "shortDescription": "Asigna SKU a ubicaciones de almacenamiento para minimizar la distancia de picking y maximizar el rendimiento.",
       "description": "Asigna SKU a ubicaciones de almacenamiento en un almacén para minimizar la distancia total de picking y maximizar el rendimiento. Cada SKU tiene una frecuencia de pedido, un volumen y un peso. Las ubicaciones tienen diferentes accesibilidades y capacidades. El modelo ubica los artículos de alta rotación en posiciones de fácil acceso.\n",
-      "scenarioDescription": "Un almacén tiene 200 ubicaciones en 5 niveles y 100 SKU activos. Los SKU tienen frecuencias de pedido de 1 a 50 veces por semana. Las ubicaciones a nivel de suelo son las más accesibles. El responsable de almacén quiere la asignación que minimice el tiempo total de picking.\n",
+      "scenarioDescription": "Un centro logístico de comercio electrónico tiene siete SKU que necesitan ubicación entre siete huecos del almacén. Los artículos con más picking deberían quedar cerca del muelle. Los artículos pesados paletizados deben ir en huecos a nivel de suelo. El responsable del almacén quiere minimizar el recorrido a pie diario de los operarios.\n",
       "categoryDisplayName": "Almacén"
     },
     "waste_collection_routing": {
       "displayName": "Rutas de Recogida de Residuos",
       "shortDescription": "Planifica rutas de camiones de basura para recoger residuos de todos los puntos al mínimo coste de distancia y combustible.",
       "description": "Optimiza las rutas de los camiones de recogida de residuos para visitar todos los puntos de recogida al mínimo coste total de distancia y combustible. Cada camión tiene una capacidad y cada punto tiene un volumen de residuos. El modelo determina las rutas y la asignación de puntos a camiones, incluyendo viajes al vertedero cuando el camión se llena.\n",
-      "scenarioDescription": "Un municipio tiene 3 camiones de basura de 10 toneladas y 40 puntos de recogida con contenedores de diferentes volúmenes. Los camiones parten y regresan al depósito municipal. Cuando se llenan, deben ir al vertedero antes de continuar. El gestor quiere las rutas que minimicen el consumo total de combustible.\n",
+      "scenarioDescription": "El servicio municipal de residuos opera 3 camiones (con capacidad de 8 toneladas cada uno) desde un depósito central. Quince puntos de recogida en los barrios generan entre 0,5 y 2,0 toneladas por jornada de recogida. El planificador de rutas quiere minimizar los kilómetros totales recorridos pasando por todos los puntos.\n",
       "categoryDisplayName": "Medio Ambiente y Sostenibilidad"
     },
     "wastewater_treatment_allocation": {
       "displayName": "Tratamiento de Aguas Residuales",
       "shortDescription": "Encamina flujos de aguas residuales a plantas de tratamiento para minimizar el coste de procesamiento cumpliendo los estándares ambientales de vertido.",
       "description": "Optimiza la distribución de flujos de aguas residuales entre plantas de tratamiento para minimizar el coste total de procesamiento. Cada planta tiene una capacidad, una tecnología de tratamiento y un coste por metro cúbico. Los efluentes deben cumplir los estándares de vertido ambientales. El modelo decide cuánto flujo enviar a cada planta.\n",
-      "scenarioDescription": "Una comarca tiene 5 fuentes de aguas residuales y 3 plantas de tratamiento con diferentes tecnologías y capacidades. Los vertidos deben cumplir límites de DBO y sólidos en suspensión. Los costes de tratamiento varían entre 0,5 y 2 EUR/m³. El gestor quiere la distribución de menor coste que cumpla la normativa.\n",
+      "scenarioDescription": "Una ciudad genera aguas residuales desde cuatro focos principales con niveles de contaminación distintos. Hay tres depuradoras disponibles con capacidades y tecnologías de tratamiento diferentes. La empresa de aguas debe enviar todos los caudales a las depuradoras de forma que el efluente tratado cumpla la normativa al mínimo coste total.\n",
       "categoryDisplayName": "Gestión del Agua"
     },
     "water_distribution_network": {
       "displayName": "Red de Distribución de Agua",
       "shortDescription": "Optimiza el flujo de agua a través de una red de tuberías para satisfacer la demanda en todos los nodos minimizando los costes de bombeo.",
       "description": "Optimiza el flujo de agua a través de una red de tuberías para satisfacer la demanda en todos los nodos de consumo minimizando los costes de bombeo. Cada tubería tiene un diámetro, una longitud y un coeficiente de fricción. Las bombas tienen curvas de rendimiento. El modelo determina los caudales y presiones óptimos en toda la red.\n",
-      "scenarioDescription": "Una red de abastecimiento urbano tiene 2 depósitos, 3 bombas y 12 nodos de consumo conectados por 18 tuberías. La demanda varía según la hora del día. Las bombas tienen diferentes eficiencias. El ingeniero quiere el plan de operación que minimice el coste energético diario.\n",
+      "scenarioDescription": "Una empresa municipal de aguas opera dos plantas de tratamiento que abastecen a cuatro zonas de consumo a través de una red de arterias principales. El coste de bombeo varía por tramo por el desnivel y la distancia. La empresa necesita llevar 850 metros cúbicos por hora a todas las zonas al mínimo coste de bombeo.\n",
       "categoryDisplayName": "Gestión del Agua"
     },
     "wildfire_resource_deployment": {
       "displayName": "Despliegue de Recursos contra Incendios",
       "shortDescription": "Despliega cuadrillas de bomberos y equipos en incendios activos para minimizar el área total quemada.",
       "description": "Optimiza el despliegue de recursos de extinción de incendios forestales (cuadrillas, medios aéreos, maquinaria) entre incendios activos para minimizar el área total quemada. Cada incendio tiene una prioridad, un comportamiento previsto y requisitos de recursos. El modelo decide cuántos recursos asignar a cada incendio considerando los tiempos de desplazamiento y la fatiga de las cuadrillas.\n",
-      "scenarioDescription": "Un servicio de extinción tiene 6 cuadrillas, 2 helicópteros y 3 bulldozers para combatir 4 incendios activos simultáneos. Cada incendio tiene un perímetro estimado y una velocidad de propagación. Las cuadrillas necesitan descanso tras 14 horas. El coordinador quiere la asignación que minimice el área total quemada.\n",
+      "scenarioDescription": "Una agencia forestal gestiona tres incendios activos en una zona de montaña. Hay cinco medios de extinción disponibles: dos brigadas especializadas, una autobomba, un helicóptero y un avión de carga en tierra. Cada incendio tiene una velocidad de avance y una dificultad de terreno distintas. El mando del incidente debe repartir los medios para minimizar la superficie total que se espera que arda en las próximas 24 horas.\n",
       "categoryDisplayName": "Silvicultura"
     },
     "workforce_assignment": {
       "displayName": "Asignación de Personal",
       "shortDescription": "Asigna empleados a tareas según competencias y disponibilidad para minimizar costes de personal y maximizar la productividad.",
       "description": "Asigna empleados a tareas o proyectos según sus competencias, disponibilidad y preferencias para minimizar los costes de personal o maximizar la productividad total. Cada empleado tiene un perfil de habilidades, un coste y una disponibilidad horaria. Cada tarea requiere competencias específicas y tiene una duración estimada.\n",
-      "scenarioDescription": "Una consultora tiene 12 empleados y 8 proyectos activos. Cada proyecto requiere competencias específicas (análisis de datos, gestión de proyectos, desarrollo). Los empleados tienen disponibilidades parciales y diferentes tarifas. El director de operaciones quiere la asignación que minimice el coste total maximizando la cobertura de competencias.\n",
+      "scenarioDescription": "Una agencia de software debe asignar 3 desarrolladores (Alicia, Bruno y Carlos) a 3 módulos del proyecto (Frontend, Backend y Testing). Cada desarrollador tiene un coste estimado distinto por módulo según lo bien que encaje con la tarea. El jefe de proyecto quiere el plan de personal más barato.\n",
       "categoryDisplayName": "Recursos Humanos y Personal"
     }
   },

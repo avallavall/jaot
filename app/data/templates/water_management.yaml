@@ -88,7 +88,7 @@ templates:
     description: >
       Schedules water releases from a multi-purpose reservoir over a planning
       horizon (weeks or months). Inflows are forecasted, and the model must
-      balance competing demands -- irrigation water for agriculture, minimum
+      balance competing demands: irrigation water for agriculture, minimum
       environmental flows, hydroelectric generation targets, and flood storage
       reserves. The model maximizes total benefit (irrigation value plus energy
       revenue) while keeping the reservoir level within safe operating bounds

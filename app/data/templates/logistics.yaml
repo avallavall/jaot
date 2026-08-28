@@ -14,7 +14,7 @@ templates:
       you pick from a list of indivisible options under a single resource constraint.
     scenario_description: >
       A traveller is packing a 50 kg suitcase for an international trip. Eight items
-      compete for space -- a laptop, camera, headphones, book, tablet, charger, clothes,
+      compete for space: a laptop, camera, headphones, book, tablet, charger, clothes,
       and shoes. Each item has a subjective value score and a weight. The goal is to
       maximise total value within the weight limit.
     category: logistics

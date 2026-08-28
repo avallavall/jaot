@@ -164,7 +164,7 @@ templates:
       Select edges from a candidate set to build a communication network where
       every pair of critical nodes is connected by at least two edge-disjoint
       paths. Each candidate edge has an installation cost. The model minimizes
-      total cost while guaranteeing fault tolerance -- if any single link fails,
+      total cost while guaranteeing fault tolerance: if any single link fails,
       all nodes remain reachable. Essential for designing resilient fiber-optic
       or microwave backhaul networks.
     category: telecom

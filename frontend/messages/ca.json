@@ -3897,287 +3897,287 @@
       "displayName": "Ubicació d'Instal·lacions amb Capacitat",
       "shortDescription": "Obre instal·lacions i assigna clients sota límits estrictes de capacitat per minimitzar el cost total de la xarxa.",
       "description": "Decideix quines instal·lacions obrir d'un conjunt d'ubicacions candidates i assigna cada client a una instal·lació oberta, respectant la capacitat màxima de cadascuna. L'objectiu és minimitzar la suma de costos fixos d'obertura i costos de transport variables. És un model clàssic de logística i disseny de cadenes de subministrament.\n",
-      "scenarioDescription": "Una empresa logística avalua 5 possibles ubicacions de magatzem per atendre 20 clients. Cada magatzem té un cost fix d'obertura i una capacitat màxima. Els costos d'enviament varien segons la distància. L'empresa vol minimitzar el cost total d'obertura més enviament.\n",
+      "scenarioDescription": "Un distribuïdor farmacèutic ha d'obrir centres regionals entre 4 candidats per atendre 6 grups hospitalaris. Cada centre té un cost d'obertura i una capacitat d'emmagatzematge. Cada grup hospitalari té una demanda mensual. L'objectiu és minimitzar el cost total cobrint tota la demanda sense superar la capacitat de cap centre.\n",
       "categoryDisplayName": "Ubicació d'Instal·lacions"
     },
     "cash_flow_planning": {
       "displayName": "Planificació de Flux de Caixa",
       "shortDescription": "Programa pagaments i cobraments entre períodes per minimitzar els costos de finançament complint totes les obligacions a temps.",
       "description": "Optimitza el calendari de pagaments i cobraments al llarg de múltiples períodes per minimitzar els costos d'endeutament o maximitzar els interessos guanyats sobre l'efectiu ociós. Inclou restriccions de saldo mínim de caixa, dates de venciment de pagaments i límits de línia de crèdit. El model determina quan pagar cada factura i quan sol·licitar cobraments anticipats.\n",
-      "scenarioDescription": "Una empresa constructora té 15 factures per pagar i 10 cobraments pendents durant els propers 6 mesos. La línia de crèdit cobra un 8% anual. El tresorer vol programar els pagaments per minimitzar els interessos totals sense incomplir cap data de venciment.\n",
+      "scenarioDescription": "Una empresa constructora ha de gestionar la tresoreria durant 6 mesos. Les despeses mensuals van de 40.000 EUR a 80.000 EUR, els cobraments de clients arriben en dates esglaonades i al mes 3 venç una compra d'equips de 50.000 EUR. La línia de crèdit cobra un 0,8% mensual.\n",
       "categoryDisplayName": "Finances i Inversió"
     },
     "cell_tower_placement": {
       "displayName": "Ubicació de Torres de Telefonia",
       "shortDescription": "Determina ubicacions òptimes per a torres de telefonia per maximitzar la cobertura de població minimitzant els costos d'infraestructura.",
       "description": "Selecciona ubicacions per a noves torres de telefonia d'un conjunt d'emplaçaments candidats per maximitzar la cobertura de població. Cada torre té un radi de cobertura i un cost d'instal·lació. El model equilibra la despesa en infraestructura amb l'objectiu de cobertura, incloent possibles restriccions de superposició i requisits de cobertura mínima per zona.\n",
-      "scenarioDescription": "Un operador mòbil té 10 emplaçaments candidats per a torres en una zona rural. Cada torre cobreix un radi de 5 km i costa entre 50.000 i 120.000 EUR. L'operador vol cobrir almenys el 95% de la població de la zona amb un pressupost de 400.000 EUR.\n",
+      "scenarioDescription": "Un operador de telecomunicacions regional amplia la cobertura 5G en una ciutat mitjana dividida en cinc zones de demanda. S'han estudiat cinc emplaçaments candidats; cadascun té un cost d'instal·lació diferent segons el lloguer del sòl i la disponibilitat d'energia. L'operador necessita que cada zona quedi coberta per almenys una torre gastant el mínim possible en infraestructura.\n",
       "categoryDisplayName": "Telecomunicacions"
     },
     "chemical_blending": {
       "displayName": "Mescla Química",
       "shortDescription": "Mescla productes químics per produir articles que compleixin especificacions estrictes de puresa i composició al mínim cost.",
       "description": "Determina les proporcions òptimes de mescla de matèries primeres químiques per produir productes finals que compleixin especificacions de composició. Cada matèria primera té un cost, una disponibilitat i un perfil de composició. El model minimitza el cost total de les matèries primeres complint les especificacions de puresa i els requisits de volum de producció.\n",
-      "scenarioDescription": "Una planta química té 6 matèries primeres per produir 3 productes de mescla. Cada producte requereix rangs específics de concentració per a 4 components. Les matèries primeres tenen diferents costos i disponibilitats. L'enginyer de processos vol la mescla de menor cost que compleixi totes les especificacions.\n",
+      "scenarioDescription": "Un fabricant de productes químics especials necessita produir 3.000 litres d'una solució de neteja industrial. El producte ha de contenir entre un 50% i un 65% de principi actiu i entre un 8% i un 15% d'estabilitzant. Hi ha quatre matèries primeres disponibles en quantitats limitades i a costos diferents. El químic de formulació vol la barreja més barata que compleixi totes les especificacions.\n",
       "categoryDisplayName": "Enginyeria Química"
     },
     "claims_adjuster_assignment": {
       "displayName": "Assignació d'Ajustadors",
       "shortDescription": "Assigna reclamacions d'assegurances a ajustadors segons experiència, càrrega de treball i geografia per minimitzar el temps de processament.",
       "description": "Assigna reclamacions d'assegurances entrants a ajustadors disponibles considerant l'especialització de l'ajustador, la càrrega de treball actual, la proximitat geogràfica i la complexitat de la reclamació. L'objectiu és minimitzar el temps total de processament i garantir una distribució equilibrada de la càrrega de treball.\n",
-      "scenarioDescription": "Una asseguradora té 30 reclamacions noves i 8 ajustadors disponibles. Cada ajustador té especialitats (auto, llar, comercial), una zona geogràfica i una capacitat màxima setmanal. L'empresa vol assignar les reclamacions per minimitzar el temps total de resolució.\n",
+      "scenarioDescription": "Una asseguradora té vuit reclamacions pendents repartides en quatre regions i quatre tipus de sinistre. Hi ha quatre perits disponibles, cadascun amb especialitats i territoris diferents, que poden portar fins a tres casos cadascun. El responsable de sinistres vol assignar les reclamacions als perits minimitzant el temps total de tramitació, donant prioritat a les urgents i respectant l'especialitat.\n",
       "categoryDisplayName": "Assegurances"
     },
     "constraint_satisfaction_demo": {
       "displayName": "Satisfacció de Restriccions",
       "shortDescription": "Troba qualsevol solució factible que satisfaci totes les restriccions, sense objectiu d'optimització.",
       "description": "Model de demostració que cerca qualsevol solució que compleixi totes les restriccions definides, sense funció objectiu de maximització o minimització. Útil per verificar la factibilitat d'un conjunt de restriccions o com a punt de partida per a models més complexos.\n",
-      "scenarioDescription": "Un planificador vol verificar si és possible assignar 5 tasques a 3 treballadors complint totes les restriccions de disponibilitat, qualificació i no solapament. No hi ha funció objectiu; només es cerca una assignació vàlida.\n",
+      "scenarioDescription": "Un organitzador de congressos ha d'assignar 4 ponents a 4 franges horàries. Cada ponent té hores en què no pot intervenir. A l'organitzador tant li fa quina franja li toca a cada ponent. El que importa és que tots els ponents tinguin lloc i que cap franja quedi duplicada.\n",
       "categoryDisplayName": "Ús General"
     },
     "container_loading": {
       "displayName": "Càrrega de Contenidors",
       "shortDescription": "Empaqueta articles de càrrega en contenidors d'enviament per maximitzar la utilització de l'espai respectant límits de pes i regles d'apilament.",
       "description": "Optimitza la càrrega d'articles en contenidors d'enviament marítim maximitzant la utilització de l'espai. Cada article té dimensions, pes i requisits d'apilament. El model respecta límits de pes del contenidor, restriccions d'apilament i possibles requisits d'agrupació de destinació.\n",
-      "scenarioDescription": "Una naviera ha de carregar 25 palès de diferents mides i pesos en un contenidor de 20 peus. El contenidor té un límit de 28 tones. Alguns articles fràgils no poden tenir pes a sobre. L'operador vol maximitzar el volum utilitzat.\n",
+      "scenarioDescription": "Un transitari ha de carregar deu expedicions en tres contenidors disponibles (dos de 40 peus i un de 20 peus) en una terminal portuària. Les mercaderies van des de tèxtils lleugers fins a maquinària pesant. El transitari vol maximitzar el valor total de la càrrega embarcada respectant els límits de volum i pes de cada contenidor.\n",
       "categoryDisplayName": "Marítim"
     },
     "course_scheduling": {
       "displayName": "Programació de Cursos",
       "shortDescription": "Assigna cursos a aules i franges horàries per evitar conflictes i maximitzar la utilització de sales.",
       "description": "Assigna cursos a aules i franges horàries evitant conflictes d'horaris per a professors i estudiants. Cada curs té requisits de capacitat de sala, equipament i durada. El model maximitza la utilització de les sales respectant les preferències dels professors i les restriccions de disponibilitat.\n",
-      "scenarioDescription": "Una facultat universitària té 20 cursos, 8 aules i 25 franges horàries setmanals. Cada curs necessita un tipus de sala específic (laboratori, auditori, aula normal). Cap professor pot impartir dos cursos simultàniament. El coordinador vol un horari sense conflictes que maximitzi l'ús de les sales.\n",
+      "scenarioDescription": "Un departament universitari ha de programar 8 assignatures en 4 aules i 5 franges horàries diàries durant el semestre. Tres professors imparteixen entre 2 i 3 assignatures cadascun. La capacitat de les aules va de 30 a 120 places. El coordinador vol un horari sense conflictes que doni cabuda a totes les assignatures.\n",
       "categoryDisplayName": "Educació i Acadèmia"
     },
     "crop_rotation": {
       "displayName": "Rotació de Cultius",
       "shortDescription": "Selecciona quins cultius sembrar a cada camp i temporada per maximitzar el benefici mantenint la salut del sòl.",
       "description": "Planifica la rotació de cultius en múltiples camps al llarg de diverses temporades. Cada cultiu té un benefici esperat, requisits de nutrients i efectes sobre la salut del sòl. El model maximitza el benefici total respectant les restriccions de rotació (no repetir el mateix cultiu consecutivament) i els requisits de restauració del sòl.\n",
-      "scenarioDescription": "Un agricultor té 6 camps i planifica 4 temporades. Disposa de 8 cultius candidats amb diferents marges de benefici. Les lleguminoses restauren el nitrogen però tenen menor marge. L'agricultor vol el pla de rotació que maximitzi el benefici total a 4 anys.\n",
+      "scenarioDescription": "Una explotació té 4 parcel·les i planifica 3 temporades endavant. Sis conreus possibles (blat, blat de moro, soja, gira-sol, ordi i guaret) tenen beneficis per hectàrea, necessitats d'aigua i impacte sobre el nitrogen diferents. La soja fixa nitrogen; el blat de moro l'esgota. L'aigua disponible està limitada a 800 m3 per temporada.\n",
       "categoryDisplayName": "Agricultura i Ramaderia"
     },
     "custom": {
       "displayName": "Problema Personalitzat",
       "shortDescription": "Defineix el teu propi problema d'optimització amb variables, restriccions i una funció objectiu personalitzades.",
       "description": "Punt de partida en blanc per definir un model d'optimització completament personalitzat. Defineix les teves pròpies variables de decisió, restriccions i funció objectiu. Ideal per a problemes que no encaixen en cap plantilla predefinida o per experimentar amb formulacions pròpies.\n",
-      "scenarioDescription": "Un analista vol modelar un problema únic de la seva organització que no encaixa en cap plantilla estàndard. Necessita definir variables, restriccions i un objectiu des de zero utilitzant l'editor visual.\n",
+      "scenarioDescription": "Un científic de dades vol resoldre un problema propi d'assignació de recursos: maximitzar 5x + 3y + 2z subjecte a restriccions de recursos i de producció, on x, y i z són variables de decisió enteres acotades entre 0 i 50.\n",
       "categoryDisplayName": "Ús General"
     },
     "demand_allocation": {
       "displayName": "Assignació de Demanda",
       "shortDescription": "Assigna la demanda de clients entre magatzems i plantes per minimitzar el cost total de compliment i enviament.",
       "description": "Distribueix la demanda dels clients entre múltiples magatzems i plantes de producció per minimitzar el cost total de compliment. Inclou costos de producció, emmagatzematge i transport. El model respecta les capacitats de producció, els nivells d'inventari i els requisits de nivell de servei.\n",
-      "scenarioDescription": "Una empresa té 3 plantes de producció i 5 magatzems que atenen 15 clients. Cada planta té costos de producció i capacitats diferents. Els costos d'enviament varien segons les rutes. El director d'operacions vol l'assignació que minimitzi el cost total.\n",
+      "scenarioDescription": "Una empresa de begudes té 3 plantes embotelladores i 6 distribuïdors regionals. Cada planta té una capacitat de producció setmanal i cada ruta planta-distribuïdor té un cost de transport per caixa. La demanda total dels distribuïdors és de 15.000 caixes. L'equip de logística necessita el pla d'assignació més barat.\n",
       "categoryDisplayName": "Gestió de Cadena de Subministrament"
     },
     "diet_optimization": {
       "displayName": "Optimització de Dieta",
       "shortDescription": "Troba la combinació d'aliments de menor cost que compleixi tots els requisits nutricionals diaris.",
       "description": "Selecciona la combinació d'aliments de menor cost que satisfà tots els requisits nutricionals diaris (calories, proteïnes, greixos, vitamines, minerals). Cada aliment té un cost, un perfil nutricional i límits de porció. És el problema clàssic de dieta en programació lineal.\n",
-      "scenarioDescription": "Un nutricionista té 15 aliments disponibles amb diferents costos i perfils nutricionals. El pla de dieta ha de proporcionar entre 2.000 i 2.500 kcal, almenys 50 g de proteïnes i complir els requisits de 8 micronutrients. L'objectiu és minimitzar el cost diari de l'alimentació.\n",
+      "scenarioDescription": "El responsable del menjador d'una universitat ha de dissenyar un menú diari amb 5 aliments bàsics (pa, llet, ous, pollastre i arròs). Cada aliment té un cost per ració i un contingut nutricional coneguts. El menú ha d'aportar almenys 2.000 kcal, 50 g de proteïna, 800 mg de calci i 25 g de fibra al menor cost possible.\n",
       "categoryDisplayName": "Salut i Nutrició"
     },
     "drug_distribution": {
       "displayName": "Distribució Farmacèutica",
       "shortDescription": "Planifica rutes d'enviament farmacèutic des de magatzems a farmàcies i hospitals minimitzant costos logístics amb restriccions de temperatura.",
       "description": "Optimitza les rutes de distribució de productes farmacèutics des de centres de distribució a farmàcies i hospitals. Inclou restriccions de cadena de fred, finestres de temps de lliurament i requisits de traçabilitat. El model minimitza els costos logístics totals garantint la integritat del producte.\n",
-      "scenarioDescription": "Un distribuïdor farmacèutic ha de lliurar 40 comandes des de 2 magatzems a farmàcies i hospitals. Alguns productes requereixen refrigeració. Les entregues a hospitals tenen finestres de temps estrictes. El gestor logístic vol minimitzar el cost total de transport.\n",
+      "scenarioDescription": "Un distribuïdor farmacèutic opera dos magatzems i ha de lliurar vacunes (cadena de fred), comprimits i insulina (cadena de fred) a cinc destinacions. Disposa de dues furgonetes refrigerades i una furgoneta normal. Les vacunes i la insulina necessiten vehicle amb cadena de fred. El gestor logístic vol planificar rutes que ho lliurin tot a temps al mínim cost.\n",
       "categoryDisplayName": "Farmacèutica"
     },
     "drug_trial_scheduling": {
       "displayName": "Programació d'Assaigs Clínics",
       "shortDescription": "Programa fases d'assaigs clínics entre centres i períodes per minimitzar el temps de comercialització respectant restriccions reguladores i de recursos.",
       "description": "Planifica la programació de fases d'assaigs clínics en múltiples centres de recerca. Cada fase té requisits de durada, nombre de pacients i equipament. El model minimitza el temps total fins a la comercialització respectant les dependències entre fases, la disponibilitat de centres i les restriccions reguladores.\n",
-      "scenarioDescription": "Una farmacèutica planifica un assaig clínic de 3 fases en 4 centres de recerca. La Fase II no pot començar fins a completar la Fase I. Cada centre té capacitat limitada de pacients. El director de desenvolupament clínic vol el cronograma que minimitzi el temps total de l'assaig.\n",
+      "scenarioDescription": "Una empresa de biotecnologia planifica un nou fàrmac oncològic a través de quatre fases d'assaig. La Fase I (seguretat) ha d'acabar abans de la Fase II (eficàcia), que ha d'acabar abans de dos estudis pivotals de Fase III en paral·lel. Cinc hospitals qualificats tenen una capacitat mensual limitada de reclutament de pacients. L'empresa vol arribar a la presentació davant la FDA com més aviat millor dins d'una finestra de quatre anys.\n",
       "categoryDisplayName": "Farmacèutica"
     },
     "dye_batch_scheduling": {
       "displayName": "Programació de Tint per Lots",
       "shortDescription": "Programa lots de tint de teles per minimitzar costos de canvi de color i consum d'aigua complint terminis de lliurament.",
       "description": "Optimitza la seqüència de lots de tint en màquines de tintura per minimitzar els costos de canvi de color i el consum d'aigua. Cada lot té un color, un volum i una data de lliurament. Els canvis entre colors foscos i clars requereixen cicles de neteja més llargs. El model programa els lots per minimitzar temps d'inactivitat i malbaratament.\n",
-      "scenarioDescription": "Una fàbrica tèxtil té 3 màquines de tint i 20 lots pendents en 8 colors diferents. Els canvis de color fosc a clar requereixen 2 hores de neteja enfront de 30 minuts per a canvis similars. Tots els lots s'han de completar en 5 dies.\n",
+      "scenarioDescription": "Una planta tèxtil de tintura té dues màquines de tintura per raig que treballen en torns de 16 hores. Sis treballs de tintura en colors diferents han d'acabar abans de les seves dates límit. La planta vol seqüenciar els treballs minimitzant el cost de canvi. Passar de colors foscos a clars exigeix un cicle de neteja de 90 minuts, mentre que de clar a fosc n'hi ha prou amb 30 minuts.\n",
       "categoryDisplayName": "Tèxtil"
     },
     "emergency_response_allocation": {
       "displayName": "Assignació de Resposta d'Emergència",
       "shortDescription": "Assigna unitats de resposta d'emergència a zones per garantir que cada àrea estigui coberta dins dels objectius de temps de resposta.",
       "description": "Distribueix unitats de resposta d'emergència (ambulàncies, bombers, policia) entre zones geogràfiques per garantir que totes les àrees tinguin cobertura dins dels temps de resposta objectiu. El model equilibra la cobertura equitativa amb l'eficiència del desplegament.\n",
-      "scenarioDescription": "Un municipi té 12 zones i 8 unitats d'emergència disponibles. Cada zona té una població i un nivell de risc. L'objectiu és que tota zona tingui una unitat a menys de 10 minuts. El coordinador d'emergències vol la distribució òptima de les unitats.\n",
+      "scenarioDescription": "El servei d'emergències d'una ciutat té cinc parcs i ha de repartir ambulàncies entre sis zones de resposta. La zona centre (Zona A) és la que rep més avisos i necessita cobertura de dues unitats. Les zones perifèriques necessiten almenys una unitat a menys de deu minuts. El servei vol col·locar el mínim nombre d'unitats cobrint tots els requisits al menor cost anual.\n",
       "categoryDisplayName": "Govern"
     },
     "emission_reduction_planning": {
       "displayName": "Planificació de Reducció d'Emissions",
       "shortDescription": "Selecciona projectes de reducció d'emissions per assolir un objectiu de CO2 al mínim cost total d'inversió.",
-      "description": "Selecciona un conjunt de projectes de reducció d'emissions d'un portafoli d'opcions per assolir un objectiu de reducció de CO2 al mínim cost. Cada projecte té un cost d'inversió, una reducció d'emissions estimada i un termini d'implementació. El model pot incloure restriccions de pressupost anual i dependències entre projectes.\n",
-      "scenarioDescription": "Una empresa industrial té 12 projectes candidats de reducció d'emissions. Cadascun té un cost i una reducció de CO2 estimada. L'empresa ha de reduir les emissions un 30% en 5 anys amb un pressupost de 2 milions EUR. El director de sostenibilitat vol la combinació de projectes òptima.\n",
+      "description": "Tria entre una cartera d'iniciatives de reducció d'emissions (eficiència energètica, instal·lacions renovables, canvis de procés) per assolir un objectiu corporatiu o normatiu de reducció de CO2 al mínim cost total. Cada iniciativa té un cost d'implantació, una reducció anual de CO2 i dependències opcionals. El solver tria la combinació més barata que assoleix l'objectiu. Útil per a la planificació de sostenibilitat corporativa i per a la política climàtica pública.\n",
+      "scenarioDescription": "Una empresa industrial ha de reduir les seves emissions anuals de CO2 en 500 tones per complir la nova normativa. Vuit projectes candidats van des d'il·luminació LED (5.000 EUR, 30 t de reducció) fins a una instal·lació solar (80.000 EUR, 200 t de reducció). El responsable de sostenibilitat vol el pla més barat que assoleixi l'objectiu.\n",
       "categoryDisplayName": "Medi Ambient i Sostenibilitat"
     },
     "employee_scheduling": {
       "displayName": "Programació d'Empleats",
       "shortDescription": "Crea horaris de torns òptims que compleixin els requisits de cobertura minimitzant el cost laboral i respectant la disponibilitat.",
       "description": "Genera horaris de torns per a empleats que cobreixin els requisits de personal en cada franja horària al mínim cost laboral. Inclou restriccions de disponibilitat, hores màximes setmanals, descansos obligatoris entre torns i preferències dels empleats. El model equilibra la cobertura amb l'equitat en la distribució de torns.\n",
-      "scenarioDescription": "Un comerç té 15 empleats i necessita cobertura per a 3 torns diaris durant 7 dies. Cada torn requereix entre 3 i 5 persones. Els empleats tenen disponibilitats diferents i no poden treballar més de 40 hores setmanals. El gerent vol l'horari de menor cost amb cobertura completa.\n",
+      "scenarioDescription": "Un forn té 5 empleats que cobreixen 7 torns al llarg de la setmana. Cada torn necessita entre 1 i 3 persones. L'Alícia cobra 25 EUR/h però no pot treballar el dissabte a la nit. En Bru és més barat, a 22 EUR/h. L'encarregat vol el quadrant més barat que cobreixi tots els torns.\n",
       "categoryDisplayName": "Recursos Humans i Personal"
     },
     "energy_storage_dispatch": {
       "displayName": "Despatx d'Emmagatzematge d'Energia",
       "shortDescription": "Programa quan carregar i descarregar un sistema de bateries per maximitzar el benefici d'arbitratge amb tarifes elèctriques per horari.",
       "description": "Optimitza el programa de càrrega i descàrrega d'un sistema d'emmagatzematge d'energia per bateries per maximitzar el benefici de l'arbitratge de preus elèctrics. El model considera les tarifes per horari, l'eficiència de càrrega/descàrrega, la capacitat de la bateria i els cicles de degradació. Decideix quan comprar electricitat barata per emmagatzemar i quan vendre durant els pics de preu.\n",
-      "scenarioDescription": "Una instal·lació té una bateria de 500 kWh amb eficiència del 90%. Els preus elèctrics varien entre 0,03 i 0,25 EUR/kWh al llarg del dia. La bateria pot carregar o descarregar a 100 kW. L'operador vol maximitzar el benefici diari de l'arbitratge de preus.\n",
+      "scenarioDescription": "Un edifici comercial té una bateria de 500 kWh (càrrega i descàrrega màxima de 100 kW, 90% d'eficiència d'anada i tornada). L'electricitat costa 0,08 EUR/kWh de nit, 0,15 EUR/kWh al migdia i 0,25 EUR/kWh en hora punta (17:00-20:00). El responsable de les instal·lacions vol maximitzar l'estalvi desplaçant consum a les hores vall.\n",
       "categoryDisplayName": "Energia i Serveis Públics"
     },
     "equipment_allocation": {
       "displayName": "Assignació d'Equips",
       "shortDescription": "Assigna maquinària pesant a obres de construcció per minimitzar els costos de lloguer i temps d'inactivitat.",
       "description": "Assigna equips de construcció pesants (grues, excavadores, compactadores) a múltiples obres actives per minimitzar els costos totals de lloguer, transport entre obres i temps d'inactivitat. Cada obra té requisits d'equips per període i cada equip té un cost de mobilització.\n",
-      "scenarioDescription": "Una constructora té 8 equips pesants i 5 obres actives durant els propers 3 mesos. Cada obra necessita equips específics en períodes concrets. Moure un equip entre obres costa entre 2.000 i 5.000 EUR. El director d'obres vol minimitzar el cost total d'equips.\n",
+      "scenarioDescription": "Una constructora té cinc màquines pesants repartides entre dues obres actives i un magatzem. Tres obres necessiten maquinària concreta la setmana vinent. Moure una màquina entre obres costa diners i la maquinària aturada genera despeses de magatzematge. El responsable de flota necessita assignar les màquines a les obres al mínim cost total.\n",
       "categoryDisplayName": "Construcció"
     },
     "fabric_cutting": {
       "displayName": "Tall de Tela",
       "shortDescription": "Minimitza el malbaratament de tela optimitzant els patrons de tall per a peces de vestir en rotlles de tela.",
       "description": "Optimitza els patrons de tall de peces de peces de vestir sobre rotlles de tela per minimitzar el material malbaratat. Cada peça té dimensions i quantitat requerida. El model selecciona els millors patrons de tall i la quantitat de rotlles a fer servir per complir la demanda de producció al mínim malbaratament.\n",
-      "scenarioDescription": "Una fàbrica de confecció necessita tallar 500 peces de 6 tipus diferents de rotlles de tela d'1,5 m d'ample. Cada tipus de peça té dimensions i quantitats específiques. El responsable de producció vol minimitzar el nombre de rotlles utilitzats i el malbaratament de tela.\n",
+      "scenarioDescription": "Una fàbrica de confecció està tallant teixit per a una tirada de camises. El teixit ve en rotlles de 150 cm d'ample. Cal tallar set peces de patró diferents (davanters en S/M/L, mànigues en S/M/L i colls) en quantitats concretes. El responsable de la sala de tall vol minimitzar el nombre de rotlles usats buscant la millor combinació de patrons de tall.\n",
       "categoryDisplayName": "Tèxtil"
     },
     "fertilizer_mixing": {
       "displayName": "Mescla de Fertilitzants",
       "shortDescription": "Mescla matèries primeres en una mescla de fertilitzant que compleixi els objectius de nutrients (N-P-K) al mínim cost.",
       "description": "Determina les proporcions òptimes de mescla de matèries primeres per produir un fertilitzant que compleixi les especificacions de nutrients (nitrogen, fòsfor, potassi). Cada matèria primera té un cost, un perfil de nutrients i una disponibilitat. El model minimitza el cost total complint els requisits de composició.\n",
-      "scenarioDescription": "Una cooperativa agrícola disposa de 5 matèries primeres per produir un fertilitzant amb especificacions de N-P-K de 15-10-20. Cada matèria primera té diferent concentració de nutrients i preu. L'agrònom vol la mescla de menor cost que compleixi les especificacions.\n",
+      "scenarioDescription": "Una cooperativa agrícola necessita produir 1.000 kg de fertilitzant NPK. Disposa de quatre matèries primeres: urea (46% N), DAP (18% N, 46% P), MOP (60% K) i una càrrega inerta. Barreja objectiu: 15-20% N, 10-15% P, 12-18% K. Els preus van de 50 EUR (càrrega inerta) a 480 EUR (DAP) per tona.\n",
       "categoryDisplayName": "Agricultura i Ramaderia"
     },
     "fleet_dispatch_mining": {
       "displayName": "Despatx de Flota",
       "shortDescription": "Despatxa camions de transport entre pales i abocadors per maximitzar el rendiment de producció.",
       "description": "Optimitza l'assignació de camions de transport entre pales carregadores i punts de descàrrega en una operació minera a cel obert. El model maximitza el rendiment total de producció (tones/hora) considerant els temps de cicle, la capacitat dels camions i la productivitat de les pales. Inclou restriccions de cua i manteniment.\n",
-      "scenarioDescription": "Una mina a cel obert té 4 pales carregadores i 2 punts de descàrrega amb 10 camions disponibles. Cada ruta pala-abocador té un temps de cicle diferent. Les pales tenen diferents productivitats. El despatxador vol maximitzar les tones mogudes per hora.\n",
+      "scenarioDescription": "Una mina de coure a cel obert opera tres pales i envia material a una trituradora i a una escombrera. Hi ha dotze camions de transport disponibles per al torn. L'optimitzador de despatx decideix com encaminar els camions entre pales i descàrregues per moure el màxim tonatge mantenint les pales ocupades i evitant embussos a la trituradora.\n",
       "categoryDisplayName": "Mineria"
     },
     "fleet_sizing": {
       "displayName": "Dimensionament de Flota",
       "shortDescription": "Determina el nombre i tipus òptim de vehicles per operar en un conjunt de rutes de repartiment i nivells de demanda.",
       "description": "Decideix quants vehicles de cada tipus (furgonetes, camions, tràilers) ha de tenir una flota de distribució per cobrir totes les rutes i nivells de demanda al mínim cost total. El model equilibra els costos fixos dels vehicles, els costos operatius variables i el nivell de servei requerit.\n",
-      "scenarioDescription": "Una empresa de distribució té 12 rutes de repartiment amb demandes variables per dia de la setmana. Pot triar entre furgonetes (500 kg), camions mitjans (2 t) i camions grans (5 t). El director logístic vol la composició de flota que minimitzi el cost total.\n",
+      "scenarioDescription": "Una empresa de missatgeria atén 5 zones de la ciutat amb volums diaris de 50 a 300 paquets. Hi ha tres tipus de vehicle disponibles: bicicletes (20 paquets, 30 EUR/dia), furgonetes (80 paquets, 90 EUR/dia) i camions (200 paquets, 180 EUR/dia). El responsable de logística vol la flota més barata que aguanti la demanda punta.\n",
       "categoryDisplayName": "Logística i Distribució"
     },
     "flight_crew_pairing": {
       "displayName": "Aparellament de Tripulacions",
       "shortDescription": "Construeix aparellaments de tripulació de cost mínim que cobreixin tots els trams de vol programats respectant les regulacions de temps de servei.",
       "description": "Genera seqüències de vols (pairings) per a tripulacions de cabina que cobreixin tots els trams programats al mínim cost. Cada pairing comença i acaba a la mateixa base. El model respecta els límits d'hores de vol, temps de descans obligatoris i regulacions de duty time. Inclou costos per pernocta fora de base.\n",
-      "scenarioDescription": "Una aerolínia té 30 trams de vol diaris entre 6 ciutats i 3 bases de tripulació. Els pairings no poden excedir 4 dies ni 8 hores de vol diàries. L'aerolínia vol el conjunt de pairings que cobreixi tots els vols al menor cost.\n",
+      "scenarioDescription": "Una aerolínia regional ha de construir els pairings de tripulació per al calendari del mes vinent, amb vuit trams de vol entre sis ciutats. S'han enumerat vuit pairings candidats, cadascun amb un cost diferent (hotel, dietes i posicionament). Cada tram ha de quedar cobert per exactament un pairing minimitzant el cost total de tripulació.\n",
       "categoryDisplayName": "Aeroespacial"
     },
     "harvest_scheduling": {
       "displayName": "Programació de Collita",
       "shortDescription": "Programa la tala de fusta en rodals forestals al llarg de múltiples períodes per maximitzar els ingressos garantint la sostenibilitat.",
-      "description": "Planifica la collita de fusta en rodals forestals al llarg de múltiples períodes. Cada rodal té un volum de fusta, una edat i una taxa de creixement. El model maximitza el valor net actual dels ingressos per fusta respectant les restriccions de sostenibilitat (volum màxim per període, regeneració) i els requisits d'accés vial.\n",
-      "scenarioDescription": "Una empresa forestal gestiona 15 rodals durant un horitzó de 4 períodes de 5 anys. Cada rodal té diferent volum i valor de fusta. No es pot collir més del 25% de l'àrea total per període. L'enginyer forestal vol el pla que maximitzi el valor net actual.\n",
+      "description": "Planifica quins rodals forestals es talen en cada període d'un horitzó de diversos anys. Cada rodal té un volum de fusta, una barreja d'espècies, una edat i un ingrés previst en el moment de la tala. El model maximitza l'ingrés total descomptat respectant les restriccions de sostenibilitat: superfície màxima talada per període i regles d'adjacència (no es talen dos rodals veïns en el mateix període). Fonamental per a empreses de gestió forestal i organismes de sòl públic.\n",
+      "scenarioDescription": "Una empresa forestal gestiona 158 hectàrees repartides en sis rodals d'avet de Douglas i pícea. En un pla a quatre anys no es poden talar més de 40 hectàrees l'any per complir la normativa de sostenibilitat. Els rodals més vells donen fusta de més valor. L'empresa vol maximitzar l'ingrés total de la tala mantenint pràctiques sostenibles.\n",
       "categoryDisplayName": "Silvicultura"
     },
     "ingredient_sourcing": {
       "displayName": "Aprovisionament d'Ingredients",
       "shortDescription": "Selecciona proveïdors i quantitats de comanda per a ingredients alimentaris per minimitzar costos d'aprovisionament garantint qualitat i fiabilitat de lliurament.",
       "description": "Optimitza la selecció de proveïdors i les quantitats de compra per a ingredients alimentaris. Cada proveïdor té un preu, un termini de lliurament, un nivell de qualitat i una capacitat màxima. El model minimitza el cost total d'aprovisionament complint els requisits de qualitat mínima, diversificació de proveïdors i fiabilitat de lliurament.\n",
-      "scenarioDescription": "Una empresa d'alimentació necessita 5 ingredients de 8 proveïdors potencials. Cada proveïdor té diferents preus, capacitats i puntuacions de qualitat. L'empresa requereix almenys 2 proveïdors per ingredient. El director de compres vol minimitzar el cost total garantint la qualitat.\n",
+      "scenarioDescription": "Un fabricant de xocolata necessita proveir-se de tres ingredients clau per a la producció del trimestre vinent. Diversos proveïdors ofereixen preus i capacitats diferents. Cada proveïdor té una comanda mínima. El responsable de compres vol el pla d'aprovisionament més barat que cobreixi la demanda de tots els ingredients respectant les condicions dels proveïdors.\n",
       "categoryDisplayName": "Alimentació i Begudes"
     },
     "inventory_optimization": {
       "displayName": "Optimització d'Inventari",
       "shortDescription": "Determina quantitats òptimes de recomanda i nivells d'estoc de seguretat per minimitzar els costos d'emmagatzematge i ruptura.",
       "description": "Calcula les quantitats òptimes de recomanda i els nivells d'estoc de seguretat per minimitzar la suma de costos d'emmagatzematge, costos de comanda i costos de ruptura d'estoc. El model considera la variabilitat de la demanda, els terminis de lliurament i els nivells de servei objectiu.\n",
-      "scenarioDescription": "Un distribuïdor gestiona 20 SKU amb demanda variable. Cada SKU té un cost d'emmagatzematge, un cost de comanda i un termini de lliurament. L'objectiu és un nivell de servei del 95%. El responsable d'inventari vol els paràmetres de recomanda que minimitzi el cost total.\n",
+      "scenarioDescription": "Un distribuïdor d'electrònica de consum gestiona 5 línies de producte amb una demanda setmanal d'entre 50 i 300 unitats. La capacitat del magatzem és de 2.000 unitats en total. El cost d'emmagatzematge és de 0,50 EUR per unitat i setmana, i la penalització per ruptura d'estoc és de 5 EUR per unitat. El termini de lliurament és de 2 setmanes. El responsable de la cadena de subministrament vol un pla de comandes a 6 setmanes.\n",
       "categoryDisplayName": "Gestió de Cadena de Subministrament"
     },
     "inventory_replenishment": {
       "displayName": "Reposició d'Inventari",
       "shortDescription": "Planifica quan i quant reordenar per a cada SKU per minimitzar els costos totals d'emmagatzematge i comanda.",
       "description": "Genera un pla de reposició d'inventari que determina quan i quant reordenar per a cada SKU al llarg d'un horitzó de planificació. El model minimitza els costos totals d'emmagatzematge, costos de comanda i costos de penalització per faltant, respectant les capacitats d'emmagatzematge i els lots mínims de comanda.\n",
-      "scenarioDescription": "Un magatzem gestiona 25 SKU durant les properes 12 setmanes. Cada SKU té una demanda setmanal prevista, un cost d'emmagatzematge i un lot mínim de comanda. El magatzem té capacitat limitada. El planificador vol el programa de reposició de menor cost total.\n",
+      "scenarioDescription": "Un magatzem de material d'oficina gestiona quatre categories de SKU en un horitzó de sis setmanes. Cada SKU té previsions de demanda setmanal que varien. Fer una comanda té un cost fix, sigui quina sigui la quantitat, i mantenir existències costa diners cada setmana. El planificador d'inventari vol decidir quan demanar i quant demanar per minimitzar el cost total cobrint tota la demanda.\n",
       "categoryDisplayName": "Magatzem"
     },
     "irrigation_scheduling": {
       "displayName": "Programació de Reg",
       "shortDescription": "Programa la distribució d'aigua entre camps i franges horàries per minimitzar l'ús d'aigua complint els requisits dels cultius.",
       "description": "Optimitza el programa de distribució d'aigua de reg entre múltiples camps i franges horàries. Cada camp té requisits hídrics segons el cultiu i l'etapa de creixement. El model minimitza el consum total d'aigua (o el seu cost) garantint que cada camp rebi la quantitat necessària, respectant la capacitat del sistema de reg.\n",
-      "scenarioDescription": "Una explotació agrícola té 8 camps amb diferents cultius i un sistema de reg que pot atendre 3 camps simultàniament. L'aigua disponible és limitada. Cada cultiu té una finestra òptima de reg. L'agricultor vol el programa que minimitzi el consum d'aigua complint les necessitats de tots els cultius.\n",
+      "scenarioDescription": "Una explotació té 4 parcel·les amb conreus diferents i 6 torns de reg diaris. La bomba principal dona 120 m3/hora. La parcel·la A (tomàquets) necessita 40 m3/dia; la parcel·la B (enciams) necessita 25 m3/dia. L'agricultor vol minimitzar el consum total d'aigua mantenint cada conreu per sobre del seu llindar mínim d'hidratació.\n",
       "categoryDisplayName": "Agricultura i Ramaderia"
     },
     "job_shop_scheduling": {
       "displayName": "Programació de Taller",
       "shortDescription": "Programa treballs en màquines per minimitzar el temps total de finalització (makespan) respectant les restriccions d'ordre de processament.",
       "description": "Programa un conjunt de treballs en un conjunt de màquines, on cada treball ha de passar per les màquines en un ordre específic. L'objectiu és minimitzar el makespan (temps total de finalització de l'últim treball). Cada operació té una durada i una màquina assignada. Les màquines processen un treball a la vegada.\n",
-      "scenarioDescription": "Un taller té 5 màquines i 8 treballs. Cada treball requereix una seqüència d'operacions en diferents màquines amb temps de processament de 10 a 60 minuts. El responsable de producció vol el programa que minimitzi el temps total per completar tots els treballs.\n",
+      "scenarioDescription": "Un taller metal·lúrgic té 3 màquines (torn, fresadora i trepant). Quatre comandes de client requereixen cadascuna entre 2 i 3 operacions de mecanitzat en una seqüència fixa. Els temps de procés van d'1 a 5 hores. El cap de taller necessita un programa que acabi totes les comandes com més aviat millor.\n",
       "categoryDisplayName": "Fabricació i Producció"
     },
     "knapsack": {
       "displayName": "Selecció d'Articles (Knapsack)",
       "shortDescription": "Selecciona la millor combinació d'articles per maximitzar el valor mantenint-se dins d'un únic límit de capacitat.",
-      "description": "Selecciona un subconjunt d'articles que maximitzi el valor total sense excedir una capacitat fixa. Cada article té un valor i un pes. És el problema clàssic de la motxilla (knapsack), aplicable a selecció de projectes, càrrega de vehicles i assignació de recursos amb una única restricció de capacitat.\n",
-      "scenarioDescription": "Un excursionista ha de seleccionar articles per a una motxilla de 15 kg d'entre 12 objectes amb diferents pesos i utilitats. Vol maximitzar la utilitat total de l'equipatge sense excedir el límit de pes.\n",
+      "description": "El clàssic problema de la motxilla 0-1: donat un conjunt d'articles, cadascun amb un valor i un pes, tria quins emportar-te per maximitzar el valor total sense superar la capacitat de pes del contenidor. Cada article s'inclou sencer o es descarta. Fes-lo servir per a càrrega de mercaderia, selecció de projectes o qualsevol cas en què tries d'una llista d'opcions indivisibles sota una única restricció de recursos.\n",
+      "scenarioDescription": "Un viatger prepara una maleta de 50 kg per a un viatge internacional. Vuit articles competeixen per l'espai: portàtil, càmera, auriculars, llibre, tauleta, carregador, roba i sabates. Cada article té un valor subjectiu i un pes. L'objectiu és maximitzar el valor total sense passar-se del límit de pes.\n",
       "categoryDisplayName": "Logística i Distribució"
     },
     "launch_vehicle_payload": {
       "displayName": "Optimització de Càrrega Útil",
       "shortDescription": "Selecciona i distribueix càrregues útils de satèl·lits per a un vehicle de llançament per maximitzar el valor de missió total dins dels límits de massa i volum.",
       "description": "Selecciona quins satèl·lits o càrregues útils incloure en un llançament espacial per maximitzar el valor total de la missió. Cada càrrega útil té una massa, un volum i un valor de missió. El model respecta els límits de massa i volum del vehicle de llançament, així com possibles restriccions de compatibilitat entre càrregues.\n",
-      "scenarioDescription": "Un operador de llançament té 10 càrregues útils candidates per a un coet amb capacitat de 5.000 kg i 30 m³. Cada càrrega té diferent massa, volum i valor de contracte. Dues càrregues són incompatibles entre si. El planificador vol maximitzar el valor total del llançament.\n",
+      "scenarioDescription": "Un operador de llançament planifica una missió compartida a òrbita heliosíncrona. Sis càrregues útils han demanat plaça al manifest. El coet pot portar 500 kg i la cofa té 4,0 m3 de volum aprofitable. El planificador de la missió ha de triar les càrregues que maximitzin l'ingrés total del llançament dins dels límits de massa i volum.\n",
       "categoryDisplayName": "Aeroespacial"
     },
     "loan_portfolio": {
       "displayName": "Cartera de Préstecs",
       "shortDescription": "Selecciona quines sol·licituds de préstec aprovar per maximitzar els ingressos per interessos mantenint-se dins dels límits de risc i capital.",
       "description": "Decideix quines sol·licituds de préstec aprovar d'un conjunt de candidats per maximitzar els ingressos totals per interessos. Cada préstec té un tipus d'interès, un risc d'impagament i un requisit de capital. El model respecta els límits d'exposició total, les restriccions de diversificació sectorial i els requisits de capital regulatori.\n",
-      "scenarioDescription": "Un banc té 50 sol·licituds de préstec amb diferents imports, tipus d'interès i qualificacions de risc. El capital disponible és de 10 milions EUR. L'exposició màxima a qualsevol sector és del 30%. L'analista de crèdit vol la cartera que maximitzi els ingressos esperats per interessos.\n",
+      "scenarioDescription": "Un banc regional disposa de 2 milions EUR de capital per prestar i té 10 sol·licituds de préstec d'entre 50.000 EUR i 500.000 EUR. Cada préstec té un tipus d'interès anual previst i una qualificació de risc d'1 (baix) a 5 (alt). El consell vol que el risc mitjà de la cartera quedi per sota de 3,0.\n",
       "categoryDisplayName": "Finances i Inversió"
     },
     "markdown_pricing": {
       "displayName": "Preus de Liquidació",
       "shortDescription": "Estableix preus òptims de liquidació per a inventari de fi de temporada per maximitzar els ingressos totals mentre s'esgota l'estoc.",
       "description": "Determina els preus de liquidació òptims per a productes de fi de temporada per maximitzar els ingressos totals. Cada producte té un inventari restant, una elasticitat de demanda al preu i un preu mínim acceptable. El model troba els preus que buiden l'inventari maximitzant els ingressos.\n",
-      "scenarioDescription": "Una botiga de moda té 20 productes de temporada amb inventari sobrant. Cada producte té entre 10 i 200 unitats restants. Els descomptes van del 20% al 70%. La botiga vol buidar tot l'inventari en 4 setmanes maximitzant els ingressos per liquidació.\n",
+      "scenarioDescription": "Una cadena de moda té 8 articles de final de temporada amb entre 20 i 200 unitats en estoc. Els preus base van de 25 EUR a 150 EUR. El responsable de compres estima l'elasticitat de la demanda a partir de les vendes anteriors. L'objectiu és liquidar almenys el 80% de l'inventari maximitzant l'ingrés total de la liquidació.\n",
       "categoryDisplayName": "Comerç Minorista"
     },
     "material_procurement": {
       "displayName": "Aprovisionament de Materials",
       "shortDescription": "Selecciona proveïdors i quantitats de comanda per a materials de construcció per minimitzar el cost total d'aprovisionament amb restriccions de lliurament.",
       "description": "Optimitza les decisions de compra de materials de construcció seleccionant proveïdors i quantitats de comanda. Cada proveïdor té preus, terminis de lliurament i quantitats mínimes de comanda diferents. El model minimitza el cost total d'aprovisionament complint els requisits d'obra i les restriccions de calendari de lliurament.\n",
-      "scenarioDescription": "Una constructora necessita 8 tipus de materials per a un projecte de 6 mesos. Disposa de 5 proveïdors amb diferents preus i terminis. Alguns materials tenen quantitats mínimes de comanda. El director de compres vol minimitzar el cost total complint el calendari d'obra.\n",
+      "scenarioDescription": "El cap d'obra d'un projecte de construcció ha de comprar formigó, acer corrugat i fusta per a un edifici nou. Dos proveïdors ofereixen cada material a preus i capacitats diferents. Alguns proveïdors tenen preus unitaris més baixos però despeses de lliurament més altes. El cap d'obra vol la combinació de proveïdors més barata que cobreixi totes les necessitats de material.\n",
       "categoryDisplayName": "Construcció"
     },
     "max_flow": {
       "displayName": "Flux Màxim",
       "shortDescription": "Envia la quantitat màxima de flux des de l'origen al destí a través d'una xarxa amb capacitats.",
       "description": "Troba el flux màxim que pot enviar-se des d'un node origen a un node destí a través d'una xarxa dirigida amb capacitats als arcs. És un problema fonamental d'optimització en xarxes amb aplicacions en transport, telecomunicacions i logística.\n",
-      "scenarioDescription": "Una xarxa de distribució té 8 nodes i 12 arcs amb diferents capacitats. L'aigua ha de fluir des de l'estació de bombeig (origen) fins a la planta de tractament (destí). L'enginyer vol determinar el flux màxim possible a través de la xarxa.\n",
+      "scenarioDescription": "Una empresa d'aigües ha de determinar el cabal màxim des d'un embassament (origen) fins a una planta de tractament (destinació) a través d'una xarxa de canonades amb 5 nusos intermedis. Cada canonada té un cabal màxim en litres per segon. L'enginyer vol conèixer el coll d'ampolla de la xarxa.\n",
       "categoryDisplayName": "Optimització de Xarxes i Grafs"
     },
     "media_mix_optimization": {
       "displayName": "Optimització del Mix de Mitjans",
       "shortDescription": "Troba la combinació òptima de despesa en mitjans entre plataformes per maximitzar el ROI amb rendiments decreixents i efectes creuats entre canals.",
       "description": "Determina la distribució òptima del pressupost publicitari entre plataformes de mitjans (cerca, social, display, vídeo, TV) per maximitzar el retorn global. El model considera rendiments decreixents per canal, efectes de sinergia entre canals i restriccions de pressupost mínim/màxim per plataforma.\n",
-      "scenarioDescription": "Una marca d'e-commerce té un pressupost mensual de 50.000 EUR per a 5 plataformes publicitàries. Cada plataforma mostra rendiments decreixents després de cert llindar. La combinació de cerca + social genera un efecte de sinergia del 15%. El director de màrqueting vol la distribució que maximitzi el ROI total.\n",
+      "scenarioDescription": "Una marca de venda directa disposa de 80.000 $ al mes per repartir entre sis canals de mitjans. Cada canal té un ROI esperat i una variància diferents (el risc que el retorn real es desviï del previst). L'equip de màrqueting vol una combinació de mitjans diversificada que maximitzi el retorn esperat controlant el risc total de la campanya.\n",
       "categoryDisplayName": "Publicitat i Mitjans"
     },
     "mine_production_scheduling": {
       "displayName": "Programació de Producció Minera",
       "shortDescription": "Programa blocs d'extracció en períodes per maximitzar el valor net actual complint restriccions de mescla i capacitat.",
       "description": "Planifica la seqüència d'extracció de blocs de mineral al llarg de múltiples períodes per maximitzar el valor net actual (VNA). Cada bloc té un tonatge, una llei de mineral i un cost d'extracció. El model respecta les precedències d'extracció, les capacitats de planta i els requisits de mescla de mineral.\n",
-      "scenarioDescription": "Una mina té un model de blocs amb 100 blocs candidats per a extracció durant 5 anys. Cada bloc té un tonatge i una llei d'or. La planta processa 1 milió de tones/any. La llei d'alimentació ha d'estar entre 2 i 4 g/t. El planificador vol el programa que maximitzi el VNA.\n",
+      "scenarioDescription": "Una mina de coure té sis blocs de mineral repartits en tres nivells de banc. La planta de procés pot tractar 10.000 tones l'any. Els blocs dels nivells superiors s'han d'extreure abans que els inferiors. El planificador de la mina ha de decidir quins blocs extreure en cadascun dels tres anys per maximitzar el valor actual net total del coure extret.\n",
       "categoryDisplayName": "Mineria"
     },
     "minimum_spanning_tree": {
       "displayName": "Arbre d'Expansió Mínim",
       "shortDescription": "Connecta tots els nodes d'una xarxa al mínim cost total d'arestes sense cicles.",
       "description": "Troba el subconjunt d'arestes que connecta tots els nodes d'un graf al mínim cost total sense formar cicles. És un problema clàssic d'optimització de xarxes amb aplicacions en disseny de xarxes de telecomunicacions, distribució elèctrica i connexió d'infraestructures.\n",
-      "scenarioDescription": "Una empresa de telecomunicacions necessita connectar 10 torres de comunicació amb fibra òptica. Hi ha 20 possibles connexions amb diferents costos d'instal·lació. L'enginyer vol connectar totes les torres al menor cost total sense connexions redundants.\n",
+      "scenarioDescription": "Una empresa de serveis ha de connectar 6 pobles amb fibra òptica. Estendre cable entre cada parell té un cost diferent segons el terreny. L'empresa vol que tots els pobles quedin connectats amb el mínim cost total de cable.\n",
       "categoryDisplayName": "Optimització de Xarxes i Grafs"
     },
     "multi_modal_freight": {
       "displayName": "Transport Multimodal de Càrrega",
       "shortDescription": "Tria la millor combinació de modes de transport (carretera, ferrocarril, marítim) per a cada tram d'enviament per minimitzar el cost i temps totals.",
       "description": "Optimitza la selecció de modes de transport (carretera, ferrocarril, marítim) per a cada tram d'un enviament de càrrega per minimitzar el cost i/o el temps total de trànsit. Cada mode té un cost, un temps de trànsit i una capacitat. El model respecta les connexions entre modes, els horaris de transbord i els terminis de lliurament.\n",
-      "scenarioDescription": "Un exportador ha d'enviar 200 tones de producte des d'una fàbrica interior a un port estranger. El trajecte té 3 trams amb opcions de carretera, ferrocarril i marítim. Cada combinació té diferents costos i temps. El gestor logístic vol la combinació que minimitzi el cost total complint el termini de lliurament.\n",
+      "scenarioDescription": "Un fabricant envia mercaderia des d'una fàbrica a 3 ports d'exportació, passant per 2 centres intermedis. A cada tram hi ha opcions de camió, tren i barcassa amb cost, temps i CO2 diferents. L'enviament total és de 500 tones amb un termini de 5 dies. L'equip de logística vol el pla més barat que compleixi el termini.\n",
       "categoryDisplayName": "Transport i Logística"
     },
     "multi_objective_demo": {
@@ -4191,378 +4191,378 @@
       "displayName": "Redundància de Xarxa",
       "shortDescription": "Dissenya una xarxa redundant de cost mínim assegurant que cada node tingui almenys dos camins independents.",
       "description": "Dissenya una xarxa de comunicacions de cost mínim que garanteixi que cada node tingui almenys dos camins independents cap al node central. Cada enllaç té un cost d'instal·lació i una capacitat. El model assegura la tolerància a fallades: si un enllaç falla, tots els nodes segueixen connectats.\n",
-      "scenarioDescription": "Un proveïdor de serveis d'internet té 12 nodes de xarxa. Hi ha 25 possibles enllaços amb diferents costos. L'enginyer de xarxa vol dissenyar la topologia de menor cost on la caiguda de qualsevol enllaç no desconnecti cap node.\n",
+      "scenarioDescription": "Un proveïdor d'internet regional està construint una xarxa troncal de fibra que connecta el seu centre de dades amb cinc nodes a través d'un intercanviador central. S'han estudiat nou rutes de fibra candidates. El proveïdor exigeix que cada node tingui almenys dos camins independents fins al centre de dades, perquè un sol tall de fibra no deixi el servei caigut.\n",
       "categoryDisplayName": "Telecomunicacions"
     },
     "nurse_scheduling": {
       "displayName": "Programació d'Infermeria",
       "shortDescription": "Crea horaris setmanals de torns d'infermeria que cobreixin els requisits d'unitat respectant les normes laborals i les preferències.",
       "description": "Genera horaris setmanals per a infermeres assignant torns (matí, tarda, nit) en diferents unitats hospitalàries. El model compleix els requisits mínims de personal per unitat i torn, respecta les regulacions laborals (hores màximes, descansos entre torns) i considera les preferències i especialitats del personal.\n",
-      "scenarioDescription": "Un hospital té 20 infermeres i 4 unitats. Cada unitat necessita 3 infermeres en torn de matí, 3 en tarda i 2 en nit. Les infermeres no poden fer més de 5 torns per setmana ni 2 nits consecutives. La supervisora vol un horari equitatiu que cobreixi totes les necessitats.\n",
+      "scenarioDescription": "Una planta d'hospital té 8 infermeres que cobreixen 14 torns per setmana (matí i tarda, 7 dies). Cada torn necessita entre 2 i 3 infermeres. Les infermeres treballen com a màxim 40 hores setmanals, amb almenys 10 hores entre torns, i algunes han demanat dies lliures. La supervisora vol el quadrant més barat que compleixi totes les regles.\n",
       "categoryDisplayName": "Salut i Nutrició"
     },
     "one_d_cutting_stock": {
       "displayName": "Tall de Material 1D",
       "shortDescription": "Talla material en estoc de longitud estàndard en comandes de clients per minimitzar el malbaratament total.",
       "description": "Optimitza els patrons de tall per a barres, tubs o rotlles de longitud estàndard per satisfer comandes de diferents longituds minimitzant el malbaratament total de material. Cada comanda té una longitud i una quantitat requerida. El model selecciona els patrons de tall i les seves freqüències.\n",
-      "scenarioDescription": "Una empresa siderúrgica té barres de 6 metres de longitud i 15 comandes de diferents longituds (0,5 a 4 metres). Cada comanda té entre 5 i 50 unitats. El responsable de producció vol minimitzar el nombre de barres utilitzades i el malbaratament.\n",
+      "scenarioDescription": "Un proveïdor d'acer talla barres estàndard de 12 metres en 5 longituds de comanda (2 m, 3 m, 4 m, 5 m i 7 m) amb quantitats diferents. La retallada de cada barra és malbaratament. El responsable de producció vol minimitzar el nombre de barres utilitzades.\n",
       "categoryDisplayName": "Tall i Empaquetament"
     },
     "operating_room_scheduling": {
       "displayName": "Programació de Quiròfans",
       "shortDescription": "Programa cirurgies en quiròfans i blocs horaris per maximitzar el rendiment respectant la disponibilitat de cirurgians i equips.",
       "description": "Assigna cirurgies a quiròfans i blocs horaris per maximitzar el nombre de cirurgies realitzades (o minimitzar els temps d'espera). El model respecta la disponibilitat de cirurgians, l'equipament específic de cada quiròfan i els temps de preparació entre cirurgies. Inclou prioritats d'urgència.\n",
-      "scenarioDescription": "Un hospital té 4 quiròfans i 15 cirurgies programades per a una setmana. Cada cirurgia requereix un cirurgià específic, equipament i una durada estimada. Els quiròfans estan disponibles 10 hores al dia. El coordinador vol programar totes les cirurgies minimitzant els temps d'espera.\n",
+      "scenarioDescription": "Un hospital té 3 quiròfans disponibles en 5 blocs horaris diaris (de 08:00 a 16:00 en franges de 90 minuts). Hi ha deu cirurgies programades pendents, de durada variable (de 45 a 180 minuts). Hi ha tres cirurgians disponibles amb agendes diferents. El coordinador quirúrgic vol encabir el màxim nombre de casos possible en el programa de demà.\n",
       "categoryDisplayName": "Salut i Nutrició"
     },
     "ore_blending": {
       "displayName": "Mescla de Mineral",
       "shortDescription": "Mescla mineral de múltiples fonts per complir especificacions de qualitat al mínim cost.",
       "description": "Determina les proporcions òptimes de mescla de mineral de diferents fonts per produir un producte que compleixi les especificacions de qualitat (llei de mineral, contingut d'impureses). Cada font té un cost, una disponibilitat i un perfil de composició. El model minimitza el cost total de la mescla complint totes les especificacions.\n",
-      "scenarioDescription": "Una fosa té 6 fonts de mineral amb diferents lleis de coure (1-5%) i nivells d'impureses. La mescla final ha de tenir una llei de coure entre 2,5% i 3,5% i les impureses no han d'excedir el 0,5%. El metal·lurgista vol la mescla de menor cost.\n",
+      "scenarioDescription": "Una mina de ferro envia 15.000 tones per setmana a un client portuari que exigeix almenys un 62% de ferro, no més d'un 5% de sílice i un 8,5% d'humitat com a màxim. La mina té quatre fonts de mineral amb qualitats i costos de manipulació diferents. El planificador de barreja necessita la combinació més barata que compleixi totes les especificacions.\n",
       "categoryDisplayName": "Mineria"
     },
     "pick_route_optimization": {
       "displayName": "Optimització de Ruta de Picking",
       "shortDescription": "Optimitza la seqüència de recollides en una comanda de magatzem per minimitzar la distància total recorreguda.",
       "description": "Determina la seqüència òptima de recollida d'articles en un magatzem per minimitzar la distància total recorreguda per l'operari. Cada article té una ubicació al magatzem. El model troba la ruta més curta que visita totes les ubicacions necessàries i torna al punt de partida.\n",
-      "scenarioDescription": "Un operari de magatzem ha de recollir 15 articles d'una comanda ubicats en diferents passadissos i nivells. El magatzem té 10 passadissos amb prestatgeries a ambdós costats. El responsable d'operacions vol la ruta de recollida que minimitzi el temps total de l'operari.\n",
+      "scenarioDescription": "Un operari d'un magatzem de comerç electrònic ha de recollir articles de sis ubicacions repartides en quatre passadissos i tornar a la zona d'empaquetatge. La distribució del magatzem fa que les distàncies entre ubicacions variïn. L'optimitzador de rutes de picking busca la seqüència de visites més curta per minimitzar el recorregut a peu d'aquesta comanda.\n",
       "categoryDisplayName": "Magatzem"
     },
     "pipeline_network_flow": {
       "displayName": "Xarxa de Canonades",
       "shortDescription": "Encamina productes químics a través d'una xarxa de canonades per minimitzar els costos de bombeig complint els requisits de lliurament.",
       "description": "Optimitza el flux de productes químics a través d'una xarxa de canonades des de plantes de producció a punts de consum. Cada canonada té una capacitat, un cost de bombeig per unitat i restriccions de compatibilitat de productes. El model minimitza el cost total de bombeig complint totes les demandes de lliurament.\n",
-      "scenarioDescription": "Una xarxa de canonades petroquímiques connecta 3 refineries amb 5 terminals de distribució a través de 15 trams de canonada. Cada tram té una capacitat i un cost de bombeig diferent. Les refineries produeixen diferents volums. L'operador vol minimitzar el cost total de distribució.\n",
+      "scenarioDescription": "Una empresa petroquímica distribueix producte des de dues refineries a tres clients industrials a través d'una xarxa de canonades amb dos parcs de tancs intermedis. El cost de bombament varia segons el tram. El planificador de distribució ha d'encaminar 8.000 barrils al dia per la xarxa al mínim cost.\n",
       "categoryDisplayName": "Enginyeria Química"
     },
     "port_berth_allocation": {
       "displayName": "Assignació d'Atracadors",
       "shortDescription": "Assigna vaixells entrants a atracadors del port per minimitzar el temps total d'espera i manipulació.",
       "description": "Assigna vaixells entrants a atracadors portuaris per minimitzar el temps total d'espera i el cost de manipulació. Cada vaixell té un temps d'arribada, una durada d'operacions i requisits de calat. Cada atracador té un calat màxim, equipament disponible i una taxa de manipulació. El model evita solapaments.\n",
-      "scenarioDescription": "Un port té 4 atracadors i 12 vaixells programats per a la setmana. Cada vaixell té un temps d'arribada, una eslora i un temps estimat d'operacions. Els atracadors tenen diferents calats màxims. El capità del port vol minimitzar el temps total d'espera dels vaixells.\n",
+      "scenarioDescription": "Una terminal de contenidors té tres amarradors amb calats i disponibilitat de grues diferents. S'esperen cinc vaixells portacontenidors en una finestra de 10 hores, cadascun amb un calat i un volum de càrrega diferents. El planificador del port ha d'assignar vaixells a amarradors i programar els temps de servei minimitzant el temps total d'estada.\n",
       "categoryDisplayName": "Marítim"
     },
     "portfolio_optimization": {
       "displayName": "Optimització de Cartera",
       "shortDescription": "Construeix una cartera d'inversió que maximitzi el retorn esperat per a una tolerància al risc donada, amb límits opcionals de cardinalitat i sector.",
       "description": "Selecciona la composició òptima d'una cartera d'inversió que maximitzi el retorn esperat per a un nivell de risc donat (mesurat per la variància). El model de Markowitz inclou restriccions opcionals de cardinalitat (nombre màxim d'actius), límits d'exposició per sector i posicions mínimes. Genera carteres a la frontera eficient.\n",
-      "scenarioDescription": "Un gestor de fons té 20 actius candidats amb dades històriques de retorn i correlacions. L'inversor tolera una volatilitat anual màxima del 12%. La cartera ha de tenir entre 5 i 10 actius i no més del 25% en un sol sector. El gestor vol la cartera de màxim retorn esperat.\n",
+      "scenarioDescription": "Un assessor financer gestiona una cartera de 100.000 EUR amb sis classes d'actiu: un ETF de l'S&P 500, bons europeus, un ETF tecnològic, immobiliari, or i mercats emergents. El client vol almenys un 7% de retorn anual però no més d'un 15% de risc de cartera, amb un màxim del 60% en renda variable.\n",
       "categoryDisplayName": "Finances i Inversió"
     },
     "power_generation_mix": {
       "displayName": "Mix de Generació Elèctrica",
       "shortDescription": "Determina la combinació òptima de centrals a operar cada hora per cobrir la demanda al mínim cost de combustible i emissions.",
-      "description": "Optimitza el despatx de centrals elèctriques (gas, carbó, nuclear, renovables) hora a hora per cobrir la demanda al mínim cost total de combustible i emissions. Cada central té un cost variable, un rang d'operació (mínim-màxim), temps d'arrencada i parada, i un factor d'emissions. El model inclou restriccions de rampa i reserva de capacitat.\n",
-      "scenarioDescription": "Un operador elèctric gestiona 8 centrals de diferents tipus per cobrir la demanda d'un dia (24 hores). La demanda varia entre 500 MW (matinada) i 1.500 MW (pic). Cada central té costos variables i restriccions de rampa. El despatxador vol el programa de generació de menor cost.\n",
+      "description": "Programa la producció de diverses centrals elèctriques (gas, carbó, solar, eòlica, nuclear) al llarg del temps per cobrir la demanda horària al mínim cost total. Cada central té un rang de capacitat, un cost de combustible per MWh, una rampa i unes emissions de CO2. El solver decideix quant produeix cada central cada hora respectant el temps mínim de funcionament, els límits de rampa i un sostre d'emissions opcional. El resultat és un programa de despatx i el desglossament del cost total.\n",
+      "scenarioDescription": "Un operador de xarxa regional gestiona 5 generadors: una turbina de gas (50-200 MW, 45 EUR/MWh), una central de carbó (100-300 MW, 30 EUR/MWh), solar (0-80 MW, 0 EUR/MWh però intermitent), eòlica (0-120 MW, 0 EUR/MWh) i una central de punta (0-100 MW, 70 EUR/MWh). La demanda arriba a 450 MW a l'hora 14 i baixa a 200 MW de matinada. L'operador vol el pla de despatx més barat per a una finestra de 24 hores.\n",
       "categoryDisplayName": "Energia i Serveis Públics"
     },
     "production_batch_planning": {
       "displayName": "Planificació de Lots de Producció",
       "shortDescription": "Planifica lots de producció de múltiples productes farmacèutics per cobrir la demanda minimitzant costos de configuració i malbaratament.",
       "description": "Planifica la seqüència i mida de lots de producció per a múltiples productes farmacèutics. Cada producte té una demanda, una mida mínima de lot i un cost de configuració. El model minimitza els costos totals de producció incloent configuració, emmagatzematge i malbaratament per caducitat, complint totes les demandes a temps.\n",
-      "scenarioDescription": "Una planta farmacèutica produeix 6 medicaments en 2 línies de producció. Cada canvi de producte requereix un temps de neteja de 4-8 hores. Els productes tenen vides útils de 6-24 mesos. La demanda mensual varia. El planificador vol el programa de lots que minimitzi el cost total trimestral.\n",
+      "scenarioDescription": "Una planta farmacèutica opera dos reactors per produir tres medicaments en un horitzó de quatre setmanes. Cada producte té una demanda setmanal que cal cobrir amb producció o amb existències. Canviar un reactor de producte exigeix una validació de neteja cara. El planificador de producció ha de decidir quants lots de cada producte fabricar cada setmana per minimitzar el cost total.\n",
       "categoryDisplayName": "Farmacèutica"
     },
     "production_line_scheduling": {
       "displayName": "Programació de Línies de Producció",
-      "shortDescription": "Programa productes alimentaris en línies de producció per minimitzar els temps de canvi i complir els terminis de comanda diaris.",
-      "description": "Programa la seqüència de producció de productes alimentaris en múltiples línies per minimitzar els temps de canvi (neteja entre productes diferents) i complir els terminis de comanda. El model considera restriccions d'al·lèrgens (produir sense al·lèrgens abans que amb al·lèrgens), disponibilitat d'ingredients i capacitat d'emmagatzematge refrigerat.\n",
-      "scenarioDescription": "Una planta d'aliments té 3 línies de producció i 12 productes per produir aquesta setmana. Els canvis entre productes lactis i no lactis requereixen neteja extensa. Cada producte té un termini de lliurament. El responsable de producció vol minimitzar el temps total de canvi.\n",
+      "shortDescription": "Assigna comandes de producció alimentària a línies perquè cada comanda es produeixi dins de les hores disponibles de la seva línia.",
+      "description": "Assigna comandes de productes alimentaris a línies de producció. Cada comanda té un temps de producció en hores. Cada línia té un pressupost d'hores al dia. El model col·loca cada comanda en una línia, manté cada línia dins de les seves hores disponibles i ho fa al menor cost de producció. La seqüència dins d'una línia i els temps de canvi (neteja) entre parells de productes no formen part d'aquest model. El cap de línia els planifica després.\n",
+      "scenarioDescription": "Una fàbrica d'aperitius té dues línies de producció que treballen 16 hores cadascuna. Hi ha sis comandes de productes diferents esperant. Cada comanda necessita un nombre conegut d'hores de producció. El planificador ha de col·locar cada comanda en una línia sense superar les hores disponibles d'aquesta línia, al menor cost de producció.\n",
       "categoryDisplayName": "Alimentació i Begudes"
     },
     "production_planning": {
       "displayName": "Planificació de Producció",
       "shortDescription": "Determina quantitats òptimes de producció per a múltiples productes per maximitzar el benefici sota restriccions de recursos.",
       "description": "Calcula les quantitats òptimes de producció per a múltiples productes per maximitzar el benefici total. Cada producte té un marge de benefici, requisits de recursos (matèries primeres, mà d'obra, temps de màquina) i límits de demanda. El model maximitza el benefici respectant les disponibilitats de recursos.\n",
-      "scenarioDescription": "Una fàbrica produeix 4 tipus de productes amb 3 recursos compartits (material, mà d'obra, temps de màquina). Cada producte té un marge i uns consums de recursos diferents. Els recursos disponibles són limitats. El director de producció vol el mix de producció que maximitzi el benefici total.\n",
+      "scenarioDescription": "Un taller de mobles fabrica cadires, taules i escriptoris. Cada producte necessita fusta, hores de mà d'obra i cargols en quantitats diferents. La fusta està limitada a 500 unitats, la mà d'obra a 200 hores i els cargols a 1.000. L'amo del taller vol saber quantes unitats de cada article fabricar aquest mes.\n",
       "categoryDisplayName": "Fabricació i Producció"
     },
     "project_scheduling": {
       "displayName": "Programació de Projectes",
       "shortDescription": "Programa activitats de construcció entre oficis per minimitzar la durada del projecte respectant les dependències i els límits de recursos.",
       "description": "Programa activitats d'un projecte de construcció assignant dates d'inici i recursos per minimitzar la durada total del projecte. Cada activitat té una durada, un requisit de recursos i dependències amb altres activitats. El model respecta les restriccions de precedència i la disponibilitat limitada de recursos.\n",
-      "scenarioDescription": "Un projecte de construcció té 25 activitats amb dependències entre elles. Hi ha 4 tipus de recursos (paletes, electricistes, fontaners, gruistes) amb disponibilitats limitades. El cap d'obra vol el cronograma que minimitzi la durada total del projecte.\n",
+      "scenarioDescription": "Un contractista general construeix un edifici comercial amb nou activitats principals, des de la preparació del terreny fins als acabats. Cada dia disposa de deu operaris i una grua. Les activitats tenen un ordre estricte (no es pot posar pladur abans d'acabar la lampisteria). El contractista vol el calendari més curt possible que respecti totes les dependències i els límits de recursos.\n",
       "categoryDisplayName": "Construcció"
     },
     "property_portfolio": {
       "displayName": "Cartera Immobiliària",
       "shortDescription": "Selecciona la millor combinació de propietats per maximitzar els retorns ajustats al risc dins d'un pressupost de capital.",
       "description": "Selecciona propietats immobiliàries d'un conjunt de candidates per construir una cartera que maximitzi el retorn ajustat al risc. Cada propietat té un preu, un retorn esperat, un nivell de risc i un tipus (residencial, comercial, industrial). El model respecta el pressupost de capital i les restriccions de diversificació.\n",
-      "scenarioDescription": "Un fons immobiliari té 15 propietats candidates amb un pressupost de 5 milions EUR. Les propietats varien entre residencial, comercial i industrial. El gestor vol un màxim del 40% en un sol tipus. L'objectiu és maximitzar el retorn total ajustat al risc.\n",
+      "scenarioDescription": "Una societat d'inversió immobiliària té 8 milions $ per invertir en vuit immobles candidats dels segments residencial, comercial i industrial. Cada immoble té una rendibilitat, un perfil de risc i un cost d'adquisició diferents. El gestor del fons vol maximitzar el retorn esperat mantenint el risc global de la cartera sota control.\n",
       "categoryDisplayName": "Immobiliària"
     },
     "public_budget_allocation": {
       "displayName": "Assignació de Pressupost Públic",
       "shortDescription": "Assigna un pressupost governamental entre programes i departaments per maximitzar el benefici públic dins de les restriccions fiscals.",
       "description": "Distribueix un pressupost governamental entre programes i departaments per maximitzar el benefici públic total. Cada programa té un cost, un impacte estimat en la població i restriccions de finançament mínim. El model equilibra l'eficiència amb l'equitat, assegurant que tots els sectors rebin finançament adequat.\n",
-      "scenarioDescription": "Un ajuntament té un pressupost anual de 10 milions EUR per distribuir entre 8 àrees: educació, salut, seguretat, transport, medi ambient, cultura, serveis socials i esport. Cada àrea té un mínim garantit i un impacte estimat per euro invertit. L'alcalde vol maximitzar el benefici ciutadà total.\n",
+      "scenarioDescription": "Un ajuntament té un pressupost anual de 40 milions $ per repartir entre set regidories. Cada regidoria té un finançament mínim necessari i un màxim que pot absorbir. Avaluacions independents han estimat el benefici social per euro de cada programa. El ple vol el repartiment que maximitzi el benefici públic total dins del pressupost.\n",
       "categoryDisplayName": "Govern"
     },
     "public_facility_location": {
       "displayName": "Ubicació d'Instal·lacions Públiques",
       "shortDescription": "Determina ubicacions òptimes per a instal·lacions públiques (escoles, hospitals, estacions de bombers) per maximitzar l'equitat en la cobertura de la població.",
       "description": "Selecciona les ubicacions òptimes per a instal·lacions públiques com escoles, hospitals o estacions de bombers. El model maximitza la cobertura equitativa de la població, assegurant que tots els ciutadans tinguin accés a serveis dins d'una distància o temps raonable. Inclou restriccions de pressupost i capacitat.\n",
-      "scenarioDescription": "Un municipi vol obrir 3 nous centres de salut d'entre 8 ubicacions candidates. Cada ubicació té un cost de construcció i una capacitat d'atenció. La població es distribueix en 20 barris. El planificador vol minimitzar la distància màxima de qualsevol barri al centre més proper.\n",
+      "scenarioDescription": "Un ajuntament té pressupost per construir tres nous centres de salut comunitaris. S'han localitzat cinc emplaçaments candidats per la ciutat, amb costos de construcció i capacitats diferents. Sis barris necessiten servei i tres estan avui considerats desatesos. L'àrea d'urbanisme vol triar tres emplaçaments que maximitzin la població coberta, donant prioritat als barris desatesos.\n",
       "categoryDisplayName": "Govern"
     },
     "quality_control_sampling": {
       "displayName": "Mostreig de Control de Qualitat",
       "shortDescription": "Tria quants articles mostrejar de cada lot de producció per complir els objectius de detecció de defectes al mínim cost d'inspecció.",
       "description": "Determina la mida òptima de mostra d'inspecció per a cada lot de producció per complir els objectius de detecció de defectes al mínim cost. Cada lot té una mida, una taxa històrica de defectes i un cost d'inspecció per unitat. El model equilibra el cost d'inspecció amb el risc d'acceptar lots defectuosos.\n",
-      "scenarioDescription": "Una fàbrica produeix 10 lots diaris amb taxes històriques de defectes de l'1-8%. La inspecció costa 5 EUR per unitat. L'objectiu és detectar defectes amb un 95% de confiança. El responsable de qualitat vol el pla de mostreig que minimitzi el cost total d'inspecció.\n",
+      "scenarioDescription": "Un fabricant d'aliments té 5 línies de producció, cadascuna amb lots d'entre 500 i 2.000 unitats al dia. Les taxes històriques de defectes van del 0,5% al 3%. Qualitat ha de detectar almenys el 95% dels defectes a totes les línies amb un pressupost de 800 EUR al dia per a inspeccions.\n",
       "categoryDisplayName": "Fabricació i Producció"
     },
     "raw_material_purchasing": {
       "displayName": "Compra de Matèries Primeres",
       "shortDescription": "Decideix quant comprar de cada matèria primera i a quin proveïdor per cobrir les necessitats de producció al menor cost total.",
       "description": "Optimitza les decisions de compra de matèries primeres seleccionant proveïdors i quantitats per minimitzar el cost total d'adquisició. Cada proveïdor té preus, descomptes per volum, terminis de lliurament i nivells de qualitat diferents. El model compleix els requisits de producció respectant el pressupost i les restriccions d'emmagatzematge.\n",
-      "scenarioDescription": "Una fàbrica necessita 5 matèries primeres per a la seva producció mensual. Té 4 proveïdors amb diferents preus i descomptes per volum. El magatzem té capacitat limitada. El director de compres vol l'estratègia d'aprovisionament de menor cost total.\n",
+      "scenarioDescription": "Un fabricant de plàstics necessita 3 tipus de resina per a la producció del mes vinent. Quatre proveïdors ofereixen preus i terminis diferents. El proveïdor A té una comanda mínima de 5 tones però el millor preu. El responsable de compres ha de cobrir una demanda de 20 tones en total al menor cost.\n",
       "categoryDisplayName": "Fabricació i Producció"
     },
     "reactor_optimization": {
       "displayName": "Optimització de Reactor",
       "shortDescription": "Optimitza velocitats d'alimentació i condicions d'operació en una xarxa de reactors per maximitzar el rendiment del producte al mínim cost.",
       "description": "Optimitza els paràmetres d'operació d'una xarxa de reactors químics (cabals d'alimentació, temperatures, pressions) per maximitzar el rendiment del producte desitjat al mínim cost d'operació. El model inclou restriccions de seguretat, balanços de massa i energia, i especificacions de qualitat del producte.\n",
-      "scenarioDescription": "Una planta química té una xarxa de 3 reactors en sèrie. Cada reactor té rangs operatius de temperatura (150-300°C) i pressió (5-20 bar). Les velocitats d'alimentació van de 100 a 500 kg/h. L'enginyer de processos vol les condicions que maximitzin el rendiment mantenint la qualitat.\n",
+      "scenarioDescription": "Una planta de polímers opera tres reactors (dos CSTR i un PFR) per convertir etilè i propilè en polietilè i polipropilè. Cada reactor té capacitats de producció i eficiències de conversió diferents. El subministrament de matèria primera és limitat aquest trimestre. El director de planta ha de repartir les alimentacions entre reactors per maximitzar el benefici complint els objectius mínims de producció.\n",
       "categoryDisplayName": "Enginyeria Química"
     },
     "recipe_optimization": {
       "displayName": "Optimització de Receptes",
       "shortDescription": "Optimitza les proporcions d'ingredients en receptes d'aliments per minimitzar costos complint especificacions nutricionals i de gust.",
       "description": "Ajusta les proporcions d'ingredients en receptes de producció alimentària per minimitzar el cost total complint les especificacions nutricionals, de textura i de gust. Cada ingredient té un cost, un perfil nutricional i límits d'ús. El model respecta les regulacions d'etiquetatge i les expectatives del consumidor.\n",
-      "scenarioDescription": "Una empresa d'aliments té una recepta de sopa amb 10 ingredients. Cada ingredient té un cost i un perfil nutricional. La sopa ha de complir valors mínims de proteïnes i màxims de sodi. El formulador vol la recepta de menor cost que compleixi totes les especificacions.\n",
+      "scenarioDescription": "Un fabricant de barretes de granola necessita produir un lot de 500 kg. El producte ha de complir objectius nutricionals concrets (proteïna mínima, greix i calories controlades, fibra mínima). Hi ha sis ingredients disponibles a costos diferents. El tecnòleg d'aliments vol la formulació més barata que compleixi tots els requisits de l'etiquetatge nutricional.\n",
       "categoryDisplayName": "Alimentació i Begudes"
     },
     "renewable_curtailment": {
       "displayName": "Restricció de Renovables",
       "shortDescription": "Assigna capacitat de xarxa a fonts renovables per minimitzar l'energia neta malbaratada (restringida).",
       "description": "Optimitza l'assignació de capacitat de xarxa elèctrica a fonts de generació renovable per minimitzar l'energia neta que s'ha de restringir (no injectar a la xarxa). El model considera les previsions de generació solar i eòlica, la capacitat de la xarxa, la demanda i les restriccions d'estabilitat del sistema.\n",
-      "scenarioDescription": "Un operador de xarxa té 5 parcs eòlics i 3 parcs solars connectats a una línia de transmissió de 500 MW. En certes hores la generació renovable supera la capacitat d'evacuació. L'operador vol l'estratègia de restricció que minimitzi l'energia neta malbaratada.\n",
+      "scenarioDescription": "Una regió de la xarxa té 3 horts solars i 2 parcs eòlics connectats per línies de transport amb un límit combinat de 400 MW. En un dia assolellat i amb vent, la producció renovable total podria arribar a 550 MW. L'operador de la xarxa ha de repartir la capacitat per minimitzar el total de MWh retallats al llarg de 12 hores.\n",
       "categoryDisplayName": "Energia i Serveis Públics"
     },
     "renovation_scheduling": {
       "displayName": "Programació de Renovacions",
       "shortDescription": "Programa tasques de renovació en múltiples propietats per minimitzar la durada total del projecte i els costos de contractistes.",
       "description": "Programa les tasques de renovació de múltiples propietats immobiliàries assignant contractistes i dates per minimitzar la durada total i els costos. Cada tasca té una durada, un requisit de contractista i dependències. El model equilibra l'ús de contractistes per evitar períodes d'inactivitat i sobrecàrregues.\n",
-      "scenarioDescription": "Una empresa immobiliària ha de renovar 4 apartaments amb 6 tipus de tasques cadascun (electricitat, fontaneria, pintura, etc.). Disposa de 3 equips de contractistes. Algunes tasques tenen dependències (l'electricitat abans de la pintura). El gerent vol completar tot en el menor temps possible.\n",
+      "scenarioDescription": "Una empresa de gestió immobiliària està reformant habitatges en dos blocs de pisos alhora. Cal completar vuit tasques repartides entre els dos edificis, cadascuna amb la seva durada i les seves dependències (per exemple, lampisteria abans que pintura). Només hi ha tres quadrilles de contractistes. L'empresa vol acabar totes les reformes en 15 dies.\n",
       "categoryDisplayName": "Immobiliària"
     },
     "reservoir_operation": {
       "displayName": "Operació d'Embassament",
       "shortDescription": "Planifica els desembassaments d'un embassament en múltiples períodes per equilibrar reg, generació elèctrica i control d'inundacions.",
       "description": "Optimitza les decisions de desembassament d'un embassament al llarg de múltiples períodes per equilibrar múltiples usos: reg agrícola, generació hidroelèctrica, abastament urbà i control d'inundacions. El model considera les aportacions estacionals, els nivells mínims i màxims de l'embassament, i les demandes aigües avall.\n",
-      "scenarioDescription": "Un embassament multipropòsit ha de planificar els desembassaments per als propers 12 mesos. Les aportacions varien estacionalment. La demanda de reg és alta a l'estiu, la generació elèctrica és més valuosa a l'hivern. El nivell de l'embassament s'ha de mantenir entre el 30% i el 90%. El gestor vol el pla que maximitzi el benefici total.\n",
+      "scenarioDescription": "Una autoritat de l'aigua gestiona un embassament que serveix per a reg i per a producció hidroelèctrica en un horitzó de sis mesos d'estació seca. Les aportacions són màximes als mesos 1 i 2 (cua de pluges) i cauen amb força al mes 4. Els regants aigües avall necessiten més aigua a mesura que avança l'estació seca. L'autoritat ha de planificar els desembassaments mensuals per cobrir el reg, generar ingressos per electricitat i mantenir l'embassament dins dels seus límits segurs.\n",
       "categoryDisplayName": "Gestió de l'Aigua"
     },
     "revenue_maximization": {
       "displayName": "Maximització d'Ingressos",
       "shortDescription": "Decideix quantes unitats de cada producte vendre en cada canal per maximitzar els ingressos totals sota límits de capacitat i demanda.",
       "description": "Determina les quantitats òptimes de venda de cada producte per canal de distribució per maximitzar els ingressos totals. Cada canal té un preu, una demanda màxima i costos de distribució. El model respecta les capacitats de producció, els compromisos de volum mínim i les restriccions d'exclusivitat per canal.\n",
-      "scenarioDescription": "Una empresa té 5 productes i 3 canals de venda (online, botiga pròpia, distribuïdors). Cada canal té preus i demandes diferents. La producció total és limitada. Alguns productes tenen compromisos mínims amb distribuïdors. El director comercial vol la distribució que maximitzi els ingressos totals.\n",
+      "scenarioDescription": "Una cadena d'electrònica ven 4 línies de producte (portàtils, tauletes, telèfons i accessoris) a través de 3 canals (en línia, botigues i majorista). Cada canal té una capacitat de servei limitada i marges diferents. La capacitat total del magatzem és de 5.000 unitats per setmana.\n",
       "categoryDisplayName": "Finances i Inversió"
     },
     "risk_pool_optimization": {
       "displayName": "Optimització de Pool de Risc",
       "shortDescription": "Construeix una cartera d'assegurances òptima seleccionant pòlisses que maximitzin els ingressos per primes controlant l'exposició al risc agregat.",
       "description": "Selecciona pòlisses d'assegurances per formar un pool que maximitzi els ingressos nets per primes controlant l'exposició al risc agregat. Cada pòlissa té una prima, una pèrdua esperada, una variància i una correlació amb altres pòlisses. El model respecta els límits de reassegurança i les restriccions de solvència.\n",
-      "scenarioDescription": "Una asseguradora té 40 pòlisses candidates per a la seva cartera. Cada pòlissa té una prima anual i un perfil de risc. L'exposició màxima agregada és de 5 milions EUR. La correlació entre pòlisses del mateix tipus és del 30%. L'actuari vol la cartera que maximitzi el benefici esperat.\n",
+      "scenarioDescription": "Una asseguradora mitjana està revisant vuit sol·licituds de pòlissa per a l'any vinent. Cada pòlissa té una prima, una sinistralitat esperada i una classe de risc diferents. L'apetit de risc de la companyia limita la suma assegurada total a 18 milions $. L'equip de subscripció vol triar la combinació de pòlisses més rendible sense sortir-se del pressupost de risc agregat.\n",
       "categoryDisplayName": "Assegurances"
     },
     "rolling_stock_assignment": {
       "displayName": "Assignació de Material Rodant",
       "shortDescription": "Assigna unitats de tren a serveis programats per minimitzar els reposicionaments en buit ajustant la capacitat a la demanda.",
       "description": "Assigna trens (locomotores, cotxes) a serveis programats per minimitzar els quilòmetres en buit (reposicionaments sense passatgers) ajustant la capacitat a la demanda prevista. El model considera els tipus d'unitat, les capacitats de manteniment a cada dipòsit i les restriccions de composició de trens.\n",
-      "scenarioDescription": "Un operador ferroviari té 15 trens de 3 tipus diferents i 25 serveis diaris entre 8 estacions. Cada servei té una demanda prevista. Els trens es mantenen en 2 dipòsits. El planificador vol minimitzar els moviments en buit cobrint tots els serveis.\n",
+      "scenarioDescription": "Deutsche Bahn té cinc unitats de tren estacionades a la nit en quatre estacions i ha d'assignar-les a cinc serveis de matí i de tarda. Cada servei té un nombre previst de viatgers que determina les places necessàries. El planificador vol minimitzar els desplaçaments en buit assegurant que cap servei surti amb places insuficients.\n",
       "categoryDisplayName": "Ferroviari"
     },
     "satellite_scheduling": {
       "displayName": "Programació de Satèl·lits",
       "shortDescription": "Programa tasques d'observació en una constel·lació de satèl·lits per maximitzar les sol·licituds completades dins de les finestres de visibilitat.",
       "description": "Programa tasques d'observació terrestre per a una constel·lació de satèl·lits maximitzant el nombre de sol·licituds completades. Cada satèl·lit té finestres de visibilitat sobre les àrees d'interès, capacitat d'emmagatzematge de dades i restriccions d'energia. El model assigna tasques a satèl·lits i franges horàries respectant les restriccions operatives.\n",
-      "scenarioDescription": "Una agència espacial té 4 satèl·lits d'observació i 30 sol·licituds d'imatge. Cada satèl·lit té 3-5 finestres de visibilitat per dia sobre les àrees d'interès. Cada imatge requereix emmagatzematge i energia. El planificador vol completar el màxim nombre de sol·licituds en una setmana.\n",
+      "scenarioDescription": "Una empresa d'observació de la Terra opera tres satèl·lits i té vuit peticions d'imatge per a la propera finestra de tres hores. Les peticions van des de la vigilància urgent d'un incendi forestal (prioritat alta) fins a estudis rutinaris de creixement urbà. Cada satèl·lit té una energia limitada per captar imatges per òrbita. El programador ha d'assignar les tasques als satèl·lits dins de les seves finestres de visibilitat per maximitzar la puntuació de prioritat total de les observacions completades.\n",
       "categoryDisplayName": "Aeroespacial"
     },
     "service_center_placement": {
       "displayName": "Ubicació de Centres de Servei",
       "shortDescription": "Selecciona ubicacions de centres de servei per minimitzar el temps mitjà de desplaçament dels clients mantenint-se dins d'un pressupost d'obertures.",
       "description": "Selecciona quins centres de servei obrir d'un conjunt d'ubicacions candidates per minimitzar el temps mitjà de desplaçament dels clients. Cada ubicació té un cost d'obertura, una capacitat i una àrea de servei. El model respecta el pressupost total d'inversió i els requisits de cobertura mínima.\n",
-      "scenarioDescription": "Una empresa de serveis avalua 10 ubicacions candidates per obrir centres d'atenció al client. Hi ha 25 zones de demanda amb diferents volums. El pressupost permet obrir 4 centres. El director d'operacions vol les ubicacions que minimitzin el temps mitjà de viatge dels clients.\n",
+      "scenarioDescription": "Una empresa de telecomunicacions planifica la seva xarxa de servei tècnic. S'estan estudiant sis ubicacions candidates. Cadascuna té un cost de lloguer diferent i una proximitat diferent als 10 grups de clients. El pressupost permet obrir com a molt 3 centres. L'objectiu és minimitzar el temps mitjà de resposta.\n",
       "categoryDisplayName": "Ubicació d'Instal·lacions"
     },
     "shortest_path": {
       "displayName": "Camí Més Curt",
       "shortDescription": "Troba el camí de menor cost entre dos nodes en una xarxa amb arestes ponderades.",
       "description": "Troba el camí de menor cost (o distància) entre un node origen i un node destí en una xarxa dirigida amb costos a les arestes. És un problema fonamental d'optimització en xarxes amb aplicacions en navegació, telecomunicacions i logística.\n",
-      "scenarioDescription": "Una empresa de missatgeria necessita trobar la ruta de menor cost entre dues ciutats a través d'una xarxa de carreteres amb 15 nodes i 25 arcs. Cada arc té un cost de peatge i una distància. El despatxador vol la ruta que minimitzi el cost total de transport.\n",
+      "scenarioDescription": "Un repartidor necessita la ruta més barata des del magatzem (node W) fins al client F a través d'una xarxa de carreteres amb 7 cruïlles. Cada tram té un cost de peatge. El repartidor vol la ruta que minimitzi el peatge total.\n",
       "categoryDisplayName": "Optimització de Xarxes i Grafs"
     },
     "store_layout": {
       "displayName": "Distribució de Botiga",
       "shortDescription": "Assigna departaments de productes a zones de la botiga per maximitzar el flux de clients i les compres per impuls.",
       "description": "Assigna departaments o categories de productes a zones d'una botiga per maximitzar el flux de clients i les compres per impuls. El model considera les relacions d'afinitat entre departaments (clients que compren en un tendeixen a visitar l'altre), la visibilitat de cada zona i els requisits d'espai.\n",
-      "scenarioDescription": "Un supermercat té 8 zones i 10 departaments per ubicar (fruites, lactis, fleca, etc.). Cada zona té un flux de pas i una superfície. Alguns departaments han d'estar a prop (pa i brioixeria) i altres separats (neteja i aliments). El gerent vol la distribució que maximitzi les vendes totals.\n",
+      "scenarioDescription": "Un supermercat està de reforma i té 6 zones de mides diferents. Cal col·locar vuit seccions (fruiteria, forn, làctics, carnisseria, congelats, begudes, aperitius i llar). L'equip de màrqueting disposa d'una matriu d'afinitat de compra creuada obtinguda de la targeta de fidelització. El gerent vol una distribució que maximitzi les parelles d'alta afinitat que queden contigües.\n",
       "categoryDisplayName": "Comerç Minorista"
     },
     "strip_packing": {
       "displayName": "Strip Packing",
       "shortDescription": "Empaqueta articles rectangulars en una tira d'ample fix per minimitzar l'alçada total utilitzada.",
-      "description": "Ubica peces rectangulars en una tira d'ample fix minimitzant l'alçada total utilitzada. Cada peça té dimensions conegudes i no pot rotar (o pot rotar 90°, segons la configuració). El model evita solapaments i respecta l'ample de la tira. Aplicable a tall de material, disseny de circuits i empaquetament industrial.\n",
-      "scenarioDescription": "Un taller de tall ha d'ubicar 15 peces rectangulars de diferents mides en una planxa de 120 cm d'ample. Les peces no poden solapar-se ni rotar. El responsable vol minimitzar l'alçada total de planxa utilitzada per reduir el malbaratament.\n",
+      "description": "Col·loca un conjunt de peces rectangulars en una tira d'ample fix minimitzant l'alçada total (la longitud) de material usat. Les peces no es poden solapar ni girar (o sí, de manera opcional). Es modela com un problema d'empaquetatge amb restricció de recursos. Habitual en tall tèxtil, traçat de circuits impresos i disseny de pàgines de diari.\n",
+      "scenarioDescription": "Una màquina de tall de teixit treballa amb un rotlle de 150 cm d'ample. Cal col·locar vuit peces de patró d'amples diferents (de 20 a 60 cm) i alçades diferents (de 10 a 40 cm). L'objectiu és minimitzar la longitud total de teixit consumit.\n",
       "categoryDisplayName": "Tall i Empaquetament"
     },
     "student_assignment": {
       "displayName": "Assignació d'Estudiants",
       "shortDescription": "Assigna estudiants a seccions de cursos per maximitzar la satisfacció de preferències respectant les capacitats de secció.",
       "description": "Assigna estudiants a seccions de cursos per maximitzar la satisfacció de les preferències dels estudiants. Cada estudiant té una llista ordenada de preferències i cada secció té una capacitat màxima. El model cerca l'assignació que maximitzi el nombre d'estudiants que obtenen les seves primeres opcions respectant les capacitats.\n",
-      "scenarioDescription": "Una facultat té 100 estudiants que s'han de matricular en 5 assignatures amb 2 seccions cadascuna. Cada secció té 25 places. Cada estudiant ha indicat les seves preferències d'horari. El coordinador vol l'assignació que maximitzi la satisfacció global dels estudiants.\n",
+      "scenarioDescription": "Quaranta estudiants s'han de repartir en 4 grups d'una assignatura d'introducció a la programació (10 places cadascun). Cada estudiant ha ordenat els grups de l'1 al 4 segons la seva preferència. La secretaria vol l'assignació que maximitzi la satisfacció global de l'alumnat.\n",
       "categoryDisplayName": "Educació i Acadèmia"
     },
     "supplier_selection": {
       "displayName": "Selecció de Proveïdors",
       "shortDescription": "Tria proveïdors i assigna quantitats de comanda per minimitzar el cost total d'aprovisionament complint requisits de qualitat i lliurament.",
-      "description": "Selecciona proveïdors i determina les quantitats de comanda per minimitzar el cost total d'aprovisionament. El model considera preus, descomptes per volum, qualitat, terminis de lliurament i fiabilitat. Inclou restriccions de diversificació (no dependre d'un sol proveïdor) i requisits de qualitat mínima.\n",
-      "scenarioDescription": "Una empresa necessita aprovisionar 3 components de 6 proveïdors potencials. Cada proveïdor té diferents preus, descomptes i nivells de qualitat. L'empresa requereix almenys 2 proveïdors per component. El director de compres vol l'estratègia de menor cost total.\n",
+      "description": "Tria entre un conjunt de proveïdors i decideix quant demanar a cadascun, minimitzant el cost total (preu unitari + transport + cost de fallades de qualitat). Cada proveïdor té límits de capacitat, comandes mínimes, una valoració de qualitat i un termini de lliurament. El solver garanteix que es cobreix tota la demanda respectant regles de diversificació (per exemple, no més del 60% a un sol proveïdor). La sortida és un pla de repartiment per proveïdor.\n",
+      "scenarioDescription": "Un fabricant de bicicletes necessita 10.000 quadres per trimestre d'entre 5 proveïdors candidats. Els preus van de 35 a 48 EUR per quadre. El proveïdor A és el més barat però té un 3% de defectes i 4 setmanes de termini. El proveïdor D és el més car però ofereix un 0,5% de defectes i lliurament en 1 setmana. L'equip de compres vol la barreja òptima en cost amb menys d'un 2% de defectes de mitjana.\n",
       "categoryDisplayName": "Gestió de Cadena de Subministrament"
     },
     "team_roster_optimization": {
       "displayName": "Optimització de Plantilla Esportiva",
       "shortDescription": "Selecciona jugadors per a una plantilla esportiva per maximitzar la valoració d'habilitats globals dins del límit salarial i restriccions de posició.",
-      "description": "Selecciona jugadors d'un pool de candidats per formar una plantilla esportiva que maximitzi la valoració total d'habilitats. Cada jugador té un salari, posicions que pot jugar i puntuacions d'habilitat. El model respecta el sostre salarial, els requisits mínims de jugadors per posició i les restriccions d'edat/experiència.\n",
-      "scenarioDescription": "Un equip de futbol té un pressupost de 10 milions EUR i 30 jugadors candidats per a 25 places de plantilla. Necessita almenys 3 porters, 8 defenses, 8 centrecampistes i 6 davanters. Cada jugador té un salari i una puntuació de rendiment. El director esportiu vol la plantilla de màxim rendiment total.\n",
+      "description": "Construeix la millor plantilla esportiva possible triant jugadors d'un grup de candidats, maximitzant la valoració total de l'equip sense passar-se del sostre salarial. Cada jugador té una posició, un salari i una valoració. El solver garanteix que es compleixen els requisits per posició (per exemple, 2 bases, 3 alers i 1 pivot) i que el salari total no supera el sostre. Útil per a lligues fantasy, planificació del draft i gestió de plantilles.\n",
+      "scenarioDescription": "El mànager d'un equip de bàsquet fantasy té un sostre salarial de 50.000 EUR i ha de fitxar 8 jugadors d'entre 15 candidats. L'equip necessita 2 bases, 3 alers, 2 pivots i 1 jugador polivalent. Cada jugador té una puntuació de rendiment prevista i un salari. L'objectiu és maximitzar els punts previstos totals.\n",
       "categoryDisplayName": "Esports i Lleure"
     },
     "tenant_mix_optimization": {
       "displayName": "Optimització de Mix d'Inquilins",
       "shortDescription": "Selecciona inquilins per a una propietat comercial per maximitzar els ingressos per lloguer i la sinergia de trànsit de vianants.",
       "description": "Selecciona la combinació òptima d'inquilins per a un centre comercial o propietat comercial. Cada inquilí potencial té un lloguer, un atractiu de trànsit i una categoria de negoci. El model maximitza els ingressos totals per lloguer més el benefici de sinergia entre inquilins complementaris, respectant les restriccions d'espai i diversitat d'oferta.\n",
-      "scenarioDescription": "Un centre comercial té 10 locals disponibles i 20 inquilins candidats de diferents categories (moda, restauració, serveis, oci). Cada inquilí paga un lloguer i genera trànsit. La combinació moda+restauració genera sinergia. El gestor vol el mix que maximitzi els ingressos i l'atractiu del centre.\n",
+      "scenarioDescription": "Un centre comercial té 500 m2 de superfície llogable en locals de planta baixa. Vuit candidats volen entrar-hi, cadascun amb una oferta de lloguer, unes necessitats d'espai i un poder d'atracció de clients diferents. El gestor de la propietat vol triar els llogaters que maximitzin l'ingrés per lloguer i creïn una barreja amb molt trànsit.\n",
       "categoryDisplayName": "Immobiliària"
     },
     "timber_transportation": {
       "displayName": "Transport de Fusta",
       "shortDescription": "Planifica rutes d'enviament de fusta des de dipòsits forestals a serradores per minimitzar el cost total de transport.",
       "description": "Optimitza les rutes de transport de fusta des de dipòsits forestals a serradores i plantes de processament per minimitzar el cost total de transport. Cada dipòsit té un volum disponible i cada serradora té una demanda i una capacitat. Les rutes tenen distàncies i costos de transport variables.\n",
-      "scenarioDescription": "Una empresa forestal té 4 dipòsits amb fusta disponible i 3 serradores amb diferents demandes. Hi ha 12 rutes possibles amb diferents distàncies i costos. Els camions tenen capacitat de 30 tones. El gestor logístic vol el pla de transport de menor cost total.\n",
+      "scenarioDescription": "Una empresa fustera té tres carregadors forestals amb fusta talada que ha d'arribar a tres fàbriques (dues serradores i una planta de cel·lulosa). Cada ruta té un cost per metre cúbic diferent segons la distància i l'estat dels camins. L'empresa ha de transportar tota la fusta sol·licitada al mínim cost total de transport.\n",
       "categoryDisplayName": "Silvicultura"
     },
     "tournament_scheduling": {
       "displayName": "Programació de Torneigs",
       "shortDescription": "Crea un calendari de torneig round-robin que minimitzi el desplaçament total o equilibri els partits de local i visitant.",
       "description": "Genera un calendari de torneig round-robin on cada equip juga contra tots els altres. El model minimitza el desplaçament total dels equips o equilibra els partits de local i visitant. Inclou restriccions d'evitar partits consecutius fora de casa i respectar les disponibilitats dels recintes.\n",
-      "scenarioDescription": "Una lliga esportiva té 8 equips que han de jugar un torneig round-robin d'anada i tornada. Cada equip té un estadi amb disponibilitats específiques. Cap equip pot jugar més de 2 partits fora de casa consecutius. L'organitzador vol el calendari que minimitzi el desplaçament total.\n",
+      "scenarioDescription": "Una lliga regional de bàsquet té 6 equips. Cada equip juga dues vegades contra cada rival (anada i tornada) al llarg de 10 jornades. Cap equip no hauria de tenir més de 2 partits fora de casa seguits. L'organitzador vol un calendari just i equilibrat.\n",
       "categoryDisplayName": "Esports i Lleure"
     },
     "track_maintenance_scheduling": {
       "displayName": "Programació de Manteniment de Vies",
-      "shortDescription": "Programa finestres de manteniment de vies per minimitzar la interrupció del servei mantenint la infraestructura segura.",
-      "description": "Programa les finestres de manteniment de trams de via fèrria per minimitzar la interrupció del servei de trens. Cada tram té un interval màxim entre manteniments, una durada de treball i un nivell d'impacte en el trànsit. El model cerca concentrar els treballs en horaris de menor demanda.\n",
-      "scenarioDescription": "Un operador ferroviari té 10 trams de via que necessiten manteniment durant el proper mes. Cada tram requereix entre 4 i 12 hores de tancament. Els treballs nocturns són més cars però menys disruptius. El gestor d'infraestructura vol el programa que minimitzi l'impacte en els serveis de passatgers.\n",
+      "shortDescription": "Encaixa cada tram de via en una finestra de manteniment abans de la seva data límit de seguretat, començant pels trams més carregats.",
+      "description": "Planifica quan es fa el manteniment dels trams de via al llarg d'un horitzó de planificació. Cada tram té una data límit de manteniment i una durada de treball. El manteniment necessita una finestra de tall de via amb prou hores. El model encaixa cada tram en una finestra anterior a la seva data límit de seguretat. Envia els trams més carregats a les primeres finestres possibles. Ajuda els gestors d'infraestructura a coordinar el manteniment amb els planificadors d'horaris.\n",
+      "scenarioDescription": "Un gestor d'infraestructura ferroviària té quatre trams de via pendents de manteniment. Hi ha sis finestres nocturnes i de cap de setmana disponibles en les properes tres setmanes. Cada finestra té un nombre limitat d'hores de treball, i cada tram suporta un nombre diferent de serveis de tren. Tots els trams s'han de mantenir abans de la seva data límit de seguretat, i el planificador vol que els trams més carregats es facin en les primeres finestres.\n",
       "categoryDisplayName": "Ferroviari"
     },
     "train_timetabling": {
       "displayName": "Horaris de Trens",
       "shortDescription": "Crea horaris de trens sense conflictes que minimitzin el temps total de viatge i maximitzin la capacitat de la línia.",
       "description": "Genera horaris de trens sense conflictes per a una xarxa ferroviària maximitzant la capacitat de la línia i minimitzant els temps de viatge. El model evita conflictes en trams de via única, respecta els temps mínims d'estació i els requisits de connexió entre serveis. Inclou trens de diferents velocitats i prioritats.\n",
-      "scenarioDescription": "Un operador té 20 serveis de tren en una línia amb 8 estacions. Hi ha 3 trams de via única amb apartadors. Els trens expressos i locals tenen diferents velocitats. El planificador vol l'horari que minimitzi el temps total de viatge complint totes les restriccions d'infraestructura.\n",
+      "scenarioDescription": "Els Ferrocarrils Neerlandesos han de programar sis trens (tres exprés, dos regionals i un de mercaderies) al corredor Amsterdam-Rotterdam en una finestra de 90 minuts. El corredor té dos trams i exigeix un interval mínim de 5 minuts entre trens. Els exprés tenen prioritat alta i haurien de sortir a prop de la seva hora preferida, mentre que el de mercaderies es pot moure si cal.\n",
       "categoryDisplayName": "Ferroviari"
     },
     "training_program_selection": {
       "displayName": "Selecció de Programes de Formació",
       "shortDescription": "Tria quins cursos de formació oferir als empleats per maximitzar la cobertura de competències dins d'un pressupost limitat.",
       "description": "Selecciona els cursos de formació a oferir als empleats per maximitzar la cobertura de competències necessàries. Cada curs té un cost, una durada i un conjunt de competències que desenvolupa. El model maximitza el nombre de competències cobertes (o el nivell de millora) respectant el pressupost i les restriccions de temps dels empleats.\n",
-      "scenarioDescription": "Una empresa té 8 cursos de formació disponibles per a 20 empleats. Cada curs cobreix diferents competències i té un cost i durada. El pressupost total de formació és de 50.000 EUR. Cada empleat pot assistir a un màxim de 3 cursos. El director de RRHH vol el pla de formació que maximitzi les competències adquirides.\n",
+      "scenarioDescription": "Un departament de recursos humans disposa de 15.000 EUR i 10 cursos de formació candidats que costen entre 800 EUR i 3.000 EUR cadascun. L'empresa necessita tancar mancances en 8 àrees de competència entre 20 empleats. Cada curs cobreix entre 1 i 4 competències. El responsable de recursos humans vol el pla de formació amb la millor relació qualitat-preu.\n",
       "categoryDisplayName": "Recursos Humans i Personal"
     },
     "transportation_problem": {
       "displayName": "Problema de Transport",
       "shortDescription": "Envia mercaderies des de punts de subministrament a punts de demanda al mínim cost total d'enviament.",
       "description": "Determina les quantitats òptimes d'enviament des de múltiples punts de subministrament a múltiples punts de demanda per minimitzar el cost total de transport. Cada origen té una oferta i cada destí té una demanda. Els costos d'enviament varien segons la ruta. És un model clàssic de programació lineal.\n",
-      "scenarioDescription": "Una empresa té 3 fàbriques i 5 magatzems regionals. Cada fàbrica té una capacitat de producció i cada magatzem té una demanda. Els costos d'enviament varien segons el parell origen-destí. El director logístic vol el pla d'enviament que minimitzi el cost total de transport.\n",
+      "scenarioDescription": "Tres fàbriques produeixen 300, 400 i 500 unitats respectivament. Quatre botigues necessiten 250, 350, 200 i 400 unitats. El cost de transport per unitat varia segons la parella fàbrica-botiga, de 2 EUR a 9 EUR. El responsable de distribució vol el pla d'enviament més barat.\n",
       "categoryDisplayName": "Transport i Logística"
     },
     "transshipment": {
       "displayName": "Problema de Transbord",
       "shortDescription": "Encamina mercaderies a través de centres intermedis des d'orígens a destinacions al mínim cost.",
       "description": "Estén el problema de transport clàssic incloent nodes intermedis (centres de transbord) pels quals la mercaderia pot passar. El model decideix les rutes i quantitats d'enviament a través de la xarxa per minimitzar el cost total, considerant les capacitats dels nodes intermedis i els costos de manipulació.\n",
-      "scenarioDescription": "Una empresa té 2 fàbriques, 3 centres de distribució intermedis i 6 clients finals. La mercaderia pot anar directa o passar per un o més centres. Cada arc té un cost i una capacitat. El planificador vol la ruta de distribució de menor cost total.\n",
+      "scenarioDescription": "Dues fàbriques envien producte a 4 minoristes a través de 2 centres regionals. Enviar directament de fàbrica a minorista és car. Fer servir els centres per consolidar surt més barat per unitat però afegeix cost de manipulació. El planificador de logística vol l'encaminament de menor cost.\n",
       "categoryDisplayName": "Transport i Logística"
     },
     "two_d_cutting": {
       "displayName": "Tall de Panells 2D",
       "shortDescription": "Talla peces rectangulars de planxes estàndard per minimitzar el nombre de planxes utilitzades.",
-      "description": "Optimitza els patrons de tall de peces rectangulars sobre planxes de material estàndard per minimitzar el nombre de planxes utilitzades (o el malbaratament total). Cada peça té dimensions i quantitat requerida. El model genera els patrons de tall òptims considerant possibles rotacions i talls guillotina.\n",
-      "scenarioDescription": "Un taller de fusteria necessita tallar 25 peces de diferents mides de taulers de 244x122 cm. Les peces poden rotar-se 90°. Els talls han de ser tipus guillotina (de costat a costat). El fuster vol minimitzar el nombre de taulers utilitzats.\n",
+      "description": "Planifica com tallar peces rectangulars a partir de taulers de mida estàndard (contraxapat, vidre, xapa) per cobrir les comandes minimitzant el malbaratament de material. Aquesta versió simplificada fa servir un enfocament de bin packing on l'àrea de cada peça es tracta com la seva «mida» i l'àrea del tauler és la «capacitat del contenidor». Per a traçats 2D exactes, un pas posterior generaria els talls de guillotina.\n",
+      "scenarioDescription": "Un taller de tall de vidre rep comandes de 10 peces rectangulars de mides variades. Els taulers estàndard són de 2 m x 3 m (6 m2 cadascun). L'encarregat vol saber el nombre mínim de taulers que cal tallar.\n",
       "categoryDisplayName": "Tall i Empaquetament"
     },
     "vehicle_routing": {
       "displayName": "Enrutament de Vehicles (VRP)",
       "shortDescription": "Planifica rutes de repartiment per a una flota de vehicles per minimitzar la distància total complint la demanda de cada client.",
       "description": "Planifica les rutes òptimes per a una flota de vehicles de repartiment que han de visitar un conjunt de clients. Cada vehicle té una capacitat i cada client té una demanda i una finestra de temps. El model minimitza la distància total recorreguda (o el nombre de vehicles) assegurant que cada client sigui atès a temps.\n",
-      "scenarioDescription": "Una empresa de distribució té 4 furgonetes amb capacitat de 1.000 kg cadascuna i 20 clients amb demandes de 50-200 kg. Els clients tenen finestres d'entrega de 2 hores. El dipòsit central obre de 7:00 a 19:00. El despatxador vol les rutes que minimitzin la distància total.\n",
+      "scenarioDescription": "Un distribuïdor d'alimentació opera 2 camions (amb capacitat de 10 palets cadascun) des d'un magatzem central. Cinc restaurants necessiten avui lliuraments d'entre 2 i 6 palets. El responsable de repartiment necessita rutes que minimitzin els quilòmetres totals recorreguts.\n",
       "categoryDisplayName": "Logística i Distribució"
     },
     "vessel_scheduling": {
       "displayName": "Programació de Vaixells",
       "shortDescription": "Programa vaixells de càrrega entre ports i finestres de temps per maximitzar la utilització i minimitzar els costos de viatge.",
       "description": "Programa els viatges d'una flota de vaixells de càrrega entre ports per maximitzar la utilització de la flota i minimitzar els costos operatius. Cada vaixell té una capacitat, una velocitat i costos d'operació. Els ports tenen finestres de càrrega i descàrrega. El model decideix la seqüència de ports per a cada vaixell.\n",
-      "scenarioDescription": "Una naviera té 5 vaixells i 8 ports amb càrrega disponible. Cada port té finestres d'operació de 48-72 hores. Els vaixells tenen diferents capacitats i velocitats. La naviera vol el programa que maximitzi la càrrega transportada minimitzant els costos de combustible.\n",
+      "scenarioDescription": "Una naviliera de tramp opera tres vaixells de càrrega situats a Singapur, Rotterdam i Dubai. Sis carregaments s'han de moure entre aquests ports en una finestra de 30 dies. Cada carregament té una data límit i un valor d'ingrés. L'empresa ha de decidir quins carregaments accepta i a quin vaixell els assigna per maximitzar el benefici després dels costos d'operació.\n",
       "categoryDisplayName": "Marítim"
     },
     "warehouse_layout": {
       "displayName": "Distribució de Magatzem",
       "shortDescription": "Assigna categories de productes a zones del magatzem per minimitzar la distància total de recollida.",
       "description": "Assigna categories de productes a zones d'un magatzem per minimitzar la distància total de desplaçament durant les operacions de picking. Els productes d'alta rotació s'ubiquen a prop de les zones d'expedició. El model considera la freqüència de comanda, el volum de cada categoria i les restriccions de compatibilitat entre productes.\n",
-      "scenarioDescription": "Un magatzem té 6 zones i 12 categories de productes. Cada categoria té un volum de comandes diari i un espai requerit. Les zones tenen diferents distàncies a la zona d'expedició. El responsable d'operacions vol la distribució que minimitzi la distància total de picking diària.\n",
+      "scenarioDescription": "Un centre de distribució té 6 zones a distàncies diferents del moll d'expedició. Vuit categories de producte tenen freqüències de picking setmanals diferents. Les capacitats de les zones varien. El responsable d'operacions vol reubicar les categories per reduir el recorregut mitjà de picking almenys un 20%.\n",
       "categoryDisplayName": "Logística i Distribució"
     },
     "warehouse_location": {
       "displayName": "Ubicació de Magatzems",
       "shortDescription": "Tria quines ubicacions de magatzem candidates obrir per minimitzar el cost total fix més d'enviament cobrint tots els clients.",
       "description": "Selecciona quins magatzems obrir d'un conjunt d'ubicacions candidates per minimitzar la suma de costos fixos d'obertura i costos d'enviament als clients. Cada magatzem té un cost fix, una capacitat i costos d'enviament variables a cada client. El model assegura que tota la demanda es cobreixi.\n",
-      "scenarioDescription": "Una empresa avalua 6 ubicacions candidates per a magatzems que han d'atendre 30 clients. Cada ubicació té un cost anual fix i una capacitat. Els costos d'enviament depenen de la distància. El director de logística vol la combinació de magatzems que minimitzi el cost total anual.\n",
+      "scenarioDescription": "Una empresa de logística avalua 5 emplaçaments candidats de magatzem per atendre 8 regions de clients. Els costos d'obertura van de 50.000 EUR a 120.000 EUR l'any. Els costos de transport depenen de la distància. La demanda total és de 10.000 palets l'any. El director d'operacions vol la xarxa amb el menor cost anual total.\n",
       "categoryDisplayName": "Ubicació d'Instal·lacions"
     },
     "warehouse_slotting": {
       "displayName": "Assignació d'Ubicacions en Magatzem",
       "shortDescription": "Assigna SKU a ubicacions d'emmagatzematge per minimitzar la distància de picking i maximitzar el rendiment.",
       "description": "Assigna SKU a ubicacions d'emmagatzematge en un magatzem per minimitzar la distància total de picking i maximitzar el rendiment. Cada SKU té una freqüència de comanda, un volum i un pes. Les ubicacions tenen diferents accessibilitats i capacitats. El model ubica els articles d'alta rotació en posicions de fàcil accés.\n",
-      "scenarioDescription": "Un magatzem té 200 ubicacions en 5 nivells i 100 SKU actius. Els SKU tenen freqüències de comanda d'1 a 50 vegades per setmana. Les ubicacions a nivell de terra són les més accessibles. El responsable de magatzem vol l'assignació que minimitzi el temps total de picking.\n",
+      "scenarioDescription": "Un centre logístic de comerç electrònic té set SKU que necessiten ubicació entre set buits del magatzem. Els articles amb més picking haurien de quedar a prop del moll. Els articles pesants paletitzats han d'anar en buits a nivell de terra. El responsable del magatzem vol minimitzar el recorregut a peu diari dels operaris.\n",
       "categoryDisplayName": "Magatzem"
     },
     "waste_collection_routing": {
       "displayName": "Rutes de Recollida de Residus",
       "shortDescription": "Planifica rutes de camions d'escombraries per recollir residus de tots els punts al mínim cost de distància i combustible.",
       "description": "Optimitza les rutes dels camions de recollida de residus per visitar tots els punts de recollida al mínim cost total de distància i combustible. Cada camió té una capacitat i cada punt té un volum de residus. El model determina les rutes i l'assignació de punts a camions, incloent viatges a l'abocador quan el camió s'omple.\n",
-      "scenarioDescription": "Un municipi té 3 camions d'escombraries de 10 tones i 40 punts de recollida amb contenidors de diferents volums. Els camions parteixen i tornen al dipòsit municipal. Quan s'omplen, han d'anar a l'abocador abans de continuar. El gestor vol les rutes que minimitzin el consum total de combustible.\n",
+      "scenarioDescription": "El servei municipal de residus opera 3 camions (amb capacitat de 8 tones cadascun) des d'un dipòsit central. Quinze punts de recollida als barris generen entre 0,5 i 2,0 tones per jornada de recollida. El planificador de rutes vol minimitzar els quilòmetres totals recorreguts passant per tots els punts.\n",
       "categoryDisplayName": "Medi Ambient i Sostenibilitat"
     },
     "wastewater_treatment_allocation": {
       "displayName": "Tractament d'Aigües Residuals",
       "shortDescription": "Encamina fluxos d'aigües residuals a plantes de tractament per minimitzar el cost de processament complint els estàndards ambientals de vessament.",
       "description": "Optimitza la distribució de fluxos d'aigües residuals entre plantes de tractament per minimitzar el cost total de processament. Cada planta té una capacitat, una tecnologia de tractament i un cost per metre cúbic. Els efluents han de complir els estàndards de vessament ambientals. El model decideix quant flux enviar a cada planta.\n",
-      "scenarioDescription": "Una comarca té 5 fonts d'aigües residuals i 3 plantes de tractament amb diferents tecnologies i capacitats. Els vessaments han de complir límits de DBO i sòlids en suspensió. Els costos de tractament varien entre 0,5 i 2 EUR/m³. El gestor vol la distribució de menor cost que compleixi la normativa.\n",
+      "scenarioDescription": "Una ciutat genera aigües residuals des de quatre focus principals amb nivells de contaminació diferents. Hi ha tres depuradores disponibles amb capacitats i tecnologies de tractament diferents. L'empresa d'aigües ha d'enviar tots els cabals a les depuradores de manera que l'efluent tractat compleixi la normativa al mínim cost total.\n",
       "categoryDisplayName": "Gestió de l'Aigua"
     },
     "water_distribution_network": {
       "displayName": "Xarxa de Distribució d'Aigua",
       "shortDescription": "Optimitza el flux d'aigua a través d'una xarxa de canonades per satisfer la demanda a tots els nodes minimitzant els costos de bombeig.",
       "description": "Optimitza el flux d'aigua a través d'una xarxa de canonades per satisfer la demanda a tots els nodes de consum minimitzant els costos de bombeig. Cada canonada té un diàmetre, una longitud i un coeficient de fricció. Les bombes tenen corbes de rendiment. El model determina els cabals i pressions òptims a tota la xarxa.\n",
-      "scenarioDescription": "Una xarxa d'abastament urbà té 2 dipòsits, 3 bombes i 12 nodes de consum connectats per 18 canonades. La demanda varia segons l'hora del dia. Les bombes tenen diferents eficiències. L'enginyer vol el pla d'operació que minimitzi el cost energètic diari.\n",
+      "scenarioDescription": "Una empresa municipal d'aigües opera dues plantes de tractament que abasteixen quatre zones de consum a través d'una xarxa d'artèries principals. El cost de bombament varia per tram pel desnivell i la distància. L'empresa necessita portar 850 metres cúbics per hora a totes les zones al mínim cost de bombament.\n",
       "categoryDisplayName": "Gestió de l'Aigua"
     },
     "wildfire_resource_deployment": {
       "displayName": "Desplegament de Recursos contra Incendis",
       "shortDescription": "Desplega quadrilles de bombers i equips en incendis actius per minimitzar l'àrea total cremada.",
       "description": "Optimitza el desplegament de recursos d'extinció d'incendis forestals (quadrilles, mitjans aeris, maquinària) entre incendis actius per minimitzar l'àrea total cremada. Cada incendi té una prioritat, un comportament previst i requisits de recursos. El model decideix quants recursos assignar a cada incendi considerant els temps de desplaçament i la fatiga de les quadrilles.\n",
-      "scenarioDescription": "Un servei d'extinció té 6 quadrilles, 2 helicòpters i 3 bulldozers per combatre 4 incendis actius simultanis. Cada incendi té un perímetre estimat i una velocitat de propagació. Les quadrilles necessiten descans després de 14 hores. El coordinador vol l'assignació que minimitzi l'àrea total cremada.\n",
+      "scenarioDescription": "Una agència forestal gestiona tres incendis actius en una zona de muntanya. Hi ha cinc mitjans d'extinció disponibles: dues brigades especialitzades, una autobomba, un helicòpter i un avió de càrrega en terra. Cada incendi té una velocitat d'avanç i una dificultat de terreny diferents. El comandament de l'incident ha de repartir els mitjans per minimitzar la superfície total que s'espera que cremi en les properes 24 hores.\n",
       "categoryDisplayName": "Silvicultura"
     },
     "workforce_assignment": {
       "displayName": "Assignació de Personal",
       "shortDescription": "Assigna empleats a tasques segons competències i disponibilitat per minimitzar costos de personal i maximitzar la productivitat.",
       "description": "Assigna empleats a tasques o projectes segons les seves competències, disponibilitat i preferències per minimitzar els costos de personal o maximitzar la productivitat total. Cada empleat té un perfil d'habilitats, un cost i una disponibilitat horària. Cada tasca requereix competències específiques i té una durada estimada.\n",
-      "scenarioDescription": "Una consultora té 12 empleats i 8 projectes actius. Cada projecte requereix competències específiques (anàlisi de dades, gestió de projectes, desenvolupament). Els empleats tenen disponibilitats parcials i diferents tarifes. El director d'operacions vol l'assignació que minimitzi el cost total maximitzant la cobertura de competències.\n",
+      "scenarioDescription": "Una agència de programari ha d'assignar 3 desenvolupadors (l'Alícia, en Bru i en Carles) a 3 mòduls del projecte (Frontend, Backend i Testing). Cada desenvolupador té un cost estimat diferent per mòdul segons com encaixi amb la tasca. El cap de projecte vol el pla de personal més barat.\n",
       "categoryDisplayName": "Recursos Humans i Personal"
     }
   },

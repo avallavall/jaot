@@ -10,7 +10,7 @@ templates:
       The fully flexible template for power users. Define any linear or mixed-integer
       optimization problem by specifying variables (continuous, integer, or binary),
       linear constraints, and an objective function to maximize or minimize. No domain
-      assumptions are made -- you have full control. Use this when none of the
+      assumptions are made, so you have full control. Use this when none of the
       specialized templates fit your problem, or when you want to experiment with
       mathematical programming directly.
     scenario_description: >
@@ -128,7 +128,7 @@ templates:
     display_name: Constraint Satisfaction
     short_description: Find any feasible solution that satisfies all constraints, with no optimization objective.
     description: >
-      A pure feasibility problem -- the solver finds any assignment of variables that
+      A pure feasibility problem. The solver finds any assignment of variables that
       satisfies all constraints, without trying to optimize anything. Useful for
       timetabling, puzzle-solving (e.g., Sudoku), configuration problems, or verifying
       that a set of business rules is satisfiable. If no feasible solution exists, the
@@ -136,8 +136,8 @@ templates:
       are consistent before adding an objective.
     scenario_description: >
       A conference organiser needs to assign 4 speakers to 4 time slots. Each speaker
-      has blackout times. The organiser does not care which slot each speaker gets --
-      only that every speaker is scheduled and no slot is double-booked.
+      has blackout times. The organiser does not care which slot each speaker gets. What
+      matters is that every speaker is scheduled and no slot is double-booked.
     category: general
     tags: [general, feasibility, constraint-satisfaction, teaching]
     problem_type_tags: [MIP]
