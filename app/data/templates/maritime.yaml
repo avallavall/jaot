@@ -151,9 +151,9 @@ templates:
         - {name: "Rolls-Paper", volume: 5.0, weight: 1100, value: 2500}
         - {name: "Boxes-Pharmaceuticals", volume: 1.5, weight: 200, value: 15000}
       containers:
-        - {name: "40ft-Standard-1", max_volume: 67.5, max_weight: 26500}
-        - {name: "40ft-Standard-2", max_volume: 67.5, max_weight: 26500}
-        - {name: "20ft-Standard-1", max_volume: 33.0, max_weight: 21500}
+        - {name: "40ft-Standard-1", max_volume: 20.0, max_weight: 8000}
+        - {name: "40ft-Standard-2", max_volume: 15.0, max_weight: 6000}
+        - {name: "20ft-Standard-1", max_volume: 10.0, max_weight: 4000}
     scenario_description: >
       A freight forwarder needs to load ten cargo consignments into three
       available containers (two 40-foot and one 20-foot) at a port terminal.

@@ -53,10 +53,6 @@ register_default_adapters()
 
 UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
     {
-        # bin packing / cutting: item sizes and order quantities go unread
-        "container_loading",
-        "one_d_cutting_stock",
-        "fabric_cutting",
         # portfolio: risk and exposure figures go unread
         "media_mix_optimization",
         "risk_pool_optimization",
@@ -269,6 +265,12 @@ KNOWN_OPTIMA: dict[str, float] = {
     "emission_reduction_planning": 190000.0,
     # Every shovel saturated, both dumps inside capacity.
     "fleet_dispatch_mining": 2350.0,
+    # 109 metres of order against 12-metre bars: ceil(109/12) = 10 is the
+    # material lower bound, so the plan provably cannot do better.
+    "one_d_cutting_stock": 10.0,
+    # Everything ships except Rolls-Paper, the lowest value per cubic metre at
+    # 500 against 527 and 533. 67700 - 2500.
+    "container_loading": 65200.0,
 }
 
 _BY_ID = {t.id: t for t in ALL_TEMPLATES}

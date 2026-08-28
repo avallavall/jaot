@@ -98,7 +98,23 @@ class CuttingStockGenerator(BaseGenerator):
         # Demand constraints: for each item, patterns must yield enough
         for i, item in enumerate(items):
             i_name = self.sanitize_name(item.get("name", f"item_{i}"))
-            demand = item.get("demand", 1)
+            # Both shipped cards write "quantity", not "demand", so every order
+            # silently became a demand of 1: the plan cut one of each piece
+            # instead of the ten, eight, six, four and three that were asked
+            # for, and still came back "optimal".
+            demand = next(
+                (
+                    float(item[key])
+                    for key in ("demand", "quantity", "qty", "required", "count")
+                    if item.get(key) is not None
+                ),
+                None,
+            )
+            if demand is None:
+                raise ValueError(
+                    f"Cut item '{item.get('name', i)}' states no quantity. "
+                    "Expected one of: demand, quantity, qty, required, count."
+                )
 
             demand_terms: list[str] = []
             for p in patterns:
