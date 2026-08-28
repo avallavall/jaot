@@ -78,8 +78,6 @@ def test_template_variable_types_consistent(template):
 # Slow tests: full SCIP solve
 
 
-
-
 @pytest.mark.slow
 @pytest.mark.parametrize("template", ALL_TEMPLATES, ids=lambda t: t.id)
 def test_template_solves_successfully(template):
