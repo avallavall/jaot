@@ -17,7 +17,7 @@ templates:
     category: maritime
     tags: [maritime, shipping, vessel-scheduling, logistics]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
+    generator_type: bin_packing
     generator_params: {}
     input_schema:
       type: object
@@ -65,6 +65,9 @@ templates:
         description: "Number of days in the planning window"
         required: true
         minimum: 1
+    # a shipment's ports and its deadline describe the trade it belongs to;
+    #   this card decides which cargo each vessel carries on one sailing
+    context_fields: [time_horizon, deadline_day]
     example_input:
       vessels:
         - {name: "MV Pacific Star", capacity_teu: 500, daily_cost: 15000, home_port: "Singapore"}

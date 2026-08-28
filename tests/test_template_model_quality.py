@@ -55,7 +55,6 @@ UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
     {
         # scheduling: still on the shift-covering model
         "train_timetabling",
-        "vessel_scheduling",
     }
 )
 
@@ -63,7 +62,6 @@ FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset(
     {
         "tournament_scheduling",
         "train_timetabling",
-        "vessel_scheduling",
     }
 )
 

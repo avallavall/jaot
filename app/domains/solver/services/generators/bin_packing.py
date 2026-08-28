@@ -27,6 +27,7 @@ class BinPackingGenerator(BaseGenerator):
     #: first, and only writing one of them loads cargo the ship cannot carry.
     _DIMENSIONS = (
         ("volume", "max_volume"),
+        ("volume_teu", "capacity_teu"),
         ("weight", "max_weight"),
         ("size", "capacity"),
         ("area", "max_area"),
@@ -41,7 +42,10 @@ class BinPackingGenerator(BaseGenerator):
         return None
 
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
-        items = user_input.get("items", [])
+        items = next(
+            (user_input[k] for k in ("items", "shipments", "cargo", "loads") if user_input.get(k)),
+            [],
+        )
         if not items:
             raise ValueError(
                 f"Bin packing requires an items list. Got keys: {list(user_input.keys())}"
@@ -50,7 +54,14 @@ class BinPackingGenerator(BaseGenerator):
         # Named containers with their own limits are a different question from
         # "how few identical bins fit this". container_loading asks which cargo
         # to load, not how many ships to charter.
-        containers = user_input.get("containers", user_input.get("bins"))
+        containers = next(
+            (
+                user_input[k]
+                for k in ("containers", "bins", "vessels", "carriers")
+                if user_input.get(k)
+            ),
+            None,
+        )
         if containers:
             return self._generate_container_loading(items, containers)
 
@@ -181,6 +192,25 @@ class BinPackingGenerator(BaseGenerator):
                     expression=f"{' + '.join(placements[i])} <= 1",
                 )
             )
+
+        # A carrier that costs money to run only earns its keep if what it
+        # carries is worth more than sailing it. Without this the fleet is free
+        # and every vessel is worth using.
+        for c, container in enumerate(containers):
+            c_name = self.sanitize_name(container.get("name", f"container_{c}"))
+            running = self._pick(container, ("daily_cost", "running_cost", "fixed_cost"))
+            if running is None:
+                continue
+            used = f"used_{c_name}"
+            variables.append(Variable(name=used, type=VariableType.BINARY))
+            value_terms.append(f"-{running}*{used}")
+            for i in range(len(items)):
+                constraints.append(
+                    Constraint(
+                        name=f"uses_{c_name}_{i}",
+                        expression=f"{placements[i][c]} - {used} <= 0",
+                    )
+                )
 
         for c, container in enumerate(containers):
             c_name = self.sanitize_name(container.get("name", f"container_{c}"))
