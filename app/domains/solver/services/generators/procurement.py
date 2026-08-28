@@ -26,6 +26,12 @@ class ProcurementGenerator(BaseGenerator):
     Multi-material mode: each (supplier, material) pair is a variable.
     """
 
+    #: A supplier row that names the one material it offers uses the quoted
+    #: layout; a row carrying a ``pricing`` map prices every material.
+    _OFFERED_KEYS = ("material", "ingredient", "product", "item")
+    _PRICE_KEYS = ("price_per_unit", "price_per_kg", "price_per_tonne", "unit_price", "price")
+    _DEMAND_KEYS = ("demand", "required_qty", "required_quantity", "quantity")
+
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
         suppliers = find_list_field(user_input, ["suppliers", "vendors", "sources"])
         if not suppliers:
@@ -33,10 +39,28 @@ class ProcurementGenerator(BaseGenerator):
                 f"Procurement requires a suppliers list. Got keys: {list(user_input.keys())}"
             )
 
-        materials = user_input.get("materials", [])
+        materials = find_list_field(
+            user_input, ["materials", "ingredients", "products"], fallback=False
+        )
+        if materials and any(self._offered_material(s) for s in suppliers):
+            return self._generate_quoted_rows(user_input, suppliers, materials, params)
         if materials:
             return self._generate_multi_material(user_input, suppliers, materials, params)
         return self._generate_single_material(user_input, suppliers, params)
+
+    def _offered_material(self, supplier: dict[str, Any]) -> str | None:
+        """The single material this supplier row quotes for, if it names one."""
+        for key in self._OFFERED_KEYS:
+            value = supplier.get(key)
+            if isinstance(value, str) and value:
+                return value
+        return None
+
+    def _first_number(self, row: dict[str, Any], keys: tuple[str, ...]) -> float | None:
+        for key in keys:
+            if row.get(key) is not None:
+                return float(row[key])
+        return None
 
     def _generate_single_material(
         self,
@@ -120,6 +144,119 @@ class ProcurementGenerator(BaseGenerator):
                 sense=ObjectiveSense.MINIMIZE,
                 expression=" + ".join(cost_terms) if cost_terms else "0",
             ),
+            constraints=constraints,
+            options=SolverOptions(time_limit_seconds=30),
+        )
+
+    def _generate_quoted_rows(
+        self,
+        user_input: dict[str, Any],
+        suppliers: list[dict[str, Any]],
+        materials: list[dict[str, Any]],
+        params: dict[str, Any],
+    ) -> OptimizationProblem:
+        """One row per supplier quote: this supplier, this material, this price.
+
+        Buy a quantity from each quote, cover every material's requirement, and
+        respect each quote's capacity. A quote with a ``delivery_cost`` or a
+        ``min_order`` also gets a binary "use this supplier" so the fixed charge
+        is paid once and a used supplier is ordered from properly. These cards
+        used to reach the knapsack generator, which read the material names and
+        nothing else: three variables, one constraint, and every price,
+        capacity and requirement thrown away.
+        """
+        required: dict[str, float] = {}
+        label: dict[str, str] = {}
+        for mat in materials:
+            key = self.sanitize_name(mat.get("name", ""))
+            required[key] = self._first_number(mat, self._DEMAND_KEYS) or 0.0
+            label[key] = str(mat.get("name", key))
+
+        variables: list[Variable] = []
+        constraints: list[Constraint] = []
+        cost_terms: list[str] = []
+        qty_by_material: dict[str, list[str]] = {}
+        unquoted: list[str] = []
+
+        for i, sup in enumerate(suppliers):
+            offered = self._offered_material(sup)
+            mat_key = self.sanitize_name(offered) if offered else ""
+            if mat_key not in required:
+                unquoted.append(f"{sup.get('name', f'supplier {i}')} -> {offered}")
+                continue
+
+            sup_name = self.sanitize_name(sup.get("name", f"sup_{i}"))
+            qty = f"qty_{sup_name}"
+            price = self._first_number(sup, self._PRICE_KEYS)
+            if price is None:
+                raise ValueError(
+                    f"Supplier '{sup.get('name', sup_name)}' quotes no price. "
+                    f"Expected one of: {', '.join(self._PRICE_KEYS)}."
+                )
+            capacity = self._first_number(sup, ("max_capacity", "capacity", "max_supply"))
+            delivery = self._first_number(sup, ("delivery_cost", "fixed_cost", "setup_cost"))
+            min_order = self._first_number(sup, ("min_order", "minimum_order", "min_order_qty"))
+
+            # Without a stated capacity the requirement itself bounds the order:
+            # buying more of a material than is required is never optimal here.
+            bound = capacity if capacity is not None else required[mat_key]
+            variables.append(
+                Variable(name=qty, type=VariableType.CONTINUOUS, lower_bound=0, upper_bound=bound)
+            )
+            cost_terms.append(f"{price}*{qty}")
+            qty_by_material.setdefault(mat_key, []).append(qty)
+
+            if delivery or min_order:
+                use = f"use_{sup_name}"
+                variables.append(Variable(name=use, type=VariableType.BINARY))
+                if delivery:
+                    cost_terms.append(f"{delivery}*{use}")
+                # Ordering anything switches the supplier on, so the fixed
+                # charge cannot be dodged.
+                constraints.append(
+                    Constraint(name=f"link_{sup_name}", expression=f"{qty} - {bound}*{use} <= 0")
+                )
+                if min_order:
+                    constraints.append(
+                        Constraint(
+                            name=f"minorder_{sup_name}",
+                            expression=f"{qty} - {min_order}*{use} >= 0",
+                        )
+                    )
+
+        if not variables:
+            raise ValueError(
+                "No supplier quotes matched a material. Suppliers name their material in "
+                f"one of {self._OFFERED_KEYS}; materials seen: {sorted(label.values())}."
+            )
+        # A quote for something nobody asked for is a data error, not a row to
+        # drop in silence.
+        if unquoted:
+            raise ValueError(
+                f"{len(unquoted)} supplier quote(s) name a material that is not in the "
+                f"requirements list: {'; '.join(unquoted[:5])}"
+            )
+
+        for mat_key, need in required.items():
+            terms = qty_by_material.get(mat_key)
+            if not terms:
+                raise ValueError(f"No supplier quotes for required material '{label[mat_key]}'.")
+            if need > 0:
+                constraints.append(
+                    Constraint(
+                        name=f"require_{mat_key}",
+                        expression=f"{' + '.join(terms)} >= {need}",
+                    )
+                )
+
+        return OptimizationProblem(
+            name="supplier_quotes",
+            description=(
+                f"Buy {len(materials)} materials from {len(variables)} supplier quotes "
+                f"at least total cost"
+            ),
+            variables=variables,
+            objective=Objective(sense=ObjectiveSense.MINIMIZE, expression=" + ".join(cost_terms)),
             constraints=constraints,
             options=SolverOptions(time_limit_seconds=30),
         )

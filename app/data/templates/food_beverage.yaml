@@ -188,7 +188,7 @@ templates:
     category: food_beverage
     tags: [food, procurement, supply-chain, sourcing]
     problem_type_tags: [MIP, knapsack]
-    generator_type: knapsack
+    generator_type: procurement
     generator_params: {}
     input_schema:
       type: object

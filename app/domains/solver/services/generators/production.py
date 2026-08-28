@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.domains.solver.services.generators.base import BaseGenerator
+from app.domains.solver.services.generators.base import BaseGenerator, find_list_field
 from app.schemas.optimization import (
     Constraint,
     Objective,
@@ -184,19 +184,39 @@ class BudgetAllocationGenerator(BaseGenerator):
     templates that use generator_type="budget_allocation".
     """
 
+    #: The same problem is written with department words or programme words.
+    _MIN_KEYS = ("min_allocation", "min_funding", "min_budget")
+    _MAX_KEYS = ("max_allocation", "max_funding", "max_budget")
+    _RETURN_KEYS = ("expected_roi", "benefit_per_dollar", "roi", "return_per_unit", "benefit")
+
+    @staticmethod
+    def _pick(row: dict[str, Any], keys: tuple[str, ...], default: float) -> float:
+        for key in keys:
+            if row.get(key) is not None:
+                return float(row[key])
+        return default
+
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
-        total_budget = user_input.get("total_budget", 100000)
-        departments = user_input.get("departments", [])
+        total_budget = user_input.get("total_budget", user_input.get("budget", 100000))
+        departments = find_list_field(
+            user_input, ["departments", "programs", "areas", "categories"], fallback=False
+        )
         objective_type = user_input.get("objective", "maximize_roi")
+
+        if not departments:
+            raise ValueError(
+                "Budget allocation requires a list of departments/programs to fund. "
+                f"Got keys: {list(user_input.keys())}"
+            )
 
         variables: list[Variable] = []
         objective_terms: list[str] = []
 
         for dept in departments:
             name = self.sanitize_name(dept.get("name", f"dept_{len(variables)}"))
-            min_alloc = dept.get("min_allocation", 0)
-            max_alloc = dept.get("max_allocation", total_budget)
-            roi = dept.get("expected_roi", 1.0)
+            min_alloc = self._pick(dept, self._MIN_KEYS, 0)
+            max_alloc = self._pick(dept, self._MAX_KEYS, float(total_budget))
+            roi = self._pick(dept, self._RETURN_KEYS, 1.0)
 
             variables.append(
                 Variable(

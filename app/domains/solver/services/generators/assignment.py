@@ -67,10 +67,18 @@ class AssignmentGenerator(BaseGenerator):
 
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
         workers, tasks = self._find_two_lists(user_input)
-        costs = user_input.get("costs", {})
+
+        # Cost keys are written by the user and keep their original case
+        # ("roomA_slot1"); variable names are sanitized and lowercased. Looking
+        # up the raw key missed every capitalised pair and fell back to a cost
+        # of 1, which made the objective a constant and any feasible
+        # assignment "optimal". Key the table the same way the variables are.
+        raw_costs = user_input.get("costs") or {}
+        costs = {self.sanitize_name(k): v for k, v in raw_costs.items()}
 
         variables: list[Variable] = []
         cost_terms: list[str] = []
+        missing: list[str] = []
 
         for w in workers:
             w_name = self.sanitize_name(w.get("name", w) if isinstance(w, dict) else w)
@@ -80,8 +88,19 @@ class AssignmentGenerator(BaseGenerator):
 
                 variables.append(Variable(name=var_name, type=VariableType.BINARY))
 
-                cost = costs.get(f"{w_name}_{t_name}", 1)
+                if raw_costs and var_name not in costs:
+                    missing.append(var_name)
+                cost = costs.get(var_name, 1)
                 cost_terms.append(f"{cost}*{var_name}")
+
+        # A cost table that does not cover every pair is a data error. Saying so
+        # beats silently costing the uncovered pairs at 1.
+        if missing:
+            shown = ", ".join(missing[:5])
+            raise ValueError(
+                f"Assignment costs cover {len(costs)} of {len(variables)} worker-task pairs. "
+                f"Missing: {shown}{'…' if len(missing) > 5 else ''}"
+            )
 
         if not variables:
             raise ValueError(

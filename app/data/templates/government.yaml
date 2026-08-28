@@ -206,7 +206,7 @@ templates:
     category: government
     tags: [government, budgeting, public-policy, fiscal-planning]
     problem_type_tags: [LP, knapsack]
-    generator_type: knapsack
+    generator_type: budget_allocation
     generator_params: {}
     input_schema:
       type: object

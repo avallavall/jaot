@@ -173,7 +173,7 @@ templates:
     tags: [mining, fleet, dispatch, operations]
     problem_type_tags: [LP, network-flow]
     generator_type: network_flow
-    generator_params: {}
+    generator_params: {mode: max_flow}
     input_schema:
       type: object
       properties:

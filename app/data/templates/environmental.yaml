@@ -168,7 +168,7 @@ templates:
             value: {type: number}
             weight: {type: number}
     example_input:
-      capacity: 200000
+      min_value: 500
       items:
         - {name: led_lighting, value: 30, weight: 5000}
         - {name: hvac_upgrade, value: 80, weight: 25000}

@@ -77,12 +77,36 @@ def _find_field(item: dict[str, Any], candidates: list[str], default: float = 1.
     return default
 
 
-def _find_capacity(user_input: dict[str, Any]) -> float:
+def _has_field(item: dict[str, Any], candidates: list[str]) -> bool:
+    return any(field in item and item[field] is not None for field in candidates)
+
+
+#: Limits that come in matched pairs: the scalar cap on the input, and the
+#: per-item field it applies to. A launch has a mass budget AND a volume
+#: budget; writing only the first one drops half the problem.
+_LIMIT_DIMENSIONS: list[tuple[str, list[str], str]] = [
+    ("mass", ["max_mass", "mass_capacity"], "mass_kg"),
+    ("volume", ["max_volume", "volume_capacity"], "volume_m3"),
+    ("space", ["total_space", "max_space"], "space_sqm"),
+]
+
+#: A target the selection must reach turns the knapsack around: instead of
+#: "most value inside a budget" it becomes "least cost that reaches the
+#: target". Regulation-driven cards state a target, not a budget.
+_TARGET_FIELDS = ["min_value", "target_value", "required_value", "min_total_value"]
+
+
+def _find_scalar(user_input: dict[str, Any], fields: list[str]) -> float | None:
+    for field in fields:
+        value = user_input.get(field)
+        if value is not None and not isinstance(value, (list, dict)):
+            return float(value)
+    return None
+
+
+def _find_capacity(user_input: dict[str, Any]) -> float | None:
     """Extract the capacity / budget scalar from the input."""
-    for field in _CAPACITY_FIELDS:
-        if field in user_input and not isinstance(user_input[field], (list, dict)):
-            return float(user_input[field])
-    return 100.0
+    return _find_scalar(user_input, _CAPACITY_FIELDS)
 
 
 class KnapsackGenerator(BaseGenerator):
@@ -93,12 +117,32 @@ class KnapsackGenerator(BaseGenerator):
     """
 
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
-        items, _key = _find_items_list(user_input)
-        capacity = _find_capacity(user_input)
+        items, key = _find_items_list(user_input)
+        if not items:
+            raise ValueError(
+                "Knapsack generator requires at least one item. "
+                "Provide an 'items' list or a domain-specific list of selectable objects."
+            )
+
+        # A value or a weight that no item carries used to default to 1.0 per
+        # item, which turns the objective into a plain count of selected items
+        # and the capacity row into a limit on how many fit. Both look like a
+        # working model and answer nothing.
+        if not any(_has_field(item, _VALUE_FIELDS) for item in items):
+            raise ValueError(
+                f"No item in '{key or 'items'}' carries a value field. "
+                f"Expected one of: {', '.join(_VALUE_FIELDS)}."
+            )
+        if not any(_has_field(item, _WEIGHT_FIELDS) for item in items):
+            raise ValueError(
+                f"No item in '{key or 'items'}' carries a weight or cost field. "
+                f"Expected one of: {', '.join(_WEIGHT_FIELDS)}."
+            )
 
         variables: list[Variable] = []
         value_terms: list[str] = []
         weight_terms: list[str] = []
+        dimension_terms: dict[str, list[str]] = {}
 
         for i, item in enumerate(items):
             name = self.sanitize_name(item.get("name", f"item_{i}"))
@@ -110,22 +154,62 @@ class KnapsackGenerator(BaseGenerator):
             value_terms.append(f"{value}*{name}")
             weight_terms.append(f"{weight}*{name}")
 
-        if not variables:
-            raise ValueError(
-                "Knapsack generator requires at least one item. "
-                "Provide an 'items' list or a domain-specific list of selectable objects."
+            for label, _cap_fields, item_field in _LIMIT_DIMENSIONS:
+                if item.get(item_field) is not None:
+                    dimension_terms.setdefault(label, []).append(
+                        f"{float(item[item_field])}*{name}"
+                    )
+
+        target = _find_scalar(user_input, _TARGET_FIELDS)
+        capacity = _find_capacity(user_input)
+
+        constraints: list[Constraint] = []
+        # Every stated limit becomes a row, not just the first one found.
+        written: set[str] = set()
+        for label, cap_fields, _item_field in _LIMIT_DIMENSIONS:
+            limit = _find_scalar(user_input, cap_fields)
+            terms = dimension_terms.get(label)
+            if limit is not None and terms:
+                constraints.append(
+                    Constraint(name=f"limit_{label}", expression=f"{' + '.join(terms)} <= {limit}")
+                )
+                written.update(cap_fields)
+
+        # The generic weight/capacity row, unless a named dimension already
+        # covered that same scalar (mass_kg is also matched as a weight).
+        if capacity is not None and not any(
+            field in written
+            for field in _CAPACITY_FIELDS
+            if _find_scalar(user_input, [field]) == capacity
+        ):
+            constraints.append(
+                Constraint(name="capacity", expression=f"{' + '.join(weight_terms)} <= {capacity}")
             )
 
-        constraints = [
-            Constraint(
-                name="capacity",
-                expression=f"{' + '.join(weight_terms)} <= {capacity}",
+        if target is not None:
+            constraints.append(
+                Constraint(name="reach_target", expression=f"{' + '.join(value_terms)} >= {target}")
             )
-        ]
+            return OptimizationProblem(
+                name="covering_knapsack",
+                description=f"Select items reaching a total value of {target} at least cost",
+                variables=variables,
+                objective=Objective(
+                    sense=ObjectiveSense.MINIMIZE, expression=" + ".join(weight_terms)
+                ),
+                constraints=constraints,
+                options=SolverOptions(time_limit_seconds=30),
+            )
+
+        if not constraints:
+            raise ValueError(
+                "Knapsack generator found no capacity, limit or target to respect. "
+                f"Expected one of: {', '.join(_CAPACITY_FIELDS + _TARGET_FIELDS)}."
+            )
 
         return OptimizationProblem(
             name="knapsack",
-            description=f"Select items to maximize value within capacity {capacity}",
+            description=f"Select items to maximize value within {len(constraints)} limit(s)",
             variables=variables,
             objective=Objective(
                 sense=ObjectiveSense.MAXIMIZE,
