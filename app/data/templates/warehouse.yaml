@@ -137,6 +137,10 @@ templates:
             from_location: {type: string}
             to_location: {type: string}
             distance: {type: number}
+    # aisle and bay say where a pick location sits in the warehouse; the
+    #   travel distances between them are given outright, so the model reads
+    #   those rather than deriving them from the grid
+    context_fields: [aisle, bay]
     example_input:
       locations:
         - {name: "Packing-Station", aisle: 0, bay: 0}

@@ -213,19 +213,48 @@ class TestVehicleRouting:
         ]
         assert len(visit_constraints) == 3
 
-    def test_missing_distance_uses_default(self, engine):
-        """Missing distances should default to 100."""
+    def test_missing_distance_is_refused(self, engine):
+        """A distance nobody gave is not a distance of 100.
+
+        This used to assert the opposite. Defaulting every unknown arc to a
+        flat 100 gave the model an objective that could not tell two routes
+        apart, so any tour came back "optimal" — and it hid that three shipped
+        cards were having their whole distance matrix thrown away.
+        """
         template = {"generator": "vehicle_routing"}
         user_input = {
             "depot": {"name": "depot"},
             "locations": [{"name": "A", "demand": 1}],
             "vehicles": [{"name": "v1", "capacity": 10}],
-            "distances": {},  # No distances provided
+            "distances": {},
+        }
+        with pytest.raises(ValueError, match="No distance from"):
+            engine.render(template, user_input)
+
+    def test_distance_keys_keep_the_case_the_card_wrote(self, engine):
+        """Node names are lowercased; the table's keys are not."""
+        template = {"generator": "vehicle_routing"}
+        user_input = {
+            "depot": {"name": "depot"},
+            "locations": [{"name": "A", "demand": 1}],
+            "vehicles": [{"name": "v1", "capacity": 10}],
+            "distances": {"depot_A": 42, "A_depot": 42},
         }
         problem = engine.render(template, user_input)
         _assert_valid_problem(problem)
-        # Should still generate a valid problem with default distances
-        assert "100" in problem.objective.expression
+        assert "42" in problem.objective.expression, problem.objective.expression
+
+    def test_coordinates_stand_in_for_a_missing_matrix(self, engine):
+        """x/y on every stop is a distance table written another way."""
+        template = {"generator": "vehicle_routing"}
+        user_input = {
+            "depot": {"name": "depot", "x": 0, "y": 0},
+            "locations": [{"name": "A", "demand": 1, "x": 3, "y": 4}],
+            "vehicles": [{"name": "v1", "capacity": 10}],
+        }
+        problem = engine.render(template, user_input)
+        _assert_valid_problem(problem)
+        assert "5.0" in problem.objective.expression, problem.objective.expression
 
 
 class TestPortfolioOptimization:

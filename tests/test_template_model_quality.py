@@ -53,10 +53,6 @@ register_default_adapters()
 
 UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
     {
-        # routing: the distance matrix and every demand go unread
-        "vehicle_routing",
-        "drug_distribution",
-        "pick_route_optimization",
         # bin packing / cutting: item sizes and order quantities go unread
         "container_loading",
         "one_d_cutting_stock",
@@ -89,8 +85,6 @@ UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
 FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset(
     {
         "cash_flow_planning",
-        "drug_distribution",
-        "pick_route_optimization",
         "tournament_scheduling",
         "train_timetabling",
         "vessel_scheduling",

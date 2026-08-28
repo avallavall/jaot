@@ -39,7 +39,16 @@ class RoutingGenerator(BaseGenerator):
         depot = user_input.get("depot")
         if depot is None:
             warehouses = user_input.get("warehouses", [])
-            depot = warehouses[0] if warehouses else {"name": "depot"}
+            # A picking round starts and ends at the packing station, which the
+            # card lists first among its stops. Inventing a node called "depot"
+            # instead left the tour anchored to a place with no distances at
+            # all.
+            depot = warehouses[0] if warehouses else (locations[0] if locations else None)
+        if depot is None:
+            raise ValueError(
+                "Routing needs a depot to start from, or at least one location to use as one. "
+                f"Got keys: {list(user_input.keys())}"
+            )
 
         if not vehicles:
             vehicles = [{"name": "v0", "capacity": 1000, "cost_per_unit_distance": 1.0}]
@@ -48,10 +57,35 @@ class RoutingGenerator(BaseGenerator):
         if isinstance(distances, list):
             dist_dict: dict[str, float] = {}
             for d in distances:
-                from_loc = self.sanitize_name(str(d.get("from_loc", d.get("from", ""))))
-                to_loc = self.sanitize_name(str(d.get("to_loc", d.get("to", ""))))
-                dist_dict[f"{from_loc}_{to_loc}"] = d.get("distance", d.get("cost", 100))
+                from_raw = next(
+                    (d[k] for k in ("from_loc", "from_location", "from", "origin") if k in d), ""
+                )
+                to_raw = next(
+                    (d[k] for k in ("to_loc", "to_location", "to", "destination") if k in d), ""
+                )
+                value = next(
+                    (
+                        d[k]
+                        for k in ("distance", "cost", "travel_time", "km")
+                        if d.get(k) is not None
+                    ),
+                    None,
+                )
+                if not from_raw or not to_raw or value is None:
+                    raise ValueError(
+                        f"Distance row {d!r} needs a from, a to and a distance. "
+                        "Expected keys like from_location / to_location / distance."
+                    )
+                key = f"{self.sanitize_name(str(from_raw))}_{self.sanitize_name(str(to_raw))}"
+                dist_dict[key] = float(value)
             distances = dist_dict
+        else:
+            # A distance table is written with the names the card uses
+            # ("depot_A"); node names are sanitized and lowercased. Looking up
+            # the raw key missed every capitalised arc and fell back to a
+            # hardcoded 100, so the whole matrix was thrown away and every route
+            # cost the same.
+            distances = {self.sanitize_name(str(k)): float(v) for k, v in (distances or {}).items()}
 
         depot_name = self.sanitize_name(depot.get("name", "depot"))
         loc_names = [
@@ -68,10 +102,34 @@ class RoutingGenerator(BaseGenerator):
         # Vehicle name lookup
         v_names = [self.sanitize_name(veh.get("name", f"v{i}")) for i, veh in enumerate(vehicles)]
 
+        # Where a card gives coordinates instead of a matrix, the distance is
+        # the straight line between them. Falling back to a flat 100 made every
+        # route cost the same, so any tour was "optimal".
+        coords: dict[str, tuple[float, float]] = {}
+        for row in [depot, *locations]:
+            if isinstance(row, dict) and row.get("x") is not None and row.get("y") is not None:
+                coords[self.sanitize_name(row.get("name", ""))] = (
+                    float(row["x"]),
+                    float(row["y"]),
+                )
+
+        def _distance(i: str, j: str) -> float:
+            for key in (f"{i}_{j}", f"{j}_{i}"):
+                if key in distances:
+                    return float(distances[key])
+            if i in coords and j in coords:
+                (xi, yi), (xj, yj) = coords[i], coords[j]
+                return round(((xi - xj) ** 2 + (yi - yj) ** 2) ** 0.5, 4)
+            raise ValueError(
+                f"No distance from '{i}' to '{j}'. Give a distances table keyed "
+                "'<from>_<to>', a list of {from_location, to_location, distance} rows, "
+                "or x/y coordinates on every location."
+            )
+
         # x_{v}_{i}_{j} = 1 if vehicle v travels from i to j
         # Precompute distances once (not per vehicle)
         dist_lookup: dict[tuple[str, str], float] = {
-            (i, j): distances.get(f"{i}_{j}", 100) for i in all_nodes for j in all_nodes if i != j
+            (i, j): _distance(i, j) for i in all_nodes for j in all_nodes if i != j
         }
 
         x_vars: dict[tuple[str, str, str], str] = {}
@@ -264,7 +322,7 @@ class RoutingGenerator(BaseGenerator):
                     d = demands.get(loc, 1)
                     if load + d > cap:
                         continue
-                    dist = dist_lookup.get((current, loc), 100)
+                    dist = dist_lookup.get((current, loc), float("inf"))
                     if dist < best_dist:
                         best_dist = dist
                         best_next = loc
