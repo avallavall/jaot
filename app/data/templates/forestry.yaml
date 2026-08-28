@@ -183,7 +183,13 @@ templates:
     tags: [forestry, wildfire, emergency, resource-allocation]
     problem_type_tags: [MIP, assignment]
     generator_type: assignment
-    generator_params: {}
+    generator_params:
+      cost:
+        - worker: cost
+      worker_rule: at_most_one
+      task_rule: demand_sum
+      demand_field: required_effectiveness
+      supply_field: effectiveness
     input_schema:
       type: object
       properties:
@@ -221,9 +227,9 @@ templates:
             cost: {type: number}
     example_input:
       fires:
-        - {name: "Ridge-Fire", current_ha: 120, growth_rate_ha_hr: 15, difficulty: 8}
-        - {name: "Valley-Fire", current_ha: 45, growth_rate_ha_hr: 8, difficulty: 5}
-        - {name: "Lake-Fire", current_ha: 200, growth_rate_ha_hr: 5, difficulty: 3}
+        - {name: "Ridge-Fire", current_ha: 120, growth_rate_ha_hr: 15, difficulty: 8, required_effectiveness: 25}
+        - {name: "Valley-Fire", current_ha: 45, growth_rate_ha_hr: 8, difficulty: 5, required_effectiveness: 12}
+        - {name: "Lake-Fire", current_ha: 200, growth_rate_ha_hr: 5, difficulty: 3, required_effectiveness: 10}
       resources:
         - {name: "Hotshot-Crew-1", type: "ground", effectiveness: 10, cost: 25000}
         - {name: "Hotshot-Crew-2", type: "ground", effectiveness: 10, cost: 25000}

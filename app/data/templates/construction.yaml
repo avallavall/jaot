@@ -101,7 +101,14 @@ templates:
     tags: [construction, equipment, fleet-management, allocation]
     problem_type_tags: [MIP, assignment]
     generator_type: assignment
-    generator_params: {}
+    generator_params:
+      cost:
+        - penalty: {unequal: [current_site, name], amount: 1}
+      idle_cost_field: idle_cost_per_day
+      worker_rule: at_most_one
+      task_rule: demand_by_type
+      needs_field: needs
+      type_field: type
     input_schema:
       type: object
       properties:
@@ -142,6 +149,9 @@ templates:
         - {name: "Liebherr-Crane-1", type: "crane", current_site: "Site-Beta", idle_cost_per_day: 450}
         - {name: "CAT-950-Loader-1", type: "loader", current_site: "Site-Alpha", idle_cost_per_day: 150}
         - {name: "CAT-950-Loader-2", type: "loader", current_site: "Depot", idle_cost_per_day: 150}
+        - {name: "CAT-950-Loader-3", type: "loader", current_site: "Site-Gamma", idle_cost_per_day: 150}
+        - {name: "Liebherr-Crane-2", type: "crane", current_site: "Depot", idle_cost_per_day: 450}
+        - {name: "CAT-320-Excavator-3", type: "excavator", current_site: "Site-Beta", idle_cost_per_day: 200}
       sites:
         - {name: "Site-Alpha", needs: {excavator: 1, crane: 1, loader: 1}}
         - {name: "Site-Beta", needs: {excavator: 1, crane: 1, loader: 0}}

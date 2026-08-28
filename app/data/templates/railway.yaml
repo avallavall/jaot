@@ -101,7 +101,14 @@ templates:
     tags: [railway, rolling-stock, fleet-management, assignment]
     problem_type_tags: [MIP, assignment]
     generator_type: assignment
-    generator_params: {}
+    generator_params:
+      cost:
+        - penalty: {unequal: [location, origin], amount: 1}
+      require:
+        - equal: [type, type]
+        - at_least: [seats, expected_passengers]
+      worker_rule: at_most_one
+      task_rule: exactly_one
     input_schema:
       type: object
       properties:
@@ -142,14 +149,15 @@ templates:
         - {name: "EMU-101", seats: 300, location: "Berlin", type: "ICE"}
         - {name: "EMU-102", seats: 300, location: "Berlin", type: "ICE"}
         - {name: "EMU-201", seats: 200, location: "Munich", type: "ICE"}
+        - {name: "EMU-202", seats: 300, location: "Munich", type: "ICE"}
         - {name: "EMU-301", seats: 150, location: "Hamburg", type: "Regional"}
         - {name: "EMU-302", seats: 150, location: "Frankfurt", type: "Regional"}
       services:
-        - {name: "ICE-Berlin-Munich-AM", origin: "Berlin", destination: "Munich", expected_passengers: 280}
-        - {name: "ICE-Munich-Berlin-AM", origin: "Munich", destination: "Berlin", expected_passengers: 250}
-        - {name: "ICE-Berlin-Hamburg-AM", origin: "Berlin", destination: "Hamburg", expected_passengers: 180}
-        - {name: "RE-Frankfurt-Munich-AM", origin: "Frankfurt", destination: "Munich", expected_passengers: 120}
-        - {name: "ICE-Hamburg-Berlin-PM", origin: "Hamburg", destination: "Berlin", expected_passengers: 200}
+        - {name: "ICE-Berlin-Munich-AM", origin: "Berlin", destination: "Munich", expected_passengers: 280, type: "ICE"}
+        - {name: "ICE-Munich-Berlin-AM", origin: "Munich", destination: "Berlin", expected_passengers: 250, type: "ICE"}
+        - {name: "ICE-Berlin-Hamburg-AM", origin: "Berlin", destination: "Hamburg", expected_passengers: 180, type: "ICE"}
+        - {name: "RE-Frankfurt-Munich-AM", origin: "Frankfurt", destination: "Munich", expected_passengers: 120, type: "Regional"}
+        - {name: "ICE-Hamburg-Berlin-PM", origin: "Hamburg", destination: "Berlin", expected_passengers: 200, type: "ICE"}
     scenario_description: >
       Deutsche Bahn has five train units parked overnight at four stations and
       needs to assign them to five morning and afternoon services. Each service

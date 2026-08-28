@@ -1012,7 +1012,7 @@ class TestTemplateEngineRegistryDispatch:
         user_input = {
             "workers": [{"name": "A"}, {"name": "B"}],
             "tasks": [{"name": "T1"}],
-            "costs": {},
+            "costs": {"A_T1": 4, "B_T1": 7},
         }
         problem = engine.render(template, user_input)
         _assert_valid_problem(problem)
@@ -1042,7 +1042,7 @@ class TestTemplateEngineRegistryDispatch:
         user_input = {
             "workers": [{"name": "A"}],
             "tasks": [{"name": "T1"}],
-            "costs": {},
+            "costs": {"A_T1": 3},
         }
         problem = engine.render(template, user_input)
         _assert_valid_problem(problem)

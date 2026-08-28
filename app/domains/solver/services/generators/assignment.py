@@ -65,6 +65,59 @@ class AssignmentGenerator(BaseGenerator):
 
         return [], []
 
+    @staticmethod
+    def _pair_cost(worker: dict[str, Any], task: dict[str, Any], rules: list[Any]) -> float:
+        """Cost of one pair, summed from the rules the template declares.
+
+        A card whose cost lives in the two rows rather than in a lookup table
+        says how to combine them, instead of the generator guessing. Every rule
+        reads a real field, so a changed number changes the model.
+        """
+        total = 0.0
+        for rule in rules:
+            if not isinstance(rule, dict) or len(rule) != 1:
+                raise ValueError(f"Each cost rule needs exactly one key, got: {rule!r}")
+            kind, arg = next(iter(rule.items()))
+            if kind == "multiply":
+                w_field, t_field = arg
+                total += float(worker.get(w_field, 0)) * float(task.get(t_field, 0))
+            elif kind == "worker":
+                total += float(worker.get(arg, 0))
+            elif kind == "task":
+                total += float(task.get(arg, 0))
+            elif kind == "penalty":
+                w_field, t_field = arg["unequal"]
+                if worker.get(w_field) != task.get(t_field):
+                    # "times" scales the penalty by a task field, so a mismatch
+                    # on an urgent job costs more than on a routine one.
+                    scale = float(task.get(arg["times"], 0)) if "times" in arg else 1.0
+                    total += float(arg["amount"]) * scale
+            else:
+                raise ValueError(f"Unknown assignment cost rule: {kind!r}")
+        return total
+
+    @staticmethod
+    def _pair_allowed(worker: dict[str, Any], task: dict[str, Any], rules: list[Any]) -> bool:
+        """Whether this worker may take this task at all."""
+        for rule in rules:
+            if not isinstance(rule, dict) or len(rule) != 1:
+                raise ValueError(f"Each compatibility rule needs exactly one key, got: {rule!r}")
+            kind, arg = next(iter(rule.items()))
+            w_field, t_field = arg
+            if kind == "equal":
+                if worker.get(w_field) != task.get(t_field):
+                    return False
+            elif kind == "member":
+                allowed = worker.get(w_field) or []
+                if task.get(t_field) not in allowed:
+                    return False
+            elif kind == "at_least":
+                if float(worker.get(w_field, 0)) < float(task.get(t_field, 0)):
+                    return False
+            else:
+                raise ValueError(f"Unknown assignment compatibility rule: {kind!r}")
+        return True
+
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
         workers, tasks = self._find_two_lists(user_input)
 
@@ -76,21 +129,52 @@ class AssignmentGenerator(BaseGenerator):
         raw_costs = user_input.get("costs") or {}
         costs = {self.sanitize_name(k): v for k, v in raw_costs.items()}
 
+        cost_rules = params.get("cost") or []
+        require = params.get("require") or []
+        worker_rule = params.get("worker_rule", "at_most_one")
+        task_rule = params.get("task_rule", "exactly_one")
+        capacity_field = params.get("capacity_field")
+        needs_field = params.get("needs_field", "needs")
+        type_field = params.get("type_field", "type")
+        idle_cost_field = params.get("idle_cost_field")
+        demand_field = params.get("demand_field", "demand")
+        supply_field = params.get("supply_field", "supply")
+
+        # Without a cost table and without cost rules every pair used to cost
+        # 1, so the objective counted assignments instead of pricing them.
+        if not raw_costs and not cost_rules:
+            raise ValueError(
+                "Assignment needs a cost: either a 'costs' table keyed by "
+                "'<worker>_<task>', or cost rules in generator_params."
+            )
+
         variables: list[Variable] = []
         cost_terms: list[str] = []
         missing: list[str] = []
+        # pairs[w_name] = [(t_name, var_name), …] for the pairs that are allowed
+        pairs_by_worker: dict[str, list[str]] = {}
+        pairs_by_task: dict[str, list[str]] = {}
 
         for w in workers:
-            w_name = self.sanitize_name(w.get("name", w) if isinstance(w, dict) else w)
+            w_row = w if isinstance(w, dict) else {"name": w}
+            w_name = self.sanitize_name(w_row.get("name", w))
             for t in tasks:
-                t_name = self.sanitize_name(t.get("name", t) if isinstance(t, dict) else t)
+                t_row = t if isinstance(t, dict) else {"name": t}
+                t_name = self.sanitize_name(t_row.get("name", t))
+                if not self._pair_allowed(w_row, t_row, require):
+                    continue
                 var_name = f"{w_name}_{t_name}"
 
                 variables.append(Variable(name=var_name, type=VariableType.BINARY))
+                pairs_by_worker.setdefault(w_name, []).append(var_name)
+                pairs_by_task.setdefault(t_name, []).append(var_name)
 
-                if raw_costs and var_name not in costs:
-                    missing.append(var_name)
-                cost = costs.get(var_name, 1)
+                if cost_rules:
+                    cost: float | Any = self._pair_cost(w_row, t_row, cost_rules)
+                else:
+                    if var_name not in costs:
+                        missing.append(var_name)
+                    cost = costs.get(var_name, 1)
                 cost_terms.append(f"{cost}*{var_name}")
 
         # A cost table that does not cover every pair is a data error. Saying so
@@ -109,32 +193,129 @@ class AssignmentGenerator(BaseGenerator):
             )
 
         constraints: list[Constraint] = []
+        _OPERATOR = {"exactly_one": "==", "at_most_one": "<="}
 
-        # Each worker assigned to at most one task
+        # How many tasks one worker may hold. "capacity" reads a per-worker
+        # limit from the data: an adjuster with max_cases 3 takes three claims,
+        # which "at most one" could never express.
         for w in workers:
-            w_name = self.sanitize_name(w.get("name", w) if isinstance(w, dict) else w)
-            worker_vars = [
-                f"{w_name}_{self.sanitize_name(t.get('name', t) if isinstance(t, dict) else t)}"
-                for t in tasks
-            ]
-            constraints.append(
-                Constraint(
-                    name=f"worker_{w_name}",
-                    expression=f"{' + '.join(worker_vars)} <= 1",
+            w_row = w if isinstance(w, dict) else {"name": w}
+            w_name = self.sanitize_name(w_row.get("name", w))
+            worker_vars = pairs_by_worker.get(w_name)
+            if not worker_vars:
+                continue
+            if idle_cost_field:
+                # Idle cost is what a machine costs when it is NOT working, so
+                # it hangs off a binary that is 1 exactly when nothing is
+                # assigned. Charging it on the assigned pairs instead would
+                # price the fleet backwards and park the dearest machine.
+                idle = f"idle_{w_name}"
+                rate = w_row.get(idle_cost_field)
+                if rate is None:
+                    raise ValueError(
+                        f"Worker '{w_row.get('name', w_name)}' has no '{idle_cost_field}'."
+                    )
+                variables.append(Variable(name=idle, type=VariableType.BINARY))
+                cost_terms.append(f"{float(rate)}*{idle}")
+                constraints.append(
+                    Constraint(
+                        name=f"idle_{w_name}",
+                        expression=f"{' + '.join(worker_vars)} + {idle} == 1",
+                    )
                 )
-            )
+                continue
+            if worker_rule == "capacity":
+                if not capacity_field:
+                    raise ValueError("worker_rule 'capacity' needs a capacity_field.")
+                limit = w_row.get(capacity_field)
+                if limit is None:
+                    raise ValueError(
+                        f"Worker '{w_row.get('name', w_name)}' has no '{capacity_field}'."
+                    )
+                expression = f"{' + '.join(worker_vars)} <= {float(limit)}"
+            elif worker_rule in _OPERATOR:
+                expression = f"{' + '.join(worker_vars)} {_OPERATOR[worker_rule]} 1"
+            else:
+                raise ValueError(f"Unknown worker_rule: {worker_rule!r}")
+            constraints.append(Constraint(name=f"worker_{w_name}", expression=expression))
 
-        # Each task assigned to exactly one worker
         for t in tasks:
-            t_name = self.sanitize_name(t.get("name", t) if isinstance(t, dict) else t)
-            task_vars = [
-                f"{self.sanitize_name(w.get('name', w) if isinstance(w, dict) else w)}_{t_name}"
-                for w in workers
-            ]
+            t_row = t if isinstance(t, dict) else {"name": t}
+            t_name = self.sanitize_name(t_row.get("name", t))
+            task_vars = pairs_by_task.get(t_name)
+            if not task_vars:
+                # Only reachable when compatibility rules rule out every
+                # worker, which makes an "exactly one" model infeasible with
+                # no explanation. Name the task instead.
+                if task_rule == "exactly_one":
+                    raise ValueError(
+                        f"No worker is compatible with '{t_row.get('name', t_name)}', "
+                        "so it can never be assigned."
+                    )
+                continue
+            if task_rule == "demand_sum":
+                # Some jobs take as many workers as it takes: a wildfire needs
+                # enough suppression effectiveness on it, not one crew.
+                need = t_row.get(demand_field)
+                if need is None:
+                    raise ValueError(
+                        f"'{t_row.get('name', t_name)}' has no '{demand_field}' to cover."
+                    )
+                terms = []
+                for w in workers:
+                    if not isinstance(w, dict):
+                        continue
+                    var = f"{self.sanitize_name(w.get('name', ''))}_{t_name}"
+                    if var not in task_vars:
+                        continue
+                    supply = w.get(supply_field)
+                    if supply is None:
+                        raise ValueError(
+                            f"Worker '{w.get('name', '')}' has no '{supply_field}' to contribute."
+                        )
+                    terms.append(f"{float(supply)}*{var}")
+                constraints.append(
+                    Constraint(
+                        name=f"cover_{t_name}",
+                        expression=f"{' + '.join(terms)} >= {float(need)}",
+                    )
+                )
+                continue
+            if task_rule == "demand_by_type":
+                # A construction site does not need "one machine", it needs one
+                # excavator and one crane. Write a row per type it asks for.
+                needs = t_row.get(needs_field) or {}
+                if not isinstance(needs, dict):
+                    raise ValueError(
+                        f"'{t_row.get('name', t_name)}' needs a '{needs_field}' map of "
+                        f"type -> count, got {type(needs).__name__}."
+                    )
+                for kind, count in needs.items():
+                    of_kind = [
+                        f"{self.sanitize_name(w.get('name', ''))}_{t_name}"
+                        for w in workers
+                        if isinstance(w, dict) and w.get(type_field) == kind
+                    ]
+                    of_kind = [v for v in of_kind if v in task_vars]
+                    if not of_kind and float(count) > 0:
+                        raise ValueError(
+                            f"'{t_row.get('name', t_name)}' asks for {count} of type "
+                            f"'{kind}' and no worker has that type."
+                        )
+                    if of_kind:
+                        constraints.append(
+                            Constraint(
+                                name=f"need_{t_name}_{self.sanitize_name(kind)}",
+                                expression=f"{' + '.join(of_kind)} == {float(count)}",
+                            )
+                        )
+                continue
+            if task_rule not in _OPERATOR:
+                raise ValueError(f"Unknown task_rule: {task_rule!r}")
             constraints.append(
                 Constraint(
                     name=f"task_{t_name}",
-                    expression=f"{' + '.join(task_vars)} == 1",
+                    expression=f"{' + '.join(task_vars)} {_OPERATOR[task_rule]} 1",
                 )
             )
 

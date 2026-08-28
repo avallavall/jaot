@@ -85,7 +85,15 @@ templates:
     tags: [insurance, claims, assignment, workforce]
     problem_type_tags: [MIP, assignment]
     generator_type: assignment
-    generator_params: {}
+    generator_params:
+      cost:
+        - task: complexity
+        - penalty: {unequal: [region, region], amount: 2, times: urgency}
+      require:
+        - member: [specialization, type]
+      worker_rule: capacity
+      capacity_field: max_cases
+      task_rule: exactly_one
     input_schema:
       type: object
       properties:

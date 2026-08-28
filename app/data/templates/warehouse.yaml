@@ -18,7 +18,13 @@ templates:
     tags: [warehouse, slotting, logistics, fulfillment]
     problem_type_tags: [MIP, assignment]
     generator_type: assignment
-    generator_params: {}
+    generator_params:
+      cost:
+        - multiply: [daily_picks, distance_to_dock]
+      require:
+        - equal: [size_class, size_class]
+      worker_rule: exactly_one
+      task_rule: at_most_one
     input_schema:
       type: object
       properties:
