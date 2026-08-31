@@ -56,6 +56,17 @@ class RailTimetablingGenerator(BaseGenerator):
         return None
 
     @staticmethod
+    def _reject_collisions(sanitized: list[str], originals: list[Any], label: str) -> None:
+        """Two rows whose names sanitize to the same identifier share variables."""
+        by_name: dict[str, list[Any]] = {}
+        for clean, original in zip(sanitized, originals, strict=True):
+            by_name.setdefault(clean, []).append(original)
+        clashes = {k: v for k, v in by_name.items() if len(v) > 1}
+        if clashes:
+            detail = "; ".join(f"{v} all become '{k}'" for k, v in sorted(clashes.items()))
+            raise ValueError(f"{label} must have distinct names: {detail}.")
+
+    @staticmethod
     def _endpoints(segment: dict[str, Any], index: int) -> tuple[str, str]:
         """The two stations a segment joins.
 
@@ -108,7 +119,7 @@ class RailTimetablingGenerator(BaseGenerator):
             travel.append(max(1, int(round(minutes))))
 
         stated = self._number(user_input, ("time_horizon", "horizon", "planning_minutes"))
-        horizon = int(stated) if stated else max(travel) * len(trains)
+        horizon = int(stated) if stated is not None else max(travel) * len(trains)
         if horizon <= 0:
             raise ValueError("Rail timetabling needs a positive time horizon in minutes.")
 
@@ -118,6 +129,11 @@ class RailTimetablingGenerator(BaseGenerator):
         seg_names = [
             self.sanitize_name(s.get("name", f"segment_{i}")) for i, s in enumerate(segments)
         ]
+        # "IC-201" and "IC 201" both sanitize to ic_201, and their departure
+        # variables would then be the same variable. Say so instead of building
+        # a model that silently times one train and drops the other.
+        self._reject_collisions(names, [t.get("name") for t in trains], "Trains")
+        self._reject_collisions(seg_names, [s.get("name") for s in segments], "Track segments")
 
         # A train must be clear of the network before the horizon closes.
         slots: list[list[int]] = []
