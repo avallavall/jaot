@@ -67,6 +67,13 @@ class PortfolioGenerator(BaseGenerator):
         return_terms: list[str] = []
         weight_terms: list[str] = []
         risk_terms: list[str] = []
+        missing_risk: list[str] = []
+
+        self.reject_name_collisions(
+            [self.sanitize_name(a.get("name", f"asset_{i}")) for i, a in enumerate(assets)],
+            [a.get("name") for a in assets],
+            "Assets",
+        )
 
         for i, asset in enumerate(assets):
             a_name = self.sanitize_name(asset.get("name", f"asset_{i}"))
@@ -97,7 +104,9 @@ class PortfolioGenerator(BaseGenerator):
             weight_terms.append(f"{weight}*{a_name}")
 
             risk = asset.get(risk_field)
-            if risk is not None:
+            if risk is None:
+                missing_risk.append(str(asset.get("name", i)))
+            else:
                 risk_terms.append(f"{round(float(risk) * weight, 6)}*{a_name}")
 
         constraints.append(
@@ -112,6 +121,16 @@ class PortfolioGenerator(BaseGenerator):
             limit = user_input.get(risk_limit_field)
             if limit is None:
                 raise ValueError(f"Input states no '{risk_limit_field}' to cap risk with.")
+            # The row is sum(risk_i*w_i*x_i) <= limit*sum(w_i*x_i), and the
+            # right-hand side runs over EVERY asset. An asset with no risk
+            # figure therefore added its weight to the allowance and nothing to
+            # the risk side, so holding it bought room for a riskier one.
+            if missing_risk:
+                raise ValueError(
+                    f"'{risk_limit_field}' caps risk, but these assets state no "
+                    f"'{risk_field}': {missing_risk}. Every asset needs a risk "
+                    "figure, or the cap loosens for each one that lacks it."
+                )
             # sum(risk_i * w_i * x_i) <= limit * sum(w_i * x_i)
             scaled = " + ".join(
                 f"{round(float(w.split('*')[0]) * float(limit), 6)}*{w.split('*')[1]}"
@@ -164,15 +183,27 @@ class PortfolioGenerator(BaseGenerator):
         variables: list[Variable] = []
         return_terms: list[str] = []
         risk_terms: list[str] = []
+        missing_risk_alloc: list[str] = []
         alloc_terms: list[str] = []
         constraints: list[Constraint] = []
+
+        self.reject_name_collisions(
+            [self.sanitize_name(a.get("name", f"asset_{i}")) for i, a in enumerate(assets)],
+            [a.get("name") for a in assets],
+            "Assets",
+        )
 
         for asset in assets:
             a_name = self.sanitize_name(asset.get("name", f"asset_{len(variables)}"))
             min_alloc = asset.get("min_allocation", asset.get("min_spend", 0))
             max_alloc = asset.get("max_allocation", asset.get("max_spend", 1))
             exp_return = asset.get("expected_return", asset.get("premium", asset.get("return", 0)))
-            risk = asset.get("risk", asset.get("expected_loss_ratio", 0))
+            # Defaulting a missing risk to 0 makes a real asset look risk-free,
+            # so it never draws on the ceiling and the plan overweights it.
+            risk = asset.get("risk", asset.get("expected_loss_ratio"))
+            if risk is None:
+                missing_risk_alloc.append(str(asset.get("name", a_name)))
+                risk = 0
 
             variables.append(
                 Variable(
@@ -215,6 +246,13 @@ class PortfolioGenerator(BaseGenerator):
             )
 
         if max_risk > 0:
+            if missing_risk_alloc:
+                raise ValueError(
+                    f"'max_risk' caps risk, but these assets state no 'risk' or "
+                    f"'expected_loss_ratio': {missing_risk_alloc}. A missing figure "
+                    "used to read as zero, which makes a real asset look risk-free "
+                    "and lets the plan overweight it."
+                )
             constraints.append(
                 Constraint(
                     name="max_risk",

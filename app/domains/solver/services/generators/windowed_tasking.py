@@ -74,13 +74,6 @@ class WindowedTaskingGenerator(BaseGenerator):
 
     _CAPACITY_KEYS = ("capacity_minutes", "capacity_hours", "available_hours", "capacity")
 
-    @staticmethod
-    def _number(row: dict[str, Any], keys: tuple[str, ...]) -> float | None:
-        for key in keys:
-            if row.get(key) is not None:
-                return float(row[key])
-        return None
-
     def generate(self, user_input: dict[str, Any], params: dict[str, Any]) -> OptimizationProblem:
         jobs = find_list_field(user_input, self._JOB_KEYS, fallback=False)
         resources = find_list_field(user_input, self._RESOURCE_KEYS, fallback=False)
@@ -99,7 +92,7 @@ class WindowedTaskingGenerator(BaseGenerator):
 
         durations: list[int] = []
         for i, job in enumerate(jobs):
-            duration = self._number(job, self._DURATION_KEYS)
+            duration = self.first_number(job, self._DURATION_KEYS)
             if duration is None or duration <= 0:
                 raise ValueError(
                     f"Job '{job.get('name', i)}' has no positive duration. "
@@ -109,8 +102,8 @@ class WindowedTaskingGenerator(BaseGenerator):
 
         # The horizon has to hold the work. Without a stated one, allow every
         # job to run back to back on a single resource.
-        stated = self._number(user_input, ("time_horizon", "horizon", "planning_hours"))
-        latest_deadline = max((self._number(job, self._DEADLINE_KEYS) or 0) for job in jobs)
+        stated = self.first_number(user_input, ("time_horizon", "horizon", "planning_hours"))
+        latest_deadline = max((self.first_number(job, self._DEADLINE_KEYS) or 0) for job in jobs)
         horizon = int(stated or max(latest_deadline, sum(durations)))
         if horizon <= 0:
             raise ValueError("Windowed tasking needs a positive time horizon.")
@@ -121,49 +114,67 @@ class WindowedTaskingGenerator(BaseGenerator):
         # starts[i][r] = [(t, var_name), …] for every start this job can take
         # on that resource: inside its window, finishing before its deadline,
         # and only where the job physically fits.
-        starts: list[dict[int, list[tuple[int, str]]]] = []
-        variables: list[Variable] = []
+        # Two passes. The first only counts, because the cap used to be checked
+        # after every Variable had already been built: an oversized card paid
+        # the whole build before being told no, inside the request handler.
+        windows: list[dict[int, tuple[int, int]]] = []
         blocked: list[str] = []
-
+        projected = 0
         for i, job in enumerate(jobs):
-            release = int(self._number(job, self._RELEASE_KEYS) or 0)
-            deadline = int(self._number(job, self._DEADLINE_KEYS) or horizon)
-            per_resource: dict[int, list[tuple[int, str]]] = {}
+            release = int(self.first_number(job, self._RELEASE_KEYS) or 0)
+            deadline = int(self.first_number(job, self._DEADLINE_KEYS) or horizon)
+            latest = min(deadline, horizon) - durations[i]
+            per_resource: dict[int, tuple[int, int]] = {}
             for r, resource in enumerate(resources):
-                if not self._fits(job, resource):
+                if not self._fits(job, resource) or latest < release:
                     continue
-                latest = min(deadline, horizon) - durations[i]
-                slots = [
-                    (t, f"z_{job_names[i]}_{res_names[r]}_{t}") for t in range(release, latest + 1)
-                ]
-                if slots:
-                    per_resource[r] = slots
-                    variables.extend(
-                        Variable(name=name, type=VariableType.BINARY) for _t, name in slots
-                    )
+                per_resource[r] = (release, latest)
+                projected += latest - release + 1
             if not per_resource:
                 blocked.append(
                     f"{job.get('name', i)} (needs {durations[i]} between {release} and {deadline})"
                 )
-            starts.append(per_resource)
+            windows.append(per_resource)
 
-        # A job that fits nowhere is a data error in serve_all mode and dead
-        # weight in select mode; either way it should be said out loud.
-        if blocked:
+        if projected > _MAX_START_VARS:
+            raise ValueError(
+                f"Windowed tasking would need {projected:,} start variables "
+                f"(limit {_MAX_START_VARS:,}). Shorten the horizon or the windows."
+            )
+
+        starts: list[dict[int, list[tuple[int, str]]]] = []
+        variables: list[Variable] = []
+        for i in range(len(jobs)):
+            per_resource_slots: dict[int, list[tuple[int, str]]] = {}
+            for r, (release, latest) in windows[i].items():
+                slots = [
+                    (t, f"z_{job_names[i]}_{res_names[r]}_{t}") for t in range(release, latest + 1)
+                ]
+                per_resource_slots[r] = slots
+                variables.extend(
+                    Variable(name=name, type=VariableType.BINARY) for _t, name in slots
+                )
+            starts.append(per_resource_slots)
+
+        # A job that fits nowhere makes serve_all impossible, so say so. In
+        # select mode the work is optional by construction: a candidate that
+        # does not fit is simply one the plan cannot pick, and raising there
+        # turned a working card into a hard failure the moment a user added
+        # one row with a window shorter than its own duration.
+        if blocked and serve_all:
             raise ValueError(
                 f"{len(blocked)} job(s) cannot be scheduled anywhere: {'; '.join(blocked[:5])}"
-            )
-        if len(variables) > _MAX_START_VARS:
-            raise ValueError(
-                f"Windowed tasking would need {len(variables):,} start variables "
-                f"(limit {_MAX_START_VARS:,}). Shorten the horizon or the windows."
             )
 
         constraints: list[Constraint] = []
 
-        # One start per job — exactly one when every job must be served.
+        # One start per job — exactly one when every job must be served. A job
+        # with no feasible start has no terms, and an empty left-hand side is
+        # not an expression; in select mode such a job is simply never picked.
         for i, name in enumerate(job_names):
             all_slots = [var for slots in starts[i].values() for _t, var in slots]
+            if not all_slots:
+                continue
             constraints.append(
                 Constraint(
                     name=f"once_{name}",
@@ -191,7 +202,7 @@ class WindowedTaskingGenerator(BaseGenerator):
 
         # Total working time booked on a resource, when it has a budget.
         for r, resource in enumerate(resources):
-            budget = self._number(resource, self._CAPACITY_KEYS)
+            budget = self.first_number(resource, self._CAPACITY_KEYS)
             if budget is None:
                 continue
             terms = [
@@ -232,11 +243,11 @@ class WindowedTaskingGenerator(BaseGenerator):
         if serve_all:
             # Waiting is the gap between becoming available and starting.
             wait_terms = [
-                f"{t - int(self._number(jobs[i], self._RELEASE_KEYS) or 0)}*{var}"
+                f"{t - int(self.first_number(jobs[i], self._RELEASE_KEYS) or 0)}*{var}"
                 for i in range(len(jobs))
                 for slots in starts[i].values()
                 for t, var in slots
-                if t > int(self._number(jobs[i], self._RELEASE_KEYS) or 0)
+                if t > int(self.first_number(jobs[i], self._RELEASE_KEYS) or 0)
             ]
             return OptimizationProblem(
                 name="windowed_serve_all",
@@ -253,7 +264,7 @@ class WindowedTaskingGenerator(BaseGenerator):
             )
 
         value_terms = [
-            f"{self._number(jobs[i], self._VALUE_KEYS) or 1}*{var}"
+            f"{self.first_number(jobs[i], self._VALUE_KEYS) or 1}*{var}"
             for i in range(len(jobs))
             for slots in starts[i].values()
             for _t, var in slots

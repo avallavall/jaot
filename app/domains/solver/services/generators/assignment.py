@@ -17,6 +17,9 @@ from app.schemas.optimization import (
     VariableType,
 )
 
+#: Rules that become a "<count> <op> 1" row. Shared by the worker and task side.
+_OPERATOR = {"exactly_one": "==", "at_most_one": "<="}
+
 
 class AssignmentGenerator(BaseGenerator):
     """Generate assignment problems (worker-task, machine-job, etc.).
@@ -97,27 +100,49 @@ class AssignmentGenerator(BaseGenerator):
         return total
 
     @staticmethod
+    def _rule_field(row: dict[str, Any], field: str, side: str, kind: str) -> Any:
+        """Read a compatibility field, refusing to guess when it is absent.
+
+        A missing field used to read as 0 (or as an empty allow-list), so a
+        rule the card declares stopped constraining the moment the user's
+        column was named differently. A 40 kg pallet then went into a slot
+        rated for 30 kg, and the solve reported optimal.
+        """
+        if field not in row or row[field] is None:
+            raise ValueError(
+                f"Compatibility rule '{kind}' reads '{field}' on the {side} row "
+                f"'{row.get('name', '?')}', which does not carry it. "
+                f"Fields present: {sorted(row)}."
+            )
+        return row[field]
+
+    @staticmethod
     def _pair_allowed(worker: dict[str, Any], task: dict[str, Any], rules: list[Any]) -> bool:
         """Whether this worker may take this task at all."""
+        read = AssignmentGenerator._rule_field
         for rule in rules:
             if not isinstance(rule, dict) or len(rule) != 1:
                 raise ValueError(f"Each compatibility rule needs exactly one key, got: {rule!r}")
             kind, arg = next(iter(rule.items()))
             w_field, t_field = arg
             if kind == "equal":
-                if worker.get(w_field) != task.get(t_field):
+                if read(worker, w_field, "worker", kind) != read(task, t_field, "task", kind):
                     return False
             elif kind == "member":
-                allowed = worker.get(w_field) or []
-                if task.get(t_field) not in allowed:
+                allowed = read(worker, w_field, "worker", kind)
+                if read(task, t_field, "task", kind) not in allowed:
                     return False
             elif kind == "at_least":
-                if float(worker.get(w_field, 0)) < float(task.get(t_field, 0)):
+                if float(read(worker, w_field, "worker", kind)) < float(
+                    read(task, t_field, "task", kind)
+                ):
                     return False
             elif kind == "at_most":
                 # The limit sits on the task side: a 40 kg pallet needs a slot
                 # rated for it, so worker[field] must not exceed task[field].
-                if float(worker.get(w_field, 0)) > float(task.get(t_field, 0)):
+                if float(read(worker, w_field, "worker", kind)) > float(
+                    read(task, t_field, "task", kind)
+                ):
                     return False
             else:
                 raise ValueError(f"Unknown assignment compatibility rule: {kind!r}")
@@ -152,6 +177,29 @@ class AssignmentGenerator(BaseGenerator):
                 "Assignment needs a cost: either a 'costs' table keyed by "
                 "'<worker>_<task>', or cost rules in generator_params."
             )
+
+        # Pair variables are "<worker>_<task>", so two workers or two tasks that
+        # sanitize alike write to the same variable and one of them is quietly
+        # dropped from the plan.
+        for rows, label in ((workers, "Workers"), (tasks, "Tasks")):
+            raw = [(r if isinstance(r, dict) else {"name": r}).get("name", r) for r in rows]
+            self.reject_name_collisions([self.sanitize_name(n) for n in raw], raw, label)
+
+        # Check the worker rule before a single row is built. The idle-cost
+        # branch below skips the rest of the worker loop, so on any card that
+        # sets an idle cost the "Unknown worker_rule" check was unreachable:
+        # a typo, or a capacity rule with a missing field, rendered a model
+        # byte-identical to the correct one and reported optimal.
+        if worker_rule != "capacity" and worker_rule not in _OPERATOR:
+            raise ValueError(f"Unknown worker_rule: {worker_rule!r}")
+        if worker_rule == "capacity":
+            if not capacity_field:
+                raise ValueError("worker_rule 'capacity' needs a capacity_field.")
+            if idle_cost_field:
+                raise ValueError(
+                    "worker_rule 'capacity' cannot be combined with idle_cost_field: "
+                    "the idle row already pins each worker at one task or idle."
+                )
 
         variables: list[Variable] = []
         cost_terms: list[str] = []
@@ -198,7 +246,6 @@ class AssignmentGenerator(BaseGenerator):
             )
 
         constraints: list[Constraint] = []
-        _OPERATOR = {"exactly_one": "==", "at_most_one": "<="}
 
         # How many tasks one worker may hold. "capacity" reads a per-worker
         # limit from the data: an adjuster with max_cases 3 takes three claims,
@@ -289,11 +336,16 @@ class AssignmentGenerator(BaseGenerator):
             if task_rule == "demand_by_type":
                 # A construction site does not need "one machine", it needs one
                 # excavator and one crane. Write a row per type it asks for.
-                needs = t_row.get(needs_field) or {}
+                # No "or {}" here: the studio's Add-row button writes "" into an
+                # object column, and an empty string is falsy. The row then got
+                # its variables and its objective terms but no demand row at
+                # all, so nothing required anything of it and the solve was
+                # optimal with that site served by nobody.
+                needs = t_row.get(needs_field)
                 if not isinstance(needs, dict):
                     raise ValueError(
                         f"'{t_row.get('name', t_name)}' needs a '{needs_field}' map of "
-                        f"type -> count, got {type(needs).__name__}."
+                        f"type -> count, got {needs!r}."
                     )
                 for kind, count in needs.items():
                     of_kind = [

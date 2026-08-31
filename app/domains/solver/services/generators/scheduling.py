@@ -21,6 +21,11 @@ from app.schemas.optimization import (
     VariableType,
 )
 
+#: tasks x horizon. Past this the time-indexed formulation stops being the right
+#: tool, and saying so beats handing the solver a model it will time out on.
+#: Same figure as rail_timetabling and windowed_tasking.
+_MAX_START_VARS = 40_000
+
 
 class SchedulingGenerator(BaseGenerator):
     """Generate employee/resource scheduling problems.
@@ -245,6 +250,15 @@ class SchedulingGenerator(BaseGenerator):
             find_scalar_field(user_input, ["num_crews", "num_resources"], default=0)
         )
 
+        # `starts_of` is keyed by the sanitized task name, so two tasks that
+        # sanitize alike share every start variable and one of them silently
+        # inherits the other's schedule.
+        self.reject_name_collisions(
+            [self.sanitize_name(t.get("name", f"task_{i}")) for i, t in enumerate(tasks)],
+            [t.get("name") for t in tasks],
+            "Tasks",
+        )
+
         names: list[str] = []
         durations: list[int] = []
         for i, task in enumerate(tasks):
@@ -276,6 +290,18 @@ class SchedulingGenerator(BaseGenerator):
                     "duration_hours, processing_hours, period."
                 )
             durations.append(max(1, int(round(float(duration)))))
+
+        # Size the model before building it. This formulation grows as tasks x
+        # horizon and had no cap at all: measured 20.8 s to build 120,000 start
+        # variables, inside the request handler, before anything was solved.
+        # The other time-indexed generators cap at 40,000; this uses the same
+        # figure so a card that is too big is told so in milliseconds.
+        projected = sum(max(0, time_horizon - duration) + 1 for duration in durations)
+        if projected > _MAX_START_VARS:
+            raise ValueError(
+                f"Task scheduling would need {projected:,} start variables "
+                f"(limit {_MAX_START_VARS:,}). Shorten the horizon or the task list."
+            )
 
         variables: list[Variable] = []
         constraints: list[Constraint] = []
@@ -344,8 +370,19 @@ class SchedulingGenerator(BaseGenerator):
                 continue
             for prereq in prereqs:
                 p_name = name_by_raw.get(str(prereq), self.sanitize_name(str(prereq)))
-                if p_name not in starts_of or p_name == names[i]:
+                if p_name == names[i]:
                     continue
+                # A prerequisite naming a task that is not in the list used to
+                # be dropped in silence. One transposed letter ("Desing") and
+                # the precedence row simply did not exist: the dependent task
+                # was scheduled in parallel with the one it waits for, and the
+                # solve reported optimal.
+                if p_name not in starts_of:
+                    raise ValueError(
+                        f"Task '{task.get('name', f'task_{i}')}' depends on "
+                        f"'{prereq}', which is not in the task list. "
+                        f"Tasks are {sorted(name_by_raw)}."
+                    )
                 p_duration = durations[names.index(p_name)]
                 constraints.append(
                     Constraint(

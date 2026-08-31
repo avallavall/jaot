@@ -43,6 +43,12 @@ class NetworkDesignGenerator(BaseGenerator):
         node_names: list[str] = [
             self.sanitize_name(str(n.get("name", n.get("id", "")))) for n in nodes_raw
         ]
+        # Two nodes that sanitize alike merge into one, and the redundancy the
+        # card is built to prove disappears with them: measured 99 variables /
+        # 75 constraints down to 77 / 65, still reported optimal.
+        self.reject_name_collisions(
+            node_names, [n.get("name", n.get("id")) for n in nodes_raw], "Nodes"
+        )
 
         edges: list[tuple[str, str, float]] = []
         for e in edges_raw:

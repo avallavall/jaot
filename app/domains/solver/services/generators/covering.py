@@ -121,6 +121,14 @@ class CoveringGenerator(BaseGenerator):
         variables: list[Variable] = []
         cost_terms: list[str] = []
 
+        # Two sets that sanitize alike become one binary, so the cheaper of the
+        # two is picked for both and one option leaves the model unnoticed.
+        self.reject_name_collisions(
+            [self.sanitize_name(s.get("name", f"set_{i}")) for i, s in enumerate(sets)],
+            [s.get("name") for s in sets],
+            "Sets",
+        )
+
         for i, s in enumerate(sets):
             s_name = self.sanitize_name(s.get("name", f"set_{i}"))
             # A missing cost used to become 1, which turns "cheapest cover"
@@ -140,10 +148,20 @@ class CoveringGenerator(BaseGenerator):
         constraints: list[Constraint] = []
         op = "== 1" if mode == "partition" else ">= 1"
 
+        uncoverable: list[str] = []
+
         if sparse_coverage:
             elem_names_set: set[str] = set()
             for covered in sparse_coverage.values():
                 elem_names_set.update(covered)
+            # An element the card declares but no coverage row mentions belongs
+            # in the universe too. Taking the universe from the coverage rows
+            # alone gave such an element no row at all, and the solve came back
+            # optimal with that zone covered by nobody. The dense branch has
+            # refused this since the release; the sparse branch did not.
+            for el in elements:
+                if isinstance(el, dict) and el.get("name"):
+                    elem_names_set.add(str(el["name"]))
             for elem_raw in sorted(elem_names_set):
                 covering_vars = []
                 for i, s in enumerate(sets):
@@ -169,8 +187,15 @@ class CoveringGenerator(BaseGenerator):
                             expression=f"{' + '.join(covering_vars)} {row_op}",
                         )
                     )
+                else:
+                    uncoverable.append(elem_raw)
+
+            if uncoverable:
+                raise ValueError(
+                    f"No set covers element(s): {', '.join(uncoverable)}. "
+                    "Every element must appear in at least one set's coverage."
+                )
         else:
-            uncoverable: list[str] = []
             for e in range(num_elements):
                 covering_vars = []
 

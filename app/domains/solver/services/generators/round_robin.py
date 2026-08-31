@@ -59,13 +59,6 @@ class RoundRobinGenerator(BaseGenerator):
     _KM_KEYS = ("km", "distance", "distance_km", "travel_km", "miles")
 
     @staticmethod
-    def _number(row: dict[str, Any], keys: tuple[str, ...]) -> float | None:
-        for key in keys:
-            if row.get(key) is not None:
-                return float(row[key])
-        return None
-
-    @staticmethod
     def _text(row: dict[str, Any], keys: tuple[str, ...]) -> str | None:
         for key in keys:
             if row.get(key):
@@ -81,22 +74,14 @@ class RoundRobinGenerator(BaseGenerator):
             )
 
         names = [self.sanitize_name(t.get("name", f"team_{i}")) for i, t in enumerate(teams)]
-        # Two clubs whose names sanitize the same would share fixture variables,
-        # and the model would quietly schedule one of them twice.
-        by_name: dict[str, list[Any]] = {}
-        for clean, team in zip(names, teams, strict=True):
-            by_name.setdefault(clean, []).append(team.get("name"))
-        clashes = {k: v for k, v in by_name.items() if len(v) > 1}
-        if clashes:
-            detail = "; ".join(f"{v} all become '{k}'" for k, v in sorted(clashes.items()))
-            raise ValueError(f"Teams must have distinct names: {detail}.")
+        self.reject_name_collisions(names, [t.get("name") for t in teams], "Teams")
 
         n = len(teams)
         games = n * (n - 1) // 2
 
         # A matchday fits at most n // 2 games, so the season needs enough of
         # them to hold every fixture.
-        stated_rounds = self._number(user_input, self._ROUND_KEYS)
+        stated_rounds = self.first_number(user_input, self._ROUND_KEYS)
         rounds = int(stated_rounds) if stated_rounds is not None else (n - 1 if n % 2 == 0 else n)
         if rounds <= 0:
             raise ValueError("A round robin needs a positive number of matchdays.")
@@ -106,7 +91,7 @@ class RoundRobinGenerator(BaseGenerator):
                 f"playing each other once is {games} games. Add matchdays."
             )
 
-        max_away_run = self._number(user_input, self._RUN_KEYS)
+        max_away_run = self.first_number(user_input, self._RUN_KEYS)
         if max_away_run is not None and max_away_run < 1:
             raise ValueError(
                 "max_consecutive_away must be at least 1: a team that may never play two "
@@ -247,7 +232,7 @@ class RoundRobinGenerator(BaseGenerator):
         """What a kilometre on the road costs each club."""
         rates: list[float] = []
         for i, team in enumerate(teams):
-            rate = self._number(team, self._RATE_KEYS)
+            rate = self.first_number(team, self._RATE_KEYS)
             if rate is None or rate <= 0:
                 raise ValueError(
                     f"Team '{team.get('name', names[i])}' has no positive travel cost per "
@@ -276,7 +261,7 @@ class RoundRobinGenerator(BaseGenerator):
         for row in rows:
             a = self._text(row, self._FROM_KEYS)
             b = self._text(row, self._TO_KEYS)
-            km = self._number(row, self._KM_KEYS)
+            km = self.first_number(row, self._KM_KEYS)
             if a is None or b is None or km is None:
                 raise ValueError(
                     f"Distance row {row!r} needs a from, a to and a distance. "

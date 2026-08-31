@@ -38,6 +38,53 @@ class BaseGenerator(ABC):
             sanitized = f"v_{sanitized}"
         return sanitized.lower()
 
+    def reject_name_collisions(
+        self, sanitized: list[str], originals: list[Any], label: str
+    ) -> None:
+        """Reject rows whose names sanitize to the same identifier.
+
+        ``sanitize_name`` lowercases and replaces punctuation, so "Acme Ltd" and
+        "Acme-Ltd" both become ``acme_ltd``. The two rows then write to the same
+        variables and the same constraint name. The model loses one of them and
+        still reports optimal, or the schema rejects the whole problem with a
+        message that names neither the field nor the two names that clashed.
+        """
+        by_name: dict[str, list[Any]] = {}
+        for clean, original in zip(sanitized, originals, strict=True):
+            by_name.setdefault(clean, []).append(original)
+        clashes = {k: v for k, v in by_name.items() if len(v) > 1}
+        if clashes:
+            detail = "; ".join(f"{v} all become '{k}'" for k, v in sorted(clashes.items()))
+            raise ValueError(f"{label} must have distinct names: {detail}.")
+
+    def sanitize_unique(
+        self,
+        rows: list[dict[str, Any]],
+        label: str,
+        prefix: str = "row",
+        key: str = "name",
+    ) -> list[str]:
+        """Sanitize each row's name, rejecting collisions. Accepts 'name' or 'id'."""
+        raw = [r.get(key, r.get("id", f"{prefix}_{i}")) for i, r in enumerate(rows)]
+        names = [self.sanitize_name(v) for v in raw]
+        self.reject_name_collisions(names, raw, label)
+        return names
+
+    @staticmethod
+    def first_number(row: dict[str, Any], keys: tuple[str, ...]) -> float | None:
+        """The first of *keys* the row carries, as a float, or None.
+
+        Four generators each carried a byte-identical private copy of this
+        (``_number`` three times, ``_first_number`` once). Returning None rather
+        than a default is the point: the caller decides whether a missing figure
+        is an error, and "or 0.0" at the call site is what turned an
+        unrecognised demand key into "buy nothing, optimal".
+        """
+        for key in keys:
+            if row.get(key) is not None:
+                return float(row[key])
+        return None
+
     def build_warm_start(
         self, user_input: dict[str, Any], params: dict[str, Any]
     ) -> dict[str, float] | None:

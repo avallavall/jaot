@@ -35,6 +35,30 @@ class ProductionGenerator(BaseGenerator):
         variables: list[Variable] = []
         profit_terms: list[str] = []
 
+        # A resource's "usage" map is keyed by whatever the user typed, and the
+        # variables are sanitized. The feed-cost loop read the raw key and the
+        # capacity loop read the sanitized one, so a product written "Dining
+        # Chairs" kept its objective term and vanished from every resource row:
+        # no ceiling on it at all, and an unbounded model reported as optimal.
+        # Key every usage map the same way the variables are keyed, once.
+        self.reject_name_collisions(
+            [self.sanitize_name(p.get("name", "")) for p in products],
+            [p.get("name") for p in products],
+            "Products",
+        )
+        product_names = {self.sanitize_name(p.get("name", "")) for p in products}
+        usage_by_resource: list[dict[str, Any]] = []
+        for r in resources:
+            usage_map = {self.sanitize_name(k): v for k, v in (r.get("usage") or {}).items()}
+            unknown = sorted(set(usage_map) - product_names)
+            if unknown:
+                raise ValueError(
+                    f"Resource '{r.get('name', 'resource')}' states usage for "
+                    f"{unknown}, which match no product. Products are "
+                    f"{sorted(product_names)}."
+                )
+            usage_by_resource.append(usage_map)
+
         for p in products:
             name = self.sanitize_name(p.get("name", f"product_{len(variables)}"))
             min_prod = p.get("min_production", 0)
@@ -56,21 +80,18 @@ class ProductionGenerator(BaseGenerator):
             # Reading only the price made every feedstock's cost decoration and
             # a card that says "at minimum cost" maximize revenue instead.
             feed_cost = 0.0
-            for r in resources:
+            for r, usage_map in zip(resources, usage_by_resource, strict=True):
                 per_unit = r.get("cost_per_unit", r.get("cost"))
-                usage = (r.get("usage") or {}).get(
-                    p.get("name", ""), (r.get("usage") or {}).get(name)
-                )
+                usage = usage_map.get(name)
                 if per_unit is not None and usage:
                     feed_cost += float(per_unit) * float(usage)
             profit_terms.append(f"{round(float(profit) - feed_cost, 6)}*{name}")
 
         constraints: list[Constraint] = []
 
-        for r in resources:
+        for r, usage in zip(resources, usage_by_resource, strict=True):
             r_name = r.get("name", "resource")
             available = r.get("available", 100)
-            usage = r.get("usage", {})
 
             usage_terms = []
             for p in products:

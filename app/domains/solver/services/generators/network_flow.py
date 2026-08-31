@@ -85,8 +85,23 @@ class NetworkFlowGenerator(BaseGenerator):
         """Build nodes and arcs when input has separate source/sink lists."""
         nodes: list[dict[str, Any]] = []
         arcs: list[dict[str, Any]] = []
-        for s in sources:
-            s_name = s.get("name", s.get("id", f"src_{len(nodes)}"))
+
+        # Resolve every endpoint name once. The node loop below accepted "name"
+        # or "id" while the arc loop read "name" only, so a row identified by id
+        # produced a node called "A1" and an arc between two empty names. Both
+        # endpoints sanitized to "unnamed", the arc matched no conservation row,
+        # and the model minimized one free variable: nothing shipped, "optimal".
+        src_names = [s.get("name", s.get("id", f"src_{i}")) for i, s in enumerate(sources)]
+        sink_names = [
+            d.get("name", d.get("id", f"sink_{len(sources) + i}")) for i, d in enumerate(sinks)
+        ]
+        self.reject_name_collisions(
+            [self.sanitize_name(n) for n in src_names + sink_names],
+            src_names + sink_names,
+            "Sources and sinks",
+        )
+
+        for s, s_name in zip(sources, src_names, strict=True):
             supply = s.get(
                 "supply",
                 s.get(
@@ -96,8 +111,7 @@ class NetworkFlowGenerator(BaseGenerator):
             )
             nodes.append({"name": s_name, "supply": supply})
 
-        for d in sinks:
-            d_name = d.get("name", d.get("id", f"sink_{len(nodes)}"))
+        for d, d_name in zip(sinks, sink_names, strict=True):
             # A plant's capacity is how much it CAN take, not how much it must.
             # Reading it as a demand forced every plant to run full, so the
             # example only worked because someone had tuned total capacity to
@@ -118,7 +132,13 @@ class NetworkFlowGenerator(BaseGenerator):
             nodes.append(
                 {
                     "name": d_name,
-                    "supply": -(stated_demand if stated_demand is not None else (ceiling or 10)),
+                    # "ceiling or 10" read a stated capacity of 0 as 10, so a
+                    # plant that said it is closed absorbed ten units anyway.
+                    "supply": -(
+                        stated_demand
+                        if stated_demand is not None
+                        else (ceiling if ceiling is not None else 10)
+                    ),
                     "ceiling_only": stated_demand is None and ceiling is not None,
                 }
             )
@@ -128,11 +148,9 @@ class NetworkFlowGenerator(BaseGenerator):
         # routing ties for "optimal" — which is what wastewater_treatment_
         # allocation was doing while its plants each stated a price per unit.
         _COST_KEYS = ("cost_per_unit", "processing_cost", "unit_cost", "cost", "price_per_unit")
-        for s in sources:
-            s_name = s.get("name", "")
+        for s, s_name in zip(sources, src_names, strict=True):
             s_cost = next((float(s[k]) for k in _COST_KEYS if s.get(k) is not None), 0.0)
-            for d in sinks:
-                d_name = d.get("name", "")
+            for d, d_name in zip(sinks, sink_names, strict=True):
                 d_cost = next((float(d[k]) for k in _COST_KEYS if d.get(k) is not None), 0.0)
                 cost = s_cost + d_cost
                 if cost == 0:
@@ -422,7 +440,14 @@ class NetworkFlowGenerator(BaseGenerator):
                 # out - in >= -capacity, i.e. this node absorbs at most its
                 # capacity. The supply figure is negative, so the direction
                 # reads backwards from "at most".
-                op = ">="
+                #
+                # When the sources are relaxed too, the ceiling has to become
+                # the binding side. Slack on both sides at once left the model
+                # with no floor anywhere: shipping nothing was feasible, and for
+                # a MINIMIZE objective it was optimal. Scaling every plant in
+                # wastewater_treatment_allocation to 40% returned OPTIMAL at
+                # 0.0 with every flow variable at zero.
+                op = "==" if relax_supply_rows else ">="
             elif relax_supply_rows and supply > 0:
                 op = "<="
             else:

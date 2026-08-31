@@ -56,12 +56,6 @@ class ProcurementGenerator(BaseGenerator):
                 return value
         return None
 
-    def _first_number(self, row: dict[str, Any], keys: tuple[str, ...]) -> float | None:
-        for key in keys:
-            if row.get(key) is not None:
-                return float(row[key])
-        return None
-
     def _generate_single_material(
         self,
         user_input: dict[str, Any],
@@ -165,11 +159,37 @@ class ProcurementGenerator(BaseGenerator):
         nothing else: three variables, one constraint, and every price,
         capacity and requirement thrown away.
         """
+        # `required` is keyed by the sanitized material name, so two materials
+        # that sanitize alike overwrite each other and one purchase requirement
+        # row vanishes with no error at all.
+        self.reject_name_collisions(
+            [self.sanitize_name(m.get("name", "")) for m in materials],
+            [m.get("name") for m in materials],
+            "Materials",
+        )
+        self.reject_name_collisions(
+            [self.sanitize_name(s.get("name", f"sup_{i}")) for i, s in enumerate(suppliers)],
+            [s.get("name") for s in suppliers],
+            "Suppliers",
+        )
+
         required: dict[str, float] = {}
         label: dict[str, str] = {}
         for mat in materials:
             key = self.sanitize_name(mat.get("name", ""))
-            required[key] = self._first_number(mat, self._DEMAND_KEYS) or 0.0
+            # "or 0.0" turned a demand key this generator does not recognise
+            # into a requirement of zero. That pinned the purchase variable's
+            # upper bound to 0 and skipped the requirement row, so a card whose
+            # whole job is to buy 80 tonnes of steel answered "buy nothing,
+            # cost 0, optimal". Every other missing field here raises.
+            demand = self.first_number(mat, self._DEMAND_KEYS)
+            if demand is None:
+                raise ValueError(
+                    f"Material '{mat.get('name', key)}' states no requirement. "
+                    f"Expected one of: {', '.join(self._DEMAND_KEYS)}. "
+                    f"Fields present: {sorted(mat)}."
+                )
+            required[key] = demand
             label[key] = str(mat.get("name", key))
 
         variables: list[Variable] = []
@@ -187,15 +207,15 @@ class ProcurementGenerator(BaseGenerator):
 
             sup_name = self.sanitize_name(sup.get("name", f"sup_{i}"))
             qty = f"qty_{sup_name}"
-            price = self._first_number(sup, self._PRICE_KEYS)
+            price = self.first_number(sup, self._PRICE_KEYS)
             if price is None:
                 raise ValueError(
                     f"Supplier '{sup.get('name', sup_name)}' quotes no price. "
                     f"Expected one of: {', '.join(self._PRICE_KEYS)}."
                 )
-            capacity = self._first_number(sup, ("max_capacity", "capacity", "max_supply"))
-            delivery = self._first_number(sup, ("delivery_cost", "fixed_cost", "setup_cost"))
-            min_order = self._first_number(sup, ("min_order", "minimum_order", "min_order_qty"))
+            capacity = self.first_number(sup, ("max_capacity", "capacity", "max_supply"))
+            delivery = self.first_number(sup, ("delivery_cost", "fixed_cost", "setup_cost"))
+            min_order = self.first_number(sup, ("min_order", "minimum_order", "min_order_qty"))
 
             # Without a stated capacity the requirement itself bounds the order:
             # buying more of a material than is required is never optimal here.

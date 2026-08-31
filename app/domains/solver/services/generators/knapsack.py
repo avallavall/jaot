@@ -104,11 +104,6 @@ def _find_scalar(user_input: dict[str, Any], fields: list[str]) -> float | None:
     return None
 
 
-def _find_capacity(user_input: dict[str, Any]) -> float | None:
-    """Extract the capacity / budget scalar from the input."""
-    return _find_scalar(user_input, _CAPACITY_FIELDS)
-
-
 class KnapsackGenerator(BaseGenerator):
     """Generate knapsack problems (0-1 or bounded).
 
@@ -124,26 +119,36 @@ class KnapsackGenerator(BaseGenerator):
                 "Provide an 'items' list or a domain-specific list of selectable objects."
             )
 
-        # A value or a weight that no item carries used to default to 1.0 per
-        # item, which turns the objective into a plain count of selected items
-        # and the capacity row into a limit on how many fit. Both look like a
-        # working model and answer nothing.
-        if not any(_has_field(item, _VALUE_FIELDS) for item in items):
-            raise ValueError(
-                f"No item in '{key or 'items'}' carries a value field. "
-                f"Expected one of: {', '.join(_VALUE_FIELDS)}."
-            )
-        if not any(_has_field(item, _WEIGHT_FIELDS) for item in items):
-            raise ValueError(
-                f"No item in '{key or 'items'}' carries a weight or cost field. "
-                f"Expected one of: {', '.join(_WEIGHT_FIELDS)}."
-            )
+        # A value or a weight that an item does not carry falls through to a
+        # default of 1.0, which prices that row at a fraction of its neighbours
+        # or gives it no weight at all. Checking that SOME item carries the
+        # field left exactly that hole open for the one row a user forgot a
+        # column on, so every row has to carry it.
+        for label, fields in (("value", _VALUE_FIELDS), ("weight or cost", _WEIGHT_FIELDS)):
+            missing = [
+                item.get("name", f"item_{i}")
+                for i, item in enumerate(items)
+                if not _has_field(item, fields)
+            ]
+            if missing:
+                raise ValueError(
+                    f"These rows in '{key or 'items'}' carry no {label} field: "
+                    f"{missing}. Every row needs one of: {', '.join(fields)}."
+                )
 
         variables: list[Variable] = []
         value_terms: list[str] = []
         weight_terms: list[str] = []
         dimension_terms: dict[str, list[str]] = {}
         constraints_from_min_totals: list[Constraint] = []
+
+        # Two items that sanitize to the same identifier become one variable:
+        # the objective doubles a term and the second row leaves the model.
+        self.reject_name_collisions(
+            [self.sanitize_name(it.get("name", f"item_{i}")) for i, it in enumerate(items)],
+            [it.get("name") for it in items],
+            f"Rows of '{key or 'items'}'",
+        )
 
         for i, item in enumerate(items):
             name = self.sanitize_name(item.get("name", f"item_{i}"))
@@ -178,7 +183,6 @@ class KnapsackGenerator(BaseGenerator):
                     )
 
         target = _find_scalar(user_input, _TARGET_FIELDS)
-        capacity = _find_capacity(user_input)
 
         # A floor on the total of some other item field. A shopping centre
         # maximizes rent, but the mix still has to pull enough footfall, and
@@ -197,7 +201,7 @@ class KnapsackGenerator(BaseGenerator):
 
         constraints: list[Constraint] = list(constraints_from_min_totals)
         # Every stated limit becomes a row, not just the first one found.
-        written: set[str] = set()
+        consumed: set[str] = set()
         for label, cap_fields, _item_field in _LIMIT_DIMENSIONS:
             limit = _find_scalar(user_input, cap_fields)
             terms = dimension_terms.get(label)
@@ -205,17 +209,42 @@ class KnapsackGenerator(BaseGenerator):
                 constraints.append(
                     Constraint(name=f"limit_{label}", expression=f"{' + '.join(terms)} <= {limit}")
                 )
-                written.update(cap_fields)
+                consumed.update(f for f in cap_fields if _find_scalar(user_input, [f]) is not None)
 
-        # The generic weight/capacity row, unless a named dimension already
-        # covered that same scalar (mass_kg is also matched as a weight).
-        if capacity is not None and not any(
-            field in written
-            for field in _CAPACITY_FIELDS
-            if _find_scalar(user_input, [field]) == capacity
-        ):
+        # The generic weight/capacity row takes the first ceiling a named
+        # dimension has NOT already used. _CAPACITY_FIELDS is ordered by name,
+        # not by dimension, so taking the first match outright applied a volume
+        # ceiling to the weight terms and left a stated budget with no row at
+        # all: the plan spent 80000 against a budget of 50000 and said optimal.
+        capacity_field = next(
+            (
+                f
+                for f in _CAPACITY_FIELDS
+                if f not in consumed and _find_scalar(user_input, [f]) is not None
+            ),
+            None,
+        )
+        if capacity_field is not None:
+            capacity = _find_scalar(user_input, [capacity_field])
             constraints.append(
                 Constraint(name="capacity", expression=f"{' + '.join(weight_terms)} <= {capacity}")
+            )
+            consumed.add(capacity_field)
+
+        # A ceiling the card states but no row enforces is the same silent
+        # failure: the answer respects a limit the user never set and ignores
+        # the one they did.
+        unused = [
+            f
+            for f in _CAPACITY_FIELDS
+            if f not in consumed and _find_scalar(user_input, [f]) is not None
+        ]
+        if unused:
+            dims = ", ".join(f"'{item_f}' for {lbl}" for lbl, _c, item_f in _LIMIT_DIMENSIONS)
+            raise ValueError(
+                f"Stated limit(s) {unused} constrain nothing: no item carries the "
+                f"matching per-item field. Per-item fields read are {dims}, and "
+                f"{', '.join(_WEIGHT_FIELDS)} for the generic capacity row."
             )
 
         if target is not None:

@@ -39,14 +39,31 @@ class RoutingGenerator(BaseGenerator):
         depot = user_input.get("depot")
         if depot is None:
             warehouses = user_input.get("warehouses", [])
-            # A picking round starts and ends at the packing station, which the
-            # card lists first among its stops. Inventing a node called "depot"
-            # instead left the tour anchored to a place with no distances at
-            # all.
-            depot = warehouses[0] if warehouses else (locations[0] if locations else None)
+            if warehouses:
+                depot = warehouses[0]
+        if depot is None:
+            # A stop may name itself the anchor. Falling back to locations[0]
+            # let the first row of an unordered list decide where the tour
+            # starts and ends: deleting a stop and re-adding it, or reordering
+            # the table, moved the depot and rewrote 28 of 44 constraints with
+            # no error at all. The anchor has to be stated.
+            flagged = [
+                loc
+                for loc in locations
+                if isinstance(loc, dict)
+                and (loc.get("is_depot") or str(loc.get("type", "")).lower() == "depot")
+            ]
+            if len(flagged) > 1:
+                raise ValueError(
+                    "More than one location is marked as the depot: "
+                    f"{[loc.get('name') for loc in flagged]}. Mark exactly one."
+                )
+            if flagged:
+                depot = flagged[0]
         if depot is None:
             raise ValueError(
-                "Routing needs a depot to start from, or at least one location to use as one. "
+                "Routing needs a depot to start and end at. Provide a 'depot', a "
+                "'warehouses' list, or mark one location with 'is_depot: true'. "
                 f"Got keys: {list(user_input.keys())}"
             )
 
@@ -91,6 +108,11 @@ class RoutingGenerator(BaseGenerator):
         loc_names = [
             self.sanitize_name(loc.get("name", f"loc_{i}")) for i, loc in enumerate(locations)
         ]
+        # Two stops whose names sanitize alike share every arc variable. The
+        # bay simply disappears from the tour and the picker never walks to it,
+        # while the solve reports optimal: measured 49 variables down to 36, and
+        # an objective of 77 where the true answer is 100.
+        self.reject_name_collisions(loc_names, [loc.get("name") for loc in locations], "Locations")
         loc_names = [n for n in loc_names if n != depot_name]
         all_nodes = [depot_name] + loc_names
         n_vehicles = len(vehicles)
@@ -101,6 +123,7 @@ class RoutingGenerator(BaseGenerator):
 
         # Vehicle name lookup
         v_names = [self.sanitize_name(veh.get("name", f"v{i}")) for i, veh in enumerate(vehicles)]
+        self.reject_name_collisions(v_names, [v.get("name") for v in vehicles], "Vehicles")
 
         # Where a card gives coordinates instead of a matrix, the distance is
         # the straight line between them. Falling back to a flat 100 made every

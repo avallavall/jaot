@@ -127,6 +127,10 @@ templates:
             name: {type: string}
             aisle: {type: integer}
             bay: {type: integer}
+            # The stop the round starts and ends at. Mark exactly one. Without
+            # it the generator anchored the tour on whichever row happened to be
+            # first, so reordering the table silently rewrote the route.
+            is_depot: {type: boolean, default: false}
       - name: distances
         label: Distance Matrix
         type: array
@@ -144,7 +148,7 @@ templates:
     context_fields: [aisle, bay]
     example_input:
       locations:
-        - {name: "Packing-Station", aisle: 0, bay: 0}
+        - {name: "Packing-Station", aisle: 0, bay: 0, is_depot: true}
         - {name: "Aisle-1-Bay-3", aisle: 1, bay: 3}
         - {name: "Aisle-2-Bay-7", aisle: 2, bay: 7}
         - {name: "Aisle-3-Bay-1", aisle: 3, bay: 1}

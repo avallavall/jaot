@@ -21,11 +21,36 @@ Example template for "Budget Allocation":
 }
 """
 
+import math
 import re
 from typing import Any
 
 from app.domains.solver.services.generators import get_generator
 from app.schemas.optimization import OptimizationProblem
+
+
+def _reject_non_finite(value: Any, path: str = "input") -> None:
+    """Refuse a NaN or an infinity anywhere in the user's input.
+
+    Python's ``json`` accepts the literals ``NaN``, ``Infinity`` and
+    ``-Infinity``, so either can arrive from an API client. The generators cast
+    with a bare ``float()`` in 65 places, and a NaN survives every one of them:
+    it lands in a coefficient, every comparison against it is false, and the
+    solver reports a result for a model nobody can read. ``safe_float`` in
+    base.py has always rejected both, but almost nothing calls it. Checking once
+    here covers every generator and every field, including ones added later.
+    """
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _reject_non_finite(item, f"{path}.{key}")
+    elif isinstance(value, list):
+        for i, item in enumerate(value):
+            _reject_non_finite(item, f"{path}[{i}]")
+    elif isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(
+            f"{path} is {value}, which is not a usable number. "
+            "Every figure in the input has to be finite."
+        )
 
 
 class TemplateEngine:
@@ -52,7 +77,12 @@ class TemplateEngine:
 
         Returns:
             OptimizationProblem ready for solving
+
+        Raises:
+            ValueError: the input carries a NaN or an infinity.
         """
+        _reject_non_finite(user_input)
+
         # Dynamic template: dispatch via generator registry
         if "generator" in template:
             generator_type = template.get("generator", "generic")

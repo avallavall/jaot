@@ -49,24 +49,6 @@ class RailTimetablingGenerator(BaseGenerator):
     _CAPACITY_KEYS = ("capacity_per_hour", "trains_per_hour", "capacity")
 
     @staticmethod
-    def _number(row: dict[str, Any], keys: tuple[str, ...]) -> float | None:
-        for key in keys:
-            if row.get(key) is not None:
-                return float(row[key])
-        return None
-
-    @staticmethod
-    def _reject_collisions(sanitized: list[str], originals: list[Any], label: str) -> None:
-        """Two rows whose names sanitize to the same identifier share variables."""
-        by_name: dict[str, list[Any]] = {}
-        for clean, original in zip(sanitized, originals, strict=True):
-            by_name.setdefault(clean, []).append(original)
-        clashes = {k: v for k, v in by_name.items() if len(v) > 1}
-        if clashes:
-            detail = "; ".join(f"{v} all become '{k}'" for k, v in sorted(clashes.items()))
-            raise ValueError(f"{label} must have distinct names: {detail}.")
-
-    @staticmethod
     def _endpoints(segment: dict[str, Any], index: int) -> tuple[str, str]:
         """The two stations a segment joins.
 
@@ -110,7 +92,7 @@ class RailTimetablingGenerator(BaseGenerator):
 
         travel: list[int] = []
         for i, train in enumerate(trains):
-            minutes = self._number(train, self._TRAVEL_KEYS)
+            minutes = self.first_number(train, self._TRAVEL_KEYS)
             if minutes is None or minutes <= 0:
                 raise ValueError(
                     f"Train '{train.get('name', i)}' has no positive travel time. "
@@ -118,7 +100,7 @@ class RailTimetablingGenerator(BaseGenerator):
                 )
             travel.append(max(1, int(round(minutes))))
 
-        stated = self._number(user_input, ("time_horizon", "horizon", "planning_minutes"))
+        stated = self.first_number(user_input, ("time_horizon", "horizon", "planning_minutes"))
         horizon = int(stated) if stated is not None else max(travel) * len(trains)
         if horizon <= 0:
             raise ValueError("Rail timetabling needs a positive time horizon in minutes.")
@@ -132,29 +114,36 @@ class RailTimetablingGenerator(BaseGenerator):
         # "IC-201" and "IC 201" both sanitize to ic_201, and their departure
         # variables would then be the same variable. Say so instead of building
         # a model that silently times one train and drops the other.
-        self._reject_collisions(names, [t.get("name") for t in trains], "Trains")
-        self._reject_collisions(seg_names, [s.get("name") for s in segments], "Track segments")
+        self.reject_name_collisions(names, [t.get("name") for t in trains], "Trains")
+        self.reject_name_collisions(seg_names, [s.get("name") for s in segments], "Track segments")
 
         # A train must be clear of the network before the horizon closes.
+        for i, minutes in enumerate(travel):
+            if horizon - minutes < 0:
+                raise ValueError(
+                    f"Train '{trains[i].get('name', i)}' needs {minutes} minutes but the "
+                    f"horizon is {horizon}. No departure fits."
+                )
+
+        # Size the model before building it. This cap used to be checked after
+        # the loop had already materialized every Variable, so an oversized card
+        # paid the full build first: 15.9 s to produce 39,604 variables, inside
+        # the request handler, only to accept them. round_robin has always
+        # counted first, and this is the same arithmetic.
+        projected = sum(horizon - minutes + 1 for minutes in travel)
+        if projected > _MAX_DEPARTURE_VARS:
+            raise ValueError(
+                f"Rail timetabling would need {projected:,} departure variables "
+                f"(limit {_MAX_DEPARTURE_VARS:,}). Shorten the horizon or the train list."
+            )
+
         slots: list[list[int]] = []
         variables: list[Variable] = []
         for i, name in enumerate(names):
-            latest = horizon - travel[i]
-            if latest < 0:
-                raise ValueError(
-                    f"Train '{trains[i].get('name', i)}' needs {travel[i]} minutes but the "
-                    f"horizon is {horizon}. No departure fits."
-                )
-            times = list(range(latest + 1))
+            times = list(range(horizon - travel[i] + 1))
             slots.append(times)
             variables.extend(
                 Variable(name=f"z_{name}_{t}", type=VariableType.BINARY) for t in times
-            )
-
-        if len(variables) > _MAX_DEPARTURE_VARS:
-            raise ValueError(
-                f"Rail timetabling would need {len(variables):,} departure variables "
-                f"(limit {_MAX_DEPARTURE_VARS:,}). Shorten the horizon or the train list."
             )
 
         constraints: list[Constraint] = []
@@ -182,7 +171,7 @@ class RailTimetablingGenerator(BaseGenerator):
         # two trains may not enter in the same minute — so only a headway below
         # one minute is nothing to enforce.
         for s_index, segment in enumerate(segments):
-            headway = self._number(segment, self._HEADWAY_KEYS)
+            headway = self.first_number(segment, self._HEADWAY_KEYS)
             if headway is None or headway < 1:
                 continue
             width = int(round(headway))
@@ -207,7 +196,7 @@ class RailTimetablingGenerator(BaseGenerator):
         # Capacity: no more than capacity_per_hour trains enter a segment in
         # any 60-minute window.
         for s_index, segment in enumerate(segments):
-            per_hour = self._number(segment, self._CAPACITY_KEYS)
+            per_hour = self.first_number(segment, self._CAPACITY_KEYS)
             if per_hour is None:
                 continue
             if per_hour < 0:
@@ -259,10 +248,10 @@ class RailTimetablingGenerator(BaseGenerator):
         # nobody stated a preference for is content anywhere.
         terms: list[str] = []
         for i, train in enumerate(trains):
-            preferred = self._number(train, self._PREFERRED_KEYS)
+            preferred = self.first_number(train, self._PREFERRED_KEYS)
             if preferred is None:
                 continue
-            priority = self._number(train, self._PRIORITY_KEYS)
+            priority = self.first_number(train, self._PRIORITY_KEYS)
             weight = 1.0 if priority is None else priority
             for t in slots[i]:
                 cost = weight * abs(t - preferred)
