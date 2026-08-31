@@ -21,7 +21,7 @@ from a clean checkout.
 
 | | |
 |---|---|
-| Backend tests | **5,557** collected across 247 files. That is 3,576 test functions — 984 written at module level and 2,592 as methods on test classes — plus what parametrization adds |
+| Backend tests | **5,575** collected across 248 files. That is 3,578 test functions — 986 written at module level and 2,592 as methods on test classes — plus what parametrization adds |
 | Line coverage (`app/`) | **87.0%**, enforced in CI at `--cov-fail-under=78` |
 | API surface | 194 paths / 238 operations, counted from the OpenAPI schema |
 | Database in tests | real PostgreSQL — never mocked |
@@ -82,8 +82,20 @@ The file carries a **ratchet**: two named sets of templates that fail a gate
 are marked `xfail(strict=True)`, so the build stays green while the debt stays
 visible, and the moment a listed template starts passing, pytest reports XPASS
 and the build fails until the name is removed. The list can only shrink, and a
-new template is never allowed onto it. It started at 41 names and **both sets
-are now empty**.
+new template is never allowed onto it. It started at 41 names. The
+unread-inputs set is **empty**; the flat-objective set holds **three**:
+`irrigation_scheduling`, `renewable_curtailment` and `reservoir_operation`.
+
+Those three were hidden until the flat-objective gate was repaired. It scanned
+the objective for `N*` and therefore found no coefficients at all in an
+objective written as bare variable names, so it skipped instead of failing on
+15 of 102 cards — and "every coefficient is 1" is the shape it exists to catch.
+Each of the three optimises a total that its own constraints already pin, so
+the total it reports is right while the schedule it shows is one arbitrary pick
+among ties. Clearing them means giving each card a per-row weight it does not
+carry today (a loss per irrigation slot, a curtailment cost per generator, a
+value of water per period), which is a decision about the card rather than a
+repair to the code.
 
 This replaced a `_SOLVER_KNOWN_ISSUES` set that only asserted "the solver did
 not crash". It grew silently and still named eleven templates that had been

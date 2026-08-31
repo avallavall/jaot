@@ -104,8 +104,16 @@ jobs:
       - run: pip install uv
       - run: uv pip install --system -r requirements.txt -r requirements-dev.txt
       - name: Run tests
+        # -m "not load" overrides the addopts default of "not slow and not
+        # load". Without it CI inherited that default and silently skipped
+        # every @pytest.mark.slow test: the 24 hand-derived optima in
+        # test_template_model_quality.py and both full-solve sweeps in
+        # test_template_solve.py. Nothing anywhere passed -m slow, so no
+        # template was ever actually SOLVED in CI, while docs/TESTING.md
+        # described the optima as a live gate.
         run: >-
           pytest tests/
+          -m "not load"
           -p no:xdist
           --cov=app
           --cov-fail-under=78

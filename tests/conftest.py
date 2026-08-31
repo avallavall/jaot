@@ -17,7 +17,14 @@ import signal
 from datetime import timedelta
 
 # Environment setup — MUST happen before any app imports
-DEFAULT_TEST_DB_URL = "postgresql://jaot:jaot@localhost:5432/jaot_test"
+#
+# 127.0.0.1, not "localhost". Windows resolves "localhost" to ::1 first and
+# Docker publishes the port on IPv4 only, so every connection waits out the
+# IPv6 attempt: measured 21.06 s per connect against 0.02 s for 127.0.0.1.
+# A suite of 5,500 tests then looks hung rather than slow — 30 minutes of wall
+# clock for 30 seconds of CPU, with alembic stuck inside connectable.connect().
+# The literal address behaves identically everywhere else.
+DEFAULT_TEST_DB_URL = "postgresql://jaot:jaot@127.0.0.1:5432/jaot_test"
 _TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", DEFAULT_TEST_DB_URL)
 
 os.environ["TESTING"] = "1"

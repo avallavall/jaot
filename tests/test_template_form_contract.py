@@ -27,26 +27,14 @@ shapes that lead to it.
 """
 
 import copy
-import json
 
 import pytest
 
 from app.data.templates import load_all_templates
 from app.domains.solver.services.generators import get_generator
+from tests._helpers.model_fingerprint import fingerprint
 
 ALL_TEMPLATES = load_all_templates()
-
-
-def _fingerprint(problem) -> str:
-    """Everything about the model a dropped input could move."""
-    return json.dumps(
-        {
-            "v": [(v.name, v.type.value, v.lower_bound, v.upper_bound) for v in problem.variables],
-            "o": (problem.objective.sense.value, problem.objective.expression),
-            "c": [(c.name, c.expression) for c in problem.constraints],
-        },
-        sort_keys=True,
-    )
 
 
 def _field_names(template) -> set[str]:
@@ -65,9 +53,9 @@ def test_the_form_submits_the_whole_example(template) -> None:
     generator = get_generator(template.generator_type)
     params = template.generator_params
 
-    expected = _fingerprint(generator.generate(copy.deepcopy(template.example_input), params))
+    expected = fingerprint(generator.generate(copy.deepcopy(template.example_input), params))
     try:
-        actual = _fingerprint(generator.generate(_as_the_form_sends_it(template), params))
+        actual = fingerprint(generator.generate(_as_the_form_sends_it(template), params))
     except Exception as exc:  # noqa: BLE001 - the studio would show this failure
         dropped = sorted(set(template.example_input) - _field_names(template))
         pytest.fail(

@@ -24,7 +24,6 @@ Three gates here, strongest first.
 """
 
 import copy
-import json
 import re
 
 import pytest
@@ -32,6 +31,7 @@ import pytest
 from app.data.templates import load_all_templates
 from app.domains.solver.adapters import register_default_adapters
 from app.domains.solver.services.generators import get_generator
+from tests._helpers.model_fingerprint import fingerprint
 
 ALL_TEMPLATES = load_all_templates()
 register_default_adapters()
@@ -53,7 +53,33 @@ register_default_adapters()
 
 UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset()
 
-FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset()
+# The three below were added when this gate's coefficient reader was repaired.
+# It used to scan for "N*" and therefore scored ZERO coefficients on an
+# objective written as bare variable names, so it skipped instead of failing on
+# 15 of 102 cards — the shape "every coefficient is 1" is precisely what it
+# exists to catch. These three were hidden that whole time. Each one optimises a
+# TOTAL that its own constraints already pin, so the total is decided and the
+# schedule the card promises is picked arbitrarily among ties. Fixing them means
+# giving each card a per-row weight it does not currently carry, which is a
+# modelling decision about the product, not a repair to existing code.
+FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset(
+    {
+        # demand rows are ">= 40" etc. and the objective minimizes total water,
+        # so the optimum total is the sum of demands no matter how the water is
+        # split across early_morning / midday / evening. Every schedule ties.
+        # Slots need a loss or cost per time of day for "scheduling" to mean
+        # anything.
+        "irrigation_scheduling",
+        # alloc + curtail == forecast per generator-period, so total curtailment
+        # is fixed by the grid caps. WHICH generator is curtailed is arbitrary.
+        # Needs a per-generator curtailment cost or priority.
+        "renewable_curtailment",
+        # maximize the sum of releases against balance rows: the total drainable
+        # volume is fixed, and which period gets the water is a tie. Needs a
+        # value per period (irrigation value, or head).
+        "reservoir_operation",
+    }
+)
 
 
 #: Cards whose objective genuinely carries one coefficient throughout. This is
@@ -61,26 +87,54 @@ FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset()
 #: survives reading. A single credit line has a single rate, so minimizing
 #: "borrowing x rate" over the periods is the same thing as minimizing total
 #: borrowing — and the period balance rows are what tell the variables apart.
+#:
+#: The rest count a resource whose total is NOT pinned by any constraint, so a
+#: coefficient of 1 throughout is the real objective and different answers
+#: score differently. That is the opposite of the assignment bug this gate was
+#: built for, where "exactly one worker per task" fixed the number of selected
+#: pairs and a flat cost made every assignment tie.
 FLAT_OBJECTIVE_IS_CORRECT: dict[str, str] = {
     "cash_flow_planning": "one credit line at one rate; the balance rows distinguish the periods",
+    "bin_packing": "minimize how many bins are opened; nothing pins that count",
+    "two_d_cutting": "minimize how many sheets are opened; nothing pins that count",
+    "one_d_cutting_stock": "minimize how many stock lengths are cut; the demand rows are >=",
+    "fabric_cutting": "minimize how many rolls are cut; the demand rows are >=",
+    "max_flow": "the objective IS the flow value; a unit is a unit",
+    "fleet_dispatch_mining": "max-flow mode: maximize tonnes moved, and a tonne is a tonne",
 }
+
+
+#: One objective term: an optional sign, an optional "coefficient*", a name.
+#: The coefficient pattern accepts an exponent so "5e-05*x" reads as one term.
+_OBJECTIVE_TERM = re.compile(
+    r"(?P<sign>[+-]?)\s*"
+    r"(?:(?P<coef>\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*\*\s*)?"
+    r"(?P<var>[A-Za-z_]\w*)"
+)
+
+
+def _objective_coefficients(expression: str) -> list[float]:
+    """The coefficient of every term, counting a bare variable name as 1.
+
+    Two readings that look right and are not. A plain ``findall`` for "N*" sees
+    no coefficients at all in "x + y + z", so the gate skipped the very shape it
+    exists to catch — every coefficient equal to 1 — on 15 of 102 cards. And
+    ``ExpressionParser`` consolidates, which drops every term whose coefficient
+    is zero: "0 for this pair, 1 for that one" then looks flat when it is the
+    distinction the model turns on. No objective in the catalogue multiplies two
+    variables, so scanning terms is exact here.
+    """
+    coefficients: list[float] = []
+    for match in _OBJECTIVE_TERM.finditer(expression):
+        raw = match.group("coef")
+        value = float(raw) if raw is not None else 1.0
+        coefficients.append(-value if match.group("sign") == "-" else value)
+    return coefficients
 
 
 def _build(template):
     return get_generator(template.generator_type).generate(
         template.example_input, template.generator_params
-    )
-
-
-def _fingerprint(problem) -> str:
-    """Everything about the model a changed input could move."""
-    return json.dumps(
-        {
-            "v": [(v.name, v.type.value, v.lower_bound, v.upper_bound) for v in problem.variables],
-            "o": (problem.objective.sense.value, problem.objective.expression),
-            "c": [(c.name, c.expression) for c in problem.constraints],
-        },
-        sort_keys=True,
     )
 
 
@@ -117,10 +171,15 @@ def _model_moves(template, path, value, baseline: str) -> bool:
         probe = copy.deepcopy(template.example_input)
         _set_path(probe, path, changed)
         try:
-            moved = _fingerprint(
+            moved = fingerprint(
                 get_generator(template.generator_type).generate(probe, template.generator_params)
             )
-        except Exception:  # noqa: BLE001 - a rejected perturbation means it was read
+        except ValueError:
+            # A ValueError is the generators' deliberate refusal, so the number
+            # reached a check and counts as read. Anything else — KeyError,
+            # TypeError, IndexError — is the perturbation breaking the generator,
+            # which proves nothing about whether the number is used. Catching
+            # bare Exception here scored 11 of 2308 leaves as "read" on a crash.
             return True
         if moved != baseline:
             return True
@@ -152,12 +211,19 @@ def _field_name(path) -> str:
 )
 def test_every_number_in_the_example_reaches_the_model(template) -> None:
     """A number the model never reads is data the card only pretends to use."""
-    baseline = _fingerprint(_build(template))
+    baseline = fingerprint(_build(template))
     declared = set(template.context_fields)
 
     ignored: list[str] = []
+    # A context_fields entry matches a bare field name at ANY depth and never
+    # expires by itself, so the day a generator starts reading that field the
+    # declaration goes on silencing it with nothing to report. Record what each
+    # entry actually silenced and check it below.
+    silenced: dict[str, list[tuple]] = {}
     for path, value in _numeric_paths(template.example_input):
-        if _field_name(path) in declared:
+        field = _field_name(path)
+        if field in declared:
+            silenced.setdefault(field, []).append((path, value))
             continue
         # Probe up AND down. A limit with slack in it does not move the model
         # when it is loosened, so raising alone would report a berth's depth or
@@ -172,6 +238,23 @@ def test_every_number_in_the_example_reaches_the_model(template) -> None:
         f"{f' (+{len(ignored) - 8} more)' if len(ignored) > 8 else ''}. "
         "Either read them in the generator, or list the field in the template's "
         "context_fields to say the model deliberately ignores it."
+    )
+
+    # An exemption that no longer exempts anything is a claim nobody checked.
+    stale = [
+        field
+        for field, leaves in silenced.items()
+        if all(_model_moves(template, path, value, baseline) for path, value in leaves)
+    ]
+    assert not stale, (
+        f"{template.id}: context_fields still lists {stale}, but the generator now reads "
+        "every one of those numbers. Delete the entry — an exemption that silences "
+        "nothing hides the next field that goes unread."
+    )
+    unused = sorted(declared - set(silenced))
+    assert not unused, (
+        f"{template.id}: context_fields lists {unused}, which match no number in "
+        "example_input. A declaration that names nothing cannot be checked."
     )
 
 
@@ -195,7 +278,7 @@ def test_objective_distinguishes_between_solutions(template) -> None:
     problem = _build(template)
     if template.id in FLAT_OBJECTIVE_IS_CORRECT:
         pytest.skip(FLAT_OBJECTIVE_IS_CORRECT[template.id])
-    coefficients = re.findall(r"(-?\d+(?:\.\d+)?)\s*\*", problem.objective.expression)
+    coefficients = _objective_coefficients(problem.objective.expression)
     if len(coefficients) < 2:
         pytest.skip("objective has fewer than two terms")
     assert len(set(coefficients)) > 1, (

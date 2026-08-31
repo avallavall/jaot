@@ -36,6 +36,8 @@ _EXECUTION_PAYLOADS = (
     "scenario_analysis",
 )
 _PROJECT_PAYLOADS = ("draft_model_json", "draft_canvas_json")
+#: The card facet a catalog row never renders.
+_LISTING_PAYLOADS = ("input_schema", "input_fields", "example_input", "generator_params")
 
 
 class _Statements:
@@ -223,3 +225,43 @@ def test_the_trigger_run_sweep_does_not_read_the_payloads(
 
     assert summary["failed"] == 3
     sql.assert_never_selected("trigger_runs", ("result_data", "override_data"))
+
+
+# CONTRACT-TEST: the marketplace catalog list reads no card payloads.
+# A catalog row is a name, a description, tags and counters. The listing also
+# carries the whole input schema, the form field list, the worked example and
+# the generator params — four JSON columns none of which reach the response.
+# Loading the entity fetched all four for every row: ~233 kB per 100 rows off
+# the wire to render none of it.
+def test_the_catalog_list_does_not_read_the_card_payloads(
+    client, db_session: Session, test_organization: Organization
+) -> None:
+    from app.models.model_project import ModelProjectListing
+
+    project = _project(db_session, test_organization, "mp_payload_catalog")
+    db_session.add(
+        ModelProjectListing(
+            model_project_id=project.id,
+            name="payload-catalog",
+            display_name="Payload Catalog",
+            description="A published card with a fat schema.",
+            category="logistics",
+            status="published",
+            is_public=True,
+            generator_type="knapsack",
+            generator_params={"weight_field": "cost"},
+            input_schema={"type": "object", "properties": {"items": {"type": "array"}}},
+            input_fields=[{"name": "items", "type": "array"}],
+            example_input={"items": [{"name": "a", "value": 1, "weight": 1}], "capacity": 1},
+        )
+    )
+    db_session.commit()
+
+    # Filtered by name: the harness seeds the official catalog, so an unfiltered
+    # first page does not necessarily hold this row.
+    with _Statements(db_session) as sql:
+        resp = client.get("/api/v2/models/catalog?search=payload-catalog&page_size=100")
+
+    assert resp.status_code == 200, resp.text
+    assert any(i["id"] == project.id for i in resp.json()["items"]), resp.text
+    sql.assert_never_selected("model_project_listings", _LISTING_PAYLOADS)

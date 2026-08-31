@@ -43,12 +43,21 @@ describe("template translations across all locales (I18N-11)", () => {
   // tests/test_template_translations.py compares every locale to it; what is
   // worth checking here is that the four other locales hold exactly the keys
   // English does.
-  it("English baseline covers every template with all five fields", () => {
-    const templateCount = Object.keys(enTemplates).filter((k) => !k.startsWith("_")).length;
-    const categoryCount = Object.keys(
-      (enTemplates._categories ?? {}) as Record<string, string>
-    ).length;
-    expect(enLeafKeys.length).toBe(templateCount * REQUIRED_FIELDS.length + categoryCount);
+  // This compared enLeafKeys.length against templateCount * 5 + categoryCount,
+  // and both sides were derived from the same object: deleting a template drops
+  // the leaf count by 5 and the template count by 1, so they stayed equal.
+  // Measured: as shipped 544/544 pass, `assignment` deleted 539/539 pass, three
+  // templates deleted 529/529 pass. It was written for the one bug it could not
+  // see. Checking each entry's own fields cannot be satisfied that way.
+  it("every English template entry holds exactly the five required fields", () => {
+    const expected = [...REQUIRED_FIELDS].sort().join(",");
+    const wrong: string[] = [];
+    for (const [id, entry] of Object.entries(enTemplates)) {
+      if (id.startsWith("_")) continue;
+      const fields = Object.keys(entry as Record<string, unknown>).sort().join(",");
+      if (fields !== expected) wrong.push(`${id}: [${fields}]`);
+    }
+    expect(wrong).toEqual([]);
   });
 
   it.each(NON_EN_LOCALES)(

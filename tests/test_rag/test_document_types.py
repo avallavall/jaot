@@ -461,7 +461,22 @@ class TestExtractAllDocuments:
         assert by_type[DocType.LINEARIZATION.value] == 7
         assert by_type[DocType.PARSER_CAPABILITY.value] == 5
 
-        assert len(docs) == sum(by_type.values())
+        # sum(by_type.values()) is len(docs) by construction — by_type is built
+        # from docs — so the old form of this line could never fail. Compare
+        # against the counts asserted above instead: that is what catches a new
+        # document type nobody accounted for.
+        accounted = (
+            len(templates) * 2  # TEMPLATE + WORKED_EXAMPLE
+            + len(generator_modules)
+            + len({t.category for t in templates})
+            + 12  # CONSTRAINT_PATTERN
+            + 7  # LINEARIZATION
+            + 5  # PARSER_CAPABILITY
+        )
+        assert len(docs) == accounted, (
+            f"{len(docs)} documents extracted but {accounted} accounted for by type. "
+            f"A doc type is unaccounted or a count above is stale: {dict(by_type)}"
+        )
 
     def test_all_doc_types_present(self):
         docs = extract_all_documents()
