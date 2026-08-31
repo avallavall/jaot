@@ -38,7 +38,15 @@ export interface DynamicFormRendererProps {
 function buildEmptyValues(fields: FieldSchema[]): Record<string, unknown> {
   const values: Record<string, unknown> = {};
   for (const field of fields) {
-    if (field.type === "array") {
+    // A card that declares a default means it. This function never read one,
+    // so all 35 top-level defaults in the catalogue were inert: the 25 on
+    // required fields made the form refuse to submit over a number the card had
+    // already supplied, and the rest were simply never sent, so the generator's
+    // own hidden default ran in place of the one the card advertises.
+    // makeEmptyRow in FormFieldRenderer has always done this for row columns.
+    if (field.default !== undefined) {
+      values[field.name] = field.default;
+    } else if (field.type === "array") {
       values[field.name] = [];
     } else if (field.type === "object") {
       values[field.name] = {};
