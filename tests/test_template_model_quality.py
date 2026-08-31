@@ -53,13 +53,7 @@ register_default_adapters()
 
 UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset()
 
-FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset(
-    {
-        # a round robin encoded as a shift roster: every team is an "employee"
-        # with hourly_cost 1, so the objective counts shifts
-        "tournament_scheduling",
-    }
-)
+FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset()
 
 
 #: Cards whose objective genuinely carries one coefficient throughout. This is
@@ -272,6 +266,11 @@ KNOWN_OPTIMA: dict[str, float] = {
     # repair is one of them moving the full 5-minute headway: 45. FR-801 then
     # enters that segment 3 minutes behind RE-503 and shifts 2 at priority 3: 6.
     "train_timetabling": 51.0,
+    # Brute force over all 2^15 host assignments agrees. The home-and-away
+    # balance is what costs money: letting every pair send its cheaper
+    # traveller, with no cap on how often a club hosts, would come to 3969.75,
+    # so holding each club to two or three home games is worth 169.50.
+    "tournament_scheduling": 4139.25,
 }
 
 _BY_ID = {t.id: t for t in ALL_TEMPLATES}

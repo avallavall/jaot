@@ -39,6 +39,7 @@ from app.domains.solver.services.generators.production import (
 from app.domains.solver.services.generators.quality_control import QualityControlGenerator
 from app.domains.solver.services.generators.rail_timetabling import RailTimetablingGenerator
 from app.domains.solver.services.generators.renewable import RenewableCurtailmentGenerator
+from app.domains.solver.services.generators.round_robin import RoundRobinGenerator
 from app.domains.solver.services.generators.routing import RoutingGenerator
 from app.domains.solver.services.generators.scheduling import SchedulingGenerator
 from app.domains.solver.services.generators.set_cover import SetCoverGenerator
@@ -79,6 +80,7 @@ GeneratorRegistry.register("markdown_pricing", MarkdownPricingGenerator)
 GeneratorRegistry.register("strip_packing", StripPackingGenerator)
 GeneratorRegistry.register("windowed_tasking", WindowedTaskingGenerator)
 GeneratorRegistry.register("rail_timetabling", RailTimetablingGenerator)
+GeneratorRegistry.register("round_robin", RoundRobinGenerator)
 GeneratorRegistry.register("spanning_tree", SpanningTreeGenerator)
 GeneratorRegistry.register("mdpdp", MDPDPGenerator)
 GeneratorRegistry.register("period_selection", PeriodSelectionGenerator)
@@ -125,6 +127,7 @@ __all__ = [
     "QualityControlGenerator",
     "RailTimetablingGenerator",
     "RenewableCurtailmentGenerator",
+    "RoundRobinGenerator",
     "RoutingGenerator",
     "SchedulingGenerator",
     "SetCoverGenerator",
