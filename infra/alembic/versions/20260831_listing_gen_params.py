@@ -18,6 +18,13 @@ flow, fleet_dispatch_mining stops being a max-flow model at all.
 Additive and reversible: one nullable JSON column. The seeder writes it for
 every official listing on the next boot, so no backfill runs here.
 
+Safe on the plain restart path, unlike 20260824_drop_total_activations.
+``deploy/deploy.sh`` migrates while the OLD API container is still serving, and
+the old ORM simply does not map this column — SQLAlchemy names the columns it
+selects, so an unknown one is ignored rather than fetched. The cards keep
+solving with empty params until the new image is up, which is what they do
+today.
+
 Revision ID: 20260831_listing_gen_params
 Revises: 20260824_comparison_copies
 Create Date: 2026-08-31
