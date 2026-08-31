@@ -10,8 +10,8 @@ means seeding a fork ModelProject via ``POST /projects/from-marketplace/{id}``
 import logging
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session, defer
 
 from app.api.deps import DBSession, OptionalCurrentUser
 from app.models import ModelProjectListing, Organization, User
@@ -144,7 +144,23 @@ def list_catalog_models(
     # (the model content lives on the project/version; the listing is its presentation).
     model_cls = ModelProjectListing
 
-    query = db.query(model_cls).filter(*MARKETPLACE_VISIBLE)
+    # A catalog row renders a name, a description, tags and counters. Four of
+    # the six JSON columns on the listing — the whole input schema, the form
+    # field list, the worked example and the generator params — are never part
+    # of it, and loading the entity brought all four back for every row: 233 kB
+    # per 100 rows off the wire to render none of it. Same disease as the author
+    # panel and the GDPR export; tests/contracts/test_payloads_are_not_read.py
+    # holds the line.
+    query = (
+        db.query(model_cls)
+        .options(
+            defer(model_cls.input_schema),
+            defer(model_cls.input_fields),
+            defer(model_cls.example_input),
+            defer(model_cls.generator_params),
+        )
+        .filter(*MARKETPLACE_VISIBLE)
+    )
 
     if category:
         query = query.filter(model_cls.category == category)
@@ -189,7 +205,10 @@ def list_catalog_models(
             model_cls.avg_rating.desc().nullslast(), model_cls.model_project_id.desc()
         )
 
-    total = query.count()
+    # Count the key, not the entity. Query.count() wraps the whole select in a
+    # subquery that lists every mapped column, which both undoes the defer above
+    # and makes Postgres materialize the four JSON payloads just to count rows.
+    total = query.order_by(None).with_entities(func.count(model_cls.model_project_id)).scalar() or 0
     offset = (page - 1) * page_size
     models = query.offset(offset).limit(page_size).all()
 

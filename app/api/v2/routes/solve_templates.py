@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import DBSession, OptionalRequireSolver, enforce_org_rate_limit
+from app.api.v2._render import render_or_422
 from app.api.v2.solve_pipeline import enqueue_async_solve, shape_sync_result, wait_for_task
 from app.data.templates import load_all_templates
 from app.domains.solver.services import SolverService, get_solver_service
@@ -152,7 +153,7 @@ def preview_template(
         raise HTTPException(status_code=404, detail="Template not found")
 
     input_data = user_input or tmpl_dict.get("example_input") or {}
-    return template_engine.render(tmpl_dict, input_data)
+    return render_or_422(template_engine, tmpl_dict, input_data)
 
 
 @router.post(
@@ -212,13 +213,7 @@ def solve_with_template(  # def: blocks on the queued result in the threadpool (
 
     # Transform input using template engine
     engine = get_template_engine()
-    try:
-        problem = engine.render(template, user_input)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to process input: {e!s}",
-        ) from e
+    problem = render_or_422(engine, template, user_input)
 
     # Tier caps, "auto" routing, per-solver credit pricing (pre-pay), the pending
     # row, and Celery time limits all happen inside the ONE enqueue path.

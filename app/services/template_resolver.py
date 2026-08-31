@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.data.templates import TemplateDefinition, get_yaml_template
 from app.models.model_project import ModelProjectListing, ModelProjectVersion
 from app.services.marketplace_fusion import MARKETPLACE_VISIBLE
+from app.shared.db.seed_models import build_input_schema
 
 # Origin tags — also reused verbatim as the ModelProject ``source_type`` provenance.
 ORIGIN_TEMPLATE = "template"
@@ -31,12 +32,46 @@ ORIGIN_MARKETPLACE = "marketplace"
 
 
 def yaml_template_to_dict(tmpl: TemplateDefinition) -> dict[str, Any]:
-    """Convert a YAML TemplateDefinition to a template dict for the engine."""
-    return {**tmpl.model_dump(), "generator": tmpl.generator_type}
+    """Convert a YAML TemplateDefinition to a template dict for the engine.
+
+    ``input_schema`` is DERIVED from ``input_fields``, never taken from the YAML.
+    A card carries both, and the seeder has always stored the derived one on the
+    listing while this path served the hand-written one. They disagreed on 10 of
+    102 cards: ``GET /solve/templates/{id}`` called ``max_risk``,
+    ``discount_rate`` and eight others optional while
+    ``GET /models/catalog/{id}/schema`` and the studio form called them
+    required. One derivation, one answer.
+    """
+    return {
+        **tmpl.model_dump(),
+        "generator": tmpl.generator_type,
+        "input_schema": build_input_schema(tmpl),
+    }
 
 
 def listing_to_template_dict(listing: ModelProjectListing) -> dict[str, Any]:
-    """Convert a generator-backed marketplace listing to a template dict for the engine."""
+    """Convert a generator-backed marketplace listing to a template dict for the engine.
+
+    Raises:
+        ValueError: the listing carries no ``generator_params`` while its source
+            template declares some. That means the catalog seeder has not run
+            since the column was added.
+    """
+    params = listing.generator_params or {}
+    if not params:
+        # The migration that added generator_params ships no backfill — the boot
+        # seeder writes it — and the seeder's failure is caught and logged. One
+        # bad boot therefore left this column empty, and "or {}" then rendered
+        # the card with no params at all. Measured over the 17 param-carrying
+        # cards: 6 raise, 11 build a DIFFERENT model and still report optimal.
+        # A wrong answer is worse than a refusal, so say what is wrong.
+        source = get_yaml_template(listing.model_project_id.removeprefix("official_"))
+        if source is not None and source.generator_params:
+            raise ValueError(
+                f"Listing '{listing.model_project_id}' carries no generator_params, but its "
+                f"template declares {sorted(source.generator_params)}. The catalog seeder "
+                "has not run since that column was added; restart the API to reseed it."
+            )
     return {
         "id": listing.model_project_id,
         "name": listing.name,
@@ -49,7 +84,7 @@ def listing_to_template_dict(listing: ModelProjectListing) -> dict[str, Any]:
         "generator_type": listing.generator_type,
         # Without this the engine calls generate(user_input, {}) and the card's
         # cost rules, field names and modes are all gone.
-        "generator_params": listing.generator_params or {},
+        "generator_params": params,
         "input_schema": listing.input_schema,
         "input_fields": listing.input_fields,
         "example_input": listing.example_input,

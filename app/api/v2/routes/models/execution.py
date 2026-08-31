@@ -17,6 +17,7 @@ from app.api.deps import (
     workspace_ids_open_to,
 )
 from app.api.v2._access import execution_or_404
+from app.api.v2._render import render_or_422
 from app.api.v2._solver_limits import compute_celery_time_limits, resolve_solver_time_limit
 from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
@@ -137,7 +138,7 @@ def preview_model(
             ),
         )
 
-    return template_engine.render(template, body.input_data)
+    return render_or_422(template_engine, template, body.input_data)
 
 
 @router.post(
@@ -187,7 +188,7 @@ def execute_model(
     problem_data: dict[str, Any] | None = None
     if template is not None:
         # Render the problem first — auto-routing classification needs it.
-        problem = template_engine.render(template, body.input_data)
+        problem = render_or_422(template_engine, template, body.input_data)
     else:
         if body.input_data:
             raise HTTPException(

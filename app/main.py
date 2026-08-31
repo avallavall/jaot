@@ -276,8 +276,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             logger.info(f"Seeded {count} catalog templates")
         finally:
             seed_db.close()
-    except Exception as e:
-        logger.warning(f"Template seeding skipped: {e}")
+    except Exception:
+        # Not a warning: the generator_params column has no backfill, so this
+        # seeder is the only thing that fills it. A failure here leaves the
+        # catalog rendering cards without their params, which used to build a
+        # different model in silence. template_resolver now refuses such a row,
+        # so the cost is a visible 500 rather than a wrong answer — but the
+        # cause belongs in the log at full volume.
+        logger.error("Template seeding FAILED; catalog listings may be stale", exc_info=True)
 
     # First-run admin bootstrap — no-op unless the users table is empty AND
     # SEED_ADMIN_* are configured (see app/shared/db/seed_admin.py)

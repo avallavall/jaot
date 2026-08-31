@@ -39,6 +39,7 @@ from app.api.deps import (
     enforce_org_rate_limit,
     enforce_workspace_of,
 )
+from app.api.v2._render import render_or_422
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
     apply_solution_filter,
@@ -246,13 +247,7 @@ def _seed_from_template(
         input_data = (
             user_input if user_input is not None else (template_dict.get("example_input") or {})
         )
-        try:
-            problem = template_engine.render(template_dict, input_data)
-        except Exception as exc:  # noqa: BLE001 — any generator failure → 422, not 500
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Could not build a model from this template: {exc}",
-            ) from exc
+        problem = render_or_422(template_engine, template_dict, input_data)
         name = template_dict.get("display_name") or template_dict.get("name") or "Untitled Model"
         problem_json = problem.model_dump(mode="json")
         # Normalize the provenance ref to the RESOLVED id — the resolver also
