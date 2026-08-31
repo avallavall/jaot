@@ -102,6 +102,7 @@ def _apply_listing_fields(
     listing.category = template.category
     listing.tags = merged_tags
     listing.generator_type = template.generator_type
+    listing.generator_params = template.generator_params
     listing.input_schema = build_input_schema(template)
     listing.input_fields = [f.model_dump() for f in template.input_fields]
     listing.example_input = template.example_input

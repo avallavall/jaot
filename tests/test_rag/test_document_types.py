@@ -5,6 +5,7 @@ linearization techniques, parser capabilities, and industry vocabulary.
 Tests both extraction correctness and contextual prefix application.
 """
 
+from collections import Counter
 from pathlib import Path
 
 from app.services.rag.document_types import (
@@ -421,13 +422,46 @@ class TestExtractAllDocuments:
     """Full extraction produces all document types with correct totals."""
 
     def test_total_count(self):
+        """Every document type is counted against the thing it is extracted from.
+
+        This used to pin the base at a single number, 188. Adding one generator
+        module made it 189 and the suite went red for a reason that had nothing
+        to do with the RAG index; it stayed red through a second addition.
+        A count per type says which extractor moved, and only the three
+        hand-written lists are literals.
+        """
+        from app.data.templates import load_all_templates
+
         docs = extract_all_documents()
-        # 188 base docs (templates + generators + constraint patterns + linearization
-        # + parser capabilities + vocabulary) plus one worked example per template that
-        # renders from its example_input. The base stays pinned; worked examples float.
-        worked = [d for d in docs if d["payload"]["doc_type"] == DocType.WORKED_EXAMPLE.value]
-        assert len(worked) > 0, "expected worked-example docs to be extracted"
-        assert len(docs) == 188 + len(worked)
+        by_type = Counter(d["payload"]["doc_type"] for d in docs)
+
+        templates = load_all_templates()
+        generators_dir = (
+            Path(__file__).resolve().parents[2]
+            / "app"
+            / "domains"
+            / "solver"
+            / "services"
+            / "generators"
+        )
+        generator_modules = [
+            f
+            for f in generators_dir.glob("*.py")
+            if not f.name.startswith("_") and f.name != "base.py"
+        ]
+
+        assert by_type[DocType.TEMPLATE.value] == len(templates)
+        assert by_type[DocType.WORKED_EXAMPLE.value] == len(templates), (
+            "one worked example is rendered per template's example_input"
+        )
+        assert by_type[DocType.GENERATOR.value] == len(generator_modules)
+        assert by_type[DocType.INDUSTRY_VOCABULARY.value] == len({t.category for t in templates})
+        # Hand-written knowledge, not derived from anything, so these are pinned.
+        assert by_type[DocType.CONSTRAINT_PATTERN.value] == 12
+        assert by_type[DocType.LINEARIZATION.value] == 7
+        assert by_type[DocType.PARSER_CAPABILITY.value] == 5
+
+        assert len(docs) == sum(by_type.values())
 
     def test_all_doc_types_present(self):
         docs = extract_all_documents()

@@ -310,6 +310,11 @@ class ModelProjectListing(Base):
     # Generator facet — parametric officials execute via generate(inputs); a plain
     # published project leaves these null and runs from its versioned problem.
     generator_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # How the generator is configured for THIS card. Leaving it off the facet is
+    # what made every official template solve with an empty params dict once it
+    # was reached through its listing: six raised, and eleven quietly built a
+    # different model. The generator reads it, so the facet has to carry it.
+    generator_params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     input_schema: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     input_fields: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
     example_input: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)

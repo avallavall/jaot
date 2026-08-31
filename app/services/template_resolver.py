@@ -47,6 +47,9 @@ def listing_to_template_dict(listing: ModelProjectListing) -> dict[str, Any]:
         "tags": listing.tags or [],
         "generator": listing.generator_type,
         "generator_type": listing.generator_type,
+        # Without this the engine calls generate(user_input, {}) and the card's
+        # cost rules, field names and modes are all gone.
+        "generator_params": listing.generator_params or {},
         "input_schema": listing.input_schema,
         "input_fields": listing.input_fields,
         "example_input": listing.example_input,
