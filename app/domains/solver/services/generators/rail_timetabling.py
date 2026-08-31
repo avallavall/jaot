@@ -178,10 +178,12 @@ class RailTimetablingGenerator(BaseGenerator):
             )
 
         # Headway: at most one train enters a segment in any window of
-        # min_headway consecutive minutes.
+        # min_headway consecutive minutes. A headway of 1 still says something —
+        # two trains may not enter in the same minute — so only a headway below
+        # one minute is nothing to enforce.
         for s_index, segment in enumerate(segments):
             headway = self._number(segment, self._HEADWAY_KEYS)
-            if headway is None or headway <= 1:
+            if headway is None or headway < 1:
                 continue
             width = int(round(headway))
             users = [i for i in range(len(trains)) if s_index in entry_offset[i]]
@@ -208,6 +210,12 @@ class RailTimetablingGenerator(BaseGenerator):
             per_hour = self._number(segment, self._CAPACITY_KEYS)
             if per_hour is None:
                 continue
+            if per_hour < 0:
+                raise ValueError(
+                    f"Track segment '{segment.get('name', s_index)}' states a capacity of "
+                    f"{per_hour} trains an hour. A negative capacity has no timetable; say 0 "
+                    "if the segment is closed."
+                )
             limit = int(per_hour)
             users = [i for i in range(len(trains)) if s_index in entry_offset[i]]
             if not users or limit >= len(users):
