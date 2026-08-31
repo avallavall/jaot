@@ -21,7 +21,7 @@ from a clean checkout.
 
 | | |
 |---|---|
-| Backend tests | **5,557** collected across 247 files. That is 3,575 test functions — 983 written at module level and 2,592 as methods on test classes — plus what parametrization adds |
+| Backend tests | **5,561** collected across 247 files. That is 3,575 test functions — 983 written at module level and 2,592 as methods on test classes — plus what parametrization adds |
 | Line coverage (`app/`) | **87.0%**, enforced in CI at `--cov-fail-under=78` |
 | API surface | 194 paths / 238 operations, counted from the OpenAPI schema |
 | Database in tests | real PostgreSQL — never mocked |
