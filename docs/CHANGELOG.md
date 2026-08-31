@@ -32,6 +32,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Fixed
+- **A coefficient smaller than 0.0001 was read as two wrong terms.** Any figure a card wrote in exponent form, such as an expected return of 0.00005, reached the solver as a phantom variable plus a wrong constant. Where the model happened to use a variable named `e`, the two cancelled and that asset counted for exactly nothing, with no error anywhere.
+- **Fourteen ways a model could quietly answer a different question.** A missing column, a row named with a space instead of a hyphen, a prerequisite with a typo, a plant that said it was closed, a stop added to a route table in a different order: each of these built a model that left out part of what the card asked, and every one of them still came back "optimal". They now say what is wrong and which row it is in. The affected cards cover knapsack, production, assignment, covering, procurement, network flow, routing, scheduling, portfolio and windowed tasking.
+- **A card that could not be built answered with a server error.** Three of the five places that build a model from a card had no handler, so a mistake in the input looked like a fault on our side. All five now answer 422 and say what the generator refused.
+- **The studio ignored every default value a card declares.** All 35 of them: 25 made the form refuse to submit over a number the card had already supplied, and the rest were dropped so the model ran on a hidden value instead of the advertised one.
+- **A NaN or an infinity in the input reached the solver.** Both are accepted by JSON and survived every numeric conversion. They are now refused, naming the field.
+- **Two API surfaces disagreed about which fields a card requires.** Ten cards called a field optional on one endpoint and required on the other.
+- **A card whose settings had not been written since the last upgrade rendered without them.** It now refuses and says the catalogue needs reseeding, instead of building a different model.
+
+### Changed
+- **The marketplace list no longer fetches four large fields it never shows**, and counts rows without reading them.
+- **Two card types refused an oversized input only after building the whole model.** They now check the size first.
+
+### Added
+- **A check that every setting a card declares is one its generator actually reads**, so a misspelt key cannot silently change the model.
+
 ---
 
 ## [3.8.0] - 2026-08-31
