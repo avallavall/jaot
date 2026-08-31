@@ -32,6 +32,9 @@ templates:
         budget:
           type: number
           description: Total investment budget
+        max_portfolio_risk:
+          type: number
+          description: Ceiling on the price-weighted risk of the whole portfolio
       required: [properties, budget]
     input_fields:
       - name: properties
@@ -51,6 +54,12 @@ templates:
         label: Investment Budget
         type: number
         description: "Total capital available for property acquisition"
+        required: true
+        minimum: 0
+      - name: max_portfolio_risk
+        label: Maximum Portfolio Risk
+        type: number
+        description: "Ceiling on the price-weighted risk of the whole portfolio"
         required: true
         minimum: 0
     example_input:

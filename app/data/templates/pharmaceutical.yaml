@@ -128,6 +128,7 @@ templates:
             production_cost: {type: number}
             setup_cost: {type: number}
             holding_cost: {type: number}
+            initial_inventory: {type: number}
       - name: num_periods
         label: Planning Periods
         type: integer
@@ -195,48 +196,50 @@ templates:
     input_schema:
       type: object
       properties:
-        warehouses:
+        depot:
+          type: object
+          description: The distribution centre every round trip starts and ends at
+        locations:
           type: array
-          description: Distribution warehouses with inventory
-        destinations:
-          type: array
-          description: Pharmacies and hospitals with demand
+          description: Pharmacies and hospitals with their position and demand
         vehicles:
           type: array
           description: Delivery vehicles with capacity
-      required: [warehouses, destinations, vehicles]
+      required: [depot, locations, vehicles]
     input_fields:
-      - name: warehouses
-        label: Warehouses
-        type: array
-        description: "Warehouses with name and product inventory"
+      - name: depot
+        label: Distribution Centre
+        type: object
+        description: "The depot every round trip starts and ends at"
         required: true
         items:
           type: object
           properties:
             name: {type: string}
-            inventory: {type: object}
-      - name: destinations
-        label: Destinations
+            x: {type: number}
+            y: {type: number}
+      - name: locations
+        label: Delivery Points
         type: array
-        description: "Delivery points with name and product demand"
+        description: "Pharmacies and hospitals with name, position, and units demanded"
         required: true
         items:
           type: object
           properties:
             name: {type: string}
-            demand: {type: object}
+            x: {type: number}
+            y: {type: number}
+            demand: {type: number}
       - name: vehicles
         label: Vehicles
         type: array
-        description: "Vehicles with capacity and cold-chain capability"
+        description: "Vehicles with name and load capacity"
         required: true
         items:
           type: object
           properties:
             name: {type: string}
             capacity: {type: number}
-            cold_chain: {type: boolean}
     example_input:
       depot: {name: "DC-Central", x: 0, y: 0}
       locations:

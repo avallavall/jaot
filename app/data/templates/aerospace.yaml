@@ -134,9 +134,9 @@ templates:
         items:
           type: object
           properties:
-            id: {type: string}
+            name: {type: string}
             cost: {type: number}
-            covers: {type: array, items: {type: string}}
+            covers: {type: array, items: {type: integer}}
     example_input:
       flight_legs:
         - {id: "FL101", from_city: "JFK", to_city: "ORD"}

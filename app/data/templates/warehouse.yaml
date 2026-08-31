@@ -61,6 +61,7 @@ templates:
             size_class: {type: string}
             distance_to_dock: {type: number}
             level: {type: string}
+            max_weight_kg: {type: number}
     example_input:
       skus:
         - {name: "Widget-A (bestseller)", daily_picks: 85, size_class: "case", weight_kg: 5}

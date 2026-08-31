@@ -30,6 +30,9 @@ templates:
         max_area_per_period:
           type: number
           description: Maximum harvestable area per period in hectares
+        discount_rate:
+          type: number
+          description: Yearly rate that discounts revenue from later periods
       required: [stands, num_periods, max_area_per_period]
     input_fields:
       - name: stands
@@ -45,6 +48,7 @@ templates:
             timber_volume: {type: number}
             revenue_per_m3: {type: number}
             age_years: {type: integer}
+            adjacent_to: {type: array, items: {type: string}}
       - name: num_periods
         label: Planning Periods
         type: integer
@@ -55,6 +59,12 @@ templates:
         label: Max Harvest Area (ha/period)
         type: number
         description: "Maximum area that can be harvested in any single period"
+        required: true
+        minimum: 0
+      - name: discount_rate
+        label: Discount Rate
+        type: number
+        description: "Yearly rate that discounts revenue from later periods (0.05 = 5%)"
         required: true
         minimum: 0
     # a stand's age explains why its timber is worth what it is; the model reads
@@ -216,6 +226,7 @@ templates:
             current_ha: {type: number}
             growth_rate_ha_hr: {type: number}
             difficulty: {type: number}
+            required_effectiveness: {type: number}
       - name: resources
         label: Resources
         type: array

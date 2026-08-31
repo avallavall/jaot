@@ -184,6 +184,9 @@ templates:
         candidate_edges:
           type: array
           description: Possible connections with costs
+        min_paths:
+          type: integer
+          description: Independent paths required between critical nodes
       required: [nodes, candidate_edges]
     input_fields:
       - name: nodes

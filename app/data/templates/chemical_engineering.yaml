@@ -56,6 +56,7 @@ templates:
             name: {type: string}
             available: {type: number}
             cost_per_unit: {type: number}
+            usage: {type: object}
       - name: products
         label: Products
         type: array
@@ -67,6 +68,7 @@ templates:
             name: {type: string}
             price_per_unit: {type: number}
             min_production: {type: number}
+            max_production: {type: number}
     example_input:
       reactors:
         - {name: "CSTR-1", max_throughput: 500, conversion_rate: 0.85, operating_cost: 12}

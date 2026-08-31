@@ -271,6 +271,14 @@ KNOWN_OPTIMA: dict[str, float] = {
     # traveller, with no cap on how often a club hosts, would come to 3969.75,
     # so holding each club to two or three home games is worth 169.50.
     "tournament_scheduling": 4139.25,
+    # Cheapest detection per euro is cost_per_sample / defect_rate: C and E at
+    # 20, A at 25, B at 46.67, D at 80. Filling in that order to 0.8 x 87 =
+    # 69.6 defects gives 600 + 300 + 250 + 560, then 260 samples of D at 0.8.
+    "quality_control_sampling": 1918.0,
+    # Brute force over all 8^4 discount combinations agrees: jacket and dress
+    # at full price, shirt at 60% off, hat at 30% off, which shifts 165.8 of
+    # the 276 units against a 60% floor of 165.6.
+    "markdown_pricing": 5214.0,
 }
 
 _BY_ID = {t.id: t for t in ALL_TEMPLATES}

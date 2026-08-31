@@ -157,10 +157,10 @@ templates:
       Each batch has a known size, an estimated defect rate, and a per-unit inspection
       cost. The solver balances inspection effort against detection confidence.
     scenario_description: >
-      A food manufacturer runs 5 production lines, each producing batches of 500-2000
-      units per day. Historical defect rates vary from 0.5% to 3%. Quality assurance
-      must detect at least 95% of defects across all lines with a budget of EUR 800
-      per day for inspections.
+      A food manufacturer inspects five batches a day, of 500 to 2000 units each.
+      Historical defect rates run from 1% to 3%, which is about 87 defective items
+      across the five. Quality assurance must find 80% of them, and has EUR 2500 a
+      day to spend on sampling.
     category: manufacturing
     tags: [manufacturing, quality, inspection, sampling]
     problem_type_tags: [LP]
@@ -192,7 +192,7 @@ templates:
         type: number
         description: "Maximum total budget for inspection across all batches (EUR)"
         required: true
-        default: 500
+        default: 2500
       - name: min_detection_rate
         label: Minimum Detection Rate
         type: number
@@ -202,8 +202,9 @@ templates:
       - name: total_defects_estimate
         label: Total Defects Estimate
         type: number
-        description: "Estimated total defective items across all batches (optional override)"
-        required: false
+        description: "Defective items expected across all batches. The detection rate is a fraction of this"
+        required: true
+        minimum: 0
     example_input:
       batches:
         - {name: batch_A, batch_size: 500, cost_per_sample: 0.50, defect_rate: 0.02}
@@ -211,11 +212,12 @@ templates:
         - {name: batch_C, batch_size: 1000, cost_per_sample: 0.60, defect_rate: 0.03}
         - {name: batch_D, batch_size: 2000, cost_per_sample: 0.80, defect_rate: 0.01}
         - {name: batch_E, batch_size: 600, cost_per_sample: 0.50, defect_rate: 0.025}
-      inspection_budget: 500
+      inspection_budget: 2500
       min_detection_rate: 0.8
+      total_defects_estimate: 87
     is_featured: false
     estimated_variables: 5
-    estimated_constraints: 7
+    estimated_constraints: 2
 
   - id: raw_material_purchasing
     name: Raw Material Purchasing Optimizer

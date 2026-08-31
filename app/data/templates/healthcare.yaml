@@ -29,8 +29,6 @@ templates:
       properties:
         ingredients: {type: array}
         targets: {type: array}
-        mix_quantity_min: {type: number}
-        mix_quantity_max: {type: number}
     input_fields:
       - name: ingredients
         label: Food Items

@@ -110,9 +110,6 @@ templates:
         lines:
           type: array
           description: Production lines with capacity
-        changeover_times:
-          type: array
-          description: Changeover times between product types
       required: [orders, lines]
     input_fields:
       - name: orders
@@ -138,17 +135,6 @@ templates:
           properties:
             name: {type: string}
             available_hours: {type: number}
-      - name: changeover_times
-        label: Changeover Times
-        type: array
-        description: "Hours needed to switch between product types on a line"
-        required: false
-        items:
-          type: object
-          properties:
-            from_product: {type: string}
-            to_product: {type: string}
-            hours: {type: number}
     # an order's volume in units is what the run produces; the model schedules
     #   the hours it takes, which the order states directly
     context_fields: [volume]

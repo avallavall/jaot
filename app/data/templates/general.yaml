@@ -31,6 +31,11 @@ templates:
         variables: {type: array}
         constraints: {type: array}
     input_fields:
+      - name: name
+        label: Problem Name
+        type: string
+        description: A name for this problem, used to label the model
+        required: true
       - name: objective
         label: Objective
         type: object
@@ -87,10 +92,16 @@ templates:
       type: object
       required: [objective, variables, constraints]
       properties:
+        name: {type: string}
         objective: {type: object}
         variables: {type: array}
         constraints: {type: array}
     input_fields:
+      - name: name
+        label: Problem Name
+        type: string
+        description: A name for this problem, used to label the model
+        required: true
       - name: objective
         label: Weighted Objective
         type: object
@@ -147,10 +158,16 @@ templates:
       type: object
       required: [objective, variables, constraints]
       properties:
+        name: {type: string}
         objective: {type: object}
         variables: {type: array}
         constraints: {type: array}
     input_fields:
+      - name: name
+        label: Problem Name
+        type: string
+        description: A name for this problem, used to label the model
+        required: true
       - name: objective
         label: Objective (dummy)
         type: object

@@ -30,6 +30,12 @@ templates:
         plant_capacity:
           type: number
           description: Processing plant capacity per period in tonnes
+        discount_rate:
+          type: number
+          description: Yearly rate that discounts value from later periods
+        min_grade:
+          type: number
+          description: Lowest ore grade worth sending to the plant
       required: [blocks, num_periods, plant_capacity]
     input_fields:
       - name: blocks
@@ -45,6 +51,7 @@ templates:
             grade: {type: number}
             cost: {type: number}
             value: {type: number}
+            requires: {type: array, items: {type: string}}
       - name: num_periods
         label: Time Periods
         type: integer
@@ -57,6 +64,18 @@ templates:
         description: "Maximum tonnes the processing plant can handle per period"
         required: true
         minimum: 1
+      - name: discount_rate
+        label: Discount Rate
+        type: number
+        description: "Yearly rate that discounts value from later periods (0.1 = 10%)"
+        required: true
+        minimum: 0
+      - name: min_grade
+        label: Minimum Ore Grade (%)
+        type: number
+        description: "Lowest grade worth sending to the plant"
+        required: true
+        minimum: 0
     example_input:
       blocks:
         - {name: "Block-L1-A", tonnage: 5000, grade: 2.1, cost: 45000, value: 120000}

@@ -144,18 +144,18 @@ templates:
     generator_params: {}
     input_schema:
       type: object
-      required: [capacity, items]
+      required: [min_value, items]
       properties:
-        capacity: {type: number}
+        min_value: {type: number}
         items: {type: array}
     input_fields:
-      - name: capacity
-        label: Budget
+      - name: min_value
+        label: CO2 Reduction Target (tonnes)
         type: number
-        description: Total available investment budget
+        description: Tonnes of CO2 the chosen projects must reduce between them
         required: true
         minimum: 1
-        default: 200000
+        default: 500
       - name: items
         label: Reduction Projects
         type: array

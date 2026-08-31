@@ -113,6 +113,9 @@ templates:
         initial_volume:
           type: number
           description: Current reservoir volume
+        irrigation_demand:
+          type: array
+          description: Water each period must release for irrigation
       required: [periods, inflows, reservoir_capacity, initial_volume]
     input_fields:
       - name: periods
@@ -212,6 +215,9 @@ templates:
         plants:
           type: array
           description: Treatment plants with capacity and costs
+        max_discharge_units:
+          type: number
+          description: Most contamination units the network may discharge
       required: [sources, plants]
     input_fields:
       - name: sources
@@ -237,6 +243,12 @@ templates:
             capacity: {type: number}
             cost_per_unit: {type: number}
             efficiency: {type: number}
+      - name: max_discharge_units
+        label: Discharge Ceiling
+        type: number
+        description: "Most contamination units the network may discharge"
+        required: true
+        minimum: 0
     example_input:
       max_discharge_units: 900
       sources:

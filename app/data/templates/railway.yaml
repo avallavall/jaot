@@ -144,6 +144,7 @@ templates:
             origin: {type: string}
             destination: {type: string}
             expected_passengers: {type: integer}
+            type: {type: string}
     example_input:
       train_units:
         - {name: "EMU-101", seats: 300, location: "Berlin", type: "ICE"}

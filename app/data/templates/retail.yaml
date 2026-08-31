@@ -121,10 +121,11 @@ templates:
       The solver balances deep discounts that move volume against shallow discounts that
       preserve margin. Useful for seasonal retail, fashion, and perishable goods.
     scenario_description: >
-      A fashion retailer has 8 end-of-season items with 20-200 units remaining. Base
-      prices range from EUR 25 to EUR 150. The merchandiser estimates demand elasticity
-      from past sales. The goal is to clear at least 80% of inventory while maximising
-      total clearance revenue.
+      A fashion retailer has four end-of-season lines with 12 to 200 units left, at
+      base prices from EUR 25 to EUR 150. The merchandiser estimates demand elasticity
+      from past sales, and picks a discount for each line from 0% to 70% in ten-point
+      steps. At least 60% of the 276 units have to go, and revenue is what is being
+      maximised.
     category: retail
     tags: [retail, pricing, markdown, clearance, revenue]
     problem_type_tags: [LP]
@@ -154,25 +155,28 @@ templates:
       - name: discount_levels
         label: Discount Levels
         type: array
-        description: "Allowed discount percentages (e.g., [10, 20, 30, 50]). If omitted, continuous 0-70% is used."
-        required: false
+        description: "Discount percentages a product may be given, one of which it must take"
+        required: true
         items:
           type: number
       - name: min_clearance_fraction
         label: Minimum Clearance Fraction
         type: number
-        description: "Minimum fraction of total inventory that must be sold (e.g., 0.8 = 80%)"
-        required: false
-        default: 0.8
+        description: "Fraction of total inventory that must be sold (0.6 = 60%)"
+        required: true
+        minimum: 0
+        default: 0.6
     example_input:
       products:
         - {name: jacket, base_price: 150, inventory: 12, elasticity: 0.6, base_demand: 10}
         - {name: dress, base_price: 80, inventory: 22, elasticity: 1.0, base_demand: 15}
         - {name: shirt, base_price: 45, inventory: 200, elasticity: 2.5, base_demand: 40}
         - {name: hat, base_price: 25, inventory: 42, elasticity: 1.2, base_demand: 30}
+      discount_levels: [0, 10, 20, 30, 40, 50, 60, 70]
+      min_clearance_fraction: 0.6
     is_featured: false
-    estimated_variables: 8
-    estimated_constraints: 8
+    estimated_variables: 32
+    estimated_constraints: 5
 
   - id: assortment_planning
     name: Assortment Planning Optimizer

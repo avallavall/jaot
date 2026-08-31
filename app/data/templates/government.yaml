@@ -29,22 +29,22 @@ templates:
         communities:
           type: array
           description: Population zones needing service
-        coverage_radius:
-          type: number
-          description: Maximum acceptable service distance
+        max_facilities:
+          type: integer
+          description: Most facilities the budget allows
       required: [candidate_sites, communities]
     input_fields:
       - name: candidate_sites
         label: Candidate Sites
         type: array
-        description: "Sites with name, construction cost, and capacity"
+        description: "Sites with name, construction cost, and the communities each one reaches"
         required: true
         items:
           type: object
           properties:
             name: {type: string}
             cost: {type: number}
-            capacity: {type: integer}
+            covers: {type: array, items: {type: integer}}
       - name: communities
         label: Communities
         type: array

@@ -24,13 +24,14 @@ templates:
     generator_params: {}
     input_schema:
       type: object
-      required: [periods, products, holding_cost, setup_cost, demand]
+      required: [periods, holding_cost, setup_cost, demand, capacity, initial_inventory]
       properties:
         periods: {type: integer}
-        products: {type: array}
         holding_cost: {type: number}
         setup_cost: {type: number}
         demand: {type: array}
+        capacity: {type: number}
+        initial_inventory: {type: number}
     input_fields:
       - name: periods
         label: Planning Periods
@@ -38,11 +39,6 @@ templates:
         description: Number of periods to plan
         required: true
         default: 6
-      - name: products
-        label: Products
-        type: array
-        description: Products with demand and cost data
-        required: true
       - name: holding_cost
         label: Holding Cost per Unit per Period
         type: number
@@ -60,6 +56,20 @@ templates:
         type: array
         description: Expected demand in each period
         required: true
+        items:
+          type: number
+      - name: capacity
+        label: Production Capacity per Period
+        type: number
+        description: Most units that can be produced in any one period
+        required: true
+        minimum: 0
+      - name: initial_inventory
+        label: Opening Stock
+        type: number
+        description: Units already in stock before the first period
+        required: true
+        minimum: 0
     example_input:
       periods: 6
       demand: [120, 150, 180, 130, 160, 140]

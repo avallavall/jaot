@@ -95,6 +95,9 @@ templates:
         total_budget:
           type: number
           description: Total marketing budget
+        max_risk:
+          type: number
+          description: Ceiling on the spend-weighted risk of the whole plan
       required: [platforms, total_budget]
     input_fields:
       - name: platforms
@@ -114,6 +117,12 @@ templates:
         label: Total Budget
         type: number
         description: "Total marketing budget to allocate"
+        required: true
+        minimum: 0
+      - name: max_risk
+        label: Maximum Plan Risk
+        type: number
+        description: "Ceiling on the spend-weighted risk of the whole plan"
         required: true
         minimum: 0
     example_input:

@@ -179,14 +179,13 @@ templates:
       - name: arcs
         label: Arcs
         type: array
-        description: Directed arcs with capacity (costs are ignored in max-flow mode)
+        description: Directed arcs with a capacity. Max flow ignores arc costs, so none is asked for
         required: true
         items:
           type: object
           properties:
             from: {type: string}
             to: {type: string}
-            cost: {type: number}
             capacity: {type: number}
     example_input:
       nodes:
