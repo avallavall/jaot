@@ -113,3 +113,65 @@ test.describe("Template form solves in the browser", () => {
     });
   }
 });
+
+/**
+ * Does the marketplace show the card's new words, in the reader's language?
+ *
+ * `tests/test_template_translations.py` proves the locale files carry the text.
+ * It cannot prove the page reads them: `useTemplateTranslation` falls back to
+ * the English the API served whenever a key is missing, silently, which is how
+ * one card ran untranslated in all five locales without anything failing.
+ *
+ * The assertion runs against `document.body.innerText`, not the HTML source.
+ * next-intl embeds the whole message dictionary in the page, so a `grep` over
+ * the source finds text from every namespace whether it is displayed or not.
+ */
+// The detail page renders the long `description`, so these phrases come from it.
+const MARKETPLACE_COPY: Array<{ id: string; en: string; es: string }> = [
+  {
+    id: "tournament_scheduling",
+    en: "which of the two clubs hosts it",
+    es: "decide cuál de los dos clubes lo acoge",
+  },
+  {
+    id: "train_timetabling",
+    en: "Chooses a departure minute for every train",
+    es: "Elige un minuto de salida para cada tren",
+  },
+  {
+    id: "job_shop_scheduling",
+    en: "Each order is a chain of operations",
+    es: "Cada pedido es una cadena de operaciones",
+  },
+  {
+    id: "dye_batch_scheduling",
+    en: "the cost is how long it sits waiting for a machine",
+    es: "el coste es el tiempo que un trabajo pasa esperando máquina",
+  },
+  {
+    id: "fleet_dispatch_mining",
+    en: "The model sets a rate on every shovel-to-tip route",
+    es: "El modelo fija un caudal en cada ruta de pala",
+  },
+];
+
+test.describe("Marketplace shows the card's own words", () => {
+  for (const { id, en, es } of MARKETPLACE_COPY) {
+    test(`${id}: reads in English and Spanish`, async ({ page }) => {
+      for (const [locale, expected] of [
+        ["en", en],
+        ["es", es],
+      ] as const) {
+        await page.goto(`/${locale}/marketplace/official_${id}`);
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
+          timeout: NAV_TIMEOUT,
+        });
+        const shown = await page.evaluate(() => document.body.innerText);
+        expect(
+          shown,
+          `${id} in ${locale}: the page does not show "${expected}"`,
+        ).toContain(expected);
+      }
+    });
+  }
+});
