@@ -140,7 +140,7 @@ Architecture (`app/domains/solver/`):
 - **Bootstrap**: `register_default_adapters()` runs from `create_app()` before route registration. There is no decorator auto-registration — the list is explicit, for supply-chain safety (ADR D-09)
 
 Supporting components:
-- **33 problem generators** in `app/domains/solver/services/generators/` — produce solver-agnostic `OptimizationProblem`
+- **32 problem generators** in `app/domains/solver/services/generators/`, plus a generic passthrough — produce solver-agnostic `OptimizationProblem`. The registry holds 36 names because `scheduling`/`employee_scheduling`, `routing`/`vehicle_routing` and `blending`/`fertilizer` are aliases of one class each. 31 are reached by a template today; the rest are reachable by name from the API
 - **Expression parser** (`app/domains/solver/services/expression_parser.py`) — recursive descent, produces `ParsedExpression` IR. Imports without pyscipopt (TD-3 closed in Phase 4)
 - **Template engine** — dispatches to generators based on template category
 - **Async solve pipeline** (ADR-007) — every entry point enqueues the same `solve_async` Celery task; `execution_writer` is the single ModelExecution writer (the `solve_orchestrator.py` module survives only as a helper home: `validate_problem`, `ExecutionSource`, warm-start loading)

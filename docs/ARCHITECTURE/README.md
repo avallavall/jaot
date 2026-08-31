@@ -27,6 +27,7 @@ FastAPI + SQLAlchemy + Celery. Layered architecture, Solver domain, and patterns
 - [`02-backend/04-patterns.md`](./02-backend/04-patterns.md) — Protocol Adapter, FastAPI DI, Two-Tier Config, Queue Routing, Shim
 - [`02-backend/05-import-linter.md`](./02-backend/05-import-linter.md) — the 7 contracts that protect boundaries
 - [`02-backend/06-celery-flow.md`](./02-backend/06-celery-flow.md) — full sequence of an async solve
+- [`02-backend/08-templates-and-generators.md`](./02-backend/08-templates-and-generators.md) — how a template card becomes a model: the three descriptions of its input, `context_fields`, the `generator_params` contract, and the gates
 
 ### 03 · Frontend
 Next.js 16 App Router, i18n, shared state.

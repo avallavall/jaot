@@ -43,6 +43,87 @@ The solve and multi-tenancy paths get the most scrutiny:
 Invariant-encoding tests are annotated `# CONTRACT-TEST: <invariant>` so they
 survive test-consolidation passes.
 
+## Template and generator quality
+
+A template is a card the marketplace shows and a generator that turns the
+card's data into a model. Both can be wrong in a way no ordinary test sees: a
+generator that reads the item names, ignores every price and capacity, and
+hands back a model that is optimal for a question nobody asked. Eleven
+templates shipped like that, and 596 passing tests said nothing, because
+"generates without raising" and "the solver returns optimal" are both true of a
+model built on hardcoded defaults.
+
+Three files gate that now.
+
+### `tests/test_template_model_quality.py` — does the model read the card?
+
+- **Input sensitivity.** Change one number in `example_input`, rebuild the
+  model, compare it byte for byte. If it is identical, that number never
+  reached the model. The probe moves each number **up and down**, because a
+  limit with slack in it does not move the model when it is loosened. A card
+  may carry data it deliberately does not optimise over, but it has to name the
+  field in `context_fields`, so the exception is written down and reviewable.
+- **A non-degenerate objective.** If every objective coefficient is the same
+  number, the objective is constant across any answer with a fixed number of
+  terms: every feasible answer ties for optimal and the solver's pick is
+  arbitrary. That is exactly what a hardcoded default cost of 1 produces. One
+  card is exempt by name with a reason that survives reading
+  (`cash_flow_planning`: one credit line at one rate).
+- **Known optima.** 24 cards small enough to check by hand have their optimum
+  pinned, each with the derivation in a comment. These catch what no structural
+  check can: a formulation that quietly changes meaning.
+- **Stated model size.** `estimated_variables` and `estimated_constraints` are
+  served by the API and indexed into RAG, so a stale pair misdescribes the card
+  to a reader and to the assistant. The example input is fixed, so the counts
+  are exact and checked exactly. 55 of 102 were wrong before this gate; one
+  said 24 variables for a model with 1250.
+
+The file carries a **ratchet**: two named sets of templates that fail a gate
+are marked `xfail(strict=True)`, so the build stays green while the debt stays
+visible, and the moment a listed template starts passing, pytest reports XPASS
+and the build fails until the name is removed. The list can only shrink, and a
+new template is never allowed onto it. It started at 41 names and **both sets
+are now empty**.
+
+This replaced a `_SOLVER_KNOWN_ISSUES` set that only asserted "the solver did
+not crash". It grew silently and still named eleven templates that had been
+fixed months earlier.
+
+### `tests/test_template_form_contract.py` — does the studio send that card?
+
+A template describes its input three times: `example_input` is what the
+generators are tested against, `input_fields` is what the studio renders as a
+form, and `input_schema` is what the API docs show. Only the first is executed
+by any test, and the three drifted apart on 25 of 102 templates.
+
+That is not cosmetic. `handleLoadExample` and `collectCleanValues` in
+`frontend/src/components/builder/DynamicFormRenderer.tsx` both walk
+`inputFields`, not the example, so a key the example carries and the form has
+no field for is **dropped** between "Load example" and "Solve". Every one of
+the eight templates that had one changed answer: four failed outright, and four
+came back OPTIMAL with a different number. `mine_production_scheduling`
+returned 600000 where its own example means 445909, and said optimal both
+times.
+
+The headline test rebuilds the model from exactly what the form would submit
+and requires it to be identical to the model the card describes. Five more
+rules catch the shapes that lead there, including a list of numbers with no
+declared item type, which the studio renders as text boxes.
+
+### `tests/test_template_translations.py` — does the card have text?
+
+The studio and the marketplace read card text from
+`frontend/messages/<locale>.json`, and `useTemplateTranslation` falls back to
+English whenever a key is missing, silently. The vitest test meant to catch a
+missing card counted the JSON against a hardcoded 101 and never read the YAML,
+so with 102 templates one card had no entry in any of the five locales and the
+suite stayed green.
+
+These tests compare every locale file to the template YAML: every id has an
+entry, no entry survives a deleted template, no field is empty, `en.json`
+matches the YAML word for word, and prose over 80 characters is not still
+verbatim English.
+
 ## Mutation testing
 
 Line coverage proves a line *ran*; it doesn't prove a test would *catch a bug*

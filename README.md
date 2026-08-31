@@ -106,9 +106,11 @@ a private one need not.
   version of your model, and bring any community model into your own studio with
   one click ("Use in studio" creates your editable, versioned copy). No prices or
   commissions — authors share; adoption is the metric.
-- **102 templates + 33 problem generators** — knapsack, vehicle routing,
+- **102 templates + 32 problem generators** — knapsack, vehicle routing,
   scheduling, production planning, portfolio, a full MDPDP-TW formulation, and
-  more.
+  more. Every template's model is gated: each number in its example must reach
+  the model, the objective must be able to tell two answers apart, and 24 of
+  them are pinned to an optimum worked out by hand.
 
 ### Integrate and operate
 
