@@ -175,19 +175,21 @@ templates:
       blend planner needs to find the cheapest mix that meets all specifications.
     is_featured: false
     estimated_variables: 4
-    estimated_constraints: 7
+    estimated_constraints: 6
 
   - id: fleet_dispatch_mining
     name: Mining Fleet Dispatch Optimization
     display_name: Fleet Dispatch
-    short_description: Dispatch haul trucks between shovels and dumps to maximize production throughput.
+    short_description: Route ore and waste from every shovel to the tips that can take it, moving the most tonnes an hour.
     description: >
-      Assigns haul trucks to shovel-dump routes in an open-pit mine to maximize
-      total tonnes moved per shift. Each shovel has a loading rate, each dump has
-      a receiving capacity, and each truck has a payload and cycle time that
-      depends on the route. The model decides how many truck trips to allocate
-      to each shovel-dump pair to maximize production while balancing shovel
-      utilization and avoiding truck queuing at any point.
+      Routes material from the shovels in an open pit to the places that
+      receive it. A shovel loads at a stated rate in tonnes per hour, and a
+      crusher or waste dump takes only so many tonnes per hour before it backs
+      up. The model sets a rate on every shovel-to-tip route so that no shovel
+      is asked for more than it can load, no tip for more than it can take, and
+      the total tonnage moved per hour is as high as those two limits allow.
+      The truck count is recorded alongside; the model works in tonnes per
+      hour, not in individual truck trips.
     category: mining
     tags: [mining, fleet, dispatch, operations]
     problem_type_tags: [LP, network-flow]
@@ -246,11 +248,11 @@ templates:
         - {name: "Waste-Dump", capacity_tph: 1150}
       trucks: 12
     scenario_description: >
-      An open-pit copper mine operates three shovels and dispatches material to
-      a crusher and a waste dump. Twelve haul trucks are available for the shift.
-      The dispatch optimizer determines how to route trucks between shovels and
-      dumps to move the maximum tonnage while keeping shovels busy and avoiding
-      bottlenecks at the crusher.
+      An open-pit copper mine runs three shovels that load at 800, 650 and 900
+      tonnes an hour, and sends the material to a crusher taking 1200 and a
+      waste dump taking 1150. The shovels can load 2350 tonnes an hour between
+      them and the two tips can take 2350, so every shovel can run flat out.
+      Twelve haul trucks cover the shift.
     is_featured: false
     estimated_variables: 6
     estimated_constraints: 5

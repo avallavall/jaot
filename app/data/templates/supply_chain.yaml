@@ -13,10 +13,12 @@ templates:
       ordering plan that minimizes total supply chain cost. The output tells you order
       quantities per period and expected inventory levels.
     scenario_description: >
-      A consumer electronics distributor manages 5 product lines with weekly demand
-      between 50 and 300 units. Warehouse capacity is 2,000 units total. Holding cost
-      is EUR 0.50/unit/week and stockout penalty is EUR 5/unit. Lead time is 2 weeks.
-      The supply chain manager wants a 6-week ordering plan.
+      A consumer electronics distributor plans one product over six weeks.
+      Demand runs 120, 150, 180, 130, 160 and 140 units, and 50 units are
+      already in stock. A production run can make at most 500 units in a week,
+      costs EUR 100 to set up whatever its size, and holding a unit over to the
+      next week costs EUR 0.50. The manager wants the cheapest run-and-hold
+      plan that never misses a week.
     category: supply_chain
     tags: [supply-chain, inventory, reorder, safety-stock, holding-cost]
     problem_type_tags: [MIP]

@@ -5,15 +5,18 @@ templates:
   - id: train_timetabling
     name: Train Timetable Optimization
     display_name: Train Timetabling
-    short_description: Create conflict-free train timetables that minimize total travel time and maximize line capacity.
+    short_description: Give every train a departure minute that keeps a safe gap on shared track and stays close to the timetable people expect.
     description: >
-      Assigns departure times and track segments to trains on a rail network so
-      that no two trains occupy the same block at the same time. Each train has
-      an origin, destination, desired departure window, and speed class. The
-      model minimizes total delay (deviation from preferred schedule) while
-      ensuring headway safety constraints between consecutive trains on shared
-      tracks. Used by national rail operators and urban transit authorities for
-      strategic and operational scheduling.
+      Chooses a departure minute for every train on a corridor. Each train
+      states an origin, a destination, a journey time and the minute it would
+      prefer to leave, and each track segment states a minimum headway and how
+      many trains an hour it can take. A train's route is worked out from the
+      segments between its origin and its destination, so two trains conflict
+      exactly when their routes share a segment. The model keeps at least the
+      headway between any two trains entering the same segment, respects the
+      hourly limit, and makes the shifts it has to make on the trains where
+      they cost least: the penalty on a train is its priority times the minutes
+      it is moved from its preferred departure.
     category: railway
     tags: [railway, timetabling, public-transport, scheduling]
     problem_type_tags: [MIP, scheduling]
@@ -77,11 +80,12 @@ templates:
         - {name: "Leiden-Rotterdam", capacity_per_hour: 8, min_headway: 5}
       time_horizon: 90
     scenario_description: >
-      Dutch Railways needs to schedule six trains (three express, two regional,
-      one freight) on the Amsterdam-Rotterdam corridor over a 90-minute window.
-      The two-segment corridor has a minimum headway of 5 minutes between trains.
-      Express services have high priority and should depart close to their
-      preferred times, while the freight train can be shifted if needed.
+      Dutch Railways is timing six trains on the Amsterdam-Rotterdam corridor
+      over a 90-minute window: three expresses at priority 9, two regionals at
+      6 and a freight at 3. The corridor is two segments, Amsterdam-Leiden and
+      Leiden-Rotterdam, with 5 minutes of headway on each. At everybody's
+      preferred minute two trains would enter Leiden-Rotterdam together, so
+      something has to give, and the freight is the cheapest train to move.
     is_featured: true
     estimated_variables: 332
     estimated_constraints: 153
@@ -166,8 +170,8 @@ templates:
       capacity. The planner wants to minimize empty repositioning while ensuring
       no service runs with insufficient seats.
     is_featured: false
-    estimated_variables: 25
-    estimated_constraints: 10
+    estimated_variables: 16
+    estimated_constraints: 11
 
   - id: track_maintenance_scheduling
     name: Track Maintenance Scheduling
@@ -244,5 +248,5 @@ templates:
       before its safety deadline, and the planner wants the busiest sections
       done in the earliest windows.
     is_featured: false
-    estimated_variables: 24
+    estimated_variables: 18
     estimated_constraints: 10

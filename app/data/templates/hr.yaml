@@ -79,18 +79,19 @@ templates:
       objective: minimize_cost
     is_featured: true
     estimated_variables: 35
-    estimated_constraints: 21
+    estimated_constraints: 22
 
   - id: assignment
     name: Task Assignment Optimizer
     display_name: Task Assignment
     short_description: Assign workers to tasks one-to-one to minimize total cost while ensuring every task is covered.
     description: >
-      Backward-compatible alias for the workforce_assignment template. Solve the
-      classic assignment problem: given a set of workers and a set of tasks, assign
-      each worker to at most one task so that every task is covered and total cost is
-      minimized. The cost matrix encodes how expensive each worker-task pairing is.
-      Prefer workforce_assignment for new integrations.
+      The classic assignment problem. There is a set of workers and a set of
+      tasks, and a cost table saying what each worker would cost on each task.
+      Every task must be given to someone, and no worker takes more than one.
+      The model picks the pairing with the lowest total cost. This card keeps
+      an older id working; new work should use the Workforce Assignment card,
+      which is the same model.
     scenario_description: >
       A small team of 3 developers (Alice, Bob, Charlie) must be assigned to 3 project
       modules (Frontend, Backend, Testing). Each developer has a different estimated

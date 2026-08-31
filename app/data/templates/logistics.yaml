@@ -164,8 +164,8 @@ templates:
         E_C: 12
         E_D: 8
     is_featured: true
-    estimated_variables: 84
-    estimated_constraints: 50
+    estimated_variables: 67
+    estimated_constraints: 59
 
   - id: bin_packing
     name: Bin Packing Optimizer
@@ -235,7 +235,7 @@ templates:
       max_bins: 0
     is_featured: false
     estimated_variables: 156
-    estimated_constraints: 25
+    estimated_constraints: 35
 
   - id: warehouse_layout
     name: Warehouse Layout Optimizer

@@ -135,7 +135,7 @@ templates:
       mix_quantity_max: 1000
     is_featured: true
     estimated_variables: 4
-    estimated_constraints: 10
+    estimated_constraints: 8
 
   - id: crop_rotation
     name: Crop Rotation Planner
@@ -148,10 +148,10 @@ templates:
       and maintaining soil nutrient balance. The result is a planting calendar that
       maximizes income without depleting the land.
     scenario_description: >
-      A farm has 4 fields and plans 3 seasons ahead. Six crop options (wheat, corn,
-      soybeans, sunflower, barley, fallow) each have different per-hectare profits,
-      water needs, and nitrogen impact. Soybeans fix nitrogen; corn depletes it.
-      Water supply is limited to 800 m3 per season.
+      A farm works two fields over a spring and an autumn season. Three crops
+      are on offer: wheat at 800 a hectare on 200 m3 of water, corn at 1200 on
+      350, and soy at 600 on 150. Water runs out at 800 m3 a season, and corn
+      may not be sown twice running in the same field.
     category: agriculture
     tags: [agriculture, crop-rotation, farming, planning, sustainability]
     problem_type_tags: [MIP]
@@ -224,7 +224,7 @@ templates:
       no_repeat_crops: [corn]
     is_featured: false
     estimated_variables: 12
-    estimated_constraints: 10
+    estimated_constraints: 12
 
   - id: irrigation_scheduling
     name: Irrigation Scheduling Optimizer

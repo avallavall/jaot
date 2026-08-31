@@ -83,8 +83,8 @@ templates:
       the shortest possible project schedule that respects all dependencies and
       resource limits.
     is_featured: true
-    estimated_variables: 90
-    estimated_constraints: 60
+    estimated_variables: 420
+    estimated_constraints: 137
 
   - id: equipment_allocation
     name: Construction Equipment Allocation
@@ -163,8 +163,8 @@ templates:
       storage fees. The fleet manager needs to assign equipment to sites at
       minimum total cost.
     is_featured: false
-    estimated_variables: 15
-    estimated_constraints: 8
+    estimated_variables: 32
+    estimated_constraints: 17
 
   - id: material_procurement
     name: Construction Material Procurement

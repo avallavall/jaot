@@ -72,7 +72,7 @@ templates:
       while staying within the aggregate risk budget.
     is_featured: true
     estimated_variables: 8
-    estimated_constraints: 6
+    estimated_constraints: 1
 
   - id: claims_adjuster_assignment
     name: Claims Adjuster Assignment
@@ -152,5 +152,5 @@ templates:
       The claims manager wants to assign claims to adjusters to minimize total
       processing time, prioritizing urgent claims and matching expertise.
     is_featured: false
-    estimated_variables: 32
-    estimated_constraints: 12
+    estimated_variables: 9
+    estimated_constraints: 8

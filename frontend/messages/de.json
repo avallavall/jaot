@@ -3946,14 +3946,14 @@
       "displayName": "Kursplanung",
       "shortDescription": "Weisen Sie Kurse Räumen und Zeitslots zu, um Konflikte zu vermeiden und die Raumauslastung zu maximieren.",
       "description": "Weist Kurse Räumen und Zeitslots zu und vermeidet dabei Stundenplankonflikte für Dozenten und Studierende. Jeder Kurs hat Anforderungen an Raumkapazität, Ausstattung und Dauer. Das Modell maximiert die Raumauslastung unter Berücksichtigung der Dozentenpräferenzen.\n",
-      "scenarioDescription": "Ein Universitätsinstitut muss 8 Lehrveranstaltungen auf 4 Räume und 5 tägliche Zeitfenster für das Semester verteilen. Drei Lehrende halten je 2 bis 3 Veranstaltungen. Die Raumkapazitäten reichen von 30 bis 120 Plätzen. Das Prüfungsamt will einen konfliktfreien Plan, in dem alle Veranstaltungen Platz finden.\n",
+      "scenarioDescription": "Ein Universitätsinstitut legt fünf Kurse auf fünf Raum-Zeitfenster-Paare in drei Räumen. Jeder Kurs bekommt ein Paar, und kein Paar nimmt zwei Kurse auf. Jede Kombination aus Kurs und Paar trägt einen Strafwert von 1 bis 5, der angibt, wie schlecht Raum und Uhrzeit zu diesem Kurs passen, und das Prüfungsamt will den Plan mit der kleinsten Summe.",
       "categoryDisplayName": "Bildung & Wissenschaft"
     },
     "crop_rotation": {
       "displayName": "Fruchtfolge",
       "shortDescription": "Wählen Sie, welche Kulturen in jedem Feld und jeder Saison angebaut werden sollen, um den Gewinn zu maximieren und die Bodengesundheit zu erhalten.",
       "description": "Plant die Fruchtfolge auf mehreren Feldern über mehrere Saisons. Jede Kultur hat einen erwarteten Gewinn, Nährstoffbedarf und Auswirkungen auf die Bodengesundheit. Das Modell maximiert den Gesamtgewinn unter Einhaltung von Rotationsbeschränkungen und Bodenerholungsanforderungen.\n",
-      "scenarioDescription": "Ein Betrieb hat 4 Felder und plant 3 Saisons im Voraus. Sechs Kulturen (Weizen, Mais, Soja, Sonnenblume, Gerste und Brache) haben unterschiedliche Deckungsbeiträge je Hektar, Wasserbedarf und Stickstoffwirkung. Soja bindet Stickstoff; Mais zehrt ihn auf. Das Wasser ist auf 800 m3 je Saison begrenzt.\n",
+      "scenarioDescription": "Ein Betrieb bewirtschaftet zwei Felder über eine Frühjahrs- und eine Herbstsaison. Drei Kulturen stehen zur Wahl: Weizen mit 800 je Hektar bei 200 m3 Wasser, Mais mit 1200 bei 350 und Soja mit 600 bei 150. Das Wasser ist bei 800 m3 je Saison zu Ende, und Mais darf auf demselben Feld nicht zweimal hintereinander stehen.",
       "categoryDisplayName": "Landwirtschaft"
     },
     "custom": {
@@ -3988,14 +3988,14 @@
       "displayName": "Planung klinischer Studien",
       "shortDescription": "Planen Sie Phasen klinischer Studien über Standorte und Zeiträume, um die Markteinführungszeit unter regulatorischen und Ressourcenbeschränkungen zu minimieren.",
       "description": "Plant die Phasen klinischer Studien an mehreren Forschungsstandorten. Jede Phase hat Anforderungen an Dauer, Patientenzahl und Ausrung. Das Modell minimiert die Gesamtdauer unter Beachtung der Abhängigkeiten zwischen Phasen, Standortverfügbarkeit und regulatorischen Auflagen.\n",
-      "scenarioDescription": "Ein Biotech-Unternehmen plant ein neues Krebsmedikament über vier Studienphasen. Phase I (Sicherheit) muss vor Phase II (Wirksamkeit) abgeschlossen sein, und diese vor zwei parallelen Phase-III-Zulassungsstudien. Fünf qualifizierte Kliniken haben eine begrenzte monatliche Kapazität zur Patientenrekrutierung. Das Unternehmen will die Einreichung bei der FDA innerhalb von vier Jahren so früh wie möglich erreichen.\n",
+      "scenarioDescription": "Ein Biotechnologieunternehmen plant ein neues Krebsmedikament über vier Studienphasen. Phase I (Sicherheit) muss vor Phase II (Wirksamkeit) abgeschlossen sein, und diese vor zwei parallelen Phase-III-Zulassungsstudien. Fünf qualifizierte Kliniken haben je eine monatliche Grenze für die Patientenrekrutierung. Das Unternehmen will den FDA-Antrag so früh wie möglich innerhalb eines Fünfjahresfensters erreichen.",
       "categoryDisplayName": "Pharmazeutik"
     },
     "dye_batch_scheduling": {
       "displayName": "Färbechargen-Planung",
-      "shortDescription": "Planen Sie Textilfärbechargen, um Farbwechselkosten und Wasserverbrauch zu minimieren und Liefertermine einzuhalten.",
-      "description": "Optimiert die Reihenfolge der Färbechargen an Färbemaschinen, um Farbwechselkosten und Wasserverbrauch zu minimieren. Jede Charge hat eine Farbe, ein Volumen und einen Liefertermin. Wechsel zwischen dunklen und hellen Farben erfordern längere Reinigungszyklen.\n",
-      "scenarioDescription": "Eine Textilfärberei betreibt zwei Jet-Färbemaschinen in 16-Stunden-Schichten. Sechs Färbeaufträge in unterschiedlichen Farben müssen bis zu ihren Terminen fertig sein. Der Betrieb will die Aufträge so ordnen, dass die Umrüstkosten minimal werden. Der Wechsel von dunklen zu hellen Farben erfordert einen Reinigungszyklus von 90 Minuten, von hell zu dunkel reichen 30 Minuten.\n",
+      "shortDescription": "Bucht jede Färbecharge auf eine Maschine, die sie fassen kann, damit die Chargen so wenig wie möglich warten.",
+      "description": "Bucht Färbeaufträge auf Jet-Färbemaschinen. Jeder Auftrag hat ein Stoffvolumen, eine Bearbeitungszeit und einen Termin, und eine Maschine bearbeitet einen Auftrag nach dem anderen und nur bis zu ihrer Chargengröße. Alle Aufträge müssen laufen, und die Kosten sind die Zeit, die ein Auftrag ab seiner Verfügbarkeit auf eine Maschine wartet. Das Modell gibt jedem Auftrag eine Maschine und eine Startstunde, die ihn vor seinem Termin fertigstellen und die Gesamtwartezeit so kurz wie möglich halten. Die Farbe jedes Auftrags wird für die Bedienung vermerkt; das Modell bepreist Farbwechsel nicht.",
+      "scenarioDescription": "Eine Textilfärberei betreibt zwei Jet-Maschinen über eine 16-Stunden-Schicht. Sechs Chargen müssen bis zu ihren Terminen gefärbt werden, von 200 kg roter Seide bis 800 kg marineblauem Denim. Jet-Dye-2 fasst nur 350 kg, die drei schwersten Chargen können also nur auf Jet-Dye-1. Der Betrieb will die Chargen so früh gestartet, wie diese Grenzen es zulassen.",
       "categoryDisplayName": "Textil"
     },
     "emergency_response_allocation": {
@@ -4049,9 +4049,9 @@
     },
     "fleet_dispatch_mining": {
       "displayName": "Flotten-Dispatch",
-      "shortDescription": "Disponieren Sie Transportfahrzeuge zwischen Schaufeln und Halden, um den Produktionsdurchsatz zu maximieren.",
-      "description": "Optimiert die Zuteilung von Transportfahrzeugen zwischen Ladeschaufeln und Abladepunkten im Tagebau. Das Modell maximiert den Gesamtproduktionsdurchsatz (Tonnen/Stunde) unter Berücksichtigung von Zykluszeiten, Fahrzeugkapazität und Schaufelproduktivit.\n",
-      "scenarioDescription": "Eine Kupfer-Tagebaumine betreibt drei Bagger und schickt Material zu einem Brecher und einer Halde. Zwölf Muldenkipper stehen für die Schicht bereit. Der Dispatch-Optimierer legt fest, wie die Kipper zwischen Baggern und Abladestellen fahren, um die maximale Tonnage zu bewegen, die Bagger ausgelastet zu halten und Staus am Brecher zu vermeiden.\n",
+      "shortDescription": "Leitet Erz und Abraum von jedem Bagger zu den Stellen, die sie aufnehmen können, und bewegt dabei die meisten Tonnen pro Stunde.",
+      "description": "Leitet Material von den Baggern eines Tagebaus zu den Stellen, die es aufnehmen. Ein Bagger lädt mit einer angegebenen Rate in Tonnen pro Stunde, und ein Brecher oder eine Abraumhalde nimmt nur eine bestimmte Zahl Tonnen pro Stunde auf, bevor sie sich staut. Das Modell setzt auf jeder Route vom Bagger zur Abwurfstelle eine Rate, sodass von keinem Bagger mehr verlangt wird, als er laden kann, von keiner Stelle mehr, als sie aufnehmen kann, und die insgesamt bewegte Tonnage pro Stunde so hoch ist, wie diese beiden Grenzen es zulassen. Die Zahl der Lkw steht daneben; das Modell rechnet in Tonnen pro Stunde, nicht in einzelnen Lkw-Fahrten.",
+      "scenarioDescription": "Ein Kupfer-Tagebau betreibt drei Bagger, die mit 800, 650 und 900 Tonnen pro Stunde laden, und schickt das Material zu einem Brecher, der 1200 aufnimmt, und einer Abraumhalde, die 1150 aufnimmt. Die Bagger können zusammen 2350 Tonnen pro Stunde laden und die beiden Abwurfstellen 2350 aufnehmen, jeder Bagger kann also voll laufen. Zwölf Lkw decken die Schicht ab.",
       "categoryDisplayName": "Bergbau"
     },
     "fleet_sizing": {
@@ -4086,7 +4086,7 @@
       "displayName": "Bestandsoptimierung",
       "shortDescription": "Bestimmen Sie optimale Nachbestellmengen und Sicherheitsbestände, um Lager- und Fehlmengenkosten zu minimieren.",
       "description": "Berechnet optimale Nachbestellmengen und Sicherheitsbestände, um die Summe aus Lager-, Bestell- und Fehlmengenkosten zu minimieren. Das Modell berücksichtigt Nachfrageschwankungen, Lieferzeiten und Servicelevels.\n",
-      "scenarioDescription": "Ein Distributor für Unterhaltungselektronik führt 5 Produktlinien mit einem Wochenbedarf zwischen 50 und 300 Stück. Die Lagerkapazität beträgt insgesamt 2.000 Stück. Die Lagerkosten liegen bei 0,50 EUR je Stück und Woche, die Fehlmengenstrafe bei 5 EUR je Stück. Die Wiederbeschaffungszeit beträgt 2 Wochen. Der Supply-Chain-Leiter will einen Bestellplan über 6 Wochen.\n",
+      "scenarioDescription": "Ein Elektronikdistributor plant ein Produkt über sechs Wochen. Die Nachfrage liegt bei 120, 150, 180, 130, 160 und 140 Stück, und 50 Stück sind bereits auf Lager. Ein Produktionslauf schafft höchstens 500 Stück in einer Woche, kostet unabhängig von seiner Größe 100 EUR Rüstkosten, und ein Stück eine Woche länger zu halten kostet 0,50 EUR. Die Leitung will den günstigsten Produktions- und Lagerplan, der keine Woche verfehlt.",
       "categoryDisplayName": "Supply Chain Management"
     },
     "inventory_replenishment": {
@@ -4105,9 +4105,9 @@
     },
     "job_shop_scheduling": {
       "displayName": "Job-Shop-Planung",
-      "shortDescription": "Planen Sie Aufträge auf Maschinen, um die Gesamtfertigungszeit (Makespan) unter Beachtung der Bearbeitungsreihenfolge zu minimieren.",
-      "description": "Plant eine Menge von Aufträgen auf einer Menge von Maschinen, wobei jeder Auftrag die Maschinen in einer bestimmten Reihenfolge durchlaufen muss. Ziel ist die Minimierung des Makespan. Jede Operation hat eine Dauer und eine zugewiesene Maschine.\n",
-      "scenarioDescription": "Eine Metallwerkstatt hat 3 Maschinen (Drehbank, Fräse und Bohrmaschine). Vier Kundenaufträge erfordern jeweils 2 bis 3 Bearbeitungsschritte in fester Reihenfolge. Die Bearbeitungszeiten liegen zwischen 1 und 5 Stunden. Der Werkstattmeister braucht einen Plan, der alle Aufträge so früh wie möglich fertigstellt.\n",
+      "shortDescription": "Plant jede Operation jedes Auftrags auf der Maschine, die sie braucht, damit die letzte so früh wie möglich fertig wird.",
+      "description": "Jeder Auftrag ist eine Kette von Operationen, die in fester Reihenfolge laufen müssen, und jede Operation braucht eine bestimmte Maschine für eine angegebene Stundenzahl. Eine Maschine erledigt eine Operation nach der anderen. Das Modell gibt jeder Operation eine Startstunde, sodass keine Maschine doppelt belegt ist, keine Operation vor dem Ende ihrer Vorgängerin beginnt und die letzte Operation des letzten Auftrags so früh wie möglich endet. Dieses Ende ist der Makespan, und ihn minimiert das Modell.",
+      "scenarioDescription": "Eine Metallwerkstatt hat eine Drehmaschine, eine Fräse und eine Bohrmaschine. Vier Aufträge liegen an, jeder mit zwei oder drei Operationen in fester Reihenfolge, je eine bis fünf Stunden. Auf der Drehmaschine warten 11 Stunden Arbeit, früher kann also nichts fertig werden, und die vorgeschriebene Reihenfolge schiebt die echte Antwort auf 13. Der Meister will genau diesen Plan.",
       "categoryDisplayName": "Fertigung & Produktion"
     },
     "knapsack": {
@@ -4135,7 +4135,7 @@
       "displayName": "Abschriftenpreisgestaltung",
       "shortDescription": "Setzen Sie optimale Abverkaufspreise für Saisonendbestände, um den Gesamtumsatz beim Räumen des Lagers zu maximieren.",
       "description": "Bestimmt optimale Abverkaufspreise für Saisonendprodukte, um den Gesamtumsatz zu maximieren. Jedes Produkt hat einen Restbestand, eine Preiselastizit der Nachfrage und einen Mindestpreis. Das Modell findet die Preise, die den Bestand Räumen und den Umsatz maximieren.\n",
-      "scenarioDescription": "Ein Modehändler hat 8 Saisonartikel mit 20 bis 200 verbleibenden Stück. Die Grundpreise liegen zwischen 25 EUR und 150 EUR. Der Einkauf schätzt die Nachfrageelastizität aus vergangenen Verkäufen. Ziel ist es, mindestens 80% des Bestands abzuverkaufen und dabei den Gesamterlös des Abverkaufs zu maximieren.\n",
+      "scenarioDescription": "Ein Modehändler hat vier Saisonauslauf-Linien mit 12 bis 200 verbleibenden Stück zu Grundpreisen von 25 bis 150 EUR. Der Einkauf schätzt die Nachfrageelastizität aus früheren Verkäufen und wählt je Linie einen Rabatt von 0% bis 70% in Zehnerschritten. Mindestens 60% der 276 Stück müssen weg, und maximiert wird der Umsatz.",
       "categoryDisplayName": "Einzelhandel"
     },
     "material_procurement": {
@@ -4310,7 +4310,7 @@
       "displayName": "Qualitätskontrolle-Stichproben",
       "shortDescription": "Bestimmen Sie, wie viele Artikel pro Produktionscharge zu prüfen sind, um Fehlererkennungsziele bei minimalen Inspektionskosten zu erreichen.",
       "description": "Bestimmt die optimale Stichprobengröße pro Produktionscharge, um Fehlererkennungsziele bei minimalen Kosten zu erreichen. Jede Charge hat eine Größe, eine historische Fehlerquote und Kosten pro Prüfeinheit. Das Modell balanciert Inspektionskosten gegen das Risiko fehlerhafter Chargen.\n",
-      "scenarioDescription": "Ein Lebensmittelhersteller betreibt 5 Produktionslinien, die täglich Chargen von 500 bis 2.000 Stück erzeugen. Die historischen Fehlerquoten liegen zwischen 0,5% und 3%. Die Qualitätssicherung muss auf allen Linien mindestens 95% der Fehler entdecken, mit einem Budget von 800 EUR pro Tag für Prüfungen.\n",
+      "scenarioDescription": "Ein Lebensmittelhersteller prüft täglich fünf Chargen von je 500 bis 2000 Stück. Die historischen Fehlerquoten liegen zwischen 1% und 3%, das sind etwa 87 fehlerhafte Stücke über alle fünf. Die Qualitätssicherung muss 80% davon finden und hat dafür 2500 EUR pro Tag.",
       "categoryDisplayName": "Fertigung & Produktion"
     },
     "raw_material_purchasing": {
@@ -4378,9 +4378,9 @@
     },
     "satellite_scheduling": {
       "displayName": "Satellitenplanung",
-      "shortDescription": "Planen Sie Beobachtungsaufgaben für eine Satellitenkonstellation, um die abgeschlossenen Anfragen innerhalb der Sichtfenster zu maximieren.",
-      "description": "Plant Erdbeobachtungsaufgaben für eine Satellitenkonstellation, um die Anzahl abgeschlossener Anfragen zu maximieren. Jeder Satellit hat Sichtfenster, Datenspeicherkapazität und Energiebeschränkungen.\n",
-      "scenarioDescription": "Ein Erdbeobachtungsunternehmen betreibt drei Satelliten und hat acht Aufnahmeaufträge für das nächste Fenster von drei Stunden. Die Aufträge reichen von der dringenden Überwachung eines Waldbrands (hohe Priorität) bis zu Routineaufnahmen zum Stadtwachstum. Jeder Satellit hat je Umlauf nur begrenzte Energie für Aufnahmen. Der Planer muss die Aufgaben innerhalb der Sichtbarkeitsfenster auf die Satelliten verteilen, um die Prioritätssumme der erledigten Aufnahmen zu maximieren.\n",
+      "shortDescription": "Wählt, welche Bildanfragen geflogen werden und wann, damit die Konstellation in ihren Sichtfenstern die meiste Priorität einsammelt.",
+      "description": "Wählt aus, welche Beobachtungsanfragen geflogen werden und wann. Jede Anfrage hat ein Sichtfenster, eine Aufnahmedauer und eine Priorität. Ein Satellit nimmt jeweils ein Ziel auf und hat ein Budget an Aufnahmeminuten für den Überflug. Das Modell weist den lohnenden Anfragen einen Satelliten und eine Startminute zu, lässt den Rest liegen und maximiert die eingesammelte Priorität. Was in kein Fenster und in kein Budget passt, wird schlicht nicht geflogen.",
+      "scenarioDescription": "Ein Erdbeobachtungsunternehmen betreibt drei Satelliten und hat acht Bildanfragen für den nächsten dreistündigen Überflug. Sie reichen von der Notfallüberwachung von Waldbränden mit Priorität 95 bis zu einer Routineerhebung des Stadtwachstums mit 50. Jeder Satellit hat eine feste Zahl an Aufnahmeminuten. Die acht Anfragen ergeben zusammen 595 Prioritätspunkte, und die Minuten reichen dafür nicht, also entscheidet die Planung, welche wegfallen.",
       "categoryDisplayName": "Luft- und Raumfahrt"
     },
     "service_center_placement": {
@@ -4408,14 +4408,14 @@
       "displayName": "Strip Packing",
       "shortDescription": "Platzieren Sie rechteckige Teile in einem Streifen fester Breite, um die genutzte Gesamthöhe zu minimieren.",
       "description": "Platzieren Sie eine Menge rechteckiger Teile auf einem Streifen fester Breite und minimieren Sie dabei die insgesamt verbrauchte Höhe (Länge) des Materials. Die Teile dürfen sich nicht überlappen und nicht gedreht werden (optional auch mit Drehung). Das Ganze wird als Packproblem unter Ressourcenbeschränkung modelliert. Üblich beim Textilzuschnitt, im Leiterplattenlayout und im Zeitungsseitenumbruch.\n",
-      "scenarioDescription": "Eine Stoffschneidemaschine arbeitet mit einer Rolle von 150 cm Breite. Acht Schnittteile unterschiedlicher Breite (20 bis 60 cm) und Höhe (10 bis 40 cm) müssen angeordnet werden. Ziel ist es, die insgesamt verbrauchte Stofflänge zu minimieren.\n",
+      "scenarioDescription": "Eine Schneidmaschine arbeitet auf einer Rolle von 10 Einheiten Breite. Sechs Schnittteile müssen darauf liegen, 2 bis 6 Einheiten breit und 2 bis 5 lang. Gesucht ist die kürzeste Rollenlänge, die alle sechs überschneidungsfrei aufnimmt.",
       "categoryDisplayName": "Zuschnitt & Verpackung"
     },
     "student_assignment": {
       "displayName": "Studentenzuteilung",
       "shortDescription": "Weisen Sie Studenten Kurssektionen zu, um die Präferenzzufriedenheit unter Einhaltung der Sektionskapazitäten zu maximieren.",
       "description": "Weist Studenten Kurssektionen zu, um die Präferenzzufriedenheit zu maximieren. Jeder Student hat eine Präferenzrangliste und jede Sektion eine maximale Kapazität. Das Modell maximiert die Anzahl der Studenten, die ihre Erstwahl erhalten.\n",
-      "scenarioDescription": "Vierzig Studierende müssen auf 4 Gruppen eines Einführungskurses in Programmierung verteilt werden (je 10 Plätze). Jede Person hat die Gruppen von 1 bis 4 nach Präferenz gereiht. Das Prüfungsamt will die Zuteilung, die die Gesamtzufriedenheit der Studierenden maximiert.\n",
+      "scenarioDescription": "Sechs Studierende sind auf drei Gruppen eines Programmier-Einführungskurses zu verteilen: morgens, mittags und nachmittags. Jede Person hat die drei von 1 bis 3 gereiht, und dieser Rang ist der Preis dafür, ihr diese Gruppe zu geben. Das Prüfungsamt will die Verteilung mit der kleinsten Summe, also die mit den meisten Erstwünschen.",
       "categoryDisplayName": "Bildung & Wissenschaft"
     },
     "supplier_selection": {
@@ -4448,9 +4448,9 @@
     },
     "tournament_scheduling": {
       "displayName": "Turnierplanung",
-      "shortDescription": "Erstellen Sie einen Round-Robin-Turnierplan, der die Gesamtreisedistanz minimiert oder Heim-/Auswärtsspiele ausbalanciert.",
-      "description": "Erstellt einen Round-Robin-Turnierplan, bei dem jedes Team gegen alle anderen spielt. Das Modell minimiert die Gesamtreisedistanz oder balanciert Heim- und Auswärtsspiele. Vermeidet aufeinanderfolgende Auswärtsspiele und beachtet Stadionverfügbarkeiten.\n",
-      "scenarioDescription": "Eine regionale Basketballliga hat 6 Teams. Jedes Team spielt zweimal gegen jedes andere (Hin- und Rückrunde) über 10 Spieltage. Kein Team sollte mehr als 2 Auswärtsspiele hintereinander haben. Der Spielplaner will einen fairen und ausgewogenen Spielplan.\n",
+      "shortDescription": "Erstellt einen Einfachrunden-Spielplan und wählt für jede Partie den Gastgeber, damit die Gäste weniger reisen.",
+      "description": "Jede Mannschaft spielt einmal gegen jede andere. Das Modell wählt den Spieltag jeder Partie und entscheidet, welcher der beiden Vereine sie ausrichtet. Der Gastverein zahlt den Bus, und die Vereine zahlen je Kilometer unterschiedlich viel, Ausrichten ist also Geld wert und der Spielplan verteilt es: jeder Verein richtet so nah an der Hälfte seiner Partien aus, wie es eine ungerade Zahl zulässt, und keiner spielt öfter hintereinander auswärts, als die Liga erlaubt. Das Ergebnis ist ein Spielplan mit Spieltag und Gastgeber für jede Partie.",
+      "scenarioDescription": "Eine katalanische Regionalliga im Basketball hat sechs Vereine und fünf Spieltage. Jeder Verein spielt einmal gegen die anderen fünf, das sind fünfzehn Partien, und jeder Spieltag trägt drei davon aus. Der Bus kostet jeden Verein je Kilometer unterschiedlich viel, von 1,80 in Reus bis 2,55 in Vic, und der Gast zahlt. Jeder Verein muss zwei oder drei seiner fünf Partien ausrichten, und keiner darf mehr als zweimal hintereinander auswärts antreten.",
       "categoryDisplayName": "Sport & Freizeit"
     },
     "track_maintenance_scheduling": {
@@ -4462,9 +4462,9 @@
     },
     "train_timetabling": {
       "displayName": "Fahrplanerstellung",
-      "shortDescription": "Erstellen Sie konfliktfreie Zugfahrpläne, die die Gesamtfahrzeit minimieren und die Streckenkapazität maximieren.",
-      "description": "Erstellt konfliktfreie Zugfahrpläne für ein Eisenbahnnetz, die die Streckenkapazität maximieren und Fahrzeiten minimieren. Vermeidet Konflikte auf eingleisigen Abschnitten und beachtet Mindesthaltezeiten und Anschlussanforderungen.\n",
-      "scenarioDescription": "Die Niederländische Bahn muss sechs Züge (drei Schnellzüge, zwei Regionalzüge und einen Güterzug) auf dem Korridor Amsterdam-Rotterdam in einem Fenster von 90 Minuten einplanen. Der Korridor hat zwei Abschnitte und verlangt eine Mindestzugfolgezeit von 5 Minuten. Die Schnellzüge haben hohe Priorität und sollten nahe an ihrer Wunschzeit abfahren, während der Güterzug bei Bedarf verschoben werden kann.\n",
+      "shortDescription": "Gibt jedem Zug eine Abfahrtsminute, die auf gemeinsam genutzter Strecke sicheren Abstand hält und nah am erwarteten Fahrplan bleibt.",
+      "description": "Wählt für jeden Zug eines Korridors eine Abfahrtsminute. Jeder Zug nennt einen Start, ein Ziel, eine Fahrzeit und die Minute, zu der er am liebsten losführe, und jeder Streckenabschnitt nennt eine Mindestzugfolgezeit und wie viele Züge er pro Stunde aufnimmt. Der Laufweg eines Zuges ergibt sich aus den Abschnitten zwischen Start und Ziel, zwei Züge kollidieren also genau dann, wenn ihre Laufwege einen Abschnitt teilen. Das Modell hält zwischen zwei Zügen, die denselben Abschnitt befahren, mindestens die Zugfolgezeit ein, achtet auf die Stundengrenze und verschiebt dort, wo es am wenigsten kostet: die Strafe eines Zuges ist seine Priorität mal den Minuten, um die er von seiner Wunschabfahrt abweicht.",
+      "scenarioDescription": "Die niederländische Bahn legt sechs Züge auf dem Korridor Amsterdam-Rotterdam in ein 90-Minuten-Fenster: drei Expresszüge mit Priorität 9, zwei Regionalzüge mit 6 und ein Güterzug mit 3. Der Korridor besteht aus zwei Abschnitten, Amsterdam-Leiden und Leiden-Rotterdam, mit je 5 Minuten Zugfolgezeit. Zur Wunschminute aller würden zwei Züge gemeinsam in Leiden-Rotterdam einfahren, also muss etwas nachgeben, und der Güterzug ist der billigste Zug zum Verschieben.",
       "categoryDisplayName": "Eisenbahn"
     },
     "training_program_selection": {
@@ -4541,7 +4541,7 @@
       "displayName": "Abwasserbehandlung",
       "shortDescription": "Leiten Sie Abwasserströme zu Kläranlagen, um die Behandlungskosten zu minimieren und Umwelt-Einleitungsstandards einzuhalten.",
       "description": "Optimiert die Verteilung der Abwasserströme auf Kläranlagen zur Minimierung der Gesamtbehandlungskosten. Jede Anlage hat Kapazität, Behandlungstechnologie und Kosten pro Kubikmeter. Die Einleitungen müssen Umweltstandards erfüllen.\n",
-      "scenarioDescription": "Eine Stadt erzeugt Abwasser aus vier Hauptquellen mit unterschiedlicher Belastung. Drei Kläranlagen mit unterschiedlichen Kapazitäten und Verfahren stehen zur Verfügung. Der Betreiber muss alle Ströme so auf die Anlagen verteilen, dass das gereinigte Abwasser die Vorgaben zu minimalen Gesamtkosten erfüllt.\n",
+      "scenarioDescription": "Eine Stadt schickt Abwasser aus vier Quellen zu drei Kläranlagen. Die Quellen reichen von einem Krankenhauskomplex mit 0,95 Belastung bis zu einem Wohnviertel mit 0,30, und die Anlagen entfernen davon zwischen 80% und 95% zu 2,50 bis 4,00 je Einheit. Was die Anlagen nicht entfernen, wird eingeleitet, und die Genehmigung erlaubt 900 Einheiten davon. Der Versorger will die günstigste Führung, die innerhalb der Genehmigung bleibt.",
       "categoryDisplayName": "Wasserwirtschaft"
     },
     "water_distribution_network": {
@@ -4563,6 +4563,13 @@
       "shortDescription": "Weisen Sie Mitarbeiter Aufgaben nach Kompetenzen und Verfügbarkeit zu, um Personalkosten zu minimieren und die Produktivität zu maximieren.",
       "description": "Weist Mitarbeiter Aufgaben oder Projekten nach Kompetenzen, Verfügbarkeit und Präferenzen zu, um Personalkosten zu minimieren oder die Gesamtproduktivität zu maximieren. Jeder Mitarbeiter hat ein Kompetenzprofil, Kosten und eine Stundenverfügbarkeit.\n",
       "scenarioDescription": "Eine Softwareagentur muss 3 Entwickler (Alice, Bob und Charlie) auf 3 Projektmodule (Frontend, Backend und Testing) verteilen. Jeder Entwickler hat je Modul andere geschätzte Kosten, je nachdem, wie gut er dazu passt. Die Projektleitung will den günstigsten Besetzungsplan.\n",
+      "categoryDisplayName": "Personal & Workforce"
+    },
+    "assignment": {
+      "displayName": "Aufgabenzuordnung",
+      "shortDescription": "Ordnet jede Aufgabe einer anderen Person zu und sucht die niedrigsten Gesamtkosten.",
+      "description": "Das klassische Zuordnungsproblem. Es gibt eine Menge von Mitarbeitern und eine Menge von Aufgaben sowie eine Kostentabelle, die angibt, was jeder Mitarbeiter bei jeder Aufgabe kosten würde. Jede Aufgabe wird jemandem gegeben, und niemand übernimmt mehr als eine. Das Modell wählt die Paarung mit den niedrigsten Gesamtkosten. Diese Karte hält eine ältere Kennung am Leben; neue Arbeit sollte die Karte Personalzuordnung verwenden, die dasselbe Modell ist.",
+      "scenarioDescription": "Ein kleines Team aus 3 Entwicklern (Alice, Bob, Charlie) muss sich 3 Projektmodule (Frontend, Backend, Testing) aufteilen. Jeder Entwickler hat je nach Erfahrung unterschiedliche geschätzte Kosten pro Modul. Die technische Leitung will die günstigste Zuordnung, die alle drei Module abdeckt.",
       "categoryDisplayName": "Personal & Workforce"
     }
   },

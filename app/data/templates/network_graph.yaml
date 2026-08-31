@@ -136,8 +136,8 @@ templates:
         - {from: C, to: E, cost: 9}
         - {from: D, to: E, cost: 1}
     is_featured: false
-    estimated_variables: 7
-    estimated_constraints: 11
+    estimated_variables: 21
+    estimated_constraints: 20
 
   - id: max_flow
     name: Maximum Flow Optimizer

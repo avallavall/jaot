@@ -78,8 +78,8 @@ templates:
       pipe segment due to elevation and distance. The utility needs to route
       850 cubic meters per hour to all zones at minimum pumping cost.
     is_featured: false
-    estimated_variables: 8
-    estimated_constraints: 12
+    estimated_variables: 9
+    estimated_constraints: 8
 
   - id: reservoir_operation
     name: Reservoir Operation Planning
@@ -182,8 +182,8 @@ templates:
       authority must plan monthly releases that satisfy irrigation, generate
       electricity revenue, and keep the reservoir within safe operating limits.
     is_featured: false
-    estimated_variables: 18
-    estimated_constraints: 24
+    estimated_variables: 12
+    estimated_constraints: 12
 
   - id: wastewater_treatment_allocation
     name: Wastewater Treatment Allocation
@@ -261,11 +261,12 @@ templates:
         - {name: "Advanced-Plant-East", capacity: 6000, cost_per_unit: 4.0, efficiency: 0.95}
         - {name: "Tertiary-Plant-South", capacity: 3500, cost_per_unit: 6.0, efficiency: 0.99}
     scenario_description: >
-      A city generates wastewater from four main sources with different
-      contamination levels. Three treatment plants are available with varying
-      capacities and treatment technologies. The utility must route all flows
-      to plants such that treated effluent meets regulatory standards at
-      minimum total cost.
+      A city sends wastewater from four sources to three treatment plants. The
+      sources run from a hospital complex at 0.95 contamination to a
+      residential district at 0.30, and the plants remove between 80% and 95%
+      of it at 2.50 to 4.00 a unit. Whatever the plants do not remove is
+      discharged, and the permit allows 900 units of that. The utility wants
+      the cheapest routing that stays inside the permit.
     is_featured: false
     estimated_variables: 12
-    estimated_constraints: 7
+    estimated_constraints: 8

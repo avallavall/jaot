@@ -69,84 +69,94 @@ templates:
           usage: {chairs: 8, tables: 12, desks: 20}
     is_featured: true
     estimated_variables: 3
-    estimated_constraints: 9
+    estimated_constraints: 3
 
   - id: job_shop_scheduling
     name: Job Shop Scheduling Optimizer
     display_name: Job Shop Scheduling
-    short_description: Schedule jobs across machines to minimize total completion time (makespan) while respecting processing order constraints.
+    short_description: Schedule every operation of every order on the machine it needs, so the last one finishes as early as possible.
     description: >
-      Assign start times to operations of multiple jobs on multiple machines so that
-      the overall completion time (makespan) is minimized. Each job has a sequence of
-      operations, each requiring a specific machine for a specific duration. No two
-      operations can use the same machine simultaneously. The solver produces a Gantt-
-      chart-ready schedule showing when each operation starts and on which machine.
-    scenario_description: >
-      A metal shop has 3 machines (lathe, mill, drill). Four customer orders each require
-      2-3 machining operations in a fixed sequence. Processing times range from 1 to 5
-      hours. The shop foreman needs a schedule that finishes all orders as early as possible.
+      Each order is a chain of operations that must run in a fixed order, and
+      each operation needs one particular machine for a stated number of hours.
+      A machine does one operation at a time. The model gives every operation a
+      start hour so that no machine is double-booked, no operation starts before
+      the one in front of it has finished, and the last operation of the last
+      order finishes as early as it can. That last finish is the makespan, and
+      it is what the model minimises.
     category: manufacturing
-    tags: [manufacturing, scheduling, job-shop, makespan, machines]
-    problem_type_tags: [MIP]
+    tags: [manufacturing, scheduling, job-shop, makespan]
+    problem_type_tags: [MIP, scheduling]
     generator_type: scheduling
     generator_params: {}
     input_schema:
       type: object
-      required: [employees, shifts]
       properties:
-        employees: {type: array}
-        shifts: {type: array}
-        objective: {type: string}
+        activities:
+          type: array
+          description: Operations with duration, the machine they need, and what must precede them
+        resources:
+          type: array
+          description: Machines, each able to run one operation at a time
+        time_horizon:
+          type: integer
+          description: Hours the shop has to finish everything
+      required: [activities, resources, time_horizon]
     input_fields:
-      - name: employees
-        label: Jobs (as employees)
+      - name: activities
+        label: Operations
         type: array
-        description: Jobs modelled as employees with processing costs
+        description: "Operations with name, hours, the machine each needs, and the operation before it"
         required: true
         items:
           type: object
           properties:
             name: {type: string}
-            hourly_cost: {type: number}
-            max_hours: {type: number}
-            min_hours: {type: number}
-      - name: shifts
-        label: Machine Slots (as shifts)
+            duration: {type: integer}
+            resource_needs: {type: object}
+            prerequisites: {type: array, items: {type: string}}
+      - name: resources
+        label: Machines
         type: array
-        description: Machine time slots modelled as shifts
+        description: "Machines with a daily capacity of 1, meaning one operation at a time"
         required: true
         items:
           type: object
           properties:
             name: {type: string}
-            duration_hours: {type: number}
-            min_employees: {type: integer}
-            max_employees: {type: integer}
-      - name: objective
-        label: Objective
-        type: string
-        description: Minimize cost (makespan proxy)
-        required: false
-        enum: [minimize_cost]
-        default: minimize_cost
+            daily_capacity: {type: number}
+      - name: time_horizon
+        label: Time Horizon (hours)
+        type: integer
+        description: "Hours available to finish every order"
+        required: true
+        minimum: 1
     example_input:
-      employees:
-        - {name: job_A, hourly_cost: 10, max_hours: 12, min_hours: 4}
-        - {name: job_B, hourly_cost: 12, max_hours: 10, min_hours: 3}
-        - {name: job_C, hourly_cost: 8, max_hours: 15, min_hours: 5}
-        - {name: job_D, hourly_cost: 15, max_hours: 8, min_hours: 2}
-      shifts:
-        - {name: lathe_morning, duration_hours: 4, min_employees: 1, max_employees: 2}
-        - {name: lathe_afternoon, duration_hours: 4, min_employees: 1, max_employees: 2}
-        - {name: mill_morning, duration_hours: 4, min_employees: 1, max_employees: 2}
-        - {name: mill_afternoon, duration_hours: 4, min_employees: 1, max_employees: 2}
-        - {name: drill_morning, duration_hours: 3, min_employees: 1, max_employees: 1}
-        - {name: drill_afternoon, duration_hours: 3, min_employees: 1, max_employees: 1}
-      objective: minimize_cost
-    is_featured: true
-    estimated_variables: 24
-    estimated_constraints: 14
-
+      activities:
+        - {name: "A-Lathe", duration: 3, resource_needs: {lathe: 1}, prerequisites: []}
+        - {name: "A-Mill", duration: 2, resource_needs: {mill: 1}, prerequisites: ["A-Lathe"]}
+        - {name: "A-Drill", duration: 1, resource_needs: {drill: 1}, prerequisites: ["A-Mill"]}
+        - {name: "B-Mill", duration: 4, resource_needs: {mill: 1}, prerequisites: []}
+        - {name: "B-Lathe", duration: 2, resource_needs: {lathe: 1}, prerequisites: ["B-Mill"]}
+        - {name: "B-Drill", duration: 2, resource_needs: {drill: 1}, prerequisites: ["B-Lathe"]}
+        - {name: "C-Drill", duration: 2, resource_needs: {drill: 1}, prerequisites: []}
+        - {name: "C-Lathe", duration: 5, resource_needs: {lathe: 1}, prerequisites: ["C-Drill"]}
+        - {name: "C-Mill", duration: 3, resource_needs: {mill: 1}, prerequisites: ["C-Lathe"]}
+        - {name: "D-Lathe", duration: 1, resource_needs: {lathe: 1}, prerequisites: []}
+        - {name: "D-Drill", duration: 4, resource_needs: {drill: 1}, prerequisites: ["D-Lathe"]}
+      resources:
+        - {name: "lathe", daily_capacity: 1}
+        - {name: "mill", daily_capacity: 1}
+        - {name: "drill", daily_capacity: 1}
+      time_horizon: 20
+    scenario_description: >
+      A metal shop runs a lathe, a mill and a drill. Four orders are in the
+      book, each needing two or three operations in a fixed order, from one to
+      five hours each. The lathe has 11 hours of work waiting, so nothing can
+      finish sooner than that, and the order the operations have to run in
+      pushes the real answer out to 13. The foreman wants that schedule.
+    is_featured: false
+    estimated_variables: 214
+    estimated_constraints: 100
   - id: quality_control_sampling
     name: Quality Control Sampling Planner
     display_name: Quality Control Sampling

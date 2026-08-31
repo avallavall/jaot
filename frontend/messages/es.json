@@ -3946,14 +3946,14 @@
       "displayName": "Programación de Cursos",
       "shortDescription": "Asigna cursos a aulas y franjas horarias para evitar conflictos y maximizar la utilización de salas.",
       "description": "Asigna cursos a aulas y franjas horarias evitando conflictos de horarios para profesores y estudiantes. Cada curso tiene requisitos de capacidad de sala, equipamiento y duración. El modelo maximiza la utilización de las salas respetando las preferencias de los profesores y las restricciones de disponibilidad.\n",
-      "scenarioDescription": "Un departamento universitario debe programar 8 asignaturas en 4 aulas y 5 franjas horarias diarias durante el semestre. Tres profesores imparten entre 2 y 3 asignaturas cada uno. La capacidad de las aulas va de 30 a 120 plazas. El coordinador quiere un horario sin conflictos que dé cabida a todas las asignaturas.\n",
+      "scenarioDescription": "Un departamento universitario coloca cinco asignaturas en cinco pares de aula y franja horaria repartidos entre tres aulas. Cada asignatura recibe un par y ningún par acoge dos asignaturas. Cada combinación de asignatura y par lleva una penalización de 1 a 5, que dice lo mal que le va esa aula y esa hora, y la secretaría quiere el horario con la suma más pequeña.",
       "categoryDisplayName": "Educación y Academia"
     },
     "crop_rotation": {
       "displayName": "Rotación de Cultivos",
       "shortDescription": "Selecciona qué cultivos sembrar en cada campo y temporada para maximizar el beneficio manteniendo la salud del suelo.",
       "description": "Planifica la rotación de cultivos en múltiples campos a lo largo de varias temporadas. Cada cultivo tiene un beneficio esperado, requisitos de nutrientes y efectos sobre la salud del suelo. El modelo maximiza el beneficio total respetando las restricciones de rotación (no repetir el mismo cultivo consecutivamente) y los requisitos de restauración del suelo.\n",
-      "scenarioDescription": "Una explotación tiene 4 parcelas y planifica 3 temporadas por delante. Seis cultivos posibles (trigo, maíz, soja, girasol, cebada y barbecho) tienen beneficios por hectárea, necesidades de agua e impacto sobre el nitrógeno distintos. La soja fija nitrógeno; el maíz lo agota. El agua disponible está limitada a 800 m3 por temporada.\n",
+      "scenarioDescription": "Una finca trabaja dos parcelas a lo largo de una temporada de primavera y otra de otoño. Hay tres cultivos: trigo, que da 800 por hectárea con 200 m3 de agua; maíz, 1200 con 350; y soja, 600 con 150. El agua se acaba en 800 m3 por temporada, y el maíz no se puede sembrar dos veces seguidas en la misma parcela.",
       "categoryDisplayName": "Agricultura y Ganadería"
     },
     "custom": {
@@ -3988,14 +3988,14 @@
       "displayName": "Programación de Ensayos Clínicos",
       "shortDescription": "Programa fases de ensayos clínicos entre centros y períodos para minimizar el tiempo de comercialización respetando restricciones regulatorias y de recursos.",
       "description": "Planifica la programación de fases de ensayos clínicos en múltiples centros de investigación. Cada fase tiene requisitos de duración, número de pacientes y equipamiento. El modelo minimiza el tiempo total hasta la comercialización respetando las dependencias entre fases, la disponibilidad de centros y las restricciones regulatorias.\n",
-      "scenarioDescription": "Una empresa de biotecnología planifica un nuevo fármaco oncológico a través de cuatro fases de ensayo. La Fase I (seguridad) debe terminar antes de la Fase II (eficacia), que debe acabar antes de dos estudios pivotales de Fase III en paralelo. Cinco hospitales cualificados tienen una capacidad mensual limitada de reclutamiento de pacientes. La empresa quiere llegar a la presentación ante la FDA lo antes posible dentro de una ventana de cuatro años.\n",
+      "scenarioDescription": "Una empresa de biotecnología planifica un nuevo fármaco oncológico a través de cuatro fases de ensayo. La fase I (seguridad) debe terminar antes que la fase II (eficacia), que debe acabar antes de dos estudios pivotales de fase III en paralelo. Cinco hospitales cualificados tienen cada uno un límite mensual de reclutamiento de pacientes. La empresa quiere llegar a la solicitud ante la FDA lo antes posible dentro de una ventana de cinco años.",
       "categoryDisplayName": "Farmacéutica"
     },
     "dye_batch_scheduling": {
       "displayName": "Programación de Teñido por Lotes",
-      "shortDescription": "Programa lotes de teñido de telas para minimizar costes de cambio de color y consumo de agua cumpliendo plazos de entrega.",
-      "description": "Optimiza la secuencia de lotes de teñido en máquinas de tintura para minimizar los costes de cambio de color y el consumo de agua. Cada lote tiene un color, un volumen y una fecha de entrega. Los cambios entre colores oscuros y claros requieren ciclos de limpieza más largos. El modelo programa los lotes para minimizar tiempos de inactividad y desperdicio.\n",
-      "scenarioDescription": "Una planta textil de tintura tiene dos máquinas de tintura por chorro que trabajan en turnos de 16 horas. Seis trabajos de tintura en colores distintos deben terminarse antes de sus fechas límite. La planta quiere secuenciar los trabajos minimizando el coste de cambio. Pasar de colores oscuros a claros exige un ciclo de limpieza de 90 minutos, mientras que de claro a oscuro bastan 30 minutos.\n",
+      "shortDescription": "Coloca cada partida de tintura en una máquina que pueda con ella, para que las partidas esperen lo menos posible.",
+      "description": "Coloca los trabajos de tintura en máquinas de tintura a chorro. Cada trabajo tiene un volumen de tejido, un tiempo de proceso y una fecha límite, y una máquina hace un trabajo cada vez y solo hasta el tamaño de partida que admite. Todos los trabajos deben ejecutarse, y el coste es el tiempo que un trabajo pasa esperando máquina desde que está disponible. El modelo da a cada trabajo una máquina y una hora de inicio que lo terminan antes de su fecha límite y dejan la espera total lo más corta posible. El color de cada trabajo queda anotado para el operario; el modelo no pone precio a los cambios de color.",
+      "scenarioDescription": "Una planta de tintura textil tiene dos máquinas de chorro en un turno de 16 horas. Hay que teñir seis partidas antes de sus fechas límite, desde 200 kg de seda roja hasta 800 kg de tejano azul marino. La máquina Jet-Dye-2 solo admite 350 kg, así que las tres partidas más pesadas solo pueden ir en la Jet-Dye-1. La planta quiere las partidas empezadas tan pronto como esos límites permitan.",
       "categoryDisplayName": "Textil"
     },
     "emergency_response_allocation": {
@@ -4049,9 +4049,9 @@
     },
     "fleet_dispatch_mining": {
       "displayName": "Despacho de Flota",
-      "shortDescription": "Despacha camiones de transporte entre palas y vertederos para maximizar el rendimiento de producción.",
-      "description": "Optimiza la asignación de camiones de acarreo entre palas cargadoras y puntos de descarga en una operación minera a cielo abierto. El modelo maximiza el rendimiento total de producción (toneladas/hora) considerando los tiempos de ciclo, la capacidad de los camiones y la productividad de las palas. Incluye restricciones de cola y mantenimiento.\n",
-      "scenarioDescription": "Una mina de cobre a cielo abierto opera tres palas y envía material a una trituradora y a una escombrera. Hay doce camiones de acarreo disponibles para el turno. El optimizador de despacho decide cómo enrutar los camiones entre palas y descargas para mover el máximo tonelaje manteniendo las palas ocupadas y evitando atascos en la trituradora.\n",
+      "shortDescription": "Encamina mineral y estéril desde cada pala hasta los puntos que pueden recibirlos, moviendo el máximo de toneladas por hora.",
+      "description": "Encamina material desde las palas de una mina a cielo abierto hasta los puntos que lo reciben. Una pala carga a un ritmo dado en toneladas por hora, y una trituradora o una escombrera solo admite un número de toneladas por hora antes de saturarse. El modelo fija un caudal en cada ruta de pala a punto de descarga, de forma que a ninguna pala se le pida más de lo que puede cargar, a ningún punto más de lo que puede recibir, y el tonelaje total movido por hora sea el mayor que permitan esos dos límites. El número de camiones se anota al lado; el modelo trabaja en toneladas por hora, no en viajes de camión.",
+      "scenarioDescription": "Una mina de cobre a cielo abierto tiene tres palas que cargan a 800, 650 y 900 toneladas por hora, y envía el material a una trituradora que admite 1200 y a una escombrera que admite 1150. Las palas pueden cargar 2350 toneladas por hora entre las tres y los dos puntos de descarga pueden recibir 2350, así que todas las palas pueden ir a pleno rendimiento. Doce camiones cubren el turno.",
       "categoryDisplayName": "Minería"
     },
     "fleet_sizing": {
@@ -4086,7 +4086,7 @@
       "displayName": "Optimización de Inventario",
       "shortDescription": "Determina cantidades óptimas de reorden y niveles de stock de seguridad para minimizar los costes de almacenamiento y rotura.",
       "description": "Calcula las cantidades óptimas de reorden y los niveles de stock de seguridad para minimizar la suma de costes de almacenamiento, costes de pedido y costes de rotura de stock. El modelo considera la variabilidad de la demanda, los plazos de entrega y los niveles de servicio objetivo.\n",
-      "scenarioDescription": "Un distribuidor de electrónica de consumo gestiona 5 líneas de producto con una demanda semanal de entre 50 y 300 unidades. La capacidad del almacén es de 2.000 unidades en total. El coste de almacenamiento es de 0,50 EUR por unidad y semana, y la penalización por rotura de stock es de 5 EUR por unidad. El plazo de entrega es de 2 semanas. El responsable de la cadena de suministro quiere un plan de pedidos a 6 semanas.\n",
+      "scenarioDescription": "Un distribuidor de electrónica de consumo planifica un producto a lo largo de seis semanas. La demanda va de 120, 150, 180, 130, 160 y 140 unidades, y ya hay 50 unidades en almacén. Una tirada de producción puede hacer como mucho 500 unidades en una semana, cuesta 100 EUR de preparación sea del tamaño que sea, y guardar una unidad de una semana para la siguiente cuesta 0,50 EUR. El responsable quiere el plan de producir y guardar más barato que no falle ninguna semana.",
       "categoryDisplayName": "Gestión de Cadena de Suministro"
     },
     "inventory_replenishment": {
@@ -4105,9 +4105,9 @@
     },
     "job_shop_scheduling": {
       "displayName": "Programación de Taller",
-      "shortDescription": "Programa trabajos en máquinas para minimizar el tiempo total de finalización (makespan) respetando las restricciones de orden de procesamiento.",
-      "description": "Programa un conjunto de trabajos en un conjunto de máquinas, donde cada trabajo debe pasar por las máquinas en un orden específico. El objetivo es minimizar el makespan (tiempo total de finalización del último trabajo). Cada operación tiene una duración y una máquina asignada. Las máquinas procesan un trabajo a la vez.\n",
-      "scenarioDescription": "Un taller metalúrgico tiene 3 máquinas (torno, fresadora y taladro). Cuatro pedidos de cliente requieren cada uno entre 2 y 3 operaciones de mecanizado en una secuencia fija. Los tiempos de proceso van de 1 a 5 horas. El jefe de taller necesita un programa que termine todos los pedidos lo antes posible.\n",
+      "shortDescription": "Programa cada operación de cada pedido en la máquina que necesita, para que la última termine lo antes posible.",
+      "description": "Cada pedido es una cadena de operaciones que deben ejecutarse en un orden fijo, y cada operación necesita una máquina concreta durante un número de horas. Una máquina hace una operación cada vez. El modelo da a cada operación una hora de inicio de forma que ninguna máquina esté doblemente ocupada, ninguna operación empiece antes de que acabe la que la precede, y la última operación del último pedido termine lo antes posible. Ese último final es el makespan, y es lo que el modelo minimiza.",
+      "scenarioDescription": "Un taller metalúrgico tiene un torno, una fresadora y un taladro. Hay cuatro pedidos en cartera, cada uno con dos o tres operaciones en orden fijo, de una a cinco horas cada una. El torno tiene 11 horas de trabajo esperando, así que nada puede acabar antes, y el orden en que deben ir las operaciones empuja la respuesta real hasta 13. El encargado quiere ese horario.",
       "categoryDisplayName": "Fabricación y Producción"
     },
     "knapsack": {
@@ -4135,7 +4135,7 @@
       "displayName": "Precios de Liquidación",
       "shortDescription": "Establece precios óptimos de liquidación para inventario de fin de temporada para maximizar los ingresos totales mientras se agota el stock.",
       "description": "Determina los precios de liquidación óptimos para productos de fin de temporada para maximizar los ingresos totales. Cada producto tiene un inventario restante, una elasticidad de demanda al precio y un precio mínimo aceptable. El modelo encuentra los precios que vacían el inventario maximizando los ingresos.\n",
-      "scenarioDescription": "Una cadena de moda tiene 8 artículos de fin de temporada con entre 20 y 200 unidades en stock. Los precios base van de 25 EUR a 150 EUR. El responsable de compras estima la elasticidad de la demanda a partir de las ventas anteriores. El objetivo es liquidar al menos el 80% del inventario maximizando el ingreso total de la liquidación.\n",
+      "scenarioDescription": "Una tienda de moda tiene cuatro líneas de fin de temporada con entre 12 y 200 unidades restantes, a precios base de 25 a 150 EUR. El responsable de compras estima la elasticidad de la demanda a partir de las ventas pasadas y elige un descuento para cada línea del 0% al 70% en pasos de diez puntos. Al menos el 60% de las 276 unidades tiene que salir, y lo que se maximiza es el ingreso.",
       "categoryDisplayName": "Comercio Minorista"
     },
     "material_procurement": {
@@ -4310,7 +4310,7 @@
       "displayName": "Muestreo de Control de Calidad",
       "shortDescription": "Elige cuántos artículos muestrear de cada lote de producción para cumplir los objetivos de detección de defectos al mínimo coste de inspección.",
       "description": "Determina el tamaño óptimo de muestra de inspección para cada lote de producción para cumplir los objetivos de detección de defectos al mínimo coste. Cada lote tiene un tamaño, una tasa histórica de defectos y un coste de inspección por unidad. El modelo equilibra el coste de inspección con el riesgo de aceptar lotes defectuosos.\n",
-      "scenarioDescription": "Un fabricante de alimentos tiene 5 líneas de producción, cada una con lotes de entre 500 y 2.000 unidades al día. Las tasas históricas de defectos van del 0,5% al 3%. Calidad debe detectar al menos el 95% de los defectos en todas las líneas con un presupuesto de 800 EUR al día para inspecciones.\n",
+      "scenarioDescription": "Un fabricante de alimentos inspecciona cinco lotes al día, de 500 a 2000 unidades cada uno. Las tasas históricas de defecto van del 1% al 3%, lo que da unos 87 artículos defectuosos entre los cinco. Calidad tiene que encontrar el 80% de ellos y dispone de 2500 EUR al día para muestreo.",
       "categoryDisplayName": "Fabricación y Producción"
     },
     "raw_material_purchasing": {
@@ -4378,9 +4378,9 @@
     },
     "satellite_scheduling": {
       "displayName": "Programación de Satélites",
-      "shortDescription": "Programa tareas de observación en una constelación de satélites para maximizar las solicitudes completadas dentro de las ventanas de visibilidad.",
-      "description": "Programa tareas de observación terrestre para una constelación de satélites maximizando el número de solicitudes completadas. Cada satélite tiene ventanas de visibilidad sobre las áreas de interés, capacidad de almacenamiento de datos y restricciones de energía. El modelo asigna tareas a satélites y franjas horarias respetando las restricciones operativas.\n",
-      "scenarioDescription": "Una empresa de observación de la Tierra opera tres satélites y tiene ocho peticiones de imagen para la próxima ventana de tres horas. Las peticiones van desde la vigilancia urgente de un incendio forestal (prioridad alta) hasta estudios rutinarios de crecimiento urbano. Cada satélite tiene una energía limitada para captar imágenes por órbita. El programador debe asignar las tareas a los satélites dentro de sus ventanas de visibilidad para maximizar la puntuación de prioridad total de las observaciones completadas.\n",
+      "shortDescription": "Elige qué peticiones de imagen volar y cuándo, para que la constelación recoja la máxima prioridad dentro de sus ventanas de visibilidad.",
+      "description": "Elige qué peticiones de observación se vuelan y cuándo. Cada petición tiene una ventana de visibilidad, una duración de toma y una prioridad. Un satélite fotografía un objetivo cada vez y dispone de un presupuesto de minutos de imagen para el paso. El modelo asigna un satélite y un minuto de inicio a las peticiones que vale la pena tomar, deja el resto sin volar y maximiza la prioridad recogida. Lo que no cabe en ninguna ventana ni en ningún presupuesto sencillamente no se vuela.",
+      "scenarioDescription": "Una empresa de observación de la Tierra vuela tres satélites y tiene ocho peticiones de imagen para el próximo paso de tres horas. Van desde vigilancia de emergencia de incendios, con prioridad 95, hasta un estudio rutinario de crecimiento urbano con 50. Cada satélite tiene un número fijo de minutos de imagen. Las ocho peticiones suman 595 puntos de prioridad y los minutos no dan para tanto, así que el planificador está eligiendo cuáles descarta.",
       "categoryDisplayName": "Aeroespacial"
     },
     "service_center_placement": {
@@ -4408,14 +4408,14 @@
       "displayName": "Strip Packing",
       "shortDescription": "Empaqueta artículos rectangulares en una tira de ancho fijo para minimizar la altura total utilizada.",
       "description": "Coloca un conjunto de piezas rectangulares en una tira de ancho fijo minimizando la altura total (la longitud) de material usado. Las piezas no pueden solaparse ni rotar (o sí, de forma opcional). Se modela como un problema de empaquetado con restricción de recursos. Habitual en corte textil, trazado de circuitos impresos y diseño de páginas de periódico.\n",
-      "scenarioDescription": "Una máquina de corte de tela trabaja con un rollo de 150 cm de ancho. Hay que colocar ocho piezas de patrón de anchos distintos (de 20 a 60 cm) y alturas distintas (de 10 a 40 cm). El objetivo es minimizar la longitud total de tela consumida.\n",
+      "scenarioDescription": "Una máquina de corte trabaja sobre un rollo de 10 unidades de ancho. Hay que colocar seis piezas de patrón, de 2 a 6 unidades de ancho y de 2 a 5 de largo. El objetivo es la longitud de rollo más corta que las aloje todas sin solaparse.",
       "categoryDisplayName": "Corte y Empaquetado"
     },
     "student_assignment": {
       "displayName": "Asignación de Estudiantes",
       "shortDescription": "Asigna estudiantes a secciones de cursos para maximizar la satisfacción de preferencias respetando las capacidades de sección.",
       "description": "Asigna estudiantes a secciones de cursos para maximizar la satisfacción de las preferencias de los estudiantes. Cada estudiante tiene una lista ordenada de preferencias y cada sección tiene una capacidad máxima. El modelo busca la asignación que maximice el número de estudiantes que obtienen sus primeras opciones respetando las capacidades.\n",
-      "scenarioDescription": "Cuarenta estudiantes deben repartirse en 4 grupos de una asignatura de introducción a la programación (10 plazas cada uno). Cada estudiante ha ordenado los grupos del 1 al 4 según su preferencia. La secretaría quiere la asignación que maximice la satisfacción global del alumnado.\n",
+      "scenarioDescription": "Hay que repartir seis estudiantes entre tres grupos de una asignatura de introducción a la programación: mañana, mediodía y tarde. Cada estudiante ha ordenado los tres del 1 al 3, y ese número es el coste de darle ese grupo. La secretaría quiere el reparto con la suma más pequeña, que es el que concede más primeras opciones.",
       "categoryDisplayName": "Educación y Academia"
     },
     "supplier_selection": {
@@ -4448,9 +4448,9 @@
     },
     "tournament_scheduling": {
       "displayName": "Programación de Torneos",
-      "shortDescription": "Crea un calendario de torneo round-robin que minimice el desplazamiento total o equilibre los partidos de local y visitante.",
-      "description": "Genera un calendario de torneo round-robin donde cada equipo juega contra todos los demás. El modelo minimiza el desplazamiento total de los equipos o equilibra los partidos de local y visitante. Incluye restricciones de evitar partidos consecutivos fuera de casa y respetar las disponibilidades de los recintos.\n",
-      "scenarioDescription": "Una liga regional de baloncesto tiene 6 equipos. Cada equipo juega dos veces contra cada rival (ida y vuelta) a lo largo de 10 jornadas. Ningún equipo debería tener más de 2 partidos fuera de casa seguidos. El organizador quiere un calendario justo y equilibrado.\n",
+      "shortDescription": "Traza un calendario de liga a una vuelta, eligiendo quién juega en casa en cada partido para que los visitantes viajen menos.",
+      "description": "Cada equipo juega una vez contra cada uno de los demás. El modelo elige la jornada de cada partido y decide cuál de los dos clubes lo acoge. El club visitante paga el autocar, y los clubes no pagan lo mismo por kilómetro, así que acoger vale dinero y el calendario lo reparte: cada club acoge tan cerca de la mitad de sus partidos como permite un número impar, y ninguno encadena más partidos fuera de los que la liga tolera. La respuesta es un calendario con jornada y anfitrión para cada partido.",
+      "scenarioDescription": "Una liga catalana de baloncesto regional tiene seis clubes y cinco jornadas. Cada club juega una vez contra los otros cinco, así que hay quince partidos y cada jornada acoge tres. El autocar cuesta a cada club una cantidad distinta por kilómetro, de 1,80 en Reus a 2,55 en Vic, y lo paga el visitante. Cada club debe acoger dos o tres de sus cinco partidos, y ninguno puede jugar fuera más de dos veces seguidas.",
       "categoryDisplayName": "Deportes y Ocio"
     },
     "track_maintenance_scheduling": {
@@ -4462,9 +4462,9 @@
     },
     "train_timetabling": {
       "displayName": "Horarios de Trenes",
-      "shortDescription": "Crea horarios de trenes sin conflictos que minimicen el tiempo total de viaje y maximicen la capacidad de la línea.",
-      "description": "Genera horarios de trenes sin conflictos para una red ferroviaria maximizando la capacidad de la línea y minimizando los tiempos de viaje. El modelo evita conflictos en tramos de vía única, respeta los tiempos mínimos de estación y los requisitos de conexión entre servicios. Incluye trenes de diferentes velocidades y prioridades.\n",
-      "scenarioDescription": "Los Ferrocarriles Neerlandeses deben programar seis trenes (tres expresos, dos regionales y uno de mercancías) en el corredor Ámsterdam-Róterdam en una ventana de 90 minutos. El corredor tiene dos tramos y exige un intervalo mínimo de 5 minutos entre trenes. Los expresos tienen prioridad alta y deberían salir cerca de su hora preferida, mientras que el mercancías se puede mover si hace falta.\n",
+      "shortDescription": "Da a cada tren un minuto de salida que mantiene una separación segura en la vía compartida y se queda cerca del horario que la gente espera.",
+      "description": "Elige un minuto de salida para cada tren de un corredor. Cada tren declara un origen, un destino, un tiempo de viaje y el minuto al que preferiría salir, y cada tramo de vía declara una separación mínima y cuántos trenes por hora admite. La ruta de un tren se deduce de los tramos que hay entre su origen y su destino, así que dos trenes entran en conflicto exactamente cuando sus rutas comparten un tramo. El modelo mantiene al menos la separación entre dos trenes que entran en el mismo tramo, respeta el límite por hora y hace los desplazamientos donde salen más baratos: la penalización de un tren es su prioridad por los minutos que se aparta de su salida preferida.",
+      "scenarioDescription": "Los ferrocarriles neerlandeses están horariando seis trenes en el corredor Ámsterdam-Róterdam a lo largo de una ventana de 90 minutos: tres expresos con prioridad 9, dos regionales con 6 y un mercancías con 3. El corredor tiene dos tramos, Ámsterdam-Leiden y Leiden-Róterdam, con 5 minutos de separación en cada uno. En el minuto preferido por todos, dos trenes entrarían juntos en Leiden-Róterdam, así que algo tiene que ceder, y el mercancías es el tren más barato de mover.",
       "categoryDisplayName": "Ferroviario"
     },
     "training_program_selection": {
@@ -4541,7 +4541,7 @@
       "displayName": "Tratamiento de Aguas Residuales",
       "shortDescription": "Encamina flujos de aguas residuales a plantas de tratamiento para minimizar el coste de procesamiento cumpliendo los estándares ambientales de vertido.",
       "description": "Optimiza la distribución de flujos de aguas residuales entre plantas de tratamiento para minimizar el coste total de procesamiento. Cada planta tiene una capacidad, una tecnología de tratamiento y un coste por metro cúbico. Los efluentes deben cumplir los estándares de vertido ambientales. El modelo decide cuánto flujo enviar a cada planta.\n",
-      "scenarioDescription": "Una ciudad genera aguas residuales desde cuatro focos principales con niveles de contaminación distintos. Hay tres depuradoras disponibles con capacidades y tecnologías de tratamiento diferentes. La empresa de aguas debe enviar todos los caudales a las depuradoras de forma que el efluente tratado cumpla la normativa al mínimo coste total.\n",
+      "scenarioDescription": "Una ciudad envía aguas residuales de cuatro focos a tres depuradoras. Los focos van desde un complejo hospitalario con 0,95 de contaminación hasta un barrio residencial con 0,30, y las plantas eliminan entre el 80% y el 95% a un coste de 2,50 a 4,00 por unidad. Lo que las plantas no eliminan se vierte, y el permiso admite 900 unidades de vertido. El servicio quiere el encaminamiento más barato que se quede dentro del permiso.",
       "categoryDisplayName": "Gestión del Agua"
     },
     "water_distribution_network": {
@@ -4563,6 +4563,13 @@
       "shortDescription": "Asigna empleados a tareas según competencias y disponibilidad para minimizar costes de personal y maximizar la productividad.",
       "description": "Asigna empleados a tareas o proyectos según sus competencias, disponibilidad y preferencias para minimizar los costes de personal o maximizar la productividad total. Cada empleado tiene un perfil de habilidades, un coste y una disponibilidad horaria. Cada tarea requiere competencias específicas y tiene una duración estimada.\n",
       "scenarioDescription": "Una agencia de software debe asignar 3 desarrolladores (Alicia, Bruno y Carlos) a 3 módulos del proyecto (Frontend, Backend y Testing). Cada desarrollador tiene un coste estimado distinto por módulo según lo bien que encaje con la tarea. El jefe de proyecto quiere el plan de personal más barato.\n",
+      "categoryDisplayName": "Recursos Humanos y Personal"
+    },
+    "assignment": {
+      "displayName": "Asignación de Tareas",
+      "shortDescription": "Asigna cada tarea a un trabajador distinto y busca el coste total más bajo.",
+      "description": "El problema de asignación clásico. Hay un conjunto de trabajadores y un conjunto de tareas, y una tabla de costes que dice lo que costaría cada trabajador en cada tarea. Toda tarea se le da a alguien, y ningún trabajador coge más de una. El modelo elige el emparejamiento con el coste total más bajo. Esta ficha mantiene vivo un identificador antiguo; el trabajo nuevo debe usar la ficha Asignación de Personal, que es el mismo modelo.",
+      "scenarioDescription": "Un equipo pequeño de 3 desarrolladores (Alice, Bob, Charlie) tiene que repartirse 3 módulos del proyecto (Frontend, Backend, Testing). Cada desarrollador tiene un coste estimado distinto en cada módulo según su experiencia. El responsable técnico quiere la asignación más barata que cubra los tres módulos.",
       "categoryDisplayName": "Recursos Humanos y Personal"
     }
   },

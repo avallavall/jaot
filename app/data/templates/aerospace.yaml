@@ -5,15 +5,14 @@ templates:
   - id: satellite_scheduling
     name: Satellite Task Scheduling
     display_name: Satellite Scheduling
-    short_description: Schedule observation tasks across a satellite constellation to maximize completed requests within visibility windows.
+    short_description: Choose which imaging requests to fly and when, so the constellation collects the most priority inside its visibility windows.
     description: >
-      Assigns observation or communication tasks to satellites in a constellation
-      during their visibility windows over target areas. Each task has a time
-      window, a priority value, a duration, and specific satellite capability
-      requirements. The model maximizes total priority-weighted task completion
-      while respecting each satellite's energy budget, slew-time between targets,
-      and memory/downlink constraints. Critical for Earth-observation and
-      communications satellite operators.
+      Picks which observation requests to fly and when. Each request has a
+      visibility window, an imaging duration and a priority. A satellite images
+      one target at a time, and has a budget of imaging minutes for the pass.
+      The model chooses a satellite and a start minute for the requests worth
+      taking, leaves the rest, and maximises the priority it collects. Requests
+      that do not fit any window or any budget are simply not flown.
     category: aerospace
     tags: [aerospace, satellite, scheduling, earth-observation]
     problem_type_tags: [MIP, scheduling]
@@ -78,15 +77,15 @@ templates:
         - {name: "SAT-Gamma", capacity_minutes: 22}
       time_horizon: 180
     scenario_description: >
-      An Earth-observation company operates three satellites and has eight imaging
-      requests for the next three-hour window. Requests range from emergency
-      wildfire monitoring (high priority) to routine urban growth surveys. Each
-      satellite has limited energy for imaging per orbit. The scheduler must
-      assign tasks to satellites within their visibility windows to maximize the
-      total priority score of completed observations.
+      An Earth-observation company flies three satellites and has eight imaging
+      requests for the next three-hour pass. They run from emergency wildfire
+      monitoring at priority 95 down to a routine urban growth survey at 50.
+      Each satellite has a fixed number of imaging minutes. The eight requests
+      add up to 595 priority points and the minutes do not stretch that far, so
+      the scheduler is choosing which ones to drop.
     is_featured: false
-    estimated_variables: 24
-    estimated_constraints: 35
+    estimated_variables: 1250
+    estimated_constraints: 493
 
   - id: flight_crew_pairing
     name: Flight Crew Pairing Optimization

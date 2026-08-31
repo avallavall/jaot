@@ -89,7 +89,7 @@ templates:
       while maintaining sustainable practices.
     is_featured: false
     estimated_variables: 24
-    estimated_constraints: 16
+    estimated_constraints: 26
 
   - id: timber_transportation
     name: Timber Transportation Optimization

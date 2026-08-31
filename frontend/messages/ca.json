@@ -3946,14 +3946,14 @@
       "displayName": "Programació de Cursos",
       "shortDescription": "Assigna cursos a aules i franges horàries per evitar conflictes i maximitzar la utilització de sales.",
       "description": "Assigna cursos a aules i franges horàries evitant conflictes d'horaris per a professors i estudiants. Cada curs té requisits de capacitat de sala, equipament i durada. El model maximitza la utilització de les sales respectant les preferències dels professors i les restriccions de disponibilitat.\n",
-      "scenarioDescription": "Un departament universitari ha de programar 8 assignatures en 4 aules i 5 franges horàries diàries durant el semestre. Tres professors imparteixen entre 2 i 3 assignatures cadascun. La capacitat de les aules va de 30 a 120 places. El coordinador vol un horari sense conflictes que doni cabuda a totes les assignatures.\n",
+      "scenarioDescription": "Un departament universitari col·loca cinc assignatures en cinc parells d'aula i franja horària repartits entre tres aules. Cada assignatura rep un parell i cap parell acull dues assignatures. Cada combinació d'assignatura i parell porta una penalització d'1 a 5, que diu com de malament li va aquella aula i aquella hora, i la secretaria vol l'horari amb la suma més petita.",
       "categoryDisplayName": "Educació i Acadèmia"
     },
     "crop_rotation": {
       "displayName": "Rotació de Cultius",
       "shortDescription": "Selecciona quins cultius sembrar a cada camp i temporada per maximitzar el benefici mantenint la salut del sòl.",
       "description": "Planifica la rotació de cultius en múltiples camps al llarg de diverses temporades. Cada cultiu té un benefici esperat, requisits de nutrients i efectes sobre la salut del sòl. El model maximitza el benefici total respectant les restriccions de rotació (no repetir el mateix cultiu consecutivament) i els requisits de restauració del sòl.\n",
-      "scenarioDescription": "Una explotació té 4 parcel·les i planifica 3 temporades endavant. Sis conreus possibles (blat, blat de moro, soja, gira-sol, ordi i guaret) tenen beneficis per hectàrea, necessitats d'aigua i impacte sobre el nitrogen diferents. La soja fixa nitrogen; el blat de moro l'esgota. L'aigua disponible està limitada a 800 m3 per temporada.\n",
+      "scenarioDescription": "Una finca treballa dues parcel·les al llarg d'una temporada de primavera i una altra de tardor. Hi ha tres conreus: blat, que dona 800 per hectàrea amb 200 m3 d'aigua; blat de moro, 1200 amb 350; i soja, 600 amb 150. L'aigua s'acaba als 800 m3 per temporada, i el blat de moro no es pot sembrar dos cops seguits a la mateixa parcel·la.",
       "categoryDisplayName": "Agricultura i Ramaderia"
     },
     "custom": {
@@ -3988,14 +3988,14 @@
       "displayName": "Programació d'Assaigs Clínics",
       "shortDescription": "Programa fases d'assaigs clínics entre centres i períodes per minimitzar el temps de comercialització respectant restriccions reguladores i de recursos.",
       "description": "Planifica la programació de fases d'assaigs clínics en múltiples centres de recerca. Cada fase té requisits de durada, nombre de pacients i equipament. El model minimitza el temps total fins a la comercialització respectant les dependències entre fases, la disponibilitat de centres i les restriccions reguladores.\n",
-      "scenarioDescription": "Una empresa de biotecnologia planifica un nou fàrmac oncològic a través de quatre fases d'assaig. La Fase I (seguretat) ha d'acabar abans de la Fase II (eficàcia), que ha d'acabar abans de dos estudis pivotals de Fase III en paral·lel. Cinc hospitals qualificats tenen una capacitat mensual limitada de reclutament de pacients. L'empresa vol arribar a la presentació davant la FDA com més aviat millor dins d'una finestra de quatre anys.\n",
+      "scenarioDescription": "Una empresa de biotecnologia planifica un nou fàrmac oncològic a través de quatre fases d'assaig. La fase I (seguretat) ha d'acabar abans que la fase II (eficàcia), que ha d'acabar abans de dos estudis pivotals de fase III en paral·lel. Cinc hospitals qualificats tenen cadascun un límit mensual de reclutament de pacients. L'empresa vol arribar a la sol·licitud davant la FDA com més aviat millor dins d'una finestra de cinc anys.",
       "categoryDisplayName": "Farmacèutica"
     },
     "dye_batch_scheduling": {
       "displayName": "Programació de Tint per Lots",
-      "shortDescription": "Programa lots de tint de teles per minimitzar costos de canvi de color i consum d'aigua complint terminis de lliurament.",
-      "description": "Optimitza la seqüència de lots de tint en màquines de tintura per minimitzar els costos de canvi de color i el consum d'aigua. Cada lot té un color, un volum i una data de lliurament. Els canvis entre colors foscos i clars requereixen cicles de neteja més llargs. El model programa els lots per minimitzar temps d'inactivitat i malbaratament.\n",
-      "scenarioDescription": "Una planta tèxtil de tintura té dues màquines de tintura per raig que treballen en torns de 16 hores. Sis treballs de tintura en colors diferents han d'acabar abans de les seves dates límit. La planta vol seqüenciar els treballs minimitzant el cost de canvi. Passar de colors foscos a clars exigeix un cicle de neteja de 90 minuts, mentre que de clar a fosc n'hi ha prou amb 30 minuts.\n",
+      "shortDescription": "Col·loca cada partida de tintura en una màquina que hi pugui, perquè les partides esperin com menys millor.",
+      "description": "Col·loca les feines de tintura en màquines de tintura a raig. Cada feina té un volum de teixit, un temps de procés i una data límit, i una màquina fa una feina cada cop i només fins a la mida de partida que admet. Totes les feines s'han d'executar, i el cost és el temps que una feina passa esperant màquina des que està disponible. El model dona a cada feina una màquina i una hora d'inici que l'acaben abans de la seva data límit i deixen l'espera total tan curta com es pot. El color de cada feina queda anotat per a l'operari; el model no posa preu als canvis de color.",
+      "scenarioDescription": "Una planta de tintura tèxtil té dues màquines de raig en un torn de 16 hores. S'han de tenyir sis partides abans de les seves dates límit, des de 200 kg de seda vermella fins a 800 kg de texà blau marí. La màquina Jet-Dye-2 només admet 350 kg, així que les tres partides més pesants només poden anar a la Jet-Dye-1. La planta vol les partides començades tan aviat com aquests límits permetin.",
       "categoryDisplayName": "Tèxtil"
     },
     "emergency_response_allocation": {
@@ -4049,9 +4049,9 @@
     },
     "fleet_dispatch_mining": {
       "displayName": "Despatx de Flota",
-      "shortDescription": "Despatxa camions de transport entre pales i abocadors per maximitzar el rendiment de producció.",
-      "description": "Optimitza l'assignació de camions de transport entre pales carregadores i punts de descàrrega en una operació minera a cel obert. El model maximitza el rendiment total de producció (tones/hora) considerant els temps de cicle, la capacitat dels camions i la productivitat de les pales. Inclou restriccions de cua i manteniment.\n",
-      "scenarioDescription": "Una mina de coure a cel obert opera tres pales i envia material a una trituradora i a una escombrera. Hi ha dotze camions de transport disponibles per al torn. L'optimitzador de despatx decideix com encaminar els camions entre pales i descàrregues per moure el màxim tonatge mantenint les pales ocupades i evitant embussos a la trituradora.\n",
+      "shortDescription": "Encamina mineral i estèril des de cada pala fins als punts que els poden rebre, movent el màxim de tones per hora.",
+      "description": "Encamina material des de les pales d'una mina a cel obert fins als punts que el reben. Una pala carrega a un ritme donat en tones per hora, i una trituradora o una escombrera només admet un nombre de tones per hora abans de saturar-se. El model fixa un cabal a cada ruta de pala a punt de descàrrega, de manera que a cap pala se li demani més del que pot carregar, a cap punt més del que pot rebre, i el tonatge total mogut per hora sigui el més gran que permetin aquests dos límits. El nombre de camions s'anota al costat; el model treballa en tones per hora, no en viatges de camió.",
+      "scenarioDescription": "Una mina de coure a cel obert té tres pales que carreguen a 800, 650 i 900 tones per hora, i envia el material a una trituradora que admet 1200 i a una escombrera que admet 1150. Les pales poden carregar 2350 tones per hora entre les tres i els dos punts de descàrrega poden rebre 2350, així que totes les pales poden anar a ple rendiment. Dotze camions cobreixen el torn.",
       "categoryDisplayName": "Mineria"
     },
     "fleet_sizing": {
@@ -4086,7 +4086,7 @@
       "displayName": "Optimització d'Inventari",
       "shortDescription": "Determina quantitats òptimes de recomanda i nivells d'estoc de seguretat per minimitzar els costos d'emmagatzematge i ruptura.",
       "description": "Calcula les quantitats òptimes de recomanda i els nivells d'estoc de seguretat per minimitzar la suma de costos d'emmagatzematge, costos de comanda i costos de ruptura d'estoc. El model considera la variabilitat de la demanda, els terminis de lliurament i els nivells de servei objectiu.\n",
-      "scenarioDescription": "Un distribuïdor d'electrònica de consum gestiona 5 línies de producte amb una demanda setmanal d'entre 50 i 300 unitats. La capacitat del magatzem és de 2.000 unitats en total. El cost d'emmagatzematge és de 0,50 EUR per unitat i setmana, i la penalització per ruptura d'estoc és de 5 EUR per unitat. El termini de lliurament és de 2 setmanes. El responsable de la cadena de subministrament vol un pla de comandes a 6 setmanes.\n",
+      "scenarioDescription": "Un distribuïdor d'electrònica de consum planifica un producte al llarg de sis setmanes. La demanda va de 120, 150, 180, 130, 160 i 140 unitats, i ja hi ha 50 unitats a magatzem. Una tirada de producció pot fer com a molt 500 unitats en una setmana, costa 100 EUR de preparació sigui de la mida que sigui, i guardar una unitat d'una setmana per a la següent costa 0,50 EUR. El responsable vol el pla de produir i guardar més barat que no falli cap setmana.",
       "categoryDisplayName": "Gestió de Cadena de Subministrament"
     },
     "inventory_replenishment": {
@@ -4105,9 +4105,9 @@
     },
     "job_shop_scheduling": {
       "displayName": "Programació de Taller",
-      "shortDescription": "Programa treballs en màquines per minimitzar el temps total de finalització (makespan) respectant les restriccions d'ordre de processament.",
-      "description": "Programa un conjunt de treballs en un conjunt de màquines, on cada treball ha de passar per les màquines en un ordre específic. L'objectiu és minimitzar el makespan (temps total de finalització de l'últim treball). Cada operació té una durada i una màquina assignada. Les màquines processen un treball a la vegada.\n",
-      "scenarioDescription": "Un taller metal·lúrgic té 3 màquines (torn, fresadora i trepant). Quatre comandes de client requereixen cadascuna entre 2 i 3 operacions de mecanitzat en una seqüència fixa. Els temps de procés van d'1 a 5 hores. El cap de taller necessita un programa que acabi totes les comandes com més aviat millor.\n",
+      "shortDescription": "Programa cada operació de cada comanda a la màquina que necessita, perquè l'última acabi com més aviat millor.",
+      "description": "Cada comanda és una cadena d'operacions que s'han d'executar en un ordre fix, i cada operació necessita una màquina concreta durant un nombre d'hores. Una màquina fa una operació cada cop. El model dona a cada operació una hora d'inici de manera que cap màquina estigui doblement ocupada, cap operació comenci abans que acabi la que la precedeix, i l'última operació de l'última comanda acabi com més aviat millor. Aquest final és el makespan, i és el que el model minimitza.",
+      "scenarioDescription": "Un taller metal·lúrgic té un torn, una fresadora i un trepant. Hi ha quatre comandes en cartera, cadascuna amb dues o tres operacions en ordre fix, d'una a cinc hores cada una. El torn té 11 hores de feina esperant, així que res no pot acabar abans, i l'ordre en què han d'anar les operacions empeny la resposta real fins a 13. L'encarregat vol aquest horari.",
       "categoryDisplayName": "Fabricació i Producció"
     },
     "knapsack": {
@@ -4135,7 +4135,7 @@
       "displayName": "Preus de Liquidació",
       "shortDescription": "Estableix preus òptims de liquidació per a inventari de fi de temporada per maximitzar els ingressos totals mentre s'esgota l'estoc.",
       "description": "Determina els preus de liquidació òptims per a productes de fi de temporada per maximitzar els ingressos totals. Cada producte té un inventari restant, una elasticitat de demanda al preu i un preu mínim acceptable. El model troba els preus que buiden l'inventari maximitzant els ingressos.\n",
-      "scenarioDescription": "Una cadena de moda té 8 articles de final de temporada amb entre 20 i 200 unitats en estoc. Els preus base van de 25 EUR a 150 EUR. El responsable de compres estima l'elasticitat de la demanda a partir de les vendes anteriors. L'objectiu és liquidar almenys el 80% de l'inventari maximitzant l'ingrés total de la liquidació.\n",
+      "scenarioDescription": "Una botiga de moda té quatre línies de final de temporada amb entre 12 i 200 unitats restants, a preus base de 25 a 150 EUR. El responsable de compres estima l'elasticitat de la demanda a partir de les vendes passades i tria un descompte per a cada línia del 0% al 70% en passos de deu punts. Com a mínim el 60% de les 276 unitats ha de sortir, i el que es maximitza és l'ingrés.",
       "categoryDisplayName": "Comerç Minorista"
     },
     "material_procurement": {
@@ -4310,7 +4310,7 @@
       "displayName": "Mostreig de Control de Qualitat",
       "shortDescription": "Tria quants articles mostrejar de cada lot de producció per complir els objectius de detecció de defectes al mínim cost d'inspecció.",
       "description": "Determina la mida òptima de mostra d'inspecció per a cada lot de producció per complir els objectius de detecció de defectes al mínim cost. Cada lot té una mida, una taxa històrica de defectes i un cost d'inspecció per unitat. El model equilibra el cost d'inspecció amb el risc d'acceptar lots defectuosos.\n",
-      "scenarioDescription": "Un fabricant d'aliments té 5 línies de producció, cadascuna amb lots d'entre 500 i 2.000 unitats al dia. Les taxes històriques de defectes van del 0,5% al 3%. Qualitat ha de detectar almenys el 95% dels defectes a totes les línies amb un pressupost de 800 EUR al dia per a inspeccions.\n",
+      "scenarioDescription": "Un fabricant d'aliments inspecciona cinc lots al dia, de 500 a 2000 unitats cadascun. Les taxes històriques de defecte van de l'1% al 3%, cosa que dona uns 87 articles defectuosos entre els cinc. Qualitat n'ha de trobar el 80% i disposa de 2500 EUR al dia per a mostreig.",
       "categoryDisplayName": "Fabricació i Producció"
     },
     "raw_material_purchasing": {
@@ -4378,9 +4378,9 @@
     },
     "satellite_scheduling": {
       "displayName": "Programació de Satèl·lits",
-      "shortDescription": "Programa tasques d'observació en una constel·lació de satèl·lits per maximitzar les sol·licituds completades dins de les finestres de visibilitat.",
-      "description": "Programa tasques d'observació terrestre per a una constel·lació de satèl·lits maximitzant el nombre de sol·licituds completades. Cada satèl·lit té finestres de visibilitat sobre les àrees d'interès, capacitat d'emmagatzematge de dades i restriccions d'energia. El model assigna tasques a satèl·lits i franges horàries respectant les restriccions operatives.\n",
-      "scenarioDescription": "Una empresa d'observació de la Terra opera tres satèl·lits i té vuit peticions d'imatge per a la propera finestra de tres hores. Les peticions van des de la vigilància urgent d'un incendi forestal (prioritat alta) fins a estudis rutinaris de creixement urbà. Cada satèl·lit té una energia limitada per captar imatges per òrbita. El programador ha d'assignar les tasques als satèl·lits dins de les seves finestres de visibilitat per maximitzar la puntuació de prioritat total de les observacions completades.\n",
+      "shortDescription": "Tria quines peticions d'imatge volar i quan, perquè la constel·lació reculli la màxima prioritat dins de les seves finestres de visibilitat.",
+      "description": "Tria quines peticions d'observació es volen i quan. Cada petició té una finestra de visibilitat, una durada de presa i una prioritat. Un satèl·lit fotografia un objectiu cada cop i té un pressupost de minuts d'imatge per al pas. El model assigna un satèl·lit i un minut d'inici a les peticions que val la pena prendre, deixa la resta sense volar i maximitza la prioritat recollida. El que no cap en cap finestra ni en cap pressupost senzillament no es vola.",
+      "scenarioDescription": "Una empresa d'observació de la Terra vola tres satèl·lits i té vuit peticions d'imatge per al proper pas de tres hores. Van des de vigilància d'emergència d'incendis, amb prioritat 95, fins a un estudi rutinari de creixement urbà amb 50. Cada satèl·lit té un nombre fix de minuts d'imatge. Les vuit peticions sumen 595 punts de prioritat i els minuts no donen per tant, així que el planificador tria quines descarta.",
       "categoryDisplayName": "Aeroespacial"
     },
     "service_center_placement": {
@@ -4408,14 +4408,14 @@
       "displayName": "Strip Packing",
       "shortDescription": "Empaqueta articles rectangulars en una tira d'ample fix per minimitzar l'alçada total utilitzada.",
       "description": "Col·loca un conjunt de peces rectangulars en una tira d'ample fix minimitzant l'alçada total (la longitud) de material usat. Les peces no es poden solapar ni girar (o sí, de manera opcional). Es modela com un problema d'empaquetatge amb restricció de recursos. Habitual en tall tèxtil, traçat de circuits impresos i disseny de pàgines de diari.\n",
-      "scenarioDescription": "Una màquina de tall de teixit treballa amb un rotlle de 150 cm d'ample. Cal col·locar vuit peces de patró d'amples diferents (de 20 a 60 cm) i alçades diferents (de 10 a 40 cm). L'objectiu és minimitzar la longitud total de teixit consumit.\n",
+      "scenarioDescription": "Una màquina de tall treballa sobre un rotlle de 10 unitats d'ample. S'hi han de col·locar sis peces de patró, de 2 a 6 unitats d'ample i de 2 a 5 de llarg. L'objectiu és la longitud de rotlle més curta que les allotgi totes sense encavalcar-se.",
       "categoryDisplayName": "Tall i Empaquetament"
     },
     "student_assignment": {
       "displayName": "Assignació d'Estudiants",
       "shortDescription": "Assigna estudiants a seccions de cursos per maximitzar la satisfacció de preferències respectant les capacitats de secció.",
       "description": "Assigna estudiants a seccions de cursos per maximitzar la satisfacció de les preferències dels estudiants. Cada estudiant té una llista ordenada de preferències i cada secció té una capacitat màxima. El model cerca l'assignació que maximitzi el nombre d'estudiants que obtenen les seves primeres opcions respectant les capacitats.\n",
-      "scenarioDescription": "Quaranta estudiants s'han de repartir en 4 grups d'una assignatura d'introducció a la programació (10 places cadascun). Cada estudiant ha ordenat els grups de l'1 al 4 segons la seva preferència. La secretaria vol l'assignació que maximitzi la satisfacció global de l'alumnat.\n",
+      "scenarioDescription": "Cal repartir sis estudiants entre tres grups d'una assignatura d'introducció a la programació: matí, migdia i tarda. Cada estudiant ha ordenat els tres de l'1 al 3, i aquest número és el cost de donar-li aquell grup. La secretaria vol el repartiment amb la suma més petita, que és el que concedeix més primeres opcions.",
       "categoryDisplayName": "Educació i Acadèmia"
     },
     "supplier_selection": {
@@ -4448,9 +4448,9 @@
     },
     "tournament_scheduling": {
       "displayName": "Programació de Torneigs",
-      "shortDescription": "Crea un calendari de torneig round-robin que minimitzi el desplaçament total o equilibri els partits de local i visitant.",
-      "description": "Genera un calendari de torneig round-robin on cada equip juga contra tots els altres. El model minimitza el desplaçament total dels equips o equilibra els partits de local i visitant. Inclou restriccions d'evitar partits consecutius fora de casa i respectar les disponibilitats dels recintes.\n",
-      "scenarioDescription": "Una lliga regional de bàsquet té 6 equips. Cada equip juga dues vegades contra cada rival (anada i tornada) al llarg de 10 jornades. Cap equip no hauria de tenir més de 2 partits fora de casa seguits. L'organitzador vol un calendari just i equilibrat.\n",
+      "shortDescription": "Traça un calendari de lliga a una volta, triant qui juga a casa a cada partit perquè els visitants viatgin menys.",
+      "description": "Cada equip juga un cop contra cadascun dels altres. El model tria la jornada de cada partit i decideix quin dels dos clubs l'acull. El club visitant paga l'autocar, i els clubs no paguen el mateix per quilòmetre, així que acollir val diners i el calendari ho reparteix: cada club acull tan a prop de la meitat dels seus partits com permet un nombre senar, i cap no encadena més partits fora dels que la lliga tolera. La resposta és un calendari amb jornada i amfitrió per a cada partit.",
+      "scenarioDescription": "Una lliga catalana de bàsquet regional té sis clubs i cinc jornades. Cada club juga un cop contra els altres cinc, així que hi ha quinze partits i cada jornada n'acull tres. L'autocar costa a cada club una quantitat diferent per quilòmetre, d'1,80 a Reus a 2,55 a Vic, i el paga el visitant. Cada club ha d'acollir dos o tres dels seus cinc partits, i cap no pot jugar fora més de dos cops seguits.",
       "categoryDisplayName": "Esports i Lleure"
     },
     "track_maintenance_scheduling": {
@@ -4462,9 +4462,9 @@
     },
     "train_timetabling": {
       "displayName": "Horaris de Trens",
-      "shortDescription": "Crea horaris de trens sense conflictes que minimitzin el temps total de viatge i maximitzin la capacitat de la línia.",
-      "description": "Genera horaris de trens sense conflictes per a una xarxa ferroviària maximitzant la capacitat de la línia i minimitzant els temps de viatge. El model evita conflictes en trams de via única, respecta els temps mínims d'estació i els requisits de connexió entre serveis. Inclou trens de diferents velocitats i prioritats.\n",
-      "scenarioDescription": "Els Ferrocarrils Neerlandesos han de programar sis trens (tres exprés, dos regionals i un de mercaderies) al corredor Amsterdam-Rotterdam en una finestra de 90 minuts. El corredor té dos trams i exigeix un interval mínim de 5 minuts entre trens. Els exprés tenen prioritat alta i haurien de sortir a prop de la seva hora preferida, mentre que el de mercaderies es pot moure si cal.\n",
+      "shortDescription": "Dona a cada tren un minut de sortida que manté una separació segura a la via compartida i es queda a prop de l'horari que la gent espera.",
+      "description": "Tria un minut de sortida per a cada tren d'un corredor. Cada tren declara un origen, un destí, un temps de viatge i el minut a què preferiria sortir, i cada tram de via declara una separació mínima i quants trens per hora admet. La ruta d'un tren es dedueix dels trams que hi ha entre el seu origen i el seu destí, així que dos trens entren en conflicte exactament quan les seves rutes comparteixen un tram. El model manté com a mínim la separació entre dos trens que entren al mateix tram, respecta el límit per hora i fa els desplaçaments on surten més barats: la penalització d'un tren és la seva prioritat pels minuts que s'aparta de la seva sortida preferida.",
+      "scenarioDescription": "Els ferrocarrils neerlandesos estan horariant sis trens al corredor Amsterdam-Rotterdam al llarg d'una finestra de 90 minuts: tres expressos amb prioritat 9, dos regionals amb 6 i un mercaderies amb 3. El corredor té dos trams, Amsterdam-Leiden i Leiden-Rotterdam, amb 5 minuts de separació a cadascun. Al minut preferit per tothom, dos trens entrarien junts a Leiden-Rotterdam, així que alguna cosa ha de cedir, i el mercaderies és el tren més barat de moure.",
       "categoryDisplayName": "Ferroviari"
     },
     "training_program_selection": {
@@ -4541,7 +4541,7 @@
       "displayName": "Tractament d'Aigües Residuals",
       "shortDescription": "Encamina fluxos d'aigües residuals a plantes de tractament per minimitzar el cost de processament complint els estàndards ambientals de vessament.",
       "description": "Optimitza la distribució de fluxos d'aigües residuals entre plantes de tractament per minimitzar el cost total de processament. Cada planta té una capacitat, una tecnologia de tractament i un cost per metre cúbic. Els efluents han de complir els estàndards de vessament ambientals. El model decideix quant flux enviar a cada planta.\n",
-      "scenarioDescription": "Una ciutat genera aigües residuals des de quatre focus principals amb nivells de contaminació diferents. Hi ha tres depuradores disponibles amb capacitats i tecnologies de tractament diferents. L'empresa d'aigües ha d'enviar tots els cabals a les depuradores de manera que l'efluent tractat compleixi la normativa al mínim cost total.\n",
+      "scenarioDescription": "Una ciutat envia aigües residuals de quatre focus a tres depuradores. Els focus van des d'un complex hospitalari amb 0,95 de contaminació fins a un barri residencial amb 0,30, i les plantes eliminen entre el 80% i el 95% a un cost de 2,50 a 4,00 per unitat. El que les plantes no eliminen s'aboca, i el permís admet 900 unitats d'abocament. El servei vol l'encaminament més barat que es quedi dins del permís.",
       "categoryDisplayName": "Gestió de l'Aigua"
     },
     "water_distribution_network": {
@@ -4563,6 +4563,13 @@
       "shortDescription": "Assigna empleats a tasques segons competències i disponibilitat per minimitzar costos de personal i maximitzar la productivitat.",
       "description": "Assigna empleats a tasques o projectes segons les seves competències, disponibilitat i preferències per minimitzar els costos de personal o maximitzar la productivitat total. Cada empleat té un perfil d'habilitats, un cost i una disponibilitat horària. Cada tasca requereix competències específiques i té una durada estimada.\n",
       "scenarioDescription": "Una agència de programari ha d'assignar 3 desenvolupadors (l'Alícia, en Bru i en Carles) a 3 mòduls del projecte (Frontend, Backend i Testing). Cada desenvolupador té un cost estimat diferent per mòdul segons com encaixi amb la tasca. El cap de projecte vol el pla de personal més barat.\n",
+      "categoryDisplayName": "Recursos Humans i Personal"
+    },
+    "assignment": {
+      "displayName": "Assignació de Tasques",
+      "shortDescription": "Assigna cada tasca a un treballador diferent i busca el cost total més baix.",
+      "description": "El problema d'assignació clàssic. Hi ha un conjunt de treballadors i un conjunt de tasques, i una taula de costos que diu què costaria cada treballador a cada tasca. Tota tasca es dona a algú, i cap treballador n'agafa més d'una. El model tria l'aparellament amb el cost total més baix. Aquesta fitxa manté viu un identificador antic; la feina nova ha de fer servir la fitxa Assignació de Personal, que és el mateix model.",
+      "scenarioDescription": "Un equip petit de 3 desenvolupadors (Alice, Bob, Charlie) s'ha de repartir 3 mòduls del projecte (Frontend, Backend, Testing). Cada desenvolupador té un cost estimat diferent a cada mòdul segons la seva experiència. El responsable tècnic vol l'assignació més barata que cobreixi els tres mòduls.",
       "categoryDisplayName": "Recursos Humans i Personal"
     }
   },

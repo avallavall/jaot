@@ -247,5 +247,5 @@ templates:
       been surveyed. The ISP requires that every hub has at least two independent
       paths to the data center so that a single fiber cut does not cause an outage.
     is_featured: false
-    estimated_variables: 18
-    estimated_constraints: 20
+    estimated_variables: 99
+    estimated_constraints: 75

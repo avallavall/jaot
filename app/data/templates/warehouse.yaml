@@ -85,7 +85,7 @@ templates:
       to the dock. Heavy palletized items must go on floor-level slots. The
       warehouse manager wants to minimize total daily picker walking distance.
     is_featured: true
-    estimated_variables: 49
+    estimated_variables: 14
     estimated_constraints: 14
 
   - id: pick_route_optimization
@@ -181,7 +181,7 @@ templates:
       total walking distance for this order.
     is_featured: false
     estimated_variables: 49
-    estimated_constraints: 20
+    estimated_constraints: 44
 
   - id: inventory_replenishment
     name: Inventory Replenishment Planning
@@ -259,5 +259,5 @@ templates:
       money each week. The inventory planner wants to decide when to place orders
       and how much to order to minimize total costs while meeting all demand.
     is_featured: false
-    estimated_variables: 48
-    estimated_constraints: 28
+    estimated_variables: 72
+    estimated_constraints: 48

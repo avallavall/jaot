@@ -3946,14 +3946,14 @@
       "displayName": "Planification de Cours",
       "shortDescription": "Affectez des cours à des salles et créneaux horaires pour éviter les conflits et maximiser l'utilisation des salles.",
       "description": "Affecte des cours à des salles et créneaux horaires en évitant les conflits d'emploi du temps pour les enseignants et les étudiants. Chaque cours a des exigences de capacité de salle, d'équipement et de durée. Le modèle maximise l'utilisation des salles en respectant les préférences des enseignants et les contraintes de disponibilité.\n",
-      "scenarioDescription": "Un département universitaire doit programmer 8 cours dans 4 salles et 5 créneaux quotidiens pour le semestre. Trois enseignants assurent chacun 2 à 3 cours. La capacité des salles va de 30 à 120 places. Le service de scolarité veut un emploi du temps sans conflit qui fasse tenir tous les cours.\n",
+      "scenarioDescription": "Un département universitaire place cinq cours dans cinq couples salle-créneau répartis sur trois salles. Chaque cours reçoit un couple et aucun couple ne prend deux cours. Chaque combinaison de cours et de couple porte une pénalité de 1 à 5, qui dit à quel point cette salle et cette heure conviennent mal, et le service de scolarité veut l'emploi du temps dont la somme est la plus petite.",
       "categoryDisplayName": "Éducation et Enseignement"
     },
     "crop_rotation": {
       "displayName": "Rotation des Cultures",
       "shortDescription": "Sélectionnez les cultures à semer dans chaque champ et saison pour maximiser le bénéfice en préservant la santé du sol.",
       "description": "Planifie la rotation des cultures sur plusieurs champs au fil des saisons. Chaque culture a un bénéfice attendu, des besoins en nutriments et des effets sur la santé du sol. Le modèle maximise le bénéfice total en respectant les contraintes de rotation (ne pas répéter la même culture) et les exigences de restauration du sol.\n",
-      "scenarioDescription": "Une exploitation a 4 parcelles et planifie 3 saisons à l'avance. Six cultures possibles (blé, maïs, soja, tournesol, orge et jachère) ont des marges à l'hectare, des besoins en eau et un impact sur l'azote différents. Le soja fixe l'azote ; le maïs l'épuise. L'eau disponible est limitée à 800 m3 par saison.\n",
+      "scenarioDescription": "Une exploitation travaille deux parcelles sur une saison de printemps et une d'automne. Trois cultures sont proposées : le blé, 800 l'hectare avec 200 m3 d'eau ; le maïs, 1200 avec 350 ; et le soja, 600 avec 150. L'eau s'arrête à 800 m3 par saison, et le maïs ne peut pas être semé deux fois de suite sur la même parcelle.",
       "categoryDisplayName": "Agriculture et Elevage"
     },
     "custom": {
@@ -3988,14 +3988,14 @@
       "displayName": "Planification d'Essais Cliniques",
       "shortDescription": "Planifiez les phases d'essais cliniques entre sites et périodes pour minimiser le délai de commercialisation sous contraintes réglementaires et de ressources.",
       "description": "Planifie les phases d'essais cliniques sur plusieurs sites de recherche. Chaque phase a des exigences de durée, de nombre de patients et d'équipement. Le modèle minimise le délai total de commercialisation en respectant les dépendances entre phases, la disponibilité des sites et les contraintes réglementaires.\n",
-      "scenarioDescription": "Une entreprise de biotechnologie planifie un nouveau médicament en oncologie à travers quatre phases d'essai. La phase I (tolérance) doit s'achever avant la phase II (efficacité), qui doit se terminer avant deux études pivots de phase III menées en parallèle. Cinq hôpitaux qualifiés ont une capacité mensuelle limitée de recrutement de patients. L'entreprise veut atteindre le dépôt auprès de la FDA le plus vite possible dans une fenêtre de quatre ans.\n",
+      "scenarioDescription": "Une société de biotechnologie planifie un nouveau médicament en oncologie à travers quatre phases d'essai. La phase I (sécurité) doit se terminer avant la phase II (efficacité), qui doit s'achever avant deux études pivots de phase III menées en parallèle. Cinq hôpitaux qualifiés ont chacun une capacité mensuelle de recrutement de patients. La société veut atteindre le dépôt FDA au plus tôt dans une fenêtre de cinq ans.",
       "categoryDisplayName": "Pharmaceutique"
     },
     "dye_batch_scheduling": {
       "displayName": "Planification de Teinture par Lots",
-      "shortDescription": "Planifiez les lots de teinture de tissus pour minimiser les coûts de changement de couleur et la consommation d'eau en respectant les délais de livraison.",
-      "description": "Optimise la sequence des lots de teinture sur les machines pour minimiser les coûts de changement de couleur et la consommation d'eau. Chaque lot a une couleur, un volume et une date de livraison. Les changements entre couleurs foncees et claires nécessitent des cycles de nettoyage plus longs. Le modèle planifie les lots pour minimiser les temps d'arrêt et le gaspillage.\n",
-      "scenarioDescription": "Une teinturerie textile dispose de deux machines de teinture par jet fonctionnant en postes de 16 heures. Six travaux de teinture de couleurs différentes doivent être terminés avant leurs échéances. L'usine veut ordonner les travaux en minimisant le coût de changement. Passer d'une couleur foncée à une couleur claire exige un cycle de nettoyage de 90 minutes, alors que clair vers foncé n'en demande que 30.\n",
+      "shortDescription": "Place chaque bain de teinture sur une machine capable de le prendre, pour que les bains attendent le moins possible.",
+      "description": "Place les travaux de teinture sur des machines à jet. Chaque travail a un volume de tissu, un temps de traitement et une échéance, et une machine traite un travail à la fois et seulement jusqu'à la taille de bain qu'elle accepte. Tous les travaux doivent passer, et le coût est le temps qu'un travail passe à attendre une machine une fois disponible. Le modèle donne à chaque travail une machine et une heure de début qui le terminent avant son échéance et gardent l'attente totale aussi courte que possible. La couleur de chaque travail est notée pour l'opérateur ; le modèle ne chiffre pas les changements de couleur.",
+      "scenarioDescription": "Un atelier de teinture textile fait tourner deux machines à jet sur un poste de 16 heures. Six bains doivent être teints avant leurs échéances, de 200 kg de soie rouge à 800 kg de denim bleu marine. La machine Jet-Dye-2 n'accepte que 350 kg, donc les trois bains les plus lourds ne peuvent aller que sur la Jet-Dye-1. L'atelier veut les bains démarrés aussi tôt que ces limites le permettent.",
       "categoryDisplayName": "Textile"
     },
     "emergency_response_allocation": {
@@ -4049,9 +4049,9 @@
     },
     "fleet_dispatch_mining": {
       "displayName": "Dispatch de Flotte Miniere",
-      "shortDescription": "Dispatchez les camions de transport entre pelles et zones de déchargement pour maximiser le rendement de production.",
-      "description": "Optimise l'affectation de camions de transport entre pelles chargeuses et points de déchargement dans une mine à ciel ouvert. Le modèle maximise le rendement total de production (tonnes/heure) en tenant compte des temps de cycle, de la capacité des camions et de la productivite des pelles. Inclut les contraintes de file d'attente et de maintenance.\n",
-      "scenarioDescription": "Une mine de cuivre à ciel ouvert exploite trois pelles et envoie le matériau vers un concasseur et une verse à stériles. Douze tombereaux sont disponibles pour le poste. L'optimiseur de dispatch décide comment router les camions entre pelles et points de déchargement pour déplacer le tonnage maximal, en gardant les pelles occupées et en évitant les files d'attente au concasseur.\n",
+      "shortDescription": "Achemine minerai et stérile depuis chaque pelle vers les points qui peuvent les recevoir, en déplaçant le plus de tonnes par heure.",
+      "description": "Achemine le matériau depuis les pelles d'une mine à ciel ouvert vers les points qui le reçoivent. Une pelle charge à un débit donné en tonnes par heure, et un concasseur ou une verse à stériles n'accepte qu'un certain nombre de tonnes par heure avant de saturer. Le modèle fixe un débit sur chaque route de pelle à point de décharge, de sorte qu'aucune pelle ne soit sollicitée au-delà de ce qu'elle peut charger, aucun point au-delà de ce qu'il peut recevoir, et que le tonnage total déplacé par heure soit le plus élevé que ces deux limites autorisent. Le nombre de camions est noté à côté ; le modèle travaille en tonnes par heure, pas en voyages de camion.",
+      "scenarioDescription": "Une mine de cuivre à ciel ouvert exploite trois pelles qui chargent à 800, 650 et 900 tonnes par heure, et envoie le matériau vers un concasseur qui accepte 1200 et une verse à stériles qui accepte 1150. Les pelles peuvent charger 2350 tonnes par heure à elles trois et les deux points de décharge peuvent en recevoir 2350, donc chaque pelle peut tourner à plein. Douze camions couvrent le poste.",
       "categoryDisplayName": "Mines"
     },
     "fleet_sizing": {
@@ -4086,7 +4086,7 @@
       "displayName": "Optimisation des Stocks",
       "shortDescription": "Déterminez les quantités de reapprovisionnement et niveaux de stock de sécurité optimaux pour minimiser les coûts de stockage et de rupture.",
       "description": "Calcule les quantités optimales de reapprovisionnement et les niveaux de stock de sécurité pour minimiser la somme des coûts de stockage, de commande et de rupture de stock. Le modèle prend en compte la variabilite de la demande, les délais de livraison et les objectifs de niveau de service.\n",
-      "scenarioDescription": "Un distributeur d'électronique grand public gère 5 gammes de produits avec une demande hebdomadaire de 50 à 300 unités. La capacité de l'entrepôt est de 2 000 unités au total. Le coût de possession est de 0,50 EUR par unité et par semaine, et la pénalité de rupture de 5 EUR par unité. Le délai d'approvisionnement est de 2 semaines. Le responsable supply chain veut un plan de commandes sur 6 semaines.\n",
+      "scenarioDescription": "Un distributeur d'électronique grand public planifie un produit sur six semaines. La demande est de 120, 150, 180, 130, 160 et 140 unités, et 50 unités sont déjà en stock. Un lancement de production fait au plus 500 unités en une semaine, coûte 100 EUR de préparation quelle que soit sa taille, et garder une unité d'une semaine sur l'autre coûte 0,50 EUR. Le responsable veut le plan de production et de stockage le moins cher qui ne manque aucune semaine.",
       "categoryDisplayName": "Gestion de la Chaîne d'Approvisionnement"
     },
     "inventory_replenishment": {
@@ -4105,9 +4105,9 @@
     },
     "job_shop_scheduling": {
       "displayName": "Ordonnancement d'Atelier",
-      "shortDescription": "Planifiez les travaux sur les machines pour minimiser le temps total d'achèvement (makespan) en respectant les contraintes d'ordre de traitement.",
-      "description": "Planifie un ensemble de travaux sur un ensemble de machines, ou chaque travail doit passer par les machines dans un ordre spécifique. L'objectif est de minimiser le makespan (temps total d'achèvement du dernier travail). Chaque opération a une durée et une machine assignee. Les machines traitent un travail a la fois.\n",
-      "scenarioDescription": "Un atelier de métallurgie dispose de 3 machines (tour, fraiseuse et perceuse). Quatre commandes client demandent chacune 2 à 3 opérations d'usinage dans un ordre imposé. Les temps d'usinage vont de 1 à 5 heures. Le chef d'atelier a besoin d'un planning qui termine toutes les commandes au plus tôt.\n",
+      "shortDescription": "Planifie chaque opération de chaque commande sur la machine qu'elle demande, pour que la dernière se termine au plus tôt.",
+      "description": "Chaque commande est une chaîne d'opérations à exécuter dans un ordre fixe, et chaque opération demande une machine précise pendant un certain nombre d'heures. Une machine fait une opération à la fois. Le modèle donne à chaque opération une heure de début de sorte qu'aucune machine ne soit doublement occupée, qu'aucune opération ne commence avant la fin de celle qui la précède, et que la dernière opération de la dernière commande se termine au plus tôt. Cette fin est le makespan, et c'est ce que le modèle minimise.",
+      "scenarioDescription": "Un atelier de mécanique dispose d'un tour, d'une fraiseuse et d'une perceuse. Quatre commandes sont en carnet, chacune avec deux ou trois opérations dans un ordre fixe, d'une à cinq heures chacune. Le tour a 11 heures de travail en attente, donc rien ne peut finir plus tôt, et l'ordre imposé aux opérations pousse la vraie réponse à 13. Le chef d'atelier veut ce planning.",
       "categoryDisplayName": "Fabrication et Production"
     },
     "knapsack": {
@@ -4135,7 +4135,7 @@
       "displayName": "Prix de Liquidation",
       "shortDescription": "Fixez les prix de liquidation optimaux pour le stock de fin de saison afin de maximiser les revenus totaux en écoulant le stock.",
       "description": "Détermine les prix de liquidation optimaux pour les produits de fin de saison afin de maximiser les revenus totaux. Chaque produit a un stock restant, une elasticite-prix de la demande et un prix plancher. Le modèle trouve les prix qui écoulant le stock en maximisant les revenus.\n",
-      "scenarioDescription": "Une enseigne de mode a 8 articles de fin de saison avec 20 à 200 unités restantes. Les prix de base vont de 25 EUR à 150 EUR. Le responsable des achats estime l'élasticité de la demande à partir des ventes passées. L'objectif est d'écouler au moins 80% du stock en maximisant le chiffre d'affaires total de la liquidation.\n",
+      "scenarioDescription": "Un détaillant de mode a quatre lignes de fin de saison avec 12 à 200 unités restantes, à des prix de base de 25 à 150 EUR. Le responsable des achats estime l'élasticité de la demande à partir des ventes passées et choisit une remise pour chaque ligne, de 0% à 70% par pas de dix points. Au moins 60% des 276 unités doivent partir, et c'est le chiffre d'affaires qui est maximisé.",
       "categoryDisplayName": "Commerce de Detail"
     },
     "material_procurement": {
@@ -4310,7 +4310,7 @@
       "displayName": "Échantillonnage de Contrôle Qualite",
       "shortDescription": "Choisissez combien d'articles echantillonner par lot de production pour atteindre les objectifs de detection de défauts au moindre coût d'inspection.",
       "description": "Détermine la taille optimale d'echantillon d'inspection pour chaque lot de production pour atteindre les objectifs de detection de défauts au moindre coût. Chaque lot a une taille, un taux historique de défauts et un coût d'inspection par unité. Le modèle équilibre le coût d'inspection avec le risque d'accepter des lots defectueux.\n",
-      "scenarioDescription": "Un industriel de l'agroalimentaire exploite 5 lignes de production, chacune produisant des lots de 500 à 2 000 unités par jour. Les taux de défaut historiques vont de 0,5% à 3%. La qualité doit détecter au moins 95% des défauts sur toutes les lignes avec un budget de 800 EUR par jour pour les contrôles.\n",
+      "scenarioDescription": "Un fabricant alimentaire contrôle cinq lots par jour, de 500 à 2000 unités chacun. Les taux de défaut historiques vont de 1% à 3%, soit environ 87 articles défectueux sur les cinq lots. La qualité doit en trouver 80% et dispose de 2500 EUR par jour pour l'échantillonnage.",
       "categoryDisplayName": "Fabrication et Production"
     },
     "raw_material_purchasing": {
@@ -4378,9 +4378,9 @@
     },
     "satellite_scheduling": {
       "displayName": "Planification Satellitaire",
-      "shortDescription": "Planifiez des tâches d'observation sur une constellation de satellites pour maximiser les requêtes complétées dans les fenêtres de visibilite.",
-      "description": "Planifie des tâches d'observation terrestre pour une constellation de satellites en maximisant le nombre de requêtes complétées. Chaque satellite a des fenêtres de visibilite sur les zones d'intérêt, une capacité de stockage de données et des contraintes d'énergie. Le modèle affecte des tâches aux satellites et créneaux en respectant les contraintes opérationnelles.\n",
-      "scenarioDescription": "Une société d'observation de la Terre exploite trois satellites et a huit demandes d'images pour la fenêtre des trois prochaines heures. Les demandes vont de la surveillance urgente d'un feu de forêt (priorité haute) à des relevés de routine sur la croissance urbaine. Chaque satellite dispose d'une énergie limitée pour la prise de vue par orbite. Le planificateur doit affecter les tâches aux satellites dans leurs fenêtres de visibilité pour maximiser le score de priorité total des observations réalisées.\n",
+      "shortDescription": "Choisit quelles demandes d'image voler et quand, pour que la constellation récolte le plus de priorité dans ses fenêtres de visibilité.",
+      "description": "Choisit quelles demandes d'observation sont volées et quand. Chaque demande a une fenêtre de visibilité, une durée de prise de vue et une priorité. Un satellite image une cible à la fois et dispose d'un budget de minutes d'imagerie pour le passage. Le modèle attribue un satellite et une minute de début aux demandes qui valent la peine, laisse le reste, et maximise la priorité récoltée. Ce qui n'entre dans aucune fenêtre ni dans aucun budget n'est tout simplement pas volé.",
+      "scenarioDescription": "Une société d'observation de la Terre exploite trois satellites et a huit demandes d'image pour le prochain passage de trois heures. Elles vont de la surveillance d'urgence d'incendies, à la priorité 95, jusqu'à une étude de routine de croissance urbaine à 50. Chaque satellite dispose d'un nombre fixe de minutes d'imagerie. Les huit demandes totalisent 595 points de priorité et les minutes ne suffisent pas, donc le planificateur choisit lesquelles écarter.",
       "categoryDisplayName": "Aerospatial"
     },
     "service_center_placement": {
@@ -4408,14 +4408,14 @@
       "displayName": "Strip Packing",
       "shortDescription": "Placez des articles rectangulaires dans une bande de largeur fixe pour minimiser la hauteur totale utilisee.",
       "description": "Placez un ensemble de pièces rectangulaires dans une bande de largeur fixe en minimisant la hauteur totale (la longueur) de matière utilisée. Les pièces ne peuvent ni se chevaucher ni pivoter (ou peuvent pivoter, en option). Le problème est modélisé comme un placement sous contrainte de ressource. Courant en découpe textile, en tracé de circuits imprimés et en maquette de page de journal.\n",
-      "scenarioDescription": "Une machine de découpe textile travaille sur un rouleau de 150 cm de large. Huit pièces de patron de largeurs différentes (20 à 60 cm) et de hauteurs différentes (10 à 40 cm) doivent être placées. L'objectif est de minimiser la longueur totale de tissu consommée.\n",
+      "scenarioDescription": "Une machine de coupe travaille sur un rouleau de 10 unités de large. Six pièces de patron doivent y être posées, de 2 à 6 unités de large et de 2 à 5 de long. L'objectif est la plus courte longueur de rouleau qui les contient toutes sans chevauchement.",
       "categoryDisplayName": "Découpe et Emballage"
     },
     "student_assignment": {
       "displayName": "Affectation d'Étudiants",
       "shortDescription": "Affectez des étudiants aux sections de cours pour maximiser la satisfaction des préférences en respectant les capacités de section.",
       "description": "Affecte des étudiants aux sections de cours pour maximiser la satisfaction des préférences des étudiants. Chaque étudiant a une liste ordonnee de préférences et chaque section a une capacité maximale. Le modèle cherche l'affectation maximisant le nombre d'étudiants obtenant leurs premiers choix en respectant les capacités.\n",
-      "scenarioDescription": "Quarante étudiants doivent être répartis entre 4 groupes d'un cours d'introduction à la programmation (10 places chacun). Chaque étudiant a classé les groupes de 1 à 4 par préférence. Le service de scolarité veut l'affectation qui maximise la satisfaction globale des étudiants.\n",
+      "scenarioDescription": "Six étudiants doivent être répartis entre trois groupes d'un cours d'introduction à la programmation : matin, midi et après-midi. Chaque étudiant a classé les trois de 1 à 3, et ce rang est le coût de lui donner ce groupe. Le service de scolarité veut la répartition dont la somme est la plus petite, celle qui accorde le plus de premiers choix.",
       "categoryDisplayName": "Éducation et Enseignement"
     },
     "supplier_selection": {
@@ -4448,9 +4448,9 @@
     },
     "tournament_scheduling": {
       "displayName": "Planification de Tournoi",
-      "shortDescription": "Créez un calendrier de tournoi round-robin minimisant le déplacement total ou equilibrant les matchs à domicile et à l'extérieur.",
-      "description": "Génère un calendrier de tournoi round-robin ou chaque équipe joue contre toutes les autres. Le modèle minimise le déplacement total des équipes ou équilibre les matchs à domicile et à l'extérieur. Inclut des contraintes pour éviter les matchs consécutifs à l'extérieur et respecter les disponibilités des stades.\n",
-      "scenarioDescription": "Une ligue régionale de basket compte 6 équipes. Chaque équipe rencontre deux fois chacune des autres (aller et retour) sur 10 journées. Aucune équipe ne devrait enchaîner plus de 2 déplacements de suite. L'organisateur veut un calendrier juste et équilibré.\n",
+      "shortDescription": "Trace un calendrier de championnat aller simple, en choisissant qui reçoit chaque match pour que les visiteurs voyagent moins.",
+      "description": "Chaque équipe joue une fois contre chacune des autres. Le modèle choisit la journée de chaque match et décide lequel des deux clubs le reçoit. Le club visiteur paie le car, et les clubs ne paient pas le même prix au kilomètre, donc recevoir vaut de l'argent et le calendrier le répartit : chaque club reçoit aussi près de la moitié de ses matchs qu'un nombre impair le permet, et aucun n'enchaîne plus de matchs à l'extérieur que le championnat ne le tolère. La réponse est un calendrier avec une journée et un hôte pour chaque match.",
+      "scenarioDescription": "Un championnat régional catalan de basket compte six clubs et cinq journées. Chaque club joue une fois contre les cinq autres, soit quinze matchs, et chaque journée en accueille trois. Le car coûte à chaque club un montant différent au kilomètre, de 1,80 à Reus à 2,55 à Vic, et c'est le visiteur qui paie. Chaque club doit recevoir deux ou trois de ses cinq matchs, et aucun ne peut jouer à l'extérieur plus de deux fois de suite.",
       "categoryDisplayName": "Sports et Loisirs"
     },
     "track_maintenance_scheduling": {
@@ -4462,9 +4462,9 @@
     },
     "train_timetabling": {
       "displayName": "Horaires de Trains",
-      "shortDescription": "Créez des horaires de trains sans conflit minimisant le temps de trajet total et maximisant la capacité de la ligne.",
-      "description": "Génère des horaires de trains sans conflit pour un réseau ferroviaire en maximisant la capacité de la ligne et minimisant les temps de trajet. Le modèle évite les conflits sur les voies uniques, respecte les temps minimaux en gare et les correspondances entre services. Inclut des trains de différentes vitesses et priorités.\n",
-      "scenarioDescription": "Les chemins de fer néerlandais doivent construire l'horaire de six trains (trois express, deux régionaux et un fret) sur l'axe Amsterdam-Rotterdam dans une fenêtre de 90 minutes. L'axe compte deux sections et impose un espacement minimal de 5 minutes entre trains. Les express sont prioritaires et devraient partir près de leur horaire souhaité, tandis que le train de fret peut être décalé si nécessaire.\n",
+      "shortDescription": "Donne à chaque train une minute de départ qui garde un écart sûr sur la voie partagée et reste proche de l'horaire attendu.",
+      "description": "Choisit une minute de départ pour chaque train d'un corridor. Chaque train déclare une origine, une destination, un temps de parcours et la minute à laquelle il préférerait partir, et chaque section de voie déclare un espacement minimal et le nombre de trains qu'elle accepte par heure. L'itinéraire d'un train se déduit des sections situées entre son origine et sa destination, donc deux trains entrent en conflit exactement quand leurs itinéraires partagent une section. Le modèle garde au moins l'espacement entre deux trains qui entrent sur la même section, respecte la limite horaire et opère les décalages là où ils coûtent le moins : la pénalité d'un train est sa priorité multipliée par les minutes dont il s'écarte de son départ préféré.",
+      "scenarioDescription": "Les chemins de fer néerlandais calent six trains sur le corridor Amsterdam-Rotterdam dans une fenêtre de 90 minutes : trois express à la priorité 9, deux régionaux à 6 et un fret à 3. Le corridor compte deux sections, Amsterdam-Leiden et Leiden-Rotterdam, avec 5 minutes d'espacement sur chacune. À la minute préférée de tout le monde, deux trains entreraient ensemble sur Leiden-Rotterdam, il faut donc que quelque chose cède, et le fret est le train le moins cher à déplacer.",
       "categoryDisplayName": "Ferroviaire"
     },
     "training_program_selection": {
@@ -4541,7 +4541,7 @@
       "displayName": "Traitement des Eaux Usees",
       "shortDescription": "Acheminez les flux d'eaux usees vers les stations d'épuration pour minimiser le coût de traitement en respectant les normes de rejet environnementales.",
       "description": "Optimise la répartition des flux d'eaux usees entre stations d'épuration pour minimiser le coût total de traitement. Chaque station a une capacité, une technologie de traitement et un coût par mètre cube. Les effluents doivent respecter les normes de rejet environnementales. Le modèle décide quel volume envoyer à chaque station.\n",
-      "scenarioDescription": "Une ville produit des eaux usées à partir de quatre sources principales aux niveaux de pollution différents. Trois stations d'épuration sont disponibles, avec des capacités et des technologies différentes. La régie doit orienter tous les flux vers les stations de sorte que l'effluent traité respecte la réglementation au coût total minimal.\n",
+      "scenarioDescription": "Une ville envoie les eaux usées de quatre sources vers trois stations d'épuration. Les sources vont d'un complexe hospitalier à 0,95 de contamination à un quartier résidentiel à 0,30, et les stations en retirent entre 80% et 95% pour un coût de 2,50 à 4,00 par unité. Ce que les stations ne retirent pas est rejeté, et l'autorisation permet 900 unités de rejet. Le service veut l'acheminement le moins cher qui reste dans l'autorisation.",
       "categoryDisplayName": "Gestion de l'Eau"
     },
     "water_distribution_network": {
@@ -4563,6 +4563,13 @@
       "shortDescription": "Affectez des employés aux tâches selon les compétences et la disponibilité pour minimiser les coûts de personnel et maximiser la productivite.",
       "description": "Affecte des employés a des tâches ou projets selon leurs compétences, disponibilité et préférences pour minimiser les coûts de personnel ou maximiser la productivite totale. Chaque employé a un profil de compétences, un coût et une disponibilité horaire. Chaque tâche nécessite des compétences spécifiques et a une durée estimée.\n",
       "scenarioDescription": "Une agence de développement doit affecter 3 développeurs (Alice, Bob et Charlie) à 3 modules du projet (Frontend, Backend et Testing). Chaque développeur a un coût estimé différent par module selon son adéquation. Le chef de projet veut le plan de staffing le moins cher.\n",
+      "categoryDisplayName": "Ressources Humaines"
+    },
+    "assignment": {
+      "displayName": "Affectation de Tâches",
+      "shortDescription": "Affecte chaque tâche à un intervenant différent et cherche le coût total le plus bas.",
+      "description": "Le problème d'affectation classique. Il y a un ensemble d'intervenants et un ensemble de tâches, et un tableau de coûts qui indique ce que coûterait chaque intervenant sur chaque tâche. Toute tâche est confiée à quelqu'un, et personne n'en prend plus d'une. Le modèle choisit l'appariement au coût total le plus bas. Cette fiche fait vivre un ancien identifiant ; les nouveaux travaux doivent utiliser la fiche Affectation du Personnel, qui est le même modèle.",
+      "scenarioDescription": "Une petite équipe de 3 développeurs (Alice, Bob, Charlie) doit se répartir 3 modules du projet (Frontend, Backend, Testing). Chaque développeur a un coût estimé différent sur chaque module selon son expérience. Le responsable technique veut l'affectation la moins chère qui couvre les trois modules.",
       "categoryDisplayName": "Ressources Humaines"
     }
   },

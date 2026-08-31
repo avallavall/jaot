@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import en from "../../messages/en.json";
 
-const EXPECTED_TEMPLATE_COUNT = 101;
+// Counting the JSON against a hardcoded number is what let `assignment` ship
+// with no entry in any locale: there were 102 templates and this said 101, so
+// the suite stayed green. The real check now lives in
+// tests/test_template_translations.py, which compares every locale file to the
+// template YAML. This number is a tripwire for editing the file by hand.
+const EXPECTED_TEMPLATE_COUNT = 102;
 const EXPECTED_CATEGORY_COUNT = 34;
 const REQUIRED_FIELDS = [
   "displayName",

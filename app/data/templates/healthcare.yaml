@@ -204,7 +204,7 @@ templates:
       objective: minimize_cost
     is_featured: true
     estimated_variables: 112
-    estimated_constraints: 30
+    estimated_constraints: 44
 
   - id: operating_room_scheduling
     name: Operating Room Scheduling Optimizer

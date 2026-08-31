@@ -82,7 +82,7 @@ templates:
       risk manageable.
     is_featured: false
     estimated_variables: 8
-    estimated_constraints: 5
+    estimated_constraints: 2
 
   - id: renovation_scheduling
     name: Renovation Project Scheduling
@@ -157,8 +157,8 @@ templates:
       Only three contractor crews are available. The company wants to finish all
       renovations within 15 days.
     is_featured: false
-    estimated_variables: 120
-    estimated_constraints: 80
+    estimated_variables: 113
+    estimated_constraints: 47
 
   - id: tenant_mix_optimization
     name: Commercial Tenant Mix Optimization
@@ -227,4 +227,4 @@ templates:
       traffic tenant mix.
     is_featured: false
     estimated_variables: 8
-    estimated_constraints: 3
+    estimated_constraints: 2

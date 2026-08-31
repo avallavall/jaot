@@ -279,6 +279,11 @@ KNOWN_OPTIMA: dict[str, float] = {
     # at full price, shirt at 60% off, hat at 30% off, which shifts 165.8 of
     # the 276 units against a 60% floor of 165.6.
     "markdown_pricing": 5214.0,
+    # The lathe has 11 hours booked, so nothing finishes sooner, but no
+    # schedule reaches it: C-Lathe cannot end before hour 8 and C-Mill needs 3
+    # more, and the lathe still has to fit B-Lathe, which waits on 4 hours of
+    # mill. Forcing makespan <= 12 comes back INFEASIBLE; 13 is optimal.
+    "job_shop_scheduling": 13.0,
 }
 
 _BY_ID = {t.id: t for t in ALL_TEMPLATES}
@@ -301,6 +306,25 @@ def test_known_optimum(template_id: str, expected: float) -> None:
     assert result.objective_value == pytest.approx(expected, rel=1e-6), (
         f"{template_id}: expected {expected}, got {result.objective_value}. "
         "Either the formulation changed meaning or the example data did."
+    )
+
+
+@pytest.mark.parametrize("template", ALL_TEMPLATES, ids=[t.id for t in ALL_TEMPLATES])
+def test_the_card_states_the_size_of_the_model_it_builds(template) -> None:
+    """estimated_variables and estimated_constraints are served and indexed.
+
+    The API returns both on every template, and the RAG index stores them, so a
+    stale pair misdescribes the card to a user and to the assistant. The
+    example input is fixed, so the counts are exact, not an estimate.
+    """
+    problem = _build(template)
+    assert (template.estimated_variables, template.estimated_constraints) == (
+        len(problem.variables),
+        len(problem.constraints),
+    ), (
+        f"{template.id}: the card says {template.estimated_variables} variables and "
+        f"{template.estimated_constraints} constraints; the model has "
+        f"{len(problem.variables)} and {len(problem.constraints)}."
     )
 
 

@@ -13,10 +13,11 @@ templates:
       preferences (e.g., "Prof. Smith prefers mornings") can be included as soft
       constraints. The output is a complete, conflict-free timetable.
     scenario_description: >
-      A university department must schedule 8 courses across 4 classrooms and 5 daily
-      time slots for the semester. Three instructors each teach 2-3 courses. Room
-      capacities range from 30 to 120 seats. The registrar wants a conflict-free
-      schedule that fits all courses.
+      A university department places five courses into five room-and-slot
+      pairs across three rooms. Every course gets one pair and no pair takes
+      two courses. Each course-and-pair combination carries a penalty from 1 to
+      5, standing for how badly the room and hour suit that course, and the
+      registrar wants the timetable with the smallest total.
     category: education
     tags: [education, scheduling, timetable, university, courses]
     problem_type_tags: [MIP]
@@ -107,9 +108,11 @@ templates:
       ensuring no section exceeds its capacity and every student gets exactly one section.
       Used by university registrars and training coordinators.
     scenario_description: >
-      Forty students must be assigned to 4 sections of an introductory programming
-      course (10 seats each). Each student has ranked the sections 1-4 by preference.
-      The registrar wants an assignment that maximizes overall student satisfaction.
+      Six students have to be placed in three sections of an introductory
+      programming course: morning, midday and afternoon. Each student has
+      ranked the three from 1 to 3, and that rank is the cost of giving them
+      that section. The registrar wants the placement with the smallest total,
+      which is the one that grants the most first choices.
     category: education
     tags: [education, assignment, students, sections, preferences]
     problem_type_tags: [MIP]

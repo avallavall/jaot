@@ -79,10 +79,10 @@ templates:
       Phase I (safety) must complete before Phase II (efficacy), which must finish
       before two parallel Phase III pivotal studies. Five qualified hospital sites
       each have limited monthly patient enrollment capacity. The company wants to
-      reach FDA submission as quickly as possible within a four-year window.
+      reach FDA submission as quickly as possible within a five-year window.
     is_featured: false
-    estimated_variables: 80
-    estimated_constraints: 60
+    estimated_variables: 195
+    estimated_constraints: 75
 
   - id: production_batch_planning
     name: Pharmaceutical Batch Production Planning
@@ -173,7 +173,7 @@ templates:
       expensive cleaning validation. The production planner needs to decide how
       many batches of each product to produce each week to minimize total cost.
     is_featured: false
-    estimated_variables: 36
+    estimated_variables: 48
     estimated_constraints: 40
 
   - id: drug_distribution
@@ -258,5 +258,5 @@ templates:
       Vaccines and insulin require cold-chain vehicles. The logistics manager
       wants to plan routes that deliver everything on time at minimum cost.
     is_featured: false
-    estimated_variables: 30
-    estimated_constraints: 20
+    estimated_variables: 67
+    estimated_constraints: 59

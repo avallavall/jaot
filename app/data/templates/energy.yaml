@@ -70,7 +70,7 @@ templates:
           usage: {gas: 0.4, coal: 0.9, solar: 0, wind: 0, peaker: 0.5}
     is_featured: true
     estimated_variables: 5
-    estimated_constraints: 12
+    estimated_constraints: 2
 
   - id: energy_storage_dispatch
     name: Energy Storage Dispatch Optimizer
@@ -129,8 +129,8 @@ templates:
         - {name: peak, price_per_kWh: 0.25}
         - {name: evening, price_per_kWh: 0.12}
     is_featured: false
-    estimated_variables: 15
-    estimated_constraints: 5
+    estimated_variables: 20
+    estimated_constraints: 15
 
   - id: renewable_curtailment
     name: Renewable Curtailment Minimizer

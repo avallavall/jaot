@@ -67,7 +67,7 @@ templates:
       budget constraint.
     is_featured: true
     estimated_variables: 7
-    estimated_constraints: 15
+    estimated_constraints: 1
 
   - id: media_mix_optimization
     name: Media Mix Optimization
@@ -142,4 +142,4 @@ templates:
       that maximizes expected return while controlling overall campaign risk.
     is_featured: false
     estimated_variables: 6
-    estimated_constraints: 13
+    estimated_constraints: 4

@@ -63,20 +63,21 @@ templates:
       The cutting room supervisor wants to minimize the number of fabric rolls
       used by finding the best combination of cutting patterns.
     is_featured: true
-    estimated_variables: 50
-    estimated_constraints: 15
+    estimated_variables: 154
+    estimated_constraints: 7
 
   - id: dye_batch_scheduling
     name: Dye Batch Scheduling
     display_name: Dye Batch Scheduling
-    short_description: Schedule fabric dyeing batches to minimize color changeover costs and water usage while meeting delivery deadlines.
+    short_description: Book every dyeing batch onto a machine that can take it, so the batches spend as little time waiting as possible.
     description: >
-      Sequences dyeing jobs on dye machines to minimize total changeover cost.
-      Changing from a dark color to a light one requires extensive machine
-      cleaning, while light-to-dark transitions are cheaper. Each job has a
-      fabric volume, color, processing time, and delivery deadline. The model
-      assigns jobs to machines and determines their sequence to minimize
-      changeover and cleaning costs while completing all jobs on time.
+      Books dyeing jobs onto jet-dye machines. Each job has a fabric volume, a
+      processing time and a deadline, and a machine takes one job at a time and
+      only up to its batch size. Every job must run, and the cost is how long
+      it sits waiting for a machine after it becomes available. The model gives
+      each job a machine and a start hour that finishes it before its deadline
+      and keeps the total wait as short as it can be. The colour on each job is
+      recorded for the operator; the model does not price changeovers.
     category: textile
     tags: [textile, dyeing, scheduling, manufacturing]
     problem_type_tags: [MIP, scheduling]
@@ -129,11 +130,11 @@ templates:
         - {name: "Jet-Dye-1", available_hours: 16, capacity_kg: 1000}
         - {name: "Jet-Dye-2", available_hours: 16, capacity_kg: 350}
     scenario_description: >
-      A textile dyeing plant has two jet-dye machines running 16-hour shifts.
-      Six dyeing jobs in different colors must be completed by their deadlines.
-      The plant wants to sequence jobs to minimize changeover cost. Switching
-      from dark to light colors requires a 90-minute cleaning cycle, while
-      light-to-dark needs only 30 minutes.
+      A textile dyeing plant runs two jet-dye machines over a 16-hour shift.
+      Six batches have to be dyed by their deadlines, from 200 kg of red silk
+      to 800 kg of navy denim. Jet-Dye-2 only takes 350 kg, so the three
+      heaviest batches can only go on Jet-Dye-1. The plant wants the batches
+      started as early as those limits allow.
     is_featured: false
-    estimated_variables: 36
-    estimated_constraints: 25
+    estimated_variables: 152
+    estimated_constraints: 55

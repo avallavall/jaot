@@ -66,7 +66,7 @@ templates:
       objective: maximize_roi
     is_featured: true
     estimated_variables: 4
-    estimated_constraints: 9
+    estimated_constraints: 1
 
   - id: portfolio_optimization
     name: Portfolio Optimization
@@ -157,7 +157,7 @@ templates:
       sector_limits: {equity: 0.60, bonds: 0.50, real_estate: 0.25, commodities: 0.15}
     is_featured: true
     estimated_variables: 12
-    estimated_constraints: 14
+    estimated_constraints: 16
 
   - id: cash_flow_planning
     name: Cash Flow Planning Optimizer
@@ -361,4 +361,4 @@ templates:
           usage: {laptop_retail: 1, tablet_retail: 1}
     is_featured: false
     estimated_variables: 7
-    estimated_constraints: 16
+    estimated_constraints: 2

@@ -118,8 +118,8 @@ templates:
         site_6_site_4: 6
         site_6_site_5: 13
     is_featured: true
-    estimated_variables: 112
-    estimated_constraints: 40
+    estimated_variables: 92
+    estimated_constraints: 83
 
   - id: emission_reduction_planning
     name: Emission Reduction Planning Optimizer

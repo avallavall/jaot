@@ -87,8 +87,8 @@ templates:
       supply is limited this quarter. The plant manager needs to allocate feeds
       across reactors to maximize profit while meeting minimum production targets.
     is_featured: false
-    estimated_variables: 12
-    estimated_constraints: 10
+    estimated_variables: 8
+    estimated_constraints: 7
 
   - id: chemical_blending
     name: Chemical Product Blending
@@ -170,7 +170,7 @@ templates:
       blend that meets all specifications.
     is_featured: false
     estimated_variables: 4
-    estimated_constraints: 5
+    estimated_constraints: 6
 
   - id: pipeline_network_flow
     name: Pipeline Network Flow Optimization
@@ -247,5 +247,5 @@ templates:
       junctions. Pumping costs vary by segment. The distribution planner needs
       to route 8,000 barrels per day through the network at minimum cost.
     is_featured: false
-    estimated_variables: 7
+    estimated_variables: 8
     estimated_constraints: 7

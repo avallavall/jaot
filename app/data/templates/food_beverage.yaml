@@ -83,7 +83,7 @@ templates:
       nutritional labeling requirements.
     is_featured: true
     estimated_variables: 6
-    estimated_constraints: 9
+    estimated_constraints: 10
 
   - id: production_line_scheduling
     name: Food Production Line Scheduling
@@ -155,8 +155,8 @@ templates:
       production hours. The planner must place every order on a line without
       going over that line's available hours, at the lowest production cost.
     is_featured: false
-    estimated_variables: 48
-    estimated_constraints: 35
+    estimated_variables: 170
+    estimated_constraints: 52
 
   - id: ingredient_sourcing
     name: Ingredient Sourcing Optimization
@@ -229,4 +229,4 @@ templates:
       demands while respecting supplier constraints.
     is_featured: false
     estimated_variables: 14
-    estimated_constraints: 10
+    estimated_constraints: 17

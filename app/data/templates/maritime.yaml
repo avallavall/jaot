@@ -88,8 +88,8 @@ templates:
       and revenue value. The company must decide which shipments to accept and
       assign to which vessel to maximize profit after operating costs.
     is_featured: false
-    estimated_variables: 18
-    estimated_constraints: 25
+    estimated_variables: 21
+    estimated_constraints: 27
 
   - id: container_loading
     name: Container Loading Optimization
@@ -239,5 +239,5 @@ templates:
       planner needs to assign vessels to berths and schedule service times to
       minimize total vessel turnaround time.
     is_featured: false
-    estimated_variables: 15
-    estimated_constraints: 12
+    estimated_variables: 471
+    estimated_constraints: 206

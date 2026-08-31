@@ -89,7 +89,7 @@ templates:
       underserved communities.
     is_featured: true
     estimated_variables: 5
-    estimated_constraints: 8
+    estimated_constraints: 7
 
   - id: emergency_response_allocation
     name: Emergency Response Resource Allocation
@@ -196,8 +196,8 @@ templates:
       minimum number of units across stations to meet all coverage requirements
       at the lowest annual cost.
     is_featured: false
-    estimated_variables: 10
-    estimated_constraints: 11
+    estimated_variables: 5
+    estimated_constraints: 6
 
   - id: public_budget_allocation
     name: Government Budget Allocation
@@ -263,4 +263,4 @@ templates:
       maximizes total public benefit within the budget.
     is_featured: false
     estimated_variables: 7
-    estimated_constraints: 15
+    estimated_constraints: 1
