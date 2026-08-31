@@ -36,12 +36,23 @@ describe("template translations across all locales (I18N-11)", () => {
   const enTemplates = enData.templates as Record<string, unknown>;
   const enLeafKeys = getLeafKeys(enTemplates);
 
-  it("English baseline has 539 template leaf keys", () => {
-    expect(enLeafKeys.length).toBe(539);
+  // The absolute count used to be pinned here at 539. That is 101 templates x 5
+  // fields plus 34 categories, and there are 102 templates: `assignment` had no
+  // entry in any locale and this number was written to match the file rather
+  // than the source. The YAML is the source of truth and
+  // tests/test_template_translations.py compares every locale to it; what is
+  // worth checking here is that the four other locales hold exactly the keys
+  // English does.
+  it("English baseline covers every template with all five fields", () => {
+    const templateCount = Object.keys(enTemplates).filter((k) => !k.startsWith("_")).length;
+    const categoryCount = Object.keys(
+      (enTemplates._categories ?? {}) as Record<string, string>
+    ).length;
+    expect(enLeafKeys.length).toBe(templateCount * REQUIRED_FIELDS.length + categoryCount);
   });
 
   it.each(NON_EN_LOCALES)(
-    "%s.json templates namespace has 539 leaf keys matching en.json",
+    "%s.json templates namespace holds exactly the keys en.json does",
     (locale) => {
       const localeData = loadLocale(locale);
       const localeTemplates = localeData.templates as Record<string, unknown>;
@@ -51,7 +62,7 @@ describe("template translations across all locales (I18N-11)", () => {
       ).toBeDefined();
 
       const localeLeafKeys = getLeafKeys(localeTemplates);
-      expect(localeLeafKeys.length).toBe(539);
+      expect(localeLeafKeys.length).toBe(enLeafKeys.length);
 
       const missing = enLeafKeys.filter((k) => !localeLeafKeys.includes(k));
       expect(
@@ -68,13 +79,14 @@ describe("template translations across all locales (I18N-11)", () => {
   );
 
   it.each(NON_EN_LOCALES)(
-    "%s.json has _categories with 34 entries",
+    "%s.json names every category en.json names",
     (locale) => {
       const localeData = loadLocale(locale);
       const localeTemplates = localeData.templates as Record<string, Record<string, string>>;
       const categories = localeTemplates._categories;
       expect(categories, `${locale} missing _categories`).toBeDefined();
-      expect(Object.keys(categories).length).toBe(34);
+      const enCategories = (enTemplates._categories ?? {}) as Record<string, string>;
+      expect(Object.keys(categories).sort()).toEqual(Object.keys(enCategories).sort());
     }
   );
 
