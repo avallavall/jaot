@@ -1443,7 +1443,7 @@ def test_forward_reference_in_set_expression_rejected():
 
 def test_union_dimension_mismatch_rejected():
     with pytest.raises(
-        JModelError, match="different\s+member dimensions|different member dimensions"
+        JModelError, match=r"different\s+member dimensions|different member dimensions"
     ):
         compile_jmodel(
             "set A := {a};\nset P := {(p, q)};\nset U := A union P;\n"

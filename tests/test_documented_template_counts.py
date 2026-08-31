@@ -43,8 +43,36 @@ def _pinned_optima() -> int:
     return len(KNOWN_OPTIMA)
 
 
+def _test_suite_shape() -> dict[str, int]:
+    """How many test files and test functions the repo actually holds."""
+    import ast
+
+    files = sorted((ROOT / "tests").rglob("test_*.py"))
+    module_level = methods = 0
+    for path in files:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith(
+                "test_"
+            ):
+                module_level += 1
+            elif isinstance(node, ast.ClassDef):
+                methods += sum(
+                    1
+                    for m in node.body
+                    if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and m.name.startswith("test_")
+                )
+    return {
+        "test_files": len(files),
+        "test_functions": module_level + methods,
+        "module_level_tests": module_level,
+        "class_method_tests": methods,
+    }
+
+
 def _all_counts() -> dict[str, int]:
-    return {**_counts(), "pinned_optima": _pinned_optima()}
+    return {**_counts(), **_test_suite_shape(), "pinned_optima": _pinned_optima()}
 
 
 CLAIMS: list[tuple[str, str, str]] = [
@@ -90,6 +118,13 @@ CLAIMS: list[tuple[str, str, str]] = [
     ),
     ("docs/TESTING.md", r"\*\*Known optima\.\*\* (\d+) cards", "pinned_optima"),
     ("README.md", r"(\d+) of\s+them are pinned", "pinned_optima"),
+    # docs/TESTING.md "By the numbers". The collected total is a measured
+    # snapshot and cannot be counted without running the suite; these four can,
+    # so a drift in the parts is caught even when the total is not re-measured.
+    ("docs/TESTING.md", r"collected across ([\d,]+) files", "test_files"),
+    ("docs/TESTING.md", r"That is ([\d,]+) test functions", "test_functions"),
+    ("docs/TESTING.md", r"([\d,]+) written at module level", "module_level_tests"),
+    ("docs/TESTING.md", r"and ([\d,]+) as methods on test classes", "class_method_tests"),
 ]
 
 
@@ -102,7 +137,7 @@ def test_a_documented_count_matches_the_code(path: str, pattern: str, key: str) 
         "nothing. Update the pattern together with the prose."
     )
     expected = _all_counts()[key]
-    assert int(match.group(1)) == expected, (
+    assert int(match.group(1).replace(",", "")) == expected, (
         f"{path} says {match.group(1)} for '{key}'; the code has {expected}."
     )
 
