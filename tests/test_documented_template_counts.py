@@ -10,6 +10,13 @@ Each row below names a file, a pattern with one capturing group, and what the
 number has to be. A pattern that stops matching fails too: the claim was
 reworded and this test stopped guarding it, which is exactly how a gate ends up
 running against nothing.
+
+Only files that are **committed** may appear here. The first version of this
+test also read the repository's ``CLAUDE.md``, which is gitignored: it is
+present on a developer's machine and absent from a fresh checkout, so the
+suite was green locally and red on CI with five ``FileNotFoundError``s.
+``test_every_file_this_gate_reads_is_in_the_repository`` now catches that
+before a push.
 """
 
 import pathlib
@@ -76,11 +83,6 @@ def _all_counts() -> dict[str, int]:
 
 
 CLAIMS: list[tuple[str, str, str]] = [
-    ("CLAUDE.md", r"(\d+) templates \(YAML-only, unified across (?:\d+) files\)", "templates"),
-    ("CLAUDE.md", r"unified across (\d+) files", "template_files"),
-    ("CLAUDE.md", r"(\d+) problem generators", "generators"),
-    ("CLAUDE.md", r"registered under (\d+) names", "registry_names"),
-    ("CLAUDE.md", r"(\d+) of the\n  generators are used by a template", "generators_in_use"),
     ("README.md", r"(\d+) templates \+ \d+ problem generators", "templates"),
     ("README.md", r"\d+ templates \+ (\d+) problem generators", "generators"),
     ("docs/ARCHITECTURE/OVERVIEW.md", r"\*\*(\d+) problem generators\*\*", "generators"),
@@ -139,6 +141,34 @@ def test_a_documented_count_matches_the_code(path: str, pattern: str, key: str) 
     expected = _all_counts()[key]
     assert int(match.group(1).replace(",", "")) == expected, (
         f"{path} says {match.group(1)} for '{key}'; the code has {expected}."
+    )
+
+
+def test_every_file_this_gate_reads_is_in_the_repository() -> None:
+    """A gitignored file is present locally and missing from a fresh checkout.
+
+    Pointing a claim at one makes this suite pass on a developer's machine and
+    fail on CI, which is the slowest possible way to learn it.
+    """
+    import subprocess
+
+    try:
+        tracked = subprocess.run(
+            ["git", "ls-files"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=60,
+        ).stdout.split()
+    except (OSError, subprocess.SubprocessError):
+        pytest.skip("git is not available here; run this check where it is")
+
+    committed = {path.replace("\\", "/") for path in tracked}
+    untracked = sorted({path for path, _pattern, _key in CLAIMS if path not in committed})
+    assert not untracked, (
+        f"this gate reads {untracked}, which git does not track. A gitignored file is "
+        "there locally and gone on CI, so the claim would only fail after a push."
     )
 
 
