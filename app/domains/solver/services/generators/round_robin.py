@@ -136,6 +136,14 @@ class RoundRobinGenerator(BaseGenerator):
         constraints: list[Constraint] = []
 
         # Every pair meets exactly once, one way round or the other.
+        #
+        # Named by index, not by the two team names. A sanitized name is made of
+        # letters, digits and underscores, so any separator built from those can
+        # itself appear inside a name: teams {a, b_c} and {a_b, c} would both
+        # produce "meet_a_b_c". The solver applies both constraints either way,
+        # so the answer stays right, but sensitivity output is reported per
+        # constraint name and two rows would share one. The fixture variables
+        # carry the readable names.
         for i in range(n):
             for j in range(i + 1, n):
                 both = [host(i, j, r) for r in range(rounds)] + [
@@ -143,7 +151,7 @@ class RoundRobinGenerator(BaseGenerator):
                 ]
                 constraints.append(
                     Constraint(
-                        name=f"meet_{names[i]}_{names[j]}",
+                        name=f"meet_{i}_{j}",
                         expression=f"{' + '.join(both)} == 1",
                     )
                 )
