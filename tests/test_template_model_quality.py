@@ -51,17 +51,13 @@ register_default_adapters()
 # eleven templates that had been fixed months earlier.
 # ---------------------------------------------------------------------------
 
-UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset(
-    {
-        # scheduling: still on the shift-covering model
-        "train_timetabling",
-    }
-)
+UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset()
 
 FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset(
     {
+        # a round robin encoded as a shift roster: every team is an "employee"
+        # with hourly_cost 1, so the objective counts shifts
         "tournament_scheduling",
-        "train_timetabling",
     }
 )
 
@@ -271,6 +267,11 @@ KNOWN_OPTIMA: dict[str, float] = {
     # Everything ships except Rolls-Paper, the lowest value per cubic metre at
     # 500 against 527 and 533. 67700 - 2500.
     "container_loading": 65200.0,
+    # Two headway clashes at the preferred times. IC-201 and IC-205 both reach
+    # Leiden-Rotterdam at minute 20, and both carry priority 9, so the cheapest
+    # repair is one of them moving the full 5-minute headway: 45. FR-801 then
+    # enters that segment 3 minutes behind RE-503 and shifts 2 at priority 3: 6.
+    "train_timetabling": 51.0,
 }
 
 _BY_ID = {t.id: t for t in ALL_TEMPLATES}

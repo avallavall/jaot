@@ -37,6 +37,7 @@ from app.domains.solver.services.generators.production import (
     ProductionGenerator,
 )
 from app.domains.solver.services.generators.quality_control import QualityControlGenerator
+from app.domains.solver.services.generators.rail_timetabling import RailTimetablingGenerator
 from app.domains.solver.services.generators.renewable import RenewableCurtailmentGenerator
 from app.domains.solver.services.generators.routing import RoutingGenerator
 from app.domains.solver.services.generators.scheduling import SchedulingGenerator
@@ -77,6 +78,7 @@ GeneratorRegistry.register("quality_control", QualityControlGenerator)
 GeneratorRegistry.register("markdown_pricing", MarkdownPricingGenerator)
 GeneratorRegistry.register("strip_packing", StripPackingGenerator)
 GeneratorRegistry.register("windowed_tasking", WindowedTaskingGenerator)
+GeneratorRegistry.register("rail_timetabling", RailTimetablingGenerator)
 GeneratorRegistry.register("spanning_tree", SpanningTreeGenerator)
 GeneratorRegistry.register("mdpdp", MDPDPGenerator)
 GeneratorRegistry.register("period_selection", PeriodSelectionGenerator)
@@ -121,6 +123,7 @@ __all__ = [
     "ProcurementGenerator",
     "ProductionGenerator",
     "QualityControlGenerator",
+    "RailTimetablingGenerator",
     "RenewableCurtailmentGenerator",
     "RoutingGenerator",
     "SchedulingGenerator",

@@ -17,7 +17,7 @@ templates:
     category: railway
     tags: [railway, timetabling, public-transport, scheduling]
     problem_type_tags: [MIP, scheduling]
-    generator_type: scheduling
+    generator_type: rail_timetabling
     generator_params: {}
     input_schema:
       type: object
@@ -83,8 +83,8 @@ templates:
       Express services have high priority and should depart close to their
       preferred times, while the freight train can be shifted if needed.
     is_featured: true
-    estimated_variables: 36
-    estimated_constraints: 30
+    estimated_variables: 332
+    estimated_constraints: 153
 
   - id: rolling_stock_assignment
     name: Rolling Stock Assignment
