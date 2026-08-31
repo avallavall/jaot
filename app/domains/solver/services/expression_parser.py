@@ -135,11 +135,24 @@ def _tokenize(expr: str) -> list[Token]:
             i += 1
             continue
 
-        # Number (integer or float)
+        # Number (integer, float, or scientific notation)
         if ch.isdigit() or (ch == "." and i + 1 < length and expr[i + 1].isdigit()):
             start = i
             while i < length and (expr[i].isdigit() or expr[i] == "."):
                 i += 1
+            # Exponent suffix. Python writes any float below 1e-4 as "5e-05", and
+            # every generator interpolates bare floats, so without this the
+            # mantissa and the exponent parsed as two separate wrong terms.
+            # Only consume it when digits really follow: "5e" stays NUMBER(5)
+            # VARIABLE(e), which is how "5*e" survives the normalizer.
+            if i < length and expr[i] in "eE":
+                j = i + 1
+                if j < length and expr[j] in "+-":
+                    j += 1
+                if j < length and expr[j].isdigit():
+                    while j < length and expr[j].isdigit():
+                        j += 1
+                    i = j
             tokens.append(Token(_TT_NUMBER, expr[start:i], start))
             continue
 
@@ -690,7 +703,10 @@ class ExpressionParser:
         # with digits-then-letters mid-name was corrupted — "prod_aspirin_500mg"
         # became "prod_aspirin_500*mg" and the solve failed on a name the model
         # never declared. e.g., "2x" -> "2*x"; "x_0_c" and "a_500mg" unchanged.
-        expr = re.sub(r"(?<![a-zA-Z_0-9])(\d+)([a-zA-Z(])", r"\1*\2", expr)
+        # The negative lookahead keeps scientific notation intact. Without it
+        # "5e-05*e" became "5*e-05*e", i.e. 5*e - 5*e = 0, and the coefficient
+        # of a real variable silently went to zero with no parse error.
+        expr = re.sub(r"(?<![a-zA-Z_0-9])(\d+)(?![eE][+-]?\d)([a-zA-Z(])", r"\1*\2", expr)
         # Handle implicit multiplication: ) followed by letter/digit/(
         expr = re.sub(r"\)([a-zA-Z0-9_(])", r")*\1", expr)
         return expr

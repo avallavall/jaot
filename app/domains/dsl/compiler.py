@@ -58,8 +58,9 @@ Hardening guarantees (all violations raise :class:`JModelError`, never a raw exc
   belong to the family's declared index set (no "ghost" flat variables);
 - grounding work is bounded by an expansion budget (``max_grounded_elements``) checked
   *before* cartesian products are materialized;
-- emitted numbers are always plain positional decimals (the flat ``ExpressionParser``
-  does not understand scientific notation);
+- emitted numbers are always plain positional decimals, expanded exactly via
+  ``Decimal`` (the flat ``ExpressionParser`` reads exponents too, but a plain
+  decimal round-trips the float's shortest repr and stays readable);
 - constant constraint rows are dropped when trivially satisfied and rejected at compile
   time when violated by construction.
 
@@ -1871,9 +1872,9 @@ def _ground(node: Expr, env: dict[str, str], ctx: _Ctx) -> _LinForm:
 def _fmt_num(x: float) -> str:
     """Format a number as a plain positional decimal.
 
-    The flat ``ExpressionParser`` only understands digits and dots — scientific
-    notation like ``1e-07`` would be misread as the variable ``e`` — so exponents are
-    expanded via ``Decimal`` (exact, round-trips the float's shortest repr).
+    Exponents are expanded via ``Decimal`` (exact, round-trips the float's
+    shortest repr). The flat ``ExpressionParser`` reads ``1e-07`` correctly now,
+    but a plain decimal is what a person reading the model expects to see.
     """
     if not math.isfinite(x):
         raise JModelError("non-finite coefficient in model (numeric overflow)")
