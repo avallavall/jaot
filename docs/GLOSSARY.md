@@ -32,8 +32,10 @@ without grepping.
 
 - **A problem is not a model project.** `OptimizationProblem` is the flat,
   solver-agnostic maths; a `ModelProject` is the versioned workspace that
-  produces one. A project stores its problem as JSON on the draft, and a
-  comparison stores a *snapshot* of it per row (that is D-32).
+  produces one. A project stores its problem as JSON on the draft. A solver
+  comparison stores one *snapshot* on the comparison itself, and every column
+  reads that same snapshot — the columns used to keep a copy each, which held
+  the same 3.8 MB once per solver.
 
 - **A template is not a generator.** A template is a YAML entry with an input
   schema, and it declares a `generator_type`. The generator is the class that

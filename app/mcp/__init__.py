@@ -36,7 +36,8 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
         name="JAOT Optimization Platform",
         description=(
             "Solve linear (LP) and mixed-integer (MIP) optimization problems with "
-            "a choice of solvers (SCIP, HiGHS, Hexaly) or automatic routing, "
+            "a choice of solvers (SCIP, HiGHS, CBC, GLPK, and a profile-gated Hexaly) "
+            "or automatic routing, "
             "including multi-objective (Pareto) solves. Import and export models in "
             "standard formats (MPS/LP/CIP/JSON). Browse and run a marketplace of "
             "pre-built models, and inspect result insights. Create, version "

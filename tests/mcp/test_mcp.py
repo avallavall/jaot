@@ -14,11 +14,13 @@ schema, and test auth on the underlying REST endpoints that MCP proxies.
 """
 
 import inspect
+import re
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
+import app.mcp as setup_mcp_module
 from app.main import create_app
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -160,6 +162,43 @@ def test_static_llms_txt_lists_every_mcp_tool():
     # The prose count next to the link must agree with the list it introduces.
     assert f"({len(EXPECTED_OPERATIONS)} tools)" in content, (
         f"llms.txt does not advertise {len(EXPECTED_OPERATIONS)} tools"
+    )
+
+
+# CONTRACT-TEST: llms.txt is what an agent reads to decide whether JAOT is worth
+# calling, and it undercounted the marketplace by 24 categories (caught
+# 2026-09-01). The number is written as prose, so only a gate keeps it honest.
+def test_static_llms_txt_category_count_matches_the_enum():
+    from app.models.optimization_model import ModelCategory
+
+    static_llms = _REPO_ROOT / "frontend" / "public" / "llms.txt"
+    if not static_llms.exists():
+        pytest.skip(f"static llms.txt not mounted at {static_llms}")
+
+    content = static_llms.read_text(encoding="utf-8")
+    claimed = re.findall(r"across (\d+) problem categories", content)
+    assert len(claimed) == 1, "expected exactly one category-count claim in llms.txt"
+    assert int(claimed[0]) == len(list(ModelCategory)), (
+        f"llms.txt advertises {claimed[0]} problem categories, "
+        f"ModelCategory has {len(list(ModelCategory))}"
+    )
+
+
+# CONTRACT-TEST: the MCP description is the only sentence an agent reads before
+# choosing a solver, and it still named the three from before CBC and GLPK
+# shipped (caught 2026-09-01). A solver the platform registers but the sentence
+# omits is a solver no agent will ever ask for.
+def test_mcp_description_names_every_registered_solver():
+    from app.domains.solver.queue_routing import SOLVER_QUEUE_MAP
+
+    source = inspect.getsource(setup_mcp_module)
+    start = source.index("description=(")
+    end = source.index("include_operations=", start)
+    description = source[start:end].lower()
+
+    missing = [n for n in sorted(SOLVER_QUEUE_MAP) if n not in description]
+    assert not missing, (
+        f"the MCP server description does not name these registered solvers: {missing}"
     )
 
 

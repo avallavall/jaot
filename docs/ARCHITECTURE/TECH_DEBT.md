@@ -5,41 +5,7 @@ bottom — one line, with the date. Its reasoning, its measurements and the bugs
 are in the commit that closed it and in [CHANGELOG](../CHANGELOG.md); repeating them here
 turned this file into 500 lines of post-mortem nobody could act on.
 
-Ordered by benefit ÷ effort.
-
-| # | Debt | Impact | Effort |
-|---|------|--------|--------|
-| D-27 | PgBouncer in transaction mode, once there are real users or more workers | Low today, rising with load | Needs an infra window |
-
----
-
-## D-27 · PgBouncer, when the connection budget gets tight
-
-The last step of D-25, deliberately deferred: the first three closed the failure mode, this one
-raises the ceiling.
-
-**Connection budget today** (`max_connections = 100`): API 4×10 = 40, `celery_worker_default`
-and `celery_worker_scip` 10 each, the four single-concurrency workers (`highs`, `cbc`, `glpk`,
-`compare`) 4 each, beat 10 → **≈ 86 in the worst case**, and ≈ 96 with the Hexaly profile on.
-
-It fits, and it was sized on purpose, but every new worker or queue re-opens the arithmetic —
-and it has been re-opened twice already. CBC, GLPK and the comparison worker took the default
-profile from four Celery containers to six; at the old pool of 10 apiece that was ≈ 110, past
-the ceiling, and a matrix launched while a solve was running would have met
-`FATAL: sorry, too many clients already`. The four workers that run one task at a time were
-given a pool of 2+2 instead, which is what their concurrency can actually use.
-
-PgBouncer in transaction mode decouples app concurrency from the Postgres backend count, so
-pools can be generous without renegotiating `max_connections`. Two caveats to check before
-adopting it, both load-bearing here: `connect_args={"options": "-c timezone=utc"}` (session
-state does not survive transaction pooling the way it survives a session) and `pool_pre_ping`.
-
-Not urgent while the platform is quiet, and the gauges from D-25 now say when it stops being
-quiet: watch `jaot_db_pool_checked_out / jaot_db_pool_capacity`.
-
-⏸️ **Left open on purpose** (owner, 2026-08-26, asked again while closing D-28 and D-29). The
-platform is still quiet, so PgBouncer would add a container in the path of every query for no
-measured gain. The gauges above are the trigger.
+**Nothing is open.** Every entry below is closed or rejected.
 
 ---
 
@@ -73,7 +39,7 @@ Full reasoning in the commit that closed each one, and in the CHANGELOG.
 | D-23 | Rate limits read from a mirror on `organizations` | ✅ 2026-07-31 — never needed the schema change |
 | D-24 | Three surfaces wrote nothing: `recent_models`, view events, detached principal | ✅ 2026-07-28 |
 | D-18 | 118 `Depends(get_db)` migrated to the `DBSession` alias; the alias moved to break a cycle | ✅ 2026-08-01 |
-| D-25 | Admission bounded to the pool, `pool_timeout` 30s→5s, health off the queue, pool gauges + alerts | ✅ 2026-08-01 (step 4 → D-27) |
+| D-25 | Admission bounded to the pool, `pool_timeout` 30s→5s, health off the queue, pool gauges + alerts | ✅ 2026-08-01 (step 4 became D-27, rejected) |
 | D-26 | Contract-release: legacy tables + 6 FK columns + 6 credit columns dropped, `access_count` → integer; found reviews had lost their uniqueness guarantee | ✅ `20260801_contract_release` |
 | D-30 | The shared rate limiter takes a `cost`, so a comparison the quota cannot cover is refused without spending any of it | ✅ 2026-08-19 |
 | D-33 | The stored adoption counter dropped; every surface counts through `adoption_query`, with an index for the join | ✅ `20260824_drop_total_activations` |
@@ -87,7 +53,26 @@ tables) and the **2026-07-26 backend audit** that produced D-10…D-19 are in
 [`02-backend/07-audit-2026-07-26.md`](02-backend/07-audit-2026-07-26.md) and
 [ADR-009](08-decisions/ADR-009-sync-endpoints-with-a-sync-session.md).
 
-**Rejected, with reasons:** microservices (owner, 2026-07-25), a dynamic `auto_router` tree
+**Rejected, with reasons:** PgBouncer in transaction mode (owner, 2026-09-01 — see below),
+microservices (owner, 2026-07-25), a dynamic `auto_router` tree
 (its reason slugs are public API contract; it does consult capabilities when substituting for
 a solver this server does not have, under a slug that names none), and an async-SQLAlchemy
 migration (ADR-009 buys the same for a fraction of the cost).
+
+---
+
+## Rejected · PgBouncer in transaction mode (was D-27)
+
+Registered on 2026-08-01 as the fourth step of D-25, deferred twice, and **dropped for good by
+the owner on 2026-09-01.** It is not deferred work any more; nobody should re-open it as debt.
+
+The connection budget it existed to raise is documented where it is enforced:
+[`05-celery-queue-workers.md`](05-infrastructure/05-celery-queue-workers.md#pool-sizes). It fits
+inside `max_connections = 100` and it was sized on purpose. The gauges
+`jaot_db_pool_checked_out` and `jaot_db_pool_capacity` say when it stops fitting.
+
+PgBouncer would put a container in the path of every query. It also breaks two things this
+codebase relies on, and both would have to be re-solved before adopting it:
+`connect_args={"options": "-c timezone=utc"}` (session state does not survive transaction
+pooling) and `pool_pre_ping`. If the pool gauges ever hit the ceiling, the cheaper answers come
+first: raise `max_connections`, or cut a worker's pool to what its concurrency can use.

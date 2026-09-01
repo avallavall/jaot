@@ -140,7 +140,23 @@ The four workers that run one task at a time (`highs`, `cbc`, `glpk`,
 `compare`) carry `DB_POOL_SIZE=2` / `DB_MAX_OVERFLOW=2`, not the 5/5 the API and
 the two concurrency-2 workers use. Six always-on Celery containers at ten
 connections apiece would put the default profile at about 110 against
-`max_connections = 100`. See D-27 for the whole budget.
+`max_connections = 100`.
+
+**The whole budget** (`max_connections = 100`): API 4×10 = 40,
+`celery_worker_default` and `celery_worker_scip` 10 each, the four
+single-concurrency workers 4 each, beat 10 → **≈ 86 in the worst case**, and
+≈ 96 with the Hexaly profile on.
+
+It fits, and it was sized on purpose. Every new worker or queue re-opens the
+arithmetic, and it has been re-opened twice already: CBC, GLPK and the
+comparison worker took the default profile from four Celery containers to six,
+which at the old pool of 10 apiece was ≈ 110 — past the ceiling, where a matrix
+launched during a solve would have met `FATAL: sorry, too many clients already`.
+
+Watch `jaot_db_pool_checked_out / jaot_db_pool_capacity`. If they reach the
+ceiling, raise `max_connections` or cut a worker's pool to what its concurrency
+can use. Connection pooling in front of Postgres was considered and rejected:
+[TECH_DEBT.md](../TECH_DEBT.md#rejected--pgbouncer-in-transaction-mode-was-d-27).
 
 ## Notes
 

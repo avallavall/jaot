@@ -33,6 +33,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ## [Unreleased]
 
 ### Fixed
+- **The file AI agents read to discover JAOT undercounted the marketplace.** `llms.txt` said the catalogue spans 10 problem categories. It spans 34.
+- **The MCP server told agents about three solvers.** JAOT ships four free ones (SCIP, HiGHS, CBC and GLPK) plus a profile-gated Hexaly, but the description an agent reads before choosing named only SCIP, HiGHS and Hexaly, so no agent had a reason to ask for CBC or GLPK by name.
 - **A coefficient smaller than 0.0001 was read as two wrong terms.** Any figure a card wrote in exponent form, such as an expected return of 0.00005, reached the solver as a phantom variable plus a wrong constant. Where the model happened to use a variable named `e`, the two cancelled and that asset counted for exactly nothing, with no error anywhere.
 - **Fourteen ways a model could quietly answer a different question.** A missing column, a row named with a space instead of a hyphen, a prerequisite with a typo, a plant that said it was closed, a stop added to a route table in a different order: each of these built a model that left out part of what the card asked, and every one of them still came back "optimal". They now say what is wrong and which row it is in. The affected cards cover knapsack, production, assignment, covering, procurement, network flow, routing, scheduling, portfolio and windowed tasking.
 - **A card that could not be built answered with a server error.** Three of the five places that build a model from a card had no handler, so a mistake in the input looked like a fault on our side. All five now answer 422 and say what the generator refused.

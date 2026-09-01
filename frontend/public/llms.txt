@@ -34,5 +34,5 @@
 
 ## Marketplace
 
-- [Browse Models](/marketplace): Ready-made optimization models across 10 problem categories — fork any of them into your studio with "Use in studio"
+- [Browse Models](/marketplace): Ready-made optimization models across 34 problem categories — fork any of them into your studio with "Use in studio"
 - [Publishing Models](/docs/marketplace/publishing-models): Publish a committed version of your model to the marketplace

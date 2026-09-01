@@ -333,7 +333,8 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       # concurrency 1: one task at a time needs nowhere near ten
       # connections, and six always-on workers at ten each pass
-      # max_connections. See D-27 for the whole budget.
+      # max_connections. Whole budget: docs/ARCHITECTURE/05-infrastructure/
+      # 05-celery-queue-workers.md#pool-sizes
       - DB_POOL_SIZE=2
       - DB_MAX_OVERFLOW=2
       - SOLVER_QUEUE=solve_highs
@@ -388,7 +389,8 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       # concurrency 1: one task at a time needs nowhere near ten
       # connections, and six always-on workers at ten each pass
-      # max_connections. See D-27 for the whole budget.
+      # max_connections. Whole budget: docs/ARCHITECTURE/05-infrastructure/
+      # 05-celery-queue-workers.md#pool-sizes
       - DB_POOL_SIZE=2
       - DB_MAX_OVERFLOW=2
       - SOLVER_QUEUE=solve_cbc
@@ -439,7 +441,8 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       # concurrency 1: one task at a time needs nowhere near ten
       # connections, and six always-on workers at ten each pass
-      # max_connections. See D-27 for the whole budget.
+      # max_connections. Whole budget: docs/ARCHITECTURE/05-infrastructure/
+      # 05-celery-queue-workers.md#pool-sizes
       - DB_POOL_SIZE=2
       - DB_MAX_OVERFLOW=2
       - SOLVER_QUEUE=solve_glpk
@@ -502,7 +505,8 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       # concurrency 1: one task at a time needs nowhere near ten
       # connections, and six always-on workers at ten each pass
-      # max_connections. See D-27 for the whole budget.
+      # max_connections. Whole budget: docs/ARCHITECTURE/05-infrastructure/
+      # 05-celery-queue-workers.md#pool-sizes
       - DB_POOL_SIZE=2
       - DB_MAX_OVERFLOW=2
     env_file:
