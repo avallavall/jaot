@@ -41,6 +41,49 @@ def content_hash(model_json: dict[str, Any] | None) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def draft_is_untouched(project: ModelProject) -> bool:
+    """Is the draft still exactly what the project was seeded with?
+
+    A generator-backed fork holds a model rendered once, at fork time, and the
+    solve path re-renders from the card. When the card is corrected the two stop
+    agreeing: the studio shows one model and the API solves another, for the
+    same project id, with no warning on either side.
+
+    While this returns True the draft is a cache of the card and may be
+    refreshed. Once it returns False the user has edited the model by hand, and
+    their version is what every path must use — the draft PUT has never refused
+    an edit to a generator-backed project, so those edits exist and were being
+    thrown away by the solve path.
+
+    A project seeded before ``seed_content_hash`` existed has NULL there and so
+    reads as edited. That is deliberate: we cannot tell whether it was edited,
+    and keeping a model the user may have written beats overwriting it.
+    """
+    return (
+        project.seed_content_hash is not None
+        and project.draft_content_hash == project.seed_content_hash
+    )
+
+
+def refresh_seeded_draft(db: Session, project: ModelProject, model_json: dict[str, Any]) -> bool:
+    """Bring an untouched generator-backed draft back in step with its card.
+
+    Returns True when the draft moved. Does nothing when the user has edited it.
+    """
+    if not draft_is_untouched(project):
+        return False
+    fresh = content_hash(model_json)
+    if fresh == project.draft_content_hash:
+        return False
+    project.draft_model_json = model_json
+    project.draft_content_hash = fresh
+    project.seed_content_hash = fresh
+    project.draft_updated_at = utcnow()
+    project.draft_lock_version = (project.draft_lock_version or 0) + 1
+    db.flush()
+    return True
+
+
 # --------------------------------------------------------------------------- #
 # Create
 # --------------------------------------------------------------------------- #
@@ -100,6 +143,7 @@ def create_seeded(
         draft_canvas_json=canvas_json,
         draft_dsl_source=dsl_source,
         draft_content_hash=content_hash(problem_json),
+        seed_content_hash=content_hash(problem_json),
         draft_updated_at=now,
     )
     db.add(project)

@@ -49,6 +49,7 @@ from app.schemas.model import (
 from app.schemas.optimization import (
     OptimizationProblem,
 )
+from app.services import model_project_service
 from app.services.template_resolver import listing_to_template_dict
 from app.shared.constants.execution_provenance import ORIGIN_MARKETPLACE
 from app.shared.core.http_errors import CodedHTTPException
@@ -99,7 +100,15 @@ def _resolve_generator_template(db: Session, project: ModelProject) -> dict[str,
     A fork (seeded from-marketplace) parametrizes through its SOURCE listing's
     generator facet; a project whose own listing carries a generator (officials)
     uses that. A plain project returns None and executes its draft content.
+
+    A project whose draft the user has edited by hand also returns None. The
+    draft PUT has never refused such an edit, and this path used to re-render
+    from the card regardless, so the model somebody wrote in the studio was
+    silently discarded the moment they solved through the API.
     """
+    if not model_project_service.draft_is_untouched(project) and project.draft_model_json:
+        return None
+
     listing_id = (
         project.source_ref
         if project.source_type == "marketplace" and project.source_ref
@@ -138,7 +147,14 @@ def preview_model(
             ),
         )
 
-    return render_or_422(template_engine, template, body.input_data)
+    problem = render_or_422(template_engine, template, body.input_data)
+    # Keep the stored draft in step with the card. The studio reads that draft
+    # and posts it to /solve/async, so a fork made before the card was corrected
+    # showed one model and solved another through this API. Only an untouched
+    # draft is refreshed; an edited one is the user's and is never overwritten.
+    if model_project_service.refresh_seeded_draft(db, project, problem.model_dump(mode="json")):
+        db.commit()
+    return problem
 
 
 @router.post(
@@ -189,6 +205,7 @@ def execute_model(
     if template is not None:
         # Render the problem first — auto-routing classification needs it.
         problem = render_or_422(template_engine, template, body.input_data)
+        model_project_service.refresh_seeded_draft(db, project, problem.model_dump(mode="json"))
     else:
         if body.input_data:
             raise HTTPException(

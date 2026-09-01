@@ -83,6 +83,13 @@ class ModelProject(Base):
     draft_canvas_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     draft_dsl_source: Mapped[str | None] = mapped_column(Text, nullable=True)
     draft_content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: The draft's hash at the moment the project was seeded. While it still
+    #: matches ``draft_content_hash`` nobody has edited the model by hand, so a
+    #: generator-backed project can safely be re-rendered from its card. Once
+    #: they differ the user's own model wins on every path. NULL means the
+    #: project predates this column, so its draft is treated as edited and left
+    #: alone — the one answer that cannot destroy work.
+    seed_content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     draft_updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
