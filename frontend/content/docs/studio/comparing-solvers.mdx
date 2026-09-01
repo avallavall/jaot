@@ -77,13 +77,16 @@ Under the table, the comparison says whether the solvers that finished actually 
 
 ### The charts
 
-Three charts are drawn under the table, and only when they add something.
+Four charts are drawn under the table, and only when they add something.
 
 - **How much each solver had left to close** — the span from each solver's bound to its answer. A short bar means the solver had nearly proved its answer.
 - **Total time**, on a logarithmic scale — a comparison routinely spans two orders of magnitude, and a linear axis presses every fast solver flat against zero. Each bar carries its number in writing, because on a log scale the length is not proportional.
 - **Searching against building the model** — drawn only when at least one solver spent a real share of its time building. Otherwise it would repeat the time chart.
+- **How each solver closed the gap** — one line per solver on one clock, showing what was still left between the answer it held and the bound it had proved. A line that falls steeply found a good answer early; a line that runs flat spent its time proving one it already had; a line that reaches the bottom closed the gap completely. Two solvers can report the same answer in the same total time and get there completely differently, and this is the only place that shows it.
 
 A solver that ran but does not appear in a chart is named underneath it. A missing bar otherwise reads as "I did not ask for that solver".
+
+**Only SCIP and CBC report while they search.** The gap chart needs a running commentary with a clock attached, and that is not something every solver publishes: GLPK prints its progress without any timing, and HiGHS says nothing at all until it finishes. Both are named under the chart rather than left out of it. This is also why the chart plots the gap and not the objective: the gap is a fraction, it runs from 100% down to a few ten-thousandths of a percent on a real model, and a logarithmic axis shows every decade. Objective values cannot be scaled that way — on a knapsack the opening bound is routinely twice the answer, and an axis wide enough for both flattens the entire search onto one line.
 
 ## The solver matrix
 
@@ -97,6 +100,9 @@ It needs a [JModel source](/docs/studio/jmodel-dsl) and [datasets](/docs/studio/
 - **Each cell is shaded against the best of its own row**, in four steps, and only for the metrics that have a direction. There is no "better" for an objective, a node count or an iteration count, so those are left unshaded.
 - **Clicking a row opens the full comparison for that dataset**, agreement block and charts included. Each row is a comparison in its own right.
 - Below the grid: which solver came first most often, and which dataset cost the most.
+- **Which solver to pick by default** — a performance profile under the grid, once there are five datasets or more. For every dataset it divides each solver's time by the best time on that same dataset, then plots the share of datasets each solver finished within a given factor of the winner. The curve at 1x is how often that solver was outright fastest; where a curve flattens is the share of datasets it proved at all.
+
+**The profile counts only a proven answer.** A run that hit the time limit holding a solution did not solve that dataset — it ran out of clock — so it never enters a ratio. Counting it would put the solver that gives up earliest at the top of the chart. A dataset no solver proved is dropped from every solver's denominator, because it separates nobody. And nothing is drawn below five datasets: on four, one dataset changing hands moves a curve a quarter of the chart, which reads as a difference between solvers when it is a difference of one run.
 
 **The launch is instant whatever the size of the model.** Each row is compiled by its own worker rather than inside the request. On a model of 22,500 variables, launching three datasets against four solvers takes a little over two seconds.
 

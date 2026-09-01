@@ -74,6 +74,17 @@ the check counted a list that stopped being a count of routes. The route surface
 pinned by a test that asks the app what it publishes, which is the question that check was
 standing in for.
 
+The comparer now answers the two questions its table could not. Inside one comparison, a
+chart shows how each solver closed its gap second by second: a line that falls steeply
+found a good answer early, a line that runs flat spent its time proving one it already had.
+Across a matrix of datasets, a performance profile answers which solver to pick by default
+— it divides every solver's time by the best time on the same dataset and plots how often
+each one lands within a given factor of the winner. Both are drawn only from the solvers
+and the datasets that can support them: a solver that reports nothing while it searches is
+named rather than left out, and the profile refuses to draw at all under five datasets,
+where one dataset changing hands would move a curve far enough to read as a difference
+between solvers.
+
 ## Next
 
 Nothing queued right now — the last item here (the solve analytics screen reading
