@@ -11,15 +11,29 @@ to two names each: `scheduling`/`employee_scheduling`, `routing`/`vehicle_routin
 and `blending`/`fertilizer`. 31 generators are reached by a template today; the
 rest are reachable by name through the API.
 
-## A template describes its input three times
-
-Only one of the three is executed, which is why they drift.
+## A template describes its input twice, and the third is derived
 
 | Field | Who reads it | What breaks when it is wrong |
 |---|---|---|
 | `example_input` | the generator, in every backend test | nothing — this is the one that is exercised |
 | `input_fields` | the studio, which renders it as a form | the form drops or blocks the card's own example |
-| `input_schema` | the API docs and clients | a client sends what the docs say and the model rejects it |
+| `input_schema` | the API docs and clients | **derived, so it cannot drift** |
+
+`input_schema` used to be a third hand-written copy, and it drifted: the seeder
+always stored the schema derived from `input_fields` while the template route
+served the copy written in the YAML. They disagreed on 10 of 102 cards about
+which fields are required, so `GET /solve/templates/{id}` called `max_risk` and
+`discount_rate` optional while `GET /models/catalog/{id}/schema` and the studio
+form called them required. `yaml_template_to_dict` now overwrites it with
+`build_input_schema(tmpl)` on every path. The YAML block is still required by
+`TemplateDefinition`, but nothing serves it.
+
+**A field's `default` is live.** `buildEmptyValues` in `DynamicFormRenderer.tsx`
+reads `field.default` for top-level scalars, the way `makeEmptyRow` has always
+read it for row columns. It did not, so all 35 declared defaults were inert: 25
+sat on required fields and made the form refuse to submit over a number the card
+had already supplied, and the rest were never sent, so the generator's own
+hardcoded default ran in place of the advertised one.
 
 `tests/test_template_form_contract.py` holds them together. Its headline test
 rebuilds the model from exactly what the studio form would submit and requires
@@ -112,7 +126,7 @@ A field name in a param refers to a key in the card's own data, so renaming a
 key in `example_input` means changing the param too. The model-quality gate
 catches that: the renamed number stops reaching the model.
 
-## Two lessons the generators keep re-learning
+## The lessons the generators keep re-learning
 
 **Sanitize both sides of a lookup.** Variable names go through
 `sanitize_name()`, which lowercases and replaces punctuation, while the lookup
@@ -128,8 +142,39 @@ number is absent, say so and name the row.
 
 **Names must be distinct after sanitizing.** Two rows called "IC-201" and
 "IC 201" both become `ic_201`, and their variables become one variable doing two
-jobs. `rail_timetabling` and `round_robin` reject that; a new generator should
-too.
+jobs. Call `self.reject_name_collisions(sanitized, originals, label)` from
+`BaseGenerator` on every entity list a generator turns into variable names.
+Eleven generators do. Without it, four cards merged the two rows and still
+reported optimal (`pick_route_optimization` went from 49 variables to 36 and
+answered 77 where the truth is 100) and 75 died on a pydantic message that named
+neither the field nor the two names that clashed.
+
+**A guard that reads "did ANY row carry it" is not a guard.** Knapsack checked
+`not any(...)`, so it only rejected an input where NO row had a value. The one
+row a user forgot a column on still fell through to a default of 1.0.
+
+**Read the shared helpers instead of writing a fourth copy.**
+`BaseGenerator.first_number(row, keys)` returns the first key present or `None` —
+returning `None` rather than a default is the point, because `or 0.0` at the call
+site is what turned an unrecognised demand key into "buy nothing, optimal".
+`safe_float` rejects NaN and infinity, and `TemplateEngine.render` now refuses
+either anywhere in the input, naming the field: both are valid JSON literals and
+survived all 65 bare `float()` casts.
+
+**Size the model before building it.** `rail_timetabling`, `windowed_tasking`
+and `scheduling` cap at 40,000 start variables, counted from the arithmetic
+before any `Variable` is constructed. Checking after the loop meant an oversized
+card paid the whole build first — 15.9 s for 39,604 variables, inside the
+request handler, only to accept them.
+
+**An objective all of whose coefficients are equal is only wrong when the
+constraints pin the total.** "Minimize how many bins are opened" is a real
+objective and nothing fixes that count. Three cards optimised a total their own
+rows already fixed, so every plan tied and one was picked arbitrarily; each now
+carries the per-row weight that separates one plan from another (an evaporation
+loss and a tariff per irrigation slot, a curtailment cost per generator, a value
+of water per period). `FLAT_OBJECTIVE_IS_CORRECT` holds the ones that are
+legitimately flat, each with a written reason.
 
 ## The gates
 
@@ -140,5 +185,46 @@ too.
   whole example.
 - `tests/test_template_translations.py` — every card has text in all five
   locales, and `en.json` matches the YAML word for word.
+- `tests/test_generator_params_are_read.py` — every key a card sets in
+  `generator_params` is one its generator actually reads. The check parses the
+  generator's source for the literal keys it takes off `params`, so it costs
+  nothing at runtime. A free-form dict swallows a misspelling in silence:
+  misspelling one key changed the model for 23 of 43 keys, including `mode`,
+  where losing it reverts `serve_all` to `select` and the plan stops having to
+  serve anything.
+- `tests/contracts/test_fork_answers_once.py` — a fork gives one model whichever
+  path asks for it. See [the fork rule](#a-fork-is-a-cache-until-somebody-edits-it).
 
 See [TESTING.md](../../TESTING.md) for what each one caught.
+
+## A fork is a cache until somebody edits it
+
+A project seeded from a marketplace card stores the model rendered once, at fork
+time, while `/preview` and `/execute` re-render from the source card. Those two
+answers stop agreeing the moment the card is corrected — and 17 cards carry
+`generator_params`, so every project forked from one of them before 3.8.0 was in
+that state. The studio reads the stored draft and posts it to `/solve/async`, so
+the same project id showed one model and solved another, with no warning on
+either side.
+
+`PUT /projects/{id}/draft` has never refused an edit to a generator-backed
+project, and the solve path re-rendered regardless, so a model somebody wrote by
+hand in the studio was discarded the moment they solved it.
+
+`ModelProject.seed_content_hash` records what the draft looked like when the
+project was seeded. Three states, one answer each:
+
+| State | Meaning | What happens |
+|---|---|---|
+| `seed_content_hash == draft_content_hash` | nobody edited it | the draft is a cache of the card; rendering refreshes it |
+| they differ | the user wrote that model | their model wins on every path and is never overwritten |
+| `seed_content_hash IS NULL` | seeded before the column existed | reads as edited, so the draft is left exactly as it is |
+
+The NULL case is deliberate. We cannot tell whether somebody authored that
+model, and keeping a model the user may have written beats overwriting it to
+match a card. Migration `20260901_project_seed_hash` therefore ships **no
+backfill**.
+
+Use `model_project_service.draft_is_untouched(project)` to ask, and
+`refresh_seeded_draft(db, project, model_json)` to refresh — it is a no-op on an
+edited draft.
