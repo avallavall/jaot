@@ -76,6 +76,82 @@ _LP_ITERATIONS_RE = re.compile(r"-\s+(?P<iterations>\d+)\s+iterations")
 #: CBC's banner: "Welcome to the CBC MILP Solver \n Version: 2.10.12 \n Build Date: ..."
 _VERSION_RE = re.compile(r"Version:\s*(?P<version>[\w.]+)")
 
+#: The search trace CBC prints while it works:
+#:   "Cbc0010I After 1000 nodes, 25 on tree, 483.55 best solution, best possible
+#:    470.12 (3.42 seconds)"
+#: It carries an incumbent, a bound and a wall clock, which is everything a
+#: convergence chart needs. Until now the line was read for its counters only and
+#: the rest of it went out with stdout.
+_PROGRESS_RE = re.compile(
+    r"After\s+(?P<nodes>\d+)\s+nodes,\s+\d+\s+on\s+tree,\s+"
+    r"(?P<best>[-+0-9.eE]+)\s+best\s+solution,\s+best\s+possible\s+"
+    r"(?P<bound>[-+0-9.eE]+)\s+\((?P<seconds>[\d.]+)\s+seconds\)"
+)
+
+#: CBC writes "no incumbent yet" as its own idea of infinity, and which magnitude
+#: it picks depends on the build. Anything this large is a placeholder, never an
+#: objective: a chart that plotted 1e50 would flatten every real point onto the
+#: axis.
+_CBC_INFINITY = 1e30
+
+#: The same ceiling the SCIP handler uses. A long search prints thousands of
+#: these lines and a chart cannot show more points than it has pixels.
+_MAX_PROGRESS_POINTS = 200
+
+
+def _downsample(points: list[ProgressPoint]) -> list[ProgressPoint]:
+    """Keep the first, the last, and an even spread between."""
+    if len(points) <= _MAX_PROGRESS_POINTS:
+        return points
+    step = (len(points) - 2) / (_MAX_PROGRESS_POINTS - 2)
+    indices = [0] + [int(1 + i * step) for i in range(_MAX_PROGRESS_POINTS - 2)]
+    indices.append(len(points) - 1)
+    return [points[i] for i in dict.fromkeys(indices)]
+
+
+def _parse_progress(stdout: str, objective_offset: float = 0.0) -> list[ProgressPoint]:
+    """CBC's search trace, as points a convergence chart can draw.
+
+    Only lines where CBC already holds an incumbent become points. Before the
+    first solution there is a bound and nothing to compare it against, and
+    ``ProgressPoint`` has no shape for a bound on its own.
+
+    The objective offset is added back here for the same reason it is added back
+    to the answer and to the bound: CBC drops an objective constant from the LP
+    file without saying so, and a trace converging on a different number than the
+    result printed above it would be read as a bug in the chart.
+    """
+    points: list[ProgressPoint] = []
+    for line in stdout.splitlines():
+        match = _PROGRESS_RE.search(line)
+        if match is None:
+            continue
+        best = parse_float(match.group("best"))
+        bound = parse_float(match.group("bound"))
+        seconds = parse_float(match.group("seconds"))
+        if best is None or seconds is None or abs(best) >= _CBC_INFINITY:
+            continue
+        best += objective_offset
+        if bound is None or abs(bound) >= _CBC_INFINITY:
+            bound = None
+        else:
+            bound += objective_offset
+        gap = None
+        if bound is not None and best != 0:
+            gap = abs(best - bound) / abs(best)
+        points.append(
+            ProgressPoint(
+                iteration=len(points) + 1,
+                node=int(match.group("nodes")),
+                objective=best,
+                primal_bound=best,
+                dual_bound=bound,
+                gap=gap,
+                elapsed_seconds=round(seconds, 3),
+            )
+        )
+    return _downsample(points)
+
 
 class CBCAdapter(CachedVersion):
     """CBC solver adapter implementing the SolverAdapter Protocol."""
@@ -249,6 +325,15 @@ class CBCAdapter(CachedVersion):
             iterations=counters.get("iterations"),
             nodes=counters.get("nodes"),
         )
+        # CBC's own search trace, kept so a comparison can draw how it closed the
+        # gap rather than only where it ended up. Empty for a pure LP, which
+        # prints no branch-and-bound lines at all, and empty for a run that never
+        # found an incumbent. `supports_progress` stays False on purpose: that
+        # flag means the solve STREAMS while it runs, and CBC says all of this
+        # afterwards, in one go.
+        progress = _parse_progress(run.stdout, objective_offset)
+        if progress:
+            result.progress_history = progress
         if status is SolverStatus.ERROR:
             result.error_message = f"CBC did not finish: {headline or 'no verdict reported'}"
             return result

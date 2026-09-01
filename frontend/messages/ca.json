@@ -5020,7 +5020,12 @@
       "boundOmitted": {
         "noAnswer": "{solver}: no hi surt, no va donar cap resposta.",
         "noBound": "{solver}: no hi surt, va donar una resposta però cap fita amb què mesurar-la."
-      }
+      },
+      "convergenceTitle": "Com va tancar el buit cada solver",
+      "convergenceLegend": "La línia contínua és la millor resposta que tenia el solver en aquell moment; la línia discontínua del mateix color és la cota que havia demostrat. On es troben, la cerca s'ha acabat. Dos solvers poden donar la mateixa resposta en el mateix temps total i arribar-hi de maneres molt diferents.",
+      "convergenceXAxis": "Segons des de l'inici de la resolució",
+      "convergenceBoundOf": "Cota de {solver}",
+      "convergenceSilent": "No es dibuixen, perquè no informen de res aprofitable mentre cerquen: {solvers}."
     },
     "export": {
       "csv": "Baixa CSV",

@@ -5836,6 +5836,8 @@ export interface components {
             nodes?: number | null;
             /** Objective Value */
             objective_value?: number | null;
+            /** Progress History */
+            progress_history?: components["schemas"]["ProgressPoint"][] | null;
             /** Solver Name */
             solver_name: string;
             /** Solver Status */

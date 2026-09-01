@@ -369,6 +369,113 @@ TIME LIMIT EXCEEDED; SEARCH TERMINATED
 """
 
 
+# --------------------------------------------------------------------------- #
+# CBC's search trace
+#
+# Verbatim from `cbc -log 2` on a 45-item knapsack this project generated, run
+# inside the comparison worker image on 2026-09-01. Two things in it decide the
+# parser and neither is documented anywhere:
+#
+#   - "no incumbent yet" is printed as CBC's own infinity, signed to match the
+#     objective sense: -1e+50 under maximization;
+#   - CBC restarts its search and starts the node count again from zero, so the
+#     raw log announces "no incumbent" AFTER it has already reported one.
+# --------------------------------------------------------------------------- #
+
+CBC_TRACE = """\
+Cbc0010I After 0 nodes, 1 on tree, -1e+50 best solution, best possible 130552.63 (0.00 seconds)
+Cbc0010I After 50 nodes, 20 on tree, 130442 best solution, best possible 130552.63 (0.04 seconds)
+Cbc0010I After 100 nodes, 18 on tree, 130442 best solution, best possible 130520.10 (0.09 seconds)
+Cbc0010I After 150 nodes, 21 on tree, 130480 best solution, best possible 130500.00 (0.15 seconds)
+Cbc0010I After 0 nodes, 1 on tree, -1e+50 best solution, best possible 130500.00 (0.16 seconds)
+Cbc0010I After 50 nodes, 10 on tree, 130485 best solution, best possible 130490.00 (0.22 seconds)
+Cbc0001I Search completed - best objective 130485, took 812 iterations and 200 nodes
+"""
+
+
+def test_cbc_trace_becomes_points_a_convergence_chart_can_draw() -> None:
+    points = cbc_mod._parse_progress(CBC_TRACE)
+
+    assert [p.objective for p in points] == [130442.0, 130442.0, 130480.0, 130485.0]
+    assert [p.elapsed_seconds for p in points] == [0.04, 0.09, 0.15, 0.22]
+    assert [p.dual_bound for p in points] == [130552.63, 130520.1, 130500.0, 130490.0]
+    # iteration is the snapshot number, the same meaning the SCIP handler gives it
+    assert [p.iteration for p in points] == [1, 2, 3, 4]
+    assert [p.node for p in points] == [50, 100, 150, 50]
+
+
+# CONTRACT-TEST: CBC prints its own infinity where an objective goes, signed to
+# match the sense, and it prints it again after a restart when it already holds
+# an answer. Drawn as a number, -1e+50 flattens every real point onto the axis;
+# drawn as a real incumbent, the primal line falls off a cliff mid-search.
+def test_cbc_no_incumbent_placeholder_never_becomes_a_point() -> None:
+    points = cbc_mod._parse_progress(CBC_TRACE)
+
+    assert all(abs(p.objective) < 1e30 for p in points)
+    assert len(points) == 4, "the two -1e+50 lines must not be points"
+
+
+# CONTRACT-TEST: filtering the placeholders is what makes the incumbent series
+# monotone. Without it a restart reads as the solver losing its answer.
+def test_cbc_incumbent_never_goes_backwards_across_a_restart() -> None:
+    points = cbc_mod._parse_progress(CBC_TRACE)
+    objectives = [p.objective for p in points]
+
+    assert objectives == sorted(objectives), f"incumbent went backwards: {objectives}"
+
+
+def test_cbc_trace_carries_the_objective_offset_the_lp_file_dropped() -> None:
+    """CBC drops an objective constant without a word, so it is added back here.
+
+    A trace converging on a different number than the result printed above it
+    would be read as a broken chart, not as a solver quirk.
+    """
+    points = cbc_mod._parse_progress(CBC_TRACE, objective_offset=1000.0)
+
+    assert [p.objective for p in points] == [131442.0, 131442.0, 131480.0, 131485.0]
+    assert [p.dual_bound for p in points] == [131552.63, 131520.1, 131500.0, 131490.0]
+
+
+def test_cbc_gap_is_computed_from_the_two_numbers_on_the_line() -> None:
+    points = cbc_mod._parse_progress(CBC_TRACE)
+
+    last = points[-1]
+    assert last.gap == pytest.approx(abs(130485.0 - 130490.0) / 130485.0)
+
+
+def test_cbc_bound_of_infinity_leaves_the_point_without_one() -> None:
+    trace = (
+        "Cbc0010I After 10 nodes, 2 on tree, 42 best solution, best possible 1e+50 (0.50 seconds)\n"
+    )
+    points = cbc_mod._parse_progress(trace)
+
+    assert len(points) == 1
+    assert points[0].objective == 42.0
+    assert points[0].dual_bound is None
+    assert points[0].gap is None
+
+
+def test_cbc_pure_lp_prints_no_trace_and_that_is_not_an_error() -> None:
+    lp_output = "Optimal objective 12 - 2 iterations time 0.002, Presolve 0.00\n"
+
+    assert cbc_mod._parse_progress(lp_output) == []
+
+
+# CONTRACT-TEST: a long search prints thousands of these lines. A chart cannot
+# draw more points than it has pixels, and the payload travels to the browser.
+def test_cbc_trace_is_downsampled_but_keeps_its_ends() -> None:
+    lines = [
+        f"Cbc0010I After {n} nodes, 1 on tree, {1000 + n} best solution, "
+        f"best possible {2000 + n} ({n / 100:.2f} seconds)"
+        for n in range(1, 1501)
+    ]
+    points = cbc_mod._parse_progress("\n".join(lines))
+
+    assert len(points) <= cbc_mod._MAX_PROGRESS_POINTS
+    assert points[0].objective == 1001.0
+    assert points[-1].objective == 2500.0
+
+
 def test_glpk_column_names_come_out_in_order_including_the_wrapped_ones() -> None:
     """A name over twelve characters wraps, and the numbers below it are not a name."""
     names = glpk_mod._parse_column_names(GLPK_REPORT_LP)

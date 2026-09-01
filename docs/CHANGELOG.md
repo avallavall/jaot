@@ -33,6 +33,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ## [Unreleased]
 
 ### Added
+- **A solver comparison shows how each solver closed the gap, not only where it ended up.** A line per solver on one clock: the answer it held at that second, and the bound it had proved, drawn dashed in the same colour. Where the two meet the search was over. Two solvers can report the same answer in the same total time and get there very differently — one had it in half a second and spent the rest proving it, the other found it at the buzzer. SCIP and CBC report while they search, so they are drawn; GLPK reports without a clock and HiGHS reports nothing, so they are named under the chart instead of quietly missing from it.
 - **The solver matrix says which solver to pick by default.** The grid tells you who won each dataset; a performance profile below it divides every solver's time by the best time on the same dataset and plots how often each one lands within a given factor of the winner. The curve at 1x is how often that solver was fastest, and where it flattens is the share of datasets it proved at all. Only a proven answer counts, so a run that hit the time limit holding a solution does not appear — otherwise the solver that gives up first would top the chart. It is drawn only from five datasets up: below that, one dataset changing hands moves a curve far enough to read as a difference between solvers.
 
 ### Fixed

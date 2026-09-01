@@ -1264,6 +1264,17 @@ export type UnsupportedReason =
   | "not_available";
 
 /** One row of the table: what this solver did with the shared problem. */
+/** One snapshot of a solver's search, as it reported it. */
+export interface ProgressTracePoint {
+  iteration: number;
+  node?: number | null;
+  objective: number;
+  primal_bound: number;
+  dual_bound?: number | null;
+  gap?: number | null;
+  elapsed_seconds: number;
+}
+
 export interface ComparisonSolverResult {
   solver_name: string;
   execution_id: string | null;
@@ -1282,6 +1293,10 @@ export interface ComparisonSolverResult {
   gap: number | null;
   iterations: number | null;
   nodes: number | null;
+  /** How this solver closed the gap as it went. Present only on a single
+   * comparison, never on a matrix cell: sixty traces to draw no chart. Null for
+   * a solver that reports nothing while it searches. */
+  progress_history?: ProgressTracePoint[] | null;
   /** Wall time around the whole call, building the solver's model included. */
   wall_time_ms: number | null;
   /** The adapter's own measure of the search alone. */

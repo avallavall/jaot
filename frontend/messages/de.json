@@ -5020,7 +5020,12 @@
       "boundOmitted": {
         "noAnswer": "{solver}: nicht dargestellt, es hat keine Antwort gemeldet.",
         "noBound": "{solver}: nicht dargestellt, es hat eine Antwort gemeldet, aber keine Schranke, an der sie zu messen wäre."
-      }
+      },
+      "convergenceTitle": "Wie jeder Solver die Lücke geschlossen hat",
+      "convergenceLegend": "Die durchgezogene Linie ist die beste Antwort, die der Solver in diesem Moment hatte; die gestrichelte Linie derselben Farbe ist die Schranke, die er bewiesen hatte. Wo sich beide treffen, ist die Suche vorbei. Zwei Solver können dieselbe Antwort in derselben Gesamtzeit liefern und sehr unterschiedlich dorthin gelangen.",
+      "convergenceXAxis": "Sekunden seit Beginn der Lösung",
+      "convergenceBoundOf": "Schranke von {solver}",
+      "convergenceSilent": "Nicht gezeichnet, weil sie während der Suche nichts Verwertbares melden: {solvers}."
     },
     "export": {
       "csv": "CSV herunterladen",

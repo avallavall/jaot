@@ -478,7 +478,7 @@ def _detail(db: Session, comparison: SolverComparison) -> ComparisonDetail:
     by_solver = {child.solver_name: child for child in children}
 
     results = [
-        solver_row(solver_name, by_solver.get(solver_name))
+        solver_row(solver_name, by_solver.get(solver_name), with_progress=True)
         for solver_name in (comparison.solver_names or [])
     ]
 

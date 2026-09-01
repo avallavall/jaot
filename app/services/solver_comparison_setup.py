@@ -211,13 +211,25 @@ def insert_comparison_child(
     return execution
 
 
-def solver_row(solver_name: str, execution: ModelExecution | None) -> ComparisonSolverResult:
-    """One table row. A solver with no execution row is still shown, as pending."""
+def solver_row(
+    solver_name: str,
+    execution: ModelExecution | None,
+    *,
+    with_progress: bool = False,
+) -> ComparisonSolverResult:
+    """One table row. A solver with no execution row is still shown, as pending.
+
+    ``with_progress`` carries the solver's search trace, which only the detail of
+    a single comparison draws. A matrix asks for sixty rows at a time and shows
+    no chart, so it never pays for them.
+    """
     if execution is None:
         return ComparisonSolverResult(solver_name=solver_name, status=ExecutionStatus.PENDING.value)
 
     result_data: dict[str, Any] = execution.result_data or {}
+    progress = result_data.get("progress_history") if with_progress else None
     return ComparisonSolverResult(
+        progress_history=progress or None,
         solver_name=solver_name,
         execution_id=execution.id,
         solver_version=result_data.get("solver_version"),

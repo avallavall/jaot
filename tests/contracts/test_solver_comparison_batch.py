@@ -708,3 +708,55 @@ def _get(client: TestClient, batch_id: str) -> dict:
     response = client.get(f"{_URL}/{batch_id}")
     assert response.status_code == 200, response.text
     return response.json()
+
+
+# CONTRACT-TEST: the search trace belongs to the detail of ONE comparison, which
+# is the only place a convergence chart is drawn. A matrix of twelve datasets by
+# five solvers asks for sixty cells at once and draws no chart, so a trace on
+# every cell is sixty payloads nobody reads — the same shape as the problem
+# snapshot D-32 removed, and the reason `solver_row` takes `with_progress`.
+def test_the_matrix_does_not_carry_a_search_trace_on_every_cell(
+    authenticated_client: TestClient,
+    db_session: Session,
+    captured_dispatch: list[dict],
+    prepare_runs_on_the_test_session,
+) -> None:
+    _project_id, _dataset_ids, launched = _seed_matrix(authenticated_client, db_session)
+    _prepare_rows(db_session, launched["batch_id"])
+
+    # Give every cell a trace, so a leak would be visible rather than absent.
+    for execution in db_session.query(ModelExecution).all():
+        execution.result_data = {
+            **(execution.result_data or {}),
+            "progress_history": [
+                {
+                    "iteration": 1,
+                    "node": 0,
+                    "objective": 5.0,
+                    "primal_bound": 5.0,
+                    "dual_bound": 6.0,
+                    "gap": 0.2,
+                    "elapsed_seconds": 0.5,
+                }
+            ],
+        }
+    db_session.commit()
+
+    matrix = authenticated_client.get(f"{_URL}/{launched['batch_id']}")
+    assert matrix.status_code == 200
+    cells = [cell for row in matrix.json()["rows"] for cell in row["results"]]
+    assert cells, "the matrix returned no cells, so this proves nothing"
+    assert all(cell["progress_history"] is None for cell in cells), (
+        "a matrix cell carried a search trace; only the single-comparison detail draws one"
+    )
+
+    # The same execution, read through the detail of its own comparison, does
+    # carry it — otherwise the assertion above would pass on a field that is
+    # never populated anywhere.
+    comparison_id = matrix.json()["rows"][0]["comparison_id"]
+    detail = authenticated_client.get(f"/api/v2/solvers/compare/{comparison_id}")
+    assert detail.status_code == 200
+    traces = [cell["progress_history"] for cell in detail.json()["results"]]
+    assert any(trace for trace in traces), (
+        "the single comparison did not carry the trace either, so nothing can draw it"
+    )

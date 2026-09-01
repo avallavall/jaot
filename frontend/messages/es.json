@@ -5020,7 +5020,12 @@
       "boundOmitted": {
         "noAnswer": "{solver}: no aparece, no dio ninguna respuesta.",
         "noBound": "{solver}: no aparece, dio una respuesta pero ninguna cota con la que medirla."
-      }
+      },
+      "convergenceTitle": "Cómo cerró el hueco cada solver",
+      "convergenceLegend": "La línea continua es la mejor respuesta que tenía el solver en ese momento; la línea discontinua del mismo color es la cota que había demostrado. Donde se juntan, la búsqueda ha terminado. Dos solvers pueden dar la misma respuesta en el mismo tiempo total y llegar de formas muy distintas.",
+      "convergenceXAxis": "Segundos desde el inicio de la resolución",
+      "convergenceBoundOf": "Cota de {solver}",
+      "convergenceSilent": "No se dibujan, porque no informan de nada aprovechable mientras buscan: {solvers}."
     },
     "export": {
       "csv": "Descargar CSV",

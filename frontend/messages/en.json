@@ -5020,7 +5020,12 @@
       "boundOmitted": {
         "noAnswer": "{solver}: not shown, it reported no answer.",
         "noBound": "{solver}: not shown, it reported an answer but no bound to measure it against."
-      }
+      },
+      "convergenceTitle": "How each solver closed the gap",
+      "convergenceLegend": "The solid line is the best answer the solver held at that moment; the dashed line of the same colour is the bound it had proved. Where the two meet, the search is over. Two solvers can report the same answer in the same total time and get there very differently.",
+      "convergenceXAxis": "Seconds into the solve",
+      "convergenceBoundOf": "{solver} bound",
+      "convergenceSilent": "Not drawn, because they report nothing usable while they search: {solvers}."
     },
     "export": {
       "csv": "Download CSV",

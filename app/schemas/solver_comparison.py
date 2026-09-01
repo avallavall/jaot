@@ -11,7 +11,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.schemas.optimization import OptimizationProblem
+from app.schemas.optimization import OptimizationProblem, ProgressPoint
 
 #: Ceiling on how many solvers one comparison may ask for. Not a fairness rule —
 #: the runs are sequential, so the wait is the sum of the time limits and a
@@ -132,6 +132,12 @@ class ComparisonSolverResult(BaseModel):
     gap: float | None = None
     iterations: int | None = None
     nodes: int | None = None
+
+    #: How this solver closed the gap, as it went. Present only on a single
+    #: comparison, never on a matrix: a grid of twelve datasets by five solvers
+    #: would carry sixty traces to draw one chart, and the grid draws none.
+    #: Empty for a solver that reports nothing while it searches.
+    progress_history: list[ProgressPoint] | None = None
 
     #: Wall time around the whole call, building the solver's model included.
     #: This is the number the table shows, because it is the wait.

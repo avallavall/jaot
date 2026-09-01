@@ -14,6 +14,7 @@ import {
 } from "recharts";
 
 import type { ComparisonDetail } from "@/lib/types";
+import { ConvergenceChart } from "./ConvergenceChart";
 import {
   type BoundBar,
   type BoundOmission,
@@ -68,6 +69,9 @@ export function ComparisonCharts({ comparison }: { comparison: ComparisonDetail 
       ) : null}
       {times.length > 0 ? <TimeChart bars={times} /> : null}
       {splits.length > 0 ? <SplitChart bars={splits} /> : null}
+      {/* Draws itself only when two solvers reported while they searched, which
+          today means SCIP and CBC. It says nothing the three bar charts say. */}
+      <ConvergenceChart results={comparison.results} />
     </div>
   );
 }
