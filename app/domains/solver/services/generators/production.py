@@ -180,6 +180,16 @@ class ProductionGenerator(BaseGenerator):
         variables: list[Variable] = []
         constraints: list[Constraint] = []
 
+        # What the outlet can pass in one period. Bounding a release only by the
+        # reservoir's own volume let the plan hold the water back and then empty
+        # the whole reservoir into the single best-valued period, which no dam
+        # can physically do and no operator would sign off.
+        max_release = float(
+            user_input.get("max_release_per_period", user_input.get("max_release", capacity))
+        )
+        if max_release <= 0:
+            raise ValueError("max_release_per_period has to be positive.")
+
         # Release variables per period
         for t in range(1, num_periods + 1):
             variables.append(
@@ -187,7 +197,7 @@ class ProductionGenerator(BaseGenerator):
                     name=f"release_{t}",
                     type=VariableType.CONTINUOUS,
                     lower_bound=0,
-                    upper_bound=capacity,
+                    upper_bound=max_release,
                 )
             )
             # Volume (state) variable
@@ -240,8 +250,37 @@ class ProductionGenerator(BaseGenerator):
                     )
                 )
 
-        # Maximize total release (useful water)
-        obj_terms = [f"release_{t}" for t in range(1, num_periods + 1)]
+        # What a unit released in this period is worth. Water in a dry month is
+        # worth more than the same water in a wet one, and without that figure
+        # the objective was "maximize total release" against balance rows that
+        # already fix how much can be drained: the total was decided and WHICH
+        # period got the water was an arbitrary pick among ties, on a card whose
+        # answer is the release schedule.
+        values: dict[int, float] = {}
+        for row in user_input.get("release_value", []) or []:
+            if not isinstance(row, dict):
+                continue
+            period = row.get("period")
+            worth = row.get("value_per_unit", row.get("value"))
+            if period is not None and worth is not None:
+                values[int(period)] = float(worth)
+        # Compare the period numbers, not how many rows there are: a row naming
+        # a period outside the horizon keeps the count right and leaves a real
+        # period with no value at all.
+        wanted = set(range(1, num_periods + 1))
+        if values and set(values) != wanted:
+            missing = sorted(wanted - set(values))
+            extra = sorted(set(values) - wanted)
+            raise ValueError(
+                f"release_value covers the wrong periods: missing {missing}, "
+                f"unknown {extra}. Value every period from 1 to {num_periods}, or none: "
+                "a period worth zero is one the plan will never release into."
+            )
+
+        obj_terms = [
+            f"{values[t]}*release_{t}" if values else f"release_{t}"
+            for t in range(1, num_periods + 1)
+        ]
 
         return OptimizationProblem(
             name="periodic_production",

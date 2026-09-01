@@ -55,6 +55,34 @@ class RenewableCurtailmentGenerator(BaseGenerator):
                     forecast = float(forecasts[i]) if i < len(forecasts) else 0.0
                 forecast_map[(g_name, p_name)] = forecast
 
+        self.reject_name_collisions(
+            [self.sanitize_name(g.get("name", "")) for g in generators],
+            [g.get("name") for g in generators],
+            "Generators",
+        )
+
+        # What it costs to spill a unit from this generator: the compensation
+        # its contract owes, or the value of the energy thrown away. Without it
+        # the objective counted megawatt-hours, and since the grid limit already
+        # fixes how many have to be spilled, WHICH generator got curtailed was
+        # an arbitrary pick among ties — on a card whose answer is exactly that.
+        costs: dict[str, float] = {}
+        for gen in generators:
+            g_name = self.sanitize_name(gen.get("name", ""))
+            cost = gen.get("curtailment_cost_per_unit", gen.get("curtailment_cost"))
+            if cost is not None:
+                costs[g_name] = float(cost)
+        if costs and len(costs) != len(generators):
+            missing = [
+                g.get("name")
+                for g in generators
+                if self.sanitize_name(g.get("name", "")) not in costs
+            ]
+            raise ValueError(
+                f"These generators state no curtailment_cost_per_unit: {missing}. Price every "
+                "one or none: a generator that costs nothing to curtail absorbs the whole spill."
+            )
+
         variables: list[Variable] = []
         curtail_terms: list[str] = []
 
@@ -83,7 +111,7 @@ class RenewableCurtailmentGenerator(BaseGenerator):
                         upper_bound=forecast,
                     )
                 )
-                curtail_terms.append(curtail_var)
+                curtail_terms.append(f"{costs[g_name]}*{curtail_var}" if costs else curtail_var)
 
         constraints: list[Constraint] = []
 

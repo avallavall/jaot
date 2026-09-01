@@ -273,6 +273,8 @@ templates:
           type: object
           properties:
             name: {type: string}
+            evaporation_loss: {type: number, default: 0.1}
+            energy_cost_per_unit: {type: number, default: 0.12}
       - name: pump_capacity_per_slot
         label: Pump Capacity per Slot
         type: number
@@ -286,9 +288,9 @@ templates:
         - {name: peppers, water_demand: 50, max_per_slot: 25}
         - {name: herbs, water_demand: 15, max_per_slot: 10}
       slots:
-        - {name: early_morning}
-        - {name: midday}
-        - {name: evening}
+        - {name: early_morning, evaporation_loss: 0.10, energy_cost_per_unit: 0.09}
+        - {name: midday, evaporation_loss: 0.35, energy_cost_per_unit: 0.16}
+        - {name: evening, evaporation_loss: 0.15, energy_cost_per_unit: 0.12}
       pump_capacity_per_slot: 60
     is_featured: false
     estimated_variables: 12

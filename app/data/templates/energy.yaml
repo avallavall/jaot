@@ -170,6 +170,7 @@ templates:
           properties:
             name: {type: string}
             forecast: {type: object, description: "Period name to forecasted MW output"}
+            curtailment_cost_per_unit: {type: number, description: "EUR per MWh spilled from this generator"}
       - name: periods
         label: Time Periods
         type: array
@@ -188,10 +189,13 @@ templates:
     example_input:
       generators:
         - name: solar
+          curtailment_cost_per_unit: 32
           forecast: {morning: 60, midday: 150, afternoon: 100, evening: 20}
         - name: wind1
+          curtailment_cost_per_unit: 48
           forecast: {morning: 80, midday: 50, afternoon: 70, evening: 90}
         - name: wind2
+          curtailment_cost_per_unit: 41
           forecast: {morning: 40, midday: 30, afternoon: 60, evening: 50}
       periods:
         - {name: morning}

@@ -179,40 +179,19 @@ def test_every_file_this_gate_reads_is_in_the_repository() -> None:
     )
 
 
-#: The flat-objective ratchet's whole contents, named here so a fourth entry
-#: fails this test. All three surfaced when the flat-objective gate's
-#: coefficient reader was repaired: it used to scan for "N*" and scored ZERO
-#: coefficients on an objective of bare variable names, so it skipped rather
-#: than failed on 15 of 102 cards. Each of these three optimises a total its own
-#: constraints already pin, so the total is right and the schedule the card
-#: promises is an arbitrary pick among ties. Clearing them means giving each
-#: card a per-row weight it does not carry today — a decision about the card,
-#: not a repair to code, which is why they are debt and not a fix.
-EXPECTED_FLAT_OBJECTIVE_RATCHET = frozenset(
-    {"irrigation_scheduling", "renewable_curtailment", "reservoir_operation"}
-)
+def test_the_ratchet_is_empty() -> None:
+    """The docs say both ratchet sets are empty. They have to stay that way.
 
-
-def test_the_ratchet_holds_only_what_the_docs_name() -> None:
-    """The ratchets hold exactly what docs/TESTING.md says they hold.
-
-    A name can only be added with a repair going the other way, and this test is
-    where that trade gets noticed. Pinning the contents rather than asserting
-    "empty" keeps that true now that three names are legitimately listed.
+    A name can only be added back with a repair going the other way, and this
+    test is where that trade gets noticed.
     """
     from tests.test_template_model_quality import (
         FLAT_OBJECTIVE_RATCHET,
         UNREAD_INPUTS_RATCHET,
     )
 
-    assert not UNREAD_INPUTS_RATCHET, (
-        "docs/TESTING.md states the unread-inputs ratchet is empty. It holds "
-        f"{sorted(UNREAD_INPUTS_RATCHET)}. Either finish the repair or correct the docs."
-    )
-    assert FLAT_OBJECTIVE_RATCHET == EXPECTED_FLAT_OBJECTIVE_RATCHET, (
-        "the flat-objective ratchet changed. It holds "
-        f"{sorted(FLAT_OBJECTIVE_RATCHET)}; the docs and this test name "
-        f"{sorted(EXPECTED_FLAT_OBJECTIVE_RATCHET)}. Removing a name is the point — "
-        "delete it here and in docs/TESTING.md too. Adding one needs a repair "
-        "going the other way."
+    assert not UNREAD_INPUTS_RATCHET and not FLAT_OBJECTIVE_RATCHET, (
+        "docs/TESTING.md states both ratchets are empty. They are not: "
+        f"unread={sorted(UNREAD_INPUTS_RATCHET)}, flat={sorted(FLAT_OBJECTIVE_RATCHET)}. "
+        "Either finish the repair or correct the documentation."
     )

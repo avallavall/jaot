@@ -116,6 +116,12 @@ templates:
         irrigation_demand:
           type: array
           description: Water each period must release for irrigation
+        release_value:
+          type: array
+          description: What a unit released is worth in each period
+        max_release_per_period:
+          type: number
+          description: Most the outlet can pass in one period
       required: [periods, inflows, reservoir_capacity, initial_volume]
     input_fields:
       - name: periods
@@ -156,6 +162,22 @@ templates:
           properties:
             period: {type: integer}
             volume: {type: number}
+      - name: max_release_per_period
+        label: Max Release per Period
+        type: number
+        description: "Most the outlet works can pass in one period (cubic meters)"
+        required: false
+        minimum: 0
+      - name: release_value
+        label: Value of Water Released
+        type: array
+        description: "What a cubic metre released is worth that period (irrigation value plus power price)"
+        required: false
+        items:
+          type: object
+          properties:
+            period: {type: integer}
+            value_per_unit: {type: number}
     example_input:
       periods: 6
       inflows:
@@ -167,6 +189,7 @@ templates:
         - {period: 6, volume: 6000}
       reservoir_capacity: 50000
       initial_volume: 30000
+      max_release_per_period: 15000
       irrigation_demand:
         - {period: 1, volume: 3000}
         - {period: 2, volume: 3500}
@@ -174,6 +197,13 @@ templates:
         - {period: 4, volume: 6000}
         - {period: 5, volume: 5500}
         - {period: 6, volume: 4000}
+      release_value:
+        - {period: 1, value_per_unit: 8}
+        - {period: 2, value_per_unit: 9}
+        - {period: 3, value_per_unit: 12}
+        - {period: 4, value_per_unit: 18}
+        - {period: 5, value_per_unit: 20}
+        - {period: 6, value_per_unit: 14}
     scenario_description: >
       A regional water authority manages a reservoir that serves both irrigation
       and hydroelectric purposes over a six-month dry-season horizon. Inflows

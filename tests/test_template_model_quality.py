@@ -53,33 +53,7 @@ register_default_adapters()
 
 UNREAD_INPUTS_RATCHET: frozenset[str] = frozenset()
 
-# The three below were added when this gate's coefficient reader was repaired.
-# It used to scan for "N*" and therefore scored ZERO coefficients on an
-# objective written as bare variable names, so it skipped instead of failing on
-# 15 of 102 cards — the shape "every coefficient is 1" is precisely what it
-# exists to catch. These three were hidden that whole time. Each one optimises a
-# TOTAL that its own constraints already pin, so the total is decided and the
-# schedule the card promises is picked arbitrarily among ties. Fixing them means
-# giving each card a per-row weight it does not currently carry, which is a
-# modelling decision about the product, not a repair to existing code.
-FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset(
-    {
-        # demand rows are ">= 40" etc. and the objective minimizes total water,
-        # so the optimum total is the sum of demands no matter how the water is
-        # split across early_morning / midday / evening. Every schedule ties.
-        # Slots need a loss or cost per time of day for "scheduling" to mean
-        # anything.
-        "irrigation_scheduling",
-        # alloc + curtail == forecast per generator-period, so total curtailment
-        # is fixed by the grid caps. WHICH generator is curtailed is arbitrary.
-        # Needs a per-generator curtailment cost or priority.
-        "renewable_curtailment",
-        # maximize the sum of releases against balance rows: the total drainable
-        # volume is fixed, and which period gets the water is a tie. Needs a
-        # value per period (irrigation value, or head).
-        "reservoir_operation",
-    }
-)
+FLAT_OBJECTIVE_RATCHET: frozenset[str] = frozenset()
 
 
 #: Cards whose objective genuinely carries one coefficient throughout. This is
