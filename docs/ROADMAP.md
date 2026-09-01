@@ -85,6 +85,12 @@ named rather than left out, and the profile refuses to draw at all under five da
 where one dataset changing hands would move a curve far enough to read as a difference
 between solvers.
 
+A third chart says why one solver was slower. There are only two answers — it explored far
+more of the tree, or each node cost it more — and the count of nodes beside the seconds is
+what tells them apart. Every solver gets its own panel and its own vertical scale, because
+a node in one solver is not a node in another: they presolve differently, add different
+cuts and end up searching a different tree. The clock is the part they share.
+
 ## Next
 
 Nothing queued right now — the last item here (the solve analytics screen reading

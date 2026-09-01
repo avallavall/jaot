@@ -14,7 +14,11 @@ export const LOG_FLOOR_SECONDS = 0.001;
  * with decoration around it. */
 export const MIN_BARS = 2;
 
-function ranRows(comparison: ComparisonDetail): ComparisonSolverResult[] {
+/** The rows that produced numbers, whatever chart is asking. Typed on `results`
+ * alone so a test can hand it rows without building a whole comparison. */
+export function ranRows(comparison: {
+  results: ComparisonSolverResult[];
+}): ComparisonSolverResult[] {
   return comparison.results.filter(
     (row) => row.solver_status !== null && RAN.has(row.solver_status),
   );

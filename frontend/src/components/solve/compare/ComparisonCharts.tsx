@@ -15,6 +15,7 @@ import {
 
 import type { ComparisonDetail } from "@/lib/types";
 import { ConvergenceChart } from "./ConvergenceChart";
+import { WorkChart } from "./WorkChart";
 import {
   type BoundBar,
   type BoundOmission,
@@ -72,6 +73,10 @@ export function ComparisonCharts({ comparison }: { comparison: ComparisonDetail 
       {/* Draws itself only when two solvers reported while they searched, which
           today means SCIP and CBC. It says nothing the three bar charts say. */}
       <ConvergenceChart results={comparison.results} />
+      {/* Last, because it answers the question the time chart raises: the time
+          chart says who was slower, this says whether the tree was bigger or the
+          nodes were dearer. */}
+      <WorkChart results={comparison.results} />
     </div>
   );
 }

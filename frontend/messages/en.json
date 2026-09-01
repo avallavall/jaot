@@ -5025,7 +5025,20 @@
       "convergenceLegend": "The gap is what is left between the answer a solver holds and the bound it has proved. A line falling steeply had a good answer early; a line running flat spent its time proving one it already had. The scale is logarithmic, because a real gap runs from 100% to a few ten-thousandths of a percent.",
       "convergenceXAxis": "Seconds into the solve",
       "convergenceSilent": "Not drawn, because they report nothing usable while they search: {solvers}.",
-      "convergenceFloor": "A line on the bottom of the chart closed its gap completely. A logarithmic axis has no zero, so that moment is drawn on the floor."
+      "convergenceFloor": "A line on the bottom of the chart closed its gap completely. A logarithmic axis has no zero, so that moment is drawn on the floor.",
+      "workTitle": "How much searching each solver did",
+      "workLegend": "Each solver keeps its own vertical scale, because a node in one solver is not a node in another: they presolve differently, add different cuts, and search a different tree. The heights are not there to be compared. The clock is, and every panel shares it.",
+      "workXAxis": "Seconds into the search",
+      "workSummary": "{work} {unit} in {seconds}, {rate} per second",
+      "workEndOnly": "A single dot is a solver that reported only its final count, with no trace of the search.",
+      "workUnit": {
+        "nodes": "nodes",
+        "iterations": "iterations"
+      },
+      "workOmitted": {
+        "noCount": "{solver}: not shown, it reported neither a node nor an iteration count.",
+        "noClock": "{solver}: not shown, it reported the work but no time to measure it against."
+      }
     },
     "export": {
       "csv": "Download CSV",

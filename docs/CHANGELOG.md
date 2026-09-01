@@ -32,7 +32,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+- **A solver comparison shows how much searching each solver did, not only how long it took.** One small panel per solver: the nodes it explored, or the simplex iterations on a model with no tree, against the clock. The time chart says who was slower, and there are only two reasons — the loser explored far more of the tree, or each node cost it more. On a 220-item knapsack GLPK covered thirty-seven times more tree than SCIP, at twenty-eight times the rate; nothing on the page said so before. Every panel keeps its own vertical scale, because a node in one solver is not a node in another; the clock is the part they share, and a solver that reported only its final count gets a single dot rather than a curve.
 
 ---
 

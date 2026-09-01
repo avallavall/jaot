@@ -5025,7 +5025,20 @@
       "convergenceLegend": "L'écart est ce qui reste entre la réponse que détient un solveur et la borne qu'il a prouvée. Une ligne qui plonge a trouvé une bonne réponse tôt ; une ligne plate a passé son temps à prouver celle qu'elle avait déjà. L'échelle est logarithmique, car un écart réel va de 100 % à quelques dix-millièmes de point.",
       "convergenceXAxis": "Secondes depuis le début de la résolution",
       "convergenceSilent": "Non tracés, car ils ne rapportent rien d'exploitable pendant leur recherche : {solvers}.",
-      "convergenceFloor": "Une ligne au bas du graphique a refermé son écart entièrement. Un axe logarithmique n'a pas de zéro, donc ce moment est tracé sur le plancher."
+      "convergenceFloor": "Une ligne au bas du graphique a refermé son écart entièrement. Un axe logarithmique n'a pas de zéro, donc ce moment est tracé sur le plancher.",
+      "workTitle": "Combien chaque solveur a cherché",
+      "workLegend": "Chaque solveur garde sa propre échelle verticale, car un nœud d'un solveur n'est pas un nœud d'un autre : le présolve diffère, les coupes diffèrent et l'arbre parcouru n'est pas le même. Les hauteurs ne sont pas là pour être comparées. L'horloge l'est, et tous les panneaux la partagent.",
+      "workXAxis": "Secondes de recherche",
+      "workSummary": "{work} {unit} en {seconds}, {rate} par seconde",
+      "workEndOnly": "Un point isolé est un solveur qui n'a donné que son décompte final, sans trace de sa recherche.",
+      "workUnit": {
+        "nodes": "nœuds",
+        "iterations": "itérations"
+      },
+      "workOmitted": {
+        "noCount": "{solver} : non tracé, il n'a rapporté ni nœuds ni itérations.",
+        "noClock": "{solver} : non tracé, il a rapporté le travail mais pas le temps pour le mesurer."
+      }
     },
     "export": {
       "csv": "Télécharger le CSV",

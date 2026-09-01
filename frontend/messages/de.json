@@ -5025,7 +5025,20 @@
       "convergenceLegend": "Die Lücke ist das, was zwischen der Antwort eines Solvers und der von ihm bewiesenen Schranke bleibt. Eine steil fallende Linie hatte früh eine gute Antwort; eine flache Linie hat ihre Zeit damit verbracht, eine bereits gefundene zu beweisen. Die Skala ist logarithmisch, weil eine echte Lücke von 100 % bis zu wenigen Zehntausendstel Prozentpunkten reicht.",
       "convergenceXAxis": "Sekunden seit Beginn der Lösung",
       "convergenceSilent": "Nicht gezeichnet, weil sie während der Suche nichts Verwertbares melden: {solvers}.",
-      "convergenceFloor": "Eine Linie am unteren Rand hat ihre Lücke vollständig geschlossen. Eine logarithmische Achse hat keine Null, deshalb wird dieser Moment auf dem Boden gezeichnet."
+      "convergenceFloor": "Eine Linie am unteren Rand hat ihre Lücke vollständig geschlossen. Eine logarithmische Achse hat keine Null, deshalb wird dieser Moment auf dem Boden gezeichnet.",
+      "workTitle": "Wie viel jeder Solver gesucht hat",
+      "workLegend": "Jeder Solver behält seine eigene vertikale Skala, denn ein Knoten des einen Solvers ist kein Knoten des anderen: sie presolven anders, fügen andere Schnitte hinzu und durchsuchen einen anderen Baum. Die Höhen sind nicht zum Vergleichen da. Die Uhr schon, und alle Felder teilen sie.",
+      "workXAxis": "Sekunden der Suche",
+      "workSummary": "{work} {unit} in {seconds}, {rate} pro Sekunde",
+      "workEndOnly": "Ein einzelner Punkt ist ein Solver, der nur seinen Endstand gemeldet hat, ohne Spur der Suche.",
+      "workUnit": {
+        "nodes": "Knoten",
+        "iterations": "Iterationen"
+      },
+      "workOmitted": {
+        "noCount": "{solver}: nicht gezeichnet, er hat weder Knoten noch Iterationen gemeldet.",
+        "noClock": "{solver}: nicht gezeichnet, er hat die Arbeit gemeldet, aber keine Zeit zum Messen."
+      }
     },
     "export": {
       "csv": "CSV herunterladen",

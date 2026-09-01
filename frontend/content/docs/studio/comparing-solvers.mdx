@@ -77,14 +77,17 @@ Under the table, the comparison says whether the solvers that finished actually 
 
 ### The charts
 
-Four charts are drawn under the table, and only when they add something.
+Five charts are drawn under the table, and only when they add something.
 
 - **How much each solver had left to close** — the span from each solver's bound to its answer. A short bar means the solver had nearly proved its answer.
 - **Total time**, on a logarithmic scale — a comparison routinely spans two orders of magnitude, and a linear axis presses every fast solver flat against zero. Each bar carries its number in writing, because on a log scale the length is not proportional.
 - **Searching against building the model** — drawn only when at least one solver spent a real share of its time building. Otherwise it would repeat the time chart.
 - **How each solver closed the gap** — one line per solver on one clock, showing what was still left between the answer it held and the bound it had proved. A line that falls steeply found a good answer early; a line that runs flat spent its time proving one it already had; a line that reaches the bottom closed the gap completely. Two solvers can report the same answer in the same total time and get there completely differently, and this is the only place that shows it.
+- **How much searching each solver did** — one small panel per solver: the nodes it explored, or the simplex iterations when the model has no tree, against the clock. The time chart says who was slower; this says why. A solver can lose because it explored far more of the tree, or because each node cost it more, and the count beside the seconds is what tells those two apart.
 
 A solver that ran but does not appear in a chart is named underneath it. A missing bar otherwise reads as "I did not ask for that solver".
+
+**Every panel of the work chart keeps its own vertical scale, on purpose.** A node in one solver is not a node in another: they presolve differently, add different cuts and end up searching a different tree, so putting the counts on one shared axis would invite exactly the comparison the table warns against. What the panels do share is the clock, because a second means the same thing to all of them. A solver that reported only its final count gets a single dot rather than a curve.
 
 **Only SCIP and CBC report while they search.** The gap chart needs a running commentary with a clock attached, and that is not something every solver publishes: GLPK prints its progress without any timing, and HiGHS says nothing at all until it finishes. Both are named under the chart rather than left out of it. This is also why the chart plots the gap and not the objective: the gap is a fraction, it runs from 100% down to a few ten-thousandths of a percent on a real model, and a logarithmic axis shows every decade. Objective values cannot be scaled that way — on a knapsack the opening bound is routinely twice the answer, and an axis wide enough for both flattens the entire search onto one line.
 

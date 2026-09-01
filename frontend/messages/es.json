@@ -5025,7 +5025,20 @@
       "convergenceLegend": "El hueco es lo que queda entre la respuesta que tiene un solver y la cota que ha demostrado. Una línea que cae en picado encontró pronto una buena respuesta; una línea plana gastó el tiempo demostrando la que ya tenía. La escala es logarítmica, porque un hueco real va del 100% a unas diezmilésimas de punto porcentual.",
       "convergenceXAxis": "Segundos desde el inicio de la resolución",
       "convergenceSilent": "No se dibujan, porque no informan de nada aprovechable mientras buscan: {solvers}.",
-      "convergenceFloor": "Una línea en el fondo del gráfico cerró su hueco por completo. Un eje logarítmico no tiene cero, así que ese momento se dibuja en el suelo."
+      "convergenceFloor": "Una línea en el fondo del gráfico cerró su hueco por completo. Un eje logarítmico no tiene cero, así que ese momento se dibuja en el suelo.",
+      "workTitle": "Cuánto buscó cada solver",
+      "workLegend": "Cada solver conserva su propia escala vertical, porque un nodo de un solver no es un nodo de otro: hacen un presolve distinto, añaden cortes distintos y recorren un árbol distinto. Las alturas no están para compararse. El reloj sí, y todos los paneles lo comparten.",
+      "workXAxis": "Segundos de búsqueda",
+      "workSummary": "{work} {unit} en {seconds}, {rate} por segundo",
+      "workEndOnly": "Un punto suelto es un solver que sólo informó de su recuento final, sin traza de la búsqueda.",
+      "workUnit": {
+        "nodes": "nodos",
+        "iterations": "iteraciones"
+      },
+      "workOmitted": {
+        "noCount": "{solver}: no se dibuja, no informó ni de nodos ni de iteraciones.",
+        "noClock": "{solver}: no se dibuja, informó del trabajo pero no del tiempo con el que medirlo."
+      }
     },
     "export": {
       "csv": "Descargar CSV",

@@ -5025,7 +5025,20 @@
       "convergenceLegend": "El buit és el que queda entre la resposta que té un solver i la cota que ha demostrat. Una línia que cau en picat va trobar aviat una bona resposta; una línia plana va gastar el temps demostrant la que ja tenia. L'escala és logarítmica, perquè un buit real va del 100% a unes deumil·lèsimes de punt percentual.",
       "convergenceXAxis": "Segons des de l'inici de la resolució",
       "convergenceSilent": "No es dibuixen, perquè no informen de res aprofitable mentre cerquen: {solvers}.",
-      "convergenceFloor": "Una línia al fons del gràfic va tancar el seu buit del tot. Un eix logarítmic no té zero, així que aquell moment es dibuixa a terra."
+      "convergenceFloor": "Una línia al fons del gràfic va tancar el seu buit del tot. Un eix logarítmic no té zero, així que aquell moment es dibuixa a terra.",
+      "workTitle": "Quant va cercar cada solver",
+      "workLegend": "Cada solver conserva la seva pròpia escala vertical, perquè un node d'un solver no és un node d'un altre: fan un presolve diferent, afegeixen talls diferents i recorren un arbre diferent. Les alçades no hi són per comparar-se. El rellotge sí, i tots els panells el comparteixen.",
+      "workXAxis": "Segons de cerca",
+      "workSummary": "{work} {unit} en {seconds}, {rate} per segon",
+      "workEndOnly": "Un punt sol és un solver que només va informar del seu recompte final, sense traça de la cerca.",
+      "workUnit": {
+        "nodes": "nodes",
+        "iterations": "iteracions"
+      },
+      "workOmitted": {
+        "noCount": "{solver}: no es dibuixa, no va informar ni de nodes ni d'iteracions.",
+        "noClock": "{solver}: no es dibuixa, va informar de la feina però no del temps amb què mesurar-la."
+      }
     },
     "export": {
       "csv": "Baixa CSV",
