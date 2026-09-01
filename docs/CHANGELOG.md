@@ -40,6 +40,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A NaN or an infinity in the input reached the solver.** Both are accepted by JSON and survived every numeric conversion. They are now refused, naming the field.
 - **Two API surfaces disagreed about which fields a card requires.** Ten cards called a field optional on one endpoint and required on the other.
 - **A card whose settings had not been written since the last upgrade rendered without them.** It now refuses and says the catalogue needs reseeding, instead of building a different model.
+- **A model you edited in the studio was thrown away when you solved it.** A model copied from the marketplace was always rebuilt from the original card, so any change you made to it by hand never reached the solver. Your version now wins everywhere. A copy nobody has edited is kept in step with the card instead, so the studio and the solve button stop disagreeing about what the model is.
+- **Three cards reported the right total and an arbitrary plan.** Irrigation scheduling, renewable curtailment and reservoir operation each optimised a figure their own limits already fixed, so every schedule tied and one was picked at random. Each now weighs what actually separates one plan from another: evaporation and the electricity tariff by time of day, the compensation owed for each generator curtailed, and the value of water month by month. Reservoir operation also respects how much the outlet can pass in one month.
 
 ### Changed
 - **The marketplace list no longer fetches four large fields it never shows**, and counts rows without reading them.
