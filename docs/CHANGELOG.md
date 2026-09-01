@@ -32,6 +32,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+_Nothing yet._
+
+---
+
+## [3.9.0] - 2026-09-01
+
 ### Added
 - **A solver comparison shows how each solver closed its gap, not only where it ended up.** One line per solver on one clock, showing what was still left between the answer it held and the bound it had proved. A line that falls steeply found a good answer early; a line that runs flat spent its time proving one it already had; a line that reaches the bottom closed the gap completely. The scale is logarithmic because a real gap runs from 100% to a few ten-thousandths of a percent, and a linear one puts every decade below the first on the same pixel. SCIP and CBC report while they search, so they are drawn; GLPK reports without a clock and HiGHS reports nothing, so they are named under the chart instead of quietly missing from it.
 - **The solver matrix says which solver to pick by default.** The grid tells you who won each dataset; a performance profile below it divides every solver's time by the best time on the same dataset and plots how often each one lands within a given factor of the winner. The curve at 1x is how often that solver was fastest, and where it flattens is the share of datasets it proved at all. Only a proven answer counts, so a run that hit the time limit holding a solution does not appear — otherwise the solver that gives up first would top the chart. It is drawn only from five datasets up: below that, one dataset changing hands moves a curve far enough to read as a difference between solvers.
@@ -868,7 +874,8 @@ Full rewrite of the platform. The plugin-based system was replaced by a universa
 - Only 3.0.0 onwards is tagged in this repository — it is the first release published
   here — so the comparison links below start there.
 
-[Unreleased]: https://github.com/avallavall/jaot/compare/v3.8.0...HEAD
+[Unreleased]: https://github.com/avallavall/jaot/compare/v3.9.0...HEAD
+[3.9.0]: https://github.com/avallavall/jaot/compare/v3.8.0...v3.9.0
 [3.8.0]: https://github.com/avallavall/jaot/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/avallavall/jaot/compare/v3.6.0...v3.7.0
 [3.6.0]: https://github.com/avallavall/jaot/compare/v3.5.0...v3.6.0
