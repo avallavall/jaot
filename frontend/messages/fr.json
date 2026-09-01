@@ -5022,10 +5022,10 @@
         "noBound": "{solver} : absent, il a rapporté une réponse mais aucune borne pour la mesurer."
       },
       "convergenceTitle": "Comment chaque solveur a refermé l'écart",
-      "convergenceLegend": "La ligne pleine est la meilleure réponse que le solveur détenait à cet instant ; la ligne pointillée de la même couleur est la borne qu'il avait prouvée. Là où elles se rejoignent, la recherche est terminée. Deux solveurs peuvent rendre la même réponse dans le même temps total et y arriver très différemment.",
+      "convergenceLegend": "L'écart est ce qui reste entre la réponse que détient un solveur et la borne qu'il a prouvée. Une ligne qui plonge a trouvé une bonne réponse tôt ; une ligne plate a passé son temps à prouver celle qu'elle avait déjà. L'échelle est logarithmique, car un écart réel va de 100 % à quelques dix-millièmes de point.",
       "convergenceXAxis": "Secondes depuis le début de la résolution",
-      "convergenceBoundOf": "Borne de {solver}",
-      "convergenceSilent": "Non tracés, car ils ne rapportent rien d'exploitable pendant leur recherche : {solvers}."
+      "convergenceSilent": "Non tracés, car ils ne rapportent rien d'exploitable pendant leur recherche : {solvers}.",
+      "convergenceFloor": "Une ligne au bas du graphique a refermé son écart entièrement. Un axe logarithmique n'a pas de zéro, donc ce moment est tracé sur le plancher."
     },
     "export": {
       "csv": "Télécharger le CSV",

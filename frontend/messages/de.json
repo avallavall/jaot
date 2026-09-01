@@ -5022,10 +5022,10 @@
         "noBound": "{solver}: nicht dargestellt, es hat eine Antwort gemeldet, aber keine Schranke, an der sie zu messen wäre."
       },
       "convergenceTitle": "Wie jeder Solver die Lücke geschlossen hat",
-      "convergenceLegend": "Die durchgezogene Linie ist die beste Antwort, die der Solver in diesem Moment hatte; die gestrichelte Linie derselben Farbe ist die Schranke, die er bewiesen hatte. Wo sich beide treffen, ist die Suche vorbei. Zwei Solver können dieselbe Antwort in derselben Gesamtzeit liefern und sehr unterschiedlich dorthin gelangen.",
+      "convergenceLegend": "Die Lücke ist das, was zwischen der Antwort eines Solvers und der von ihm bewiesenen Schranke bleibt. Eine steil fallende Linie hatte früh eine gute Antwort; eine flache Linie hat ihre Zeit damit verbracht, eine bereits gefundene zu beweisen. Die Skala ist logarithmisch, weil eine echte Lücke von 100 % bis zu wenigen Zehntausendstel Prozentpunkten reicht.",
       "convergenceXAxis": "Sekunden seit Beginn der Lösung",
-      "convergenceBoundOf": "Schranke von {solver}",
-      "convergenceSilent": "Nicht gezeichnet, weil sie während der Suche nichts Verwertbares melden: {solvers}."
+      "convergenceSilent": "Nicht gezeichnet, weil sie während der Suche nichts Verwertbares melden: {solvers}.",
+      "convergenceFloor": "Eine Linie am unteren Rand hat ihre Lücke vollständig geschlossen. Eine logarithmische Achse hat keine Null, deshalb wird dieser Moment auf dem Boden gezeichnet."
     },
     "export": {
       "csv": "CSV herunterladen",

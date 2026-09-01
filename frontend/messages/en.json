@@ -5022,10 +5022,10 @@
         "noBound": "{solver}: not shown, it reported an answer but no bound to measure it against."
       },
       "convergenceTitle": "How each solver closed the gap",
-      "convergenceLegend": "The solid line is the best answer the solver held at that moment; the dashed line of the same colour is the bound it had proved. Where the two meet, the search is over. Two solvers can report the same answer in the same total time and get there very differently.",
+      "convergenceLegend": "The gap is what is left between the answer a solver holds and the bound it has proved. A line falling steeply had a good answer early; a line running flat spent its time proving one it already had. The scale is logarithmic, because a real gap runs from 100% to a few ten-thousandths of a percent.",
       "convergenceXAxis": "Seconds into the solve",
-      "convergenceBoundOf": "{solver} bound",
-      "convergenceSilent": "Not drawn, because they report nothing usable while they search: {solvers}."
+      "convergenceSilent": "Not drawn, because they report nothing usable while they search: {solvers}.",
+      "convergenceFloor": "A line on the bottom of the chart closed its gap completely. A logarithmic axis has no zero, so that moment is drawn on the floor."
     },
     "export": {
       "csv": "Download CSV",

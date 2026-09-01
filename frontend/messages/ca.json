@@ -5022,10 +5022,10 @@
         "noBound": "{solver}: no hi surt, va donar una resposta però cap fita amb què mesurar-la."
       },
       "convergenceTitle": "Com va tancar el buit cada solver",
-      "convergenceLegend": "La línia contínua és la millor resposta que tenia el solver en aquell moment; la línia discontínua del mateix color és la cota que havia demostrat. On es troben, la cerca s'ha acabat. Dos solvers poden donar la mateixa resposta en el mateix temps total i arribar-hi de maneres molt diferents.",
+      "convergenceLegend": "El buit és el que queda entre la resposta que té un solver i la cota que ha demostrat. Una línia que cau en picat va trobar aviat una bona resposta; una línia plana va gastar el temps demostrant la que ja tenia. L'escala és logarítmica, perquè un buit real va del 100% a unes deumil·lèsimes de punt percentual.",
       "convergenceXAxis": "Segons des de l'inici de la resolució",
-      "convergenceBoundOf": "Cota de {solver}",
-      "convergenceSilent": "No es dibuixen, perquè no informen de res aprofitable mentre cerquen: {solvers}."
+      "convergenceSilent": "No es dibuixen, perquè no informen de res aprofitable mentre cerquen: {solvers}.",
+      "convergenceFloor": "Una línia al fons del gràfic va tancar el seu buit del tot. Un eix logarítmic no té zero, així que aquell moment es dibuixa a terra."
     },
     "export": {
       "csv": "Baixa CSV",

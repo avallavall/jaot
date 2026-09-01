@@ -5022,10 +5022,10 @@
         "noBound": "{solver}: no aparece, dio una respuesta pero ninguna cota con la que medirla."
       },
       "convergenceTitle": "Cómo cerró el hueco cada solver",
-      "convergenceLegend": "La línea continua es la mejor respuesta que tenía el solver en ese momento; la línea discontinua del mismo color es la cota que había demostrado. Donde se juntan, la búsqueda ha terminado. Dos solvers pueden dar la misma respuesta en el mismo tiempo total y llegar de formas muy distintas.",
+      "convergenceLegend": "El hueco es lo que queda entre la respuesta que tiene un solver y la cota que ha demostrado. Una línea que cae en picado encontró pronto una buena respuesta; una línea plana gastó el tiempo demostrando la que ya tenía. La escala es logarítmica, porque un hueco real va del 100% a unas diezmilésimas de punto porcentual.",
       "convergenceXAxis": "Segundos desde el inicio de la resolución",
-      "convergenceBoundOf": "Cota de {solver}",
-      "convergenceSilent": "No se dibujan, porque no informan de nada aprovechable mientras buscan: {solvers}."
+      "convergenceSilent": "No se dibujan, porque no informan de nada aprovechable mientras buscan: {solvers}.",
+      "convergenceFloor": "Una línea en el fondo del gráfico cerró su hueco por completo. Un eje logarítmico no tiene cero, así que ese momento se dibuja en el suelo."
     },
     "export": {
       "csv": "Descargar CSV",
