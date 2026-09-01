@@ -403,7 +403,16 @@
       "notComparable": "kann auf diesem Server nicht vergleichen",
       "historyLabel": "Frühere Matrizen",
       "historyEntry": "{when} · {datasets, plural, one {# Datensatz} other {# Datensätze}} × {solvers, plural, one {# Solver} other {# Solver}}",
-      "historyFailed": "Diese Matrix konnte nicht geöffnet werden."
+      "historyFailed": "Diese Matrix konnte nicht geöffnet werden.",
+      "profile": {
+        "title": "Welcher Solver als Standard",
+        "subtitle": "Die Zeit jedes Solvers geteilt durch die beste Zeit auf demselben Datensatz, über {instances} Datensätze.",
+        "xAxis": "Mal langsamer als der beste auf demselben Datensatz",
+        "within": "Innerhalb von {factor} des besten",
+        "howToRead": "Die Kurve bei 1x zeigt, wie oft dieser Solver der schnellste war. Wo eine Kurve flach wird, liegt der Anteil der Datensätze, die er überhaupt bewiesen hat. Nur eine bewiesene Antwort zählt, deshalb steht ein Lauf, der das Zeitlimit mit einer Lösung erreicht hat, nicht im Diagramm.",
+        "fastestMost": "{solver} war auf {wins} von {instances} Datensätzen der schnellste.",
+        "neverSolved": "Nicht gezeichnet, weil sie keinen Datensatz dieses Laufs bewiesen haben: {solvers}."
+      }
     },
     "statsUngrounded": "Der JModel-Quelltext deklariert die Form, ein Datensatz liefert die Zahlen. Binden Sie im Reiter Daten einen ein, dann füllen sich diese Zählungen.",
     "jmodelEmptyKeepsModel": "Editor leer. Das vorherige Modell ist weiterhin das aktive",

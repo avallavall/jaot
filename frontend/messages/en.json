@@ -403,7 +403,16 @@
       "notComparable": "cannot compare on this server",
       "historyLabel": "Previous matrices",
       "historyEntry": "{when} · {datasets, plural, one {# dataset} other {# datasets}} × {solvers, plural, one {# solver} other {# solvers}}",
-      "historyFailed": "That matrix could not be opened."
+      "historyFailed": "That matrix could not be opened.",
+      "profile": {
+        "title": "Which solver to pick by default",
+        "subtitle": "Every solver's time divided by the best time on the same dataset, over {instances} datasets.",
+        "xAxis": "Times slower than the best on the same dataset",
+        "within": "Within {factor} of the best",
+        "howToRead": "A curve at 1x is how often that solver was the fastest. Where a curve flattens is the share of datasets it proved at all. Only a proven answer counts, so a run that hit the time limit with a solution is not in the chart.",
+        "fastestMost": "{solver} was the fastest on {wins} of {instances} datasets.",
+        "neverSolved": "Not drawn, because they proved no dataset in this batch: {solvers}."
+      }
     },
     "statsUngrounded": "The JModel source declares the shape and a dataset supplies the numbers. Bind one on the Data tab and these counts fill in.",
     "jmodelEmptyKeepsModel": "Editor empty. The model from before is still the active one",

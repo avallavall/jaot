@@ -403,7 +403,16 @@
       "notComparable": "ne peut pas comparer sur ce serveur",
       "historyLabel": "Matrices précédentes",
       "historyEntry": "{when} · {datasets, plural, one {# jeu} other {# jeux}} × {solvers, plural, one {# solveur} other {# solveurs}}",
-      "historyFailed": "Cette matrice n'a pas pu être ouverte."
+      "historyFailed": "Cette matrice n'a pas pu être ouverte.",
+      "profile": {
+        "title": "Quel solveur choisir par défaut",
+        "subtitle": "Le temps de chaque solveur divisé par le meilleur temps sur le même jeu de données, sur {instances} jeux.",
+        "xAxis": "Fois plus lent que le meilleur sur le même jeu de données",
+        "within": "À moins de {factor} du meilleur",
+        "howToRead": "La courbe à 1x indique combien de fois ce solveur a été le plus rapide. Là où une courbe s'aplatit se trouve la part des jeux de données qu'il a réellement prouvés. Seule une réponse prouvée compte, donc une exécution qui a atteint la limite de temps avec une solution ne figure pas dans le graphique.",
+        "fastestMost": "{solver} a été le plus rapide sur {wins} des {instances} jeux de données.",
+        "neverSolved": "Non tracés, car ils n'ont prouvé aucun jeu de données de ce lot : {solvers}."
+      }
     },
     "statsUngrounded": "Le code JModel déclare la forme et un jeu de données fournit les nombres. Reliez-en un dans l'onglet Données et ces comptes se remplissent.",
     "jmodelEmptyKeepsModel": "Éditeur vide. Le modèle précédent reste le modèle actif",

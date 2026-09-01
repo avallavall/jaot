@@ -403,7 +403,16 @@
       "notComparable": "no puede comparar en este servidor",
       "historyLabel": "Matrices anteriores",
       "historyEntry": "{when} · {datasets, plural, one {# conjunto} other {# conjuntos}} × {solvers, plural, one {# solver} other {# solvers}}",
-      "historyFailed": "No se pudo abrir esa matriz."
+      "historyFailed": "No se pudo abrir esa matriz.",
+      "profile": {
+        "title": "Qué solver elegir por defecto",
+        "subtitle": "El tiempo de cada solver dividido por el mejor tiempo del mismo conjunto de datos, sobre {instances} conjuntos.",
+        "xAxis": "Veces más lento que el mejor del mismo conjunto de datos",
+        "within": "Dentro de {factor} del mejor",
+        "howToRead": "La curva en 1x indica cuántas veces ese solver fue el más rápido. Donde la curva se aplana está la proporción de conjuntos que llegó a demostrar. Solo cuenta una respuesta demostrada, así que una ejecución que agotó el límite de tiempo con una solución no aparece en el gráfico.",
+        "fastestMost": "{solver} fue el más rápido en {wins} de {instances} conjuntos de datos.",
+        "neverSolved": "No se dibujan, porque no demostraron ningún conjunto de datos de este lote: {solvers}."
+      }
     },
     "statsUngrounded": "El código JModel declara la forma y un conjunto de datos pone los números. Enlaza uno en la pestaña Datos y estas cuentas se rellenan.",
     "jmodelEmptyKeepsModel": "Editor vacío. El modelo de antes sigue siendo el activo",

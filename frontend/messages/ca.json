@@ -403,7 +403,16 @@
       "notComparable": "no pot comparar en aquest servidor",
       "historyLabel": "Matrius anteriors",
       "historyEntry": "{when} · {datasets, plural, one {# conjunt} other {# conjunts}} × {solvers, plural, one {# solver} other {# solvers}}",
-      "historyFailed": "No s'ha pogut obrir aquesta matriu."
+      "historyFailed": "No s'ha pogut obrir aquesta matriu.",
+      "profile": {
+        "title": "Quin solver triar per defecte",
+        "subtitle": "El temps de cada solver dividit pel millor temps del mateix conjunt de dades, sobre {instances} conjunts.",
+        "xAxis": "Vegades més lent que el millor del mateix conjunt de dades",
+        "within": "Dins de {factor} del millor",
+        "howToRead": "La corba a 1x indica quantes vegades aquell solver va ser el més ràpid. On la corba s'aplana hi ha la proporció de conjunts que va arribar a demostrar. Només compta una resposta demostrada, així que una execució que va exhaurir el límit de temps amb una solució no surt al gràfic.",
+        "fastestMost": "{solver} va ser el més ràpid en {wins} de {instances} conjunts de dades.",
+        "neverSolved": "No es dibuixen, perquè no van demostrar cap conjunt de dades d'aquest lot: {solvers}."
+      }
     },
     "statsUngrounded": "El codi JModel declara la forma i un conjunt de dades hi posa els nombres. Enllaça'n un a la pestanya Dades i aquests comptatges s'omplen.",
     "jmodelEmptyKeepsModel": "Editor buit. El model d'abans continua sent l'actiu",

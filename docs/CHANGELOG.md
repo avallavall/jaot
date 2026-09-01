@@ -32,6 +32,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Added
+- **The solver matrix says which solver to pick by default.** The grid tells you who won each dataset; a performance profile below it divides every solver's time by the best time on the same dataset and plots how often each one lands within a given factor of the winner. The curve at 1x is how often that solver was fastest, and where it flattens is the share of datasets it proved at all. Only a proven answer counts, so a run that hit the time limit holding a solution does not appear — otherwise the solver that gives up first would top the chart. It is drawn only from five datasets up: below that, one dataset changing hands moves a curve far enough to read as a difference between solvers.
+
 ### Fixed
 - **The file AI agents read to discover JAOT undercounted the marketplace.** `llms.txt` said the catalogue spans 10 problem categories. It spans 34.
 - **The MCP server told agents about three solvers.** JAOT ships four free ones (SCIP, HiGHS, CBC and GLPK) plus a profile-gated Hexaly, but the description an agent reads before choosing named only SCIP, HiGHS and Hexaly, so no agent had a reason to ask for CBC or GLPK by name.

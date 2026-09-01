@@ -42,6 +42,7 @@ import { useProjectDatasets } from "../../../datasets/useProjectDatasets";
 import { ComparisonExportButtons } from "@/components/solve/compare/ComparisonExportButtons";
 import { matrixRows, toJson } from "@/components/solve/compare/export";
 import { MatrixTable } from "./MatrixTable";
+import { PerformanceProfileChart } from "./PerformanceProfileChart";
 import {
   MATRIX_METRICS,
   type MatrixMetric,
@@ -520,6 +521,11 @@ export function SolverMatrixSection() {
               </p>
             ) : null}
           </div>
+
+          {/* The grid says who won each dataset. This says who to pick when you
+              have not looked yet — and it draws nothing until there are enough
+              datasets for the answer to mean something. */}
+          <PerformanceProfileChart rows={batch.rows} solverNames={batch.solver_names} />
 
           {openRow ? (
             <div className="rounded-lg border p-3" data-testid="studio-matrix-open-row-detail">
