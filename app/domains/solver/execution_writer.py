@@ -341,6 +341,33 @@ def _notify_completed(db: Any, execution: ModelExecution) -> None:
         logger.warning("Failed to notify completion of execution %s: %s", execution.id, exc)
 
 
+def mark_running_by_task(task_id: str, organization_id: str) -> bool:
+    """Move the task's row to RUNNING at pickup. False when the row is already settled.
+
+    A solve can wait in its queue longer than the reaper's pending limit. The
+    reaper then failed the row as lost, the worker picked the message up later,
+    solved it anyway, and the completed write found a terminal row and wrote
+    nothing: the history said "failed, lost task" for a solve that ran. A
+    worker now asks first. A row that is gone, or a bookkeeping failure,
+    answers True: the solve runs, as it did before this check existed.
+    """
+    try:
+        db = _own_session()
+        try:
+            execution = _lookup_by_task(db, task_id, organization_id, lock=True)
+            if execution is None:
+                return True
+            if not apply_running(execution):
+                return False
+            db.commit()
+            return True
+        finally:
+            db.close()
+    except Exception as exc:  # noqa: BLE001 — bookkeeping must not disturb the task
+        logger.warning("Failed to mark execution running for task %s: %s", task_id, exc)
+        return True
+
+
 def mark_completed_by_task(
     task_id: str,
     organization_id: str,

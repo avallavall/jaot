@@ -94,6 +94,67 @@ def _get_celery_state(task_id: str) -> tuple[str | None, Any]:
         return None, None
 
 
+def _queue_backlog() -> dict[str, int] | None:
+    """How many messages wait in each solver queue, or None when the broker is unreachable.
+
+    A 'pending' row is either lost or still waiting its turn, and the pending
+    limit (30 minutes) is far below how long one solve may run (48 hours): a
+    single long HiGHS solve left every HiGHS solve behind it to be failed as
+    "lost". While a row's queue still holds messages it may be one of them,
+    so it is not reaped yet.
+    """
+    from app.domains.solver.queue_routing import SOLVER_QUEUE_MAP  # noqa: PLC0415
+
+    try:
+        with celery_app.connection_for_read(
+            connect_timeout=_BROKER_INSPECT_TIMEOUT_SECONDS
+        ) as conn:
+            conn.ensure_connection(max_retries=1, interval_start=0, interval_step=0)
+            channel = conn.channel()
+            backlog: dict[str, int] = {}
+            for queue in sorted(set(SOLVER_QUEUE_MAP.values())):
+                try:
+                    backlog[queue] = channel.queue_declare(queue=queue, passive=True).message_count
+                except Exception:  # noqa: BLE001 — a queue nobody declared holds nothing
+                    backlog[queue] = 0
+                    channel = conn.channel()  # a failed passive declare closes the channel
+            return backlog
+    except Exception as exc:  # noqa: BLE001 — no broker means no evidence, not a crash
+        logger.warning("Reaper: could not read the solver queue backlog: %s", exc)
+        return None
+
+
+class _Backlog:
+    """The solver queue backlog, read from the broker once per sweep and only if needed."""
+
+    def __init__(self) -> None:
+        self._read = False
+        self._value: dict[str, int] | None = None
+
+    def get(self) -> dict[str, int] | None:
+        if not self._read:
+            self._read = True
+            self._value = _queue_backlog()
+        return self._value
+
+
+def _waiting_in_queue(execution: ModelExecution, backlog: _Backlog | None) -> bool:
+    """True when this pending row's queue still has messages it may be among."""
+    if backlog is None or execution.status != ExecutionStatus.PENDING.value:
+        return False
+    depths = backlog.get()
+    if depths is None:
+        return False
+    from app.domains.solver.adapters.base import DEFAULT_SOLVER_NAME  # noqa: PLC0415
+    from app.domains.solver.queue_routing import resolve_queue  # noqa: PLC0415
+
+    try:
+        queue = resolve_queue(execution.solver_name or DEFAULT_SOLVER_NAME)
+    except Exception:  # noqa: BLE001 — an unknown solver has no queue to wait in
+        return False
+    return depths.get(queue, 0) > 0
+
+
 def _result_is_error(result: Any) -> bool:
     """Mirror GET /solve/async's two-level error detection on a SUCCESS payload.
 
@@ -211,6 +272,7 @@ def _reap_one(
     now: datetime,
     pending_max: int,
     running_max: int,
+    backlog: _Backlog | None = None,
 ) -> str:
     """Reconcile one stale candidate.
 
@@ -267,6 +329,8 @@ def _reap_one(
     threshold = running_max if execution.status == ExecutionStatus.RUNNING.value else pending_max
     if age_seconds <= threshold:
         return "skipped"
+    if _waiting_in_queue(execution, backlog) and age_seconds <= running_max:
+        return "skipped"
     _mark_failed(
         db,
         execution,
@@ -321,9 +385,11 @@ def reap_stale_executions(db: Session) -> dict[str, Any]:
         "errors": 0,
     }
 
+    backlog = _Backlog()
+
     for execution in candidates:
         try:
-            outcome = _reap_one(db, execution, now, pending_max, running_max)
+            outcome = _reap_one(db, execution, now, pending_max, running_max, backlog)
             db.commit()
             summary[outcome] += 1
         except Exception as exc:

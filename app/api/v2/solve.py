@@ -31,7 +31,7 @@ from app.domains.solver.adapters.base import (
 )
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.problem_validation import iter_problem_errors
-from app.models import ModelExecution, Organization
+from app.models import ExecutionStatus, ModelExecution, Organization
 from app.models.workspace import WorkspaceRole
 from app.schemas.optimization import (
     AsyncSolveCancelResponse,
@@ -578,6 +578,19 @@ def get_async_solve_status(
     from app.shared.core.celery_app import celery_app
 
     result = AsyncResult(task_id, app=celery_app)
+    # A row settled while its message still waits in the queue (the reaper, or
+    # a cancel whose revoke a restarted worker forgot) has its answer in the
+    # database; Celery only knows the message is there. Reporting "pending"
+    # there kept a client polling a solve that will never run.
+    if result.state == "PENDING" and execution.status in (
+        ExecutionStatus.FAILED.value,
+        ExecutionStatus.CANCELLED.value,
+    ):
+        return {
+            "task_id": task_id,
+            "status": "failed" if execution.status == ExecutionStatus.FAILED.value else "cancelled",
+            "error": execution.error_message,
+        }
     if result.state == "PENDING":
         return {
             "task_id": task_id,

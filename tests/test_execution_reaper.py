@@ -392,3 +392,88 @@ class TestReaperBeatRegistration:
         assert entry["schedule"] <= 1800, "reaper must run at least as often as the threshold"
         assert entry["options"]["queue"] == "jaot_default"
         assert "app.tasks.execution_reaper" in celery_app.conf.include
+
+
+class TestAQueuedSolveIsNotALostSolve:
+    """# CONTRACT-TEST: a solve waiting its turn is not reaped, and a settled one is not solved.
+
+    The pending limit (30 min) is far below how long one solve may run (48 h).
+    A HiGHS solve queued behind a long one was failed as "lost"; the worker then
+    solved it anyway and the completed write found a terminal row and wrote
+    nothing, so the history said "failed" for a solve that ran.
+    """
+
+    def test_a_pending_row_waits_while_its_queue_has_messages(
+        self, db_session, reaper_org, monkeypatch
+    ):
+        execution = _make_solve_execution(db_session, reaper_org, age_seconds=PENDING_MAX + 600)
+        _patch_celery_state(monkeypatch, "PENDING")
+        monkeypatch.setattr("app.tasks.execution_reaper._queue_backlog", lambda: {"solve_scip": 3})
+
+        summary = reap_stale_executions(db_session)
+
+        assert summary["skipped"] == 1
+        db_session.refresh(execution)
+        assert execution.status == ExecutionStatus.PENDING.value
+
+    def test_an_empty_queue_means_the_row_is_lost(self, db_session, reaper_org, monkeypatch):
+        execution = _make_solve_execution(db_session, reaper_org, age_seconds=PENDING_MAX + 600)
+        _patch_celery_state(monkeypatch, "PENDING")
+        monkeypatch.setattr("app.tasks.execution_reaper._queue_backlog", lambda: {"solve_scip": 0})
+
+        assert reap_stale_executions(db_session)["failed"] == 1
+
+    def test_a_worker_does_not_solve_a_row_that_was_already_settled(
+        self, db_session, reaper_org, monkeypatch
+    ):
+        from app.domains.solver.tasks import solve_tasks
+
+        execution = _make_solve_execution(db_session, reaper_org, age_seconds=10)
+        execution.status = ExecutionStatus.FAILED.value
+        db_session.commit()
+
+        reached_the_solver: list[bool] = []
+
+        def record(*args, **kwargs):
+            reached_the_solver.append(True)
+            raise RuntimeError("stop here")
+
+        monkeypatch.setattr(solve_tasks, "get_solver_service", record)
+        problem = {
+            "variables": [{"name": "x", "lower_bound": 0, "upper_bound": 1}],
+            "objective": {"sense": "maximize", "expression": "x"},
+        }
+        outcome = solve_tasks.solve_async.apply(
+            kwargs={"problem_data": problem, "organization_id": reaper_org.id},
+            task_id=execution.celery_task_id,
+        ).get()
+
+        assert outcome["status"] == "error"
+        assert reached_the_solver == [], "a settled row went on to the solver"
+        db_session.refresh(execution)
+        assert execution.status == ExecutionStatus.FAILED.value
+
+
+def test_the_status_endpoint_reports_a_row_settled_while_its_message_waits(
+    authenticated_client, db_session, test_organization
+):
+    """Celery only knows the message is queued; the row knows it was stopped."""
+    execution = _make_solve_execution(db_session, test_organization, age_seconds=10)
+    execution.status = ExecutionStatus.FAILED.value
+    execution.error_message = "Reaped: stuck in 'pending'"
+    db_session.commit()
+
+    from unittest.mock import patch
+
+    class _Queued:
+        state = "PENDING"
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+    with patch("celery.result.AsyncResult", _Queued):
+        response = authenticated_client.get(f"/api/v2/solve/async/{execution.celery_task_id}")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "failed"
+    assert response.json()["error"] == "Reaped: stuck in 'pending'"

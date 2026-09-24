@@ -627,6 +627,10 @@ async function awaitAsyncSolveResult<T>(
     try {
       status = await request<SolveAsyncStatus>(`/api/v2/solve/async/${taskId}`);
     } catch (err) {
+      // 401, 403 and 404 do not heal by waiting (signed out, removed from the
+      // workspace, a run that is gone). Asking again for ten minutes only hid them.
+      const code = (err as { status?: number })?.status;
+      if (code === 401 || code === 403 || code === 404) throw err;
       if (Date.now() > deadline) throw err;
       continue; // transient poll error — keep trying until the deadline
     }
@@ -635,6 +639,11 @@ async function awaitAsyncSolveResult<T>(
     }
     if (status.status === "failed") {
       throw new ApiError(500, status.error || "Solve failed");
+    }
+    // A stopped solve never becomes "completed"; without this the loop polled it
+    // until the ten-minute cap.
+    if (status.status === "cancelled" || status.status === "revoked") {
+      throw new ApiError(409, status.error || "The solve was cancelled");
     }
     if (Date.now() > deadline) {
       throw new ApiError(

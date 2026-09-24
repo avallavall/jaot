@@ -188,6 +188,13 @@ def solve_async(
     try:
         _assert_queue_match(solver_name)
 
+        if not execution_writer.mark_running_by_task(task_id, organization_id):
+            logger.info("Task %s: its execution was settled before pickup; not solving", task_id)
+            return {
+                "status": "error",
+                "error": "This solve was stopped before a worker picked it up, so it did not run.",
+            }
+
         update_task_progress(0.0, "starting", "Initializing solver...")
         _publish_ws_event(
             task_id,
@@ -550,7 +557,17 @@ def solve_model_async(
         if not execution:
             raise ValueError(f"Execution {execution_id} not found")
 
-        execution_writer.apply_running(execution)
+        # A row the reaper or a cancel settled while this message waited in the
+        # queue is not solved: the result would be discarded by the terminal
+        # guard, and the listing counter and the "solve completed" notification
+        # below would still fire for a row that says failed.
+        if not execution_writer.apply_running(execution):
+            logger.info(
+                "Execution %s was settled (%s) before pickup; not solving",
+                execution_id,
+                execution.status,
+            )
+            return {"status": execution.status, "execution_id": execution_id}
         db.commit()
 
         update_task_progress(0.0, "starting", "Loading model configuration...")
