@@ -27,36 +27,33 @@ class JWTService:
     """
 
     @staticmethod
-    def _get_algorithm(db: Session | None = None) -> str:
-        """Get the JWT algorithm.
+    def _signing_params(db: Session | None = None) -> tuple[str, str]:
+        """Return ``(secret, algorithm)`` for signing AND for verifying.
 
-        Reads from DB when *db* is provided, otherwise defaults to
-        ``HS256``.
+        Every token this service signs is later verified by the auth middleware,
+        the WebSocket handshake and the maintenance check. All of them must
+        resolve the key the same way. They did not: signing read ``JWT_SECRET``
+        from ``platform_settings`` while the middleware verified with the
+        environment value, so setting the secret in the admin panel made every
+        cookie fail its signature check, including the one a fresh login
+        returned.
+
+        With *db*, the database values win when they are set (one query for
+        both keys). Without *db*, the environment secret and ``HS256``.
         """
-        if db is not None:
-            from app.services.platform_settings_service import (
-                PlatformSettingsService as PSS,
-            )
-
-            val = PSS.get_str(db, "JWT_ALGORITHM")
-            if val:
-                return val
-        return "HS256"
-
-    @staticmethod
-    def _get_secret(db: Session | None = None) -> str:
-        """Get the JWT secret key.
-
-        Reads from DB via PlatformSettingsService when *db* is provided,
-        otherwise uses the cached ``settings.jwt_secret_key``.
-        """
+        secret, algorithm = settings.jwt_secret_key, "HS256"
         if db is not None:
             from app.services.platform_settings_service import PlatformSettingsService as PSS
 
-            val = PSS.get_str(db, "JWT_SECRET")
-            if val:
-                return val
-        return settings.jwt_secret_key
+            values = PSS.get_many(db, ["JWT_SECRET", "JWT_ALGORITHM"])
+            secret = values.get("JWT_SECRET") or secret
+            algorithm = values.get("JWT_ALGORITHM") or algorithm
+        return secret, algorithm
+
+    @staticmethod
+    def _encode(payload: dict[str, Any], db: Session | None) -> str:
+        secret, algorithm = JWTService._signing_params(db)
+        return jwt.encode(payload, secret, algorithm=algorithm)
 
     @staticmethod
     def create_access_token(
@@ -94,8 +91,7 @@ class JWTService:
             "exp": now + timedelta(minutes=expire_minutes),
             "iat": now,
         }
-        algo = JWTService._get_algorithm(db)
-        return jwt.encode(payload, JWTService._get_secret(db), algorithm=algo)
+        return JWTService._encode(payload, db)
 
     @staticmethod
     def create_refresh_token(
@@ -135,9 +131,7 @@ class JWTService:
             "iat": now,
             "jti": jti,
         }
-        algo = JWTService._get_algorithm(db)
-        token = jwt.encode(payload, JWTService._get_secret(db), algorithm=algo)
-        return token, jti
+        return JWTService._encode(payload, db), jti
 
     @staticmethod
     def create_verification_token(user_id: str, db: Session | None = None) -> str:
@@ -157,8 +151,7 @@ class JWTService:
             "exp": now + timedelta(hours=24),
             "iat": now,
         }
-        algo = JWTService._get_algorithm(db)
-        return jwt.encode(payload, JWTService._get_secret(db), algorithm=algo)
+        return JWTService._encode(payload, db)
 
     @staticmethod
     def password_fingerprint(password_hash: str | None) -> str:
@@ -200,8 +193,7 @@ class JWTService:
             "exp": now + timedelta(hours=1),
             "iat": now,
         }
-        algo = JWTService._get_algorithm(db)
-        return jwt.encode(payload, JWTService._get_secret(db), algorithm=algo)
+        return JWTService._encode(payload, db)
 
     @staticmethod
     def decode_token(token: str, db: Session | None = None) -> dict[str, Any]:
@@ -218,9 +210,5 @@ class JWTService:
             jwt.ExpiredSignatureError: If the token has expired.
             jwt.InvalidTokenError: If the token is invalid.
         """
-        algo = JWTService._get_algorithm(db)
-        return jwt.decode(
-            token,
-            JWTService._get_secret(db),
-            algorithms=[algo],
-        )
+        secret, algorithm = JWTService._signing_params(db)
+        return jwt.decode(token, secret, algorithms=[algorithm])

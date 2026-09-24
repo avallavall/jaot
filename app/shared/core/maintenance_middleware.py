@@ -130,11 +130,9 @@ class MaintenanceMiddleware:
           2. Bearer JWT in Authorization header
           3. Bearer API key in Authorization header (DB lookup)
         """
-        from app.config import settings
-
         # 1. JWT cookie
         cookie_token = self._extract_cookie(scope, "jaot_access_token")
-        if cookie_token and self._jwt_is_admin(cookie_token, settings.jwt_secret_key):
+        if cookie_token and self._jwt_is_admin(cookie_token, db):
             return True
 
         # 2-3. Bearer token (JWT or API key)
@@ -142,20 +140,25 @@ class MaintenanceMiddleware:
         if not bearer:
             return False
 
-        # Try as JWT first (cheap, no DB)
-        if self._jwt_is_admin(bearer, settings.jwt_secret_key):
+        # Try as JWT first
+        if self._jwt_is_admin(bearer, db):
             return True
 
         # Try as API key (requires DB lookup)
         return self._api_key_is_admin(bearer, db)
 
     @staticmethod
-    def _jwt_is_admin(token: str, secret: str) -> bool:
-        """Decode a JWT and return True if it has admin: true."""
-        try:
-            import jwt as pyjwt
+    def _jwt_is_admin(token: str, db: Session) -> bool:
+        """Decode a JWT and return True if it has admin: true.
 
-            payload = pyjwt.decode(token, secret, algorithms=["HS256"])
+        Verified with the key the login signed it with, which is the admin-panel
+        ``JWT_SECRET`` when one is set. The environment secret alone locked the
+        admin out of the maintenance bypass after a rotation.
+        """
+        try:
+            from app.services.auth.jwt_service import JWTService
+
+            payload = JWTService.decode_token(token, db=db)
             return bool(payload.get("admin", False))
         except Exception:
             return False

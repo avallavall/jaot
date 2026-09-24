@@ -217,13 +217,13 @@ class TestJWTIntegration:
         """An EMPTY-STRING JWT_SECRET in the DB must fall through to the config
         secret, not be used as the signing key.
 
-        Gap (mutmut-v24 §1, jwt_service line 56 / branch 41->43): ``_get_secret``
+        Gap (mutmut-v24 §1): ``_signing_params``
         reads the DB value and only uses it ``if val`` — an empty string is
         falsy and must fall through to ``settings.jwt_secret_key``. Without the
         ``if val`` guard a blank admin row would sign every token with an empty
         secret (a catastrophic forgery vector). This pins the real fallthrough:
           - the DB row is genuinely set to "" (real PostgreSQL, no mock), and
-          - ``_get_secret(db)`` returns the config secret, AND a token created
+          - ``_signing_params(db)`` returns the config secret, AND a token created
             with ``db=db_session`` is decodable with ``settings.jwt_secret_key``
             (proving the empty DB value was NOT used to sign it).
         """
@@ -234,8 +234,9 @@ class TestJWTIntegration:
         db_session.flush()
 
         # Direct: the empty DB value is ignored; config secret is returned.
-        assert JWTService._get_secret(db_session) == settings.jwt_secret_key
-        assert JWTService._get_secret(db_session) != ""
+        secret, _algorithm = JWTService._signing_params(db_session)
+        assert secret == settings.jwt_secret_key
+        assert secret != ""
 
         # End-to-end: a token minted with db=db_session is verifiable with the
         # CONFIG secret, confirming the empty DB value never reached jwt.encode.

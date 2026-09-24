@@ -30,7 +30,9 @@ def principal_from_jwt(db: Any, token: str | None) -> tuple[User, Organization] 
     if not token:
         return None
     try:
-        payload = JWTService.decode_token(token)
+        # With ``db``: the same key the login signed with. Without it, a secret
+        # set in the admin panel signed every cookie and this check rejected it.
+        payload = JWTService.decode_token(token, db=db)
     except Exception as exc:  # forged / expired / malformed
         logger.debug("JWT auth failed (%s)", type(exc).__name__)
         return None
