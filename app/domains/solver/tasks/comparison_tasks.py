@@ -82,15 +82,23 @@ def run_solver_comparison(
             raise ValueError(f"Comparison {comparison_id} not found")
 
         if comparison.status == ComparisonStatus.CANCELLED.value:
-            # Cancelled between enqueue and pickup. Nothing ran, so there is
-            # nothing to unwind; the children are already cancelled by the API.
+            # Cancelled between enqueue and pickup. Nothing ran. The API
+            # cancelled the columns that existed when it ran, but a matrix row
+            # cancelled while it was still being compiled got its columns after
+            # that, as 'pending', and the reaper later called them lost.
             logger.info("Comparison %s was cancelled before it started", comparison_id)
+            _cancel_remaining(db, comparison_id)
+            _finish(db, comparison, ComparisonStatus.CANCELLED)
             return {"status": "cancelled", "comparison_id": comparison_id, "solved": 0}
 
         comparison.status = ComparisonStatus.RUNNING.value
-        comparison.started_at = utcnow()
+        # Only the first attempt starts the clock. A redelivered task reset it,
+        # so the reaper's budget, measured from here, never ran out.
+        if comparison.started_at is None:
+            comparison.started_at = utcnow()
         comparison.machine_note = _machine_note()
         db.commit()
+        _fail_interrupted_columns(db, comparison_id)
 
         problem = OptimizationProblem.model_validate(comparison.problem_data)
         solved = 0
@@ -223,6 +231,35 @@ def _pending_child(db: Any, comparison_id: str, solver_name: str) -> ModelExecut
         )
         .first()
     )
+
+
+def _fail_interrupted_columns(db: Any, comparison_id: str) -> None:
+    """Fail a column an earlier attempt of this task left 'running'.
+
+    One task runs a comparison, so a column already 'running' when it starts
+    was being solved by an attempt that died: typically the worker was killed
+    for memory. With late acks the message came straight back, the same column
+    ran again, was killed again, and so on without end. It is recorded as
+    failed and the comparison moves on to the next solver.
+    """
+    interrupted = (
+        db.query(ModelExecution)
+        .filter(
+            ModelExecution.comparison_id == comparison_id,
+            ModelExecution.status == ExecutionStatus.RUNNING.value,
+        )
+        .all()
+    )
+    for execution in interrupted:
+        execution_writer.apply_failed(
+            execution,
+            error=(
+                "The worker stopped while solving this column, most likely because "
+                "it ran out of memory. The comparison went on with the next solver."
+            ),
+        )
+    if interrupted:
+        db.commit()
 
 
 def _is_cancelled(db: Any, comparison_id: str, organization_id: str) -> bool:

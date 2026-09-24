@@ -92,9 +92,26 @@ def compute_celery_time_limits(
     return soft, soft + HARD_GRACE_SECONDS
 
 
+def compute_comparison_time_limits(
+    time_limit_seconds: float | None,
+    solver_count: int,
+    default_timeout_seconds: float,
+) -> tuple[int, int]:
+    """``(soft, hard)`` for a comparison task, which runs its solvers one after another.
+
+    The comparison task was sent with no limit at all. A C-extension hang in one
+    solver then held the only comparison worker for good, and every comparison
+    on the platform queued behind it.
+    """
+    soft_one, _hard_one = compute_celery_time_limits(time_limit_seconds, default_timeout_seconds)
+    soft = max(1, solver_count) * soft_one
+    return soft, soft + HARD_GRACE_SECONDS
+
+
 __all__ = [
     "HARD_GRACE_SECONDS",
     "SOFT_MARGIN_SECONDS",
     "compute_celery_time_limits",
+    "compute_comparison_time_limits",
     "resolve_solver_time_limit",
 ]

@@ -624,3 +624,126 @@ def test_the_history_lists_this_organizations_comparisons_newest_first(
     ids = [row["id"] for row in listing["comparisons"]]
     assert ids[:2] == [second["id"], first["id"]]
     assert listing["total"] >= 2
+
+
+# ──────────────────────────────────────────────────────────────
+# A comparison that hangs, crashes or is cancelled early (2026-09-24 review)
+# ──────────────────────────────────────────────────────────────
+
+
+# CONTRACT-TEST: a comparison task carries a time limit covering all its solvers.
+# It was sent with none, so one hung solver held the only comparison worker for good.
+def test_a_comparison_is_sent_with_a_time_limit_for_all_its_solvers(
+    authenticated_client: TestClient,
+    captured_dispatch: list[dict],
+) -> None:
+    _create(
+        authenticated_client, solver_names=["scip", "highs"], settings={"time_limit_seconds": 30}
+    )
+
+    dispatched = captured_dispatch[0]
+    assert dispatched["soft_time_limit"] >= 2 * 30
+    assert dispatched["time_limit"] > dispatched["soft_time_limit"]
+
+
+def test_a_column_an_earlier_attempt_left_running_is_failed_not_rerun(
+    authenticated_client: TestClient,
+    db_session: Session,
+    test_organization: Organization,
+    captured_dispatch: list[dict],
+    task_runs_on_the_test_session,
+) -> None:
+    """A worker killed for memory left its column 'running'; late acks sent the
+    message back and the same column ran, and was killed, again and again."""
+    created = _create(authenticated_client, solver_names=["scip", "highs"])
+    first = (
+        db_session.query(ModelExecution)
+        .filter(ModelExecution.comparison_id == created["id"], ModelExecution.solver_name == "scip")
+        .one()
+    )
+    first.status = ExecutionStatus.RUNNING.value
+    comparison = db_session.get(SolverComparison, created["id"])
+    comparison.status = ComparisonStatus.RUNNING.value
+    started = comparison.started_at = utcnow()
+    db_session.commit()
+
+    outcome = comparison_tasks_mod.run_solver_comparison.apply(
+        kwargs={"comparison_id": created["id"], "organization_id": test_organization.id}
+    ).get()
+
+    assert outcome["solved"] == 1  # only highs; scip is not run a second time
+    rows = _rows_by_solver(authenticated_client.get(f"{_URL}/{created['id']}").json())
+    assert rows["scip"]["status"] == ExecutionStatus.FAILED.value
+    assert "ran out of memory" in rows["scip"]["error_message"]
+    assert rows["highs"]["status"] == ExecutionStatus.COMPLETED.value
+    db_session.expire_all()
+    # The redelivered attempt does not restart the reaper's clock.
+    assert db_session.get(SolverComparison, created["id"]).started_at == started
+
+
+def test_a_comparison_cancelled_before_pickup_closes_columns_added_after_the_cancel(
+    authenticated_client: TestClient,
+    db_session: Session,
+    test_organization: Organization,
+    captured_dispatch: list[dict],
+    task_runs_on_the_test_session,
+) -> None:
+    """A matrix row cancelled while it compiled got its columns after the cancel."""
+    created = _create(authenticated_client, solver_names=["scip", "highs"])
+    comparison = db_session.get(SolverComparison, created["id"])
+    comparison.status = ComparisonStatus.CANCELLED.value
+    db_session.commit()
+
+    outcome = comparison_tasks_mod.run_solver_comparison.apply(
+        kwargs={"comparison_id": created["id"], "organization_id": test_organization.id}
+    ).get()
+
+    assert outcome["status"] == "cancelled"
+    statuses = {
+        e.status
+        for e in db_session.query(ModelExecution).filter(
+            ModelExecution.comparison_id == created["id"]
+        )
+    }
+    assert statuses == {ExecutionStatus.CANCELLED.value}
+
+
+def test_the_reaper_closes_a_comparison_whose_task_died(
+    db_session: Session, test_organization: Organization
+) -> None:
+    from datetime import timedelta
+
+    from app.tasks.execution_reaper import reap_stale_comparisons
+
+    long_ago = utcnow() - timedelta(days=10)
+    comparison = SolverComparison(
+        id=generate_id("cmp_"),
+        organization_id=test_organization.id,
+        problem_data={"name": "dead"},
+        time_limit_seconds=60.0,
+        gap_tolerance=0.0001,
+        threads=1,
+        solver_names=["scip"],
+        status=ComparisonStatus.RUNNING.value,
+        created_at=long_ago,
+        started_at=long_ago,
+    )
+    db_session.add(comparison)
+    db_session.flush()
+    db_session.add(
+        ModelExecution(
+            id=generate_id("exe_"),
+            organization_id=test_organization.id,
+            comparison_id=comparison.id,
+            status=ExecutionStatus.FAILED.value,
+            input_data={"name": "dead"},
+            solver_name="scip",
+            origin="comparison",
+        )
+    )
+    db_session.commit()
+
+    assert reap_stale_comparisons(db_session)["failed"] == 1
+    db_session.refresh(comparison)
+    assert comparison.status == ComparisonStatus.FAILED.value
+    assert comparison.completed_at is not None

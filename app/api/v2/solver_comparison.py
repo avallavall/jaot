@@ -40,6 +40,7 @@ from app.domains.solver.services.comparison_service import (
     normalize_solver_names,
     plan_comparison,
 )
+from app.domains.solver.time_limits import compute_comparison_time_limits
 from app.models import ModelExecution, ModelProject, Organization, SolverComparison
 from app.models.audit_log import AuditAction
 from app.models.solver_comparison import DEFAULT_COMPARISON_THREADS, ComparisonStatus
@@ -55,6 +56,7 @@ from app.schemas.solver_comparison import (
     CreateComparisonRequest,
 )
 from app.services.audit_service import log_action
+from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.services.solve_orchestrator import validate_problem
 from app.services.solver_comparison_setup import (
     cancel_comparison_rows,
@@ -395,6 +397,11 @@ def enqueue_comparison(db: Session, comparison: SolverComparison) -> None:
 
     task_id = str(uuid4())
     comparison.celery_task_id = task_id
+    soft_limit, hard_limit = compute_comparison_time_limits(
+        comparison.time_limit_seconds,
+        len(comparison.solver_names or []),
+        PSS.get_int(db, "SOLVER_DEFAULT_TIMEOUT"),
+    )
     try:
         run_solver_comparison.apply_async(
             kwargs={
@@ -403,6 +410,8 @@ def enqueue_comparison(db: Session, comparison: SolverComparison) -> None:
             },
             task_id=task_id,
             queue=COMPARISON_QUEUE,
+            soft_time_limit=soft_limit,
+            time_limit=hard_limit,
         )
         db.commit()
     except Exception as exc:

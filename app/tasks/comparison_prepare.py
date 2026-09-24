@@ -234,10 +234,19 @@ def _queue_solving(db: Any, comparison: Any) -> None:
     """
     from app.domains.solver.queue_routing import COMPARISON_QUEUE  # noqa: PLC0415
     from app.domains.solver.tasks.comparison_tasks import run_solver_comparison  # noqa: PLC0415
+    from app.domains.solver.time_limits import compute_comparison_time_limits  # noqa: PLC0415
+    from app.services.platform_settings_service import (  # noqa: PLC0415
+        PlatformSettingsService as PSS,
+    )
 
     task_id = str(uuid4())
     comparison.celery_task_id = task_id
     db.commit()
+    soft_limit, hard_limit = compute_comparison_time_limits(
+        comparison.time_limit_seconds,
+        len(comparison.solver_names or []),
+        PSS.get_int(db, "SOLVER_DEFAULT_TIMEOUT"),
+    )
     run_solver_comparison.apply_async(
         kwargs={
             "comparison_id": comparison.id,
@@ -245,6 +254,8 @@ def _queue_solving(db: Any, comparison: Any) -> None:
         },
         task_id=task_id,
         queue=COMPARISON_QUEUE,
+        soft_time_limit=soft_limit,
+        time_limit=hard_limit,
     )
 
 

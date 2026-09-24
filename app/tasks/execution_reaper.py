@@ -247,6 +247,13 @@ def _comparison_still_alive(
     ):
         return False
 
+    return not _comparison_budget_spent(db, comparison, now, running_max)
+
+
+def _comparison_budget_spent(
+    db: Session, comparison: SolverComparison, now: datetime, running_max: int
+) -> bool:
+    """Whether a comparison has run past every second it could legitimately need."""
     planned = max(1, len(comparison.solver_names or []))
     budget = planned * float(comparison.time_limit_seconds) + running_max
 
@@ -263,7 +270,69 @@ def _comparison_still_alive(
         budget = max(1, rows) * planned * float(comparison.time_limit_seconds) + running_max
 
     parent_age = (now - (comparison.started_at or comparison.created_at)).total_seconds()
-    return parent_age <= budget
+    return parent_age > budget
+
+
+def reap_stale_comparisons(db: Session) -> dict[str, Any]:
+    """Close comparisons whose task died and whose columns are all settled.
+
+    The execution sweep fails a stuck comparison's columns once the parent's
+    budget is spent, but nothing wrote the parent itself: the comparison page
+    and the matrix said "running" for good. Commits per row.
+    """
+    running_max = PSS.get_int(db, "EXECUTION_REAPER_RUNNING_MAX_SECONDS")
+    now = utcnow()
+    summary: dict[str, Any] = {"scanned": 0, "failed": 0, "errors": 0}
+    candidates = (
+        db.query(SolverComparison)
+        .filter(
+            SolverComparison.status.in_(
+                [ComparisonStatus.PENDING.value, ComparisonStatus.RUNNING.value]
+            ),
+            SolverComparison.created_at < now - timedelta(seconds=running_max),
+        )
+        .order_by(SolverComparison.created_at)
+        .limit(_MAX_ROWS_PER_SWEEP)
+        .all()
+    )
+    summary["scanned"] = len(candidates)
+    for comparison in candidates:
+        try:
+            if not _comparison_budget_spent(db, comparison, now, running_max):
+                continue
+            open_column = (
+                db.query(ModelExecution.id)
+                .filter(
+                    ModelExecution.comparison_id == comparison.id,
+                    ModelExecution.status.in_(
+                        [ExecutionStatus.PENDING.value, ExecutionStatus.RUNNING.value]
+                    ),
+                )
+                .first()
+            )
+            if open_column is not None:
+                continue  # the execution sweep settles the columns first
+            db.refresh(comparison, with_for_update={"of": SolverComparison})
+            if comparison.status not in (
+                ComparisonStatus.PENDING.value,
+                ComparisonStatus.RUNNING.value,
+            ):
+                continue
+            comparison.status = ComparisonStatus.FAILED.value
+            comparison.completed_at = now
+            comparison.error_message = (
+                "The comparison stopped without finishing and ran past its time budget; "
+                "its worker was probably restarted or killed."
+            )
+            db.commit()
+            summary["failed"] += 1
+        except Exception as exc:
+            db.rollback()
+            summary["errors"] += 1
+            logger.error("Reaper failed on comparison %s: %s", comparison.id, exc, exc_info=True)
+    if summary["failed"] or summary["errors"]:
+        logger.info("Comparison reaper sweep: %s", summary)
+    return summary
 
 
 def _reap_one(
@@ -606,12 +675,19 @@ def reap_stale_executions_task(self: Any) -> dict[str, Any]:
             db.rollback()
             trigger_runs["errors"] += 1
 
+        try:
+            reap_stale_comparisons(db)
+        except Exception as exc:
+            logger.error("Comparison sweep failed: %s", exc, exc_info=True)
+            db.rollback()
+
         return {**executions, "trigger_runs": trigger_runs}
     finally:
         db.close()
 
 
 __all__ = [
+    "reap_stale_comparisons",
     "reap_stale_executions",
     "reap_stale_trigger_runs",
     "reap_stale_executions_task",
