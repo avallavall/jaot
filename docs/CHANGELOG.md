@@ -42,6 +42,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **SCIP said "infeasible" when it had only run out of time.** A hard model that found no solution before its time limit now reports the time limit and the bound it proved, like the other solvers.
 - **HiGHS threw away the answer it held when the time limit hit.** It now returns that answer with its bound and gap.
 - **HiGHS called an unbounded model infeasible.** It now checks once more and reports which one it is.
+- **GLPK called an unbounded integer model an error.** It now says unbounded, like the other three solvers.
 - **SCIP reported a gap of 10^20 on some runs**, and measured its gap differently from the other solvers. All four now use the same formula.
 - **A coefficient written like `5e-05` made validation refuse the model**, so imported files with very small or very large numbers could not be solved.
 - **Warm start ignored a run that stopped at its time limit**, which is the main reason to warm start. It now carries on from the answer that run held.

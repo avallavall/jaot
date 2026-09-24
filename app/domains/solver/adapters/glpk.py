@@ -97,6 +97,10 @@ _VERDICTS: tuple[tuple[str, SolverStatus], ...] = (
     ("LP RELAXATION HAS NO DUAL FEASIBLE SOLUTION", SolverStatus.UNBOUNDED),
     ("PROBLEM HAS NO DUAL FEASIBLE SOLUTION", SolverStatus.UNBOUNDED),
     ("PROBLEM HAS UNBOUNDED SOLUTION", SolverStatus.UNBOUNDED),
+    # An integer model whose LP relaxation is unbounded. glpsol stops there,
+    # writes "INTEGER UNDEFINED" and exits 0; with no known verdict the run
+    # was reported as an error while the other three solvers said unbounded.
+    ("LP HAS UNBOUNDED PRIMAL SOLUTION", SolverStatus.UNBOUNDED),
 )
 
 

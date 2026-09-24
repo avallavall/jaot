@@ -15,6 +15,7 @@ same small model (2026-09-24):
 - HiGHS threw away the answer it held when the time limit hit.
 - HiGHS called an unbounded model "infeasible".
 - SCIP reported a gap of 1e20 where the others reported 1.0.
+- GLPK called an unbounded integer model an error.
 """
 
 from __future__ import annotations
@@ -168,12 +169,10 @@ def test_a_time_limited_run_returns_the_answer_it_holds(adapter) -> None:
     assert result.gap <= 1.0
 
 
-@pytest.mark.parametrize("name", ["scip", "highs", "cbc"])
-def test_an_unbounded_model_is_called_unbounded(name) -> None:
-    solver = ADAPTERS[name]()
-    if not solver.is_available():
-        pytest.skip(f"{name} is not installed here")
-    result = solver.solve(
+def test_an_unbounded_model_is_called_unbounded(adapter) -> None:
+    # GLPK said "error" here: glpsol prints "LP HAS UNBOUNDED PRIMAL SOLUTION"
+    # for an integer model, and the adapter did not know that line.
+    result = adapter.solve(
         _problem(
             [Variable(name="x", type=VariableType.INTEGER, lower_bound=0), _continuous("y")],
             ObjectiveSense.MAXIMIZE,
