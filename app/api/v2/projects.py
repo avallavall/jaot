@@ -1056,8 +1056,8 @@ def list_project_versions(
     user: CurrentUser,
     org: CurrentOrg,
     _ws: OptionalRequireViewer,
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
 ) -> list[ModelProjectVersion]:
     """List a project's committed versions (newest first)."""
     _project_or_404(db, project_id, org, user)

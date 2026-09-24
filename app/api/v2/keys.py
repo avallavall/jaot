@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
 
 from app.api.deps import DBSession
@@ -99,8 +99,10 @@ def create_api_key(
 @router.get("/", response_model=KeyListResponse)
 def list_api_keys(
     db: DBSession,
-    page: int = 1,
-    page_size: int = 20,
+    # Bounded: page=0 or a negative page_size became a negative OFFSET or
+    # LIMIT, which PostgreSQL refuses, and the client got a 500.
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1),
     search: str | None = None,
     is_active: bool | None = None,
     current_user: User = Depends(get_current_user),

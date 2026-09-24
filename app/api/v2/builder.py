@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 from sqlalchemy import desc
 
 from app.api.deps import (
@@ -82,8 +82,8 @@ def list_documents(
     db: DBSession,
     org: CurrentOrg,
     _ws: OptionalRequireViewer,
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
 ) -> list[ModelBuilderDocument]:
     """Return all active builder documents for the current organization, newest first."""
     docs = (

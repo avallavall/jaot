@@ -8,7 +8,7 @@ Import deps from app.api.deps (NOT app.api.v2.deps).
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import desc
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession
@@ -55,8 +55,8 @@ def list_versions(
     document_id: str,
     db: DBSession,
     org: CurrentOrg,
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
 ) -> list[ModelVersion]:
     """Return version list for a document (newest first, no canvas_json)."""
     builder_document_or_404(db, document_id, org.id)
