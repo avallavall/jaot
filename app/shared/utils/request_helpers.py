@@ -18,10 +18,10 @@ from starlette.requests import Request
 #: 3. ``X-Forwarded-For`` — kept last and deliberately so: proxies *append* to
 #:    it, so the first entry is whatever the caller put there. It is a fallback
 #:    for a self-host fronted by neither of the above, not a source of truth.
-_CLIENT_IP_HEADER_NAMES = ("x-real-ip", "cf-connecting-ip", "x-forwarded-for")
+CLIENT_IP_HEADER_NAMES = ("x-real-ip", "cf-connecting-ip", "x-forwarded-for")
 #: Same list, pre-encoded: the ASGI scope carries header names as bytes, and this
 #: runs on the anonymous rate-limit path for every public request.
-_CLIENT_IP_HEADERS = tuple(name.encode() for name in _CLIENT_IP_HEADER_NAMES)
+_CLIENT_IP_HEADERS = tuple(name.encode() for name in CLIENT_IP_HEADER_NAMES)
 
 
 def _is_private_or_loopback(ip: str) -> bool:
@@ -97,7 +97,7 @@ def get_client_ip_from_headers(headers: Mapping[str, str]) -> str | None:
     an ASGI scope — and it had grown its own copy of the defect this module
     exists to prevent (first hop of ``X-Forwarded-For``, no questions asked).
     """
-    for header in _CLIENT_IP_HEADER_NAMES:
+    for header in CLIENT_IP_HEADER_NAMES:
         value = headers.get(header)
         if value:
             parsed = _parse_hop(value)

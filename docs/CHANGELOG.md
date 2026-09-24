@@ -82,6 +82,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **Anonymous calls through the MCP server skipped the per-address limit** that every other public request has. Each tool call now counts against the caller's own address.
 - **Guessing a password in a fast burst got far more than five tries before the account locked**, because simultaneous failures overwrote each other's count. Every failed attempt now counts.
 - **Workspace invites by email were never sent, and their secret link was written to the server log.** Anyone in the organization who could read the log could join with the invite's role. The link is now emailed and never logged, and only the invited address can accept it.
 - **Forum sign-in trusted an email address JAOT had not verified**, so someone who signed up with another person's address could claim that person's forum account. The forum now checks such an address itself.

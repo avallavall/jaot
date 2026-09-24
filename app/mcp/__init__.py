@@ -24,7 +24,7 @@ from fastapi import FastAPI
 from fastapi_mcp import FastApiMCP
 
 from app.shared.constants.event_types import MCP_TOOL_CALL
-from app.shared.utils.request_helpers import get_client_ip_from_headers
+from app.shared.utils.request_helpers import CLIENT_IP_HEADER_NAMES, get_client_ip_from_headers
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,12 @@ def setup_mcp(app: FastAPI) -> FastApiMCP:
         ],
         describe_all_responses=True,
         describe_full_response_schema=True,
+        # The client-address headers travel with each tool call. fastapi-mcp runs
+        # a tool as an in-process request from 127.0.0.1 and forwarded only
+        # `authorization`, so every anonymous MCP call looked like trusted
+        # internal traffic and skipped the per-address limit on public routes:
+        # `validate_problem` and the catalog tools could be called without end.
+        headers=["authorization", *CLIENT_IP_HEADER_NAMES],
     )
     _install_tool_call_analytics(mcp)
     _fix_server_identity(mcp, app)

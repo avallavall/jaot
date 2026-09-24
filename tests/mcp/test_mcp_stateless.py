@@ -111,3 +111,21 @@ def test_session_manager_runs_stateless(mcp_client, mcp_app):
         "manager is session-bound: sessions live in one worker's dict and the "
         "other workers answer 404 Session not found"
     )
+
+
+def test_tool_calls_carry_the_callers_address():
+    """# CONTRACT-TEST: an MCP tool call is rate-limited by the caller's address.
+
+    fastapi-mcp runs a tool as an in-process request from 127.0.0.1 and
+    forwarded only ``authorization``. With no forwarding header on a loopback
+    request, every anonymous tool call counted as trusted internal traffic and
+    skipped the per-address limit on public routes.
+    """
+    from fastapi import FastAPI
+
+    from app.mcp import setup_mcp
+    from app.shared.utils.request_helpers import CLIENT_IP_HEADER_NAMES
+
+    mcp = setup_mcp(FastAPI())
+    forwarded = mcp._forward_headers  # fastapi-mcp's own allowlist
+    assert {"authorization", *CLIENT_IP_HEADER_NAMES} <= forwarded
