@@ -1,3 +1,4 @@
+import { apiDate } from "@/lib/dates";
 import type { AnalyticsFilters, Period } from "./analytics-types";
 
 export const EVENT_TYPES = [
@@ -95,9 +96,21 @@ export function truncateId(id: string, len = 8): string {
   return id.length > len ? id.slice(0, len) + "..." : id;
 }
 
-export function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+/**
+ * A day on a chart axis, in the page's language.
+ *
+ * It followed the browser's language instead. A bare day such as "2026-09-20"
+ * is also midnight UTC, so west of Greenwich it was drawn as the 19th: it is
+ * formatted in UTC. A full timestamp goes through `apiDate`.
+ */
+export function formatDate(dateStr: string, locale?: string): string {
+  const dayOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
+  const d = dayOnly ? new Date(`${dateStr}T00:00:00Z`) : apiDate(dateStr);
+  return d.toLocaleDateString(locale, {
+    month: "short",
+    day: "numeric",
+    ...(dayOnly ? { timeZone: "UTC" } : {}),
+  });
 }
 
 export function computeDelta(

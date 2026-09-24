@@ -6,7 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import type { RegistryEntry } from "@/lib/api";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { apiDate } from "@/lib/dates";
 
 export interface SettingFieldProps {
   entry: RegistryEntry;
@@ -32,6 +33,7 @@ export function SettingField({
   disabled = false,
 }: SettingFieldProps) {
   const t = useTranslations("admin.settings");
+  const locale = useLocale();
 
   // Only worth showing when it differs from what the field already displays,
   // and never for secrets (the value is masked, so a default tells nothing).
@@ -153,10 +155,10 @@ export function SettingField({
       {lastChangedBy && lastChangedAt && (
         <p className="text-xs text-muted-foreground/70 italic">
           {t("lastChanged", {
-            date: new Intl.DateTimeFormat(undefined, {
+            date: new Intl.DateTimeFormat(locale, {
               dateStyle: "medium",
               timeStyle: "short",
-            }).format(new Date(lastChangedAt)),
+            }).format(apiDate(lastChangedAt)),
             user: lastChangedBy,
           })}
         </p>

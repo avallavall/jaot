@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -38,12 +38,13 @@ const STACKED_COLORS = [
 ];
 
 function buildGroupedData(
-  entries: ReadonlyArray<GroupedTimeSeriesEntry>
+  entries: ReadonlyArray<GroupedTimeSeriesEntry>,
+  locale: string
 ): { data: Record<string, string | number>[]; keys: string[] } {
   const keySet = new Set<string>();
   const data = entries.map((entry) => {
     const row: Record<string, string | number> = {
-      label: formatDate(entry.date),
+      label: formatDate(entry.date, locale),
     };
     for (const [key, val] of Object.entries(entry.series)) {
       row[key] = val;
@@ -65,14 +66,15 @@ export function AnalyticsTimeline({
   onModeChange,
 }: AnalyticsTimelineProps) {
   const t = useTranslations("admin.featureAnalytics");
+  const locale = useLocale();
   const aggregateData = useMemo(
-    () => timeSeries.map((d) => ({ ...d, label: formatDate(d.date) })),
-    [timeSeries]
+    () => timeSeries.map((d) => ({ ...d, label: formatDate(d.date, locale) })),
+    [timeSeries, locale]
   );
 
   const grouped = useMemo(
-    () => buildGroupedData(groupedTimeSeries),
-    [groupedTimeSeries]
+    () => buildGroupedData(groupedTimeSeries, locale),
+    [groupedTimeSeries, locale]
   );
   const showGrouped = mode !== "aggregate" && grouped.data.length > 0;
 

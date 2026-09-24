@@ -21,7 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { SettingsAuditEntry } from "@/lib/api";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { apiDate } from "@/lib/dates";
 
 interface AuditLogTabProps {
   categories: string[];
@@ -29,6 +30,7 @@ interface AuditLogTabProps {
 
 export function AuditLogTab({ categories }: AuditLogTabProps) {
   const t = useTranslations("admin.settings");
+  const locale = useLocale();
   const [items, setItems] = useState<SettingsAuditEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -71,10 +73,12 @@ export function AuditLogTab({ categories }: AuditLogTabProps) {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Intl.DateTimeFormat(undefined, {
+    // The page's language, not the browser's; apiDate reads a naive API
+    // timestamp as UTC.
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: "medium",
       timeStyle: "short",
-    }).format(new Date(dateStr));
+    }).format(apiDate(dateStr));
   };
 
   return (

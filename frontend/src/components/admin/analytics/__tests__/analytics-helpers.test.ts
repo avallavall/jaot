@@ -6,6 +6,7 @@ import {
   formatEventType,
   relativeTime,
   type AnalyticsTranslator,
+  formatDate,
 } from "../analytics-helpers";
 
 /**
@@ -70,5 +71,25 @@ describe("feature analytics translations", () => {
       return typeof types?.[group]?.[leaf] !== "string";
     });
     expect(missing).toEqual([]);
+  });
+});
+
+describe("formatDate", () => {
+  // It followed the browser's language, and a bare day is midnight UTC, so
+  // west of Greenwich "2026-09-20" was drawn as the 19th.
+  it("writes the day in the page's language", () => {
+    expect(formatDate("2026-09-20", "es")).toMatch(/20.*sept/);
+    expect(formatDate("2026-09-20", "en")).toMatch(/Sep.*20/);
+  });
+
+  it("keeps a bare day on its own date west of Greenwich", () => {
+    const before = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      expect(formatDate("2026-09-01", "en")).toMatch(/Sep.*\b1\b/);
+      expect(formatDate("2026-09-01", "en")).not.toMatch(/Aug/);
+    } finally {
+      process.env.TZ = before;
+    }
   });
 });
