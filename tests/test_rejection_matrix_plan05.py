@@ -416,3 +416,34 @@ def test_delete_workspaces_returns_rejection(authenticated_client):
     assert resp.status_code in (403, 404), (
         f"DELETE workspace must reject; got {resp.status_code} {resp.text[:200]}"
     )
+
+
+class TestTheOwnerEditsTheOrganizationProfile:
+    """``is_admin`` meant PLATFORM admin, which signup never grants, so the owner
+    of an organization could not save its profile page."""
+
+    def test_the_owner_saves_and_reads_back_the_public_flag(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        test_organization.owner_user_id = test_user.id
+        db_session.commit()
+
+        saved = authenticated_client.patch(
+            "/api/v2/organizations/profile",
+            json={"bio": "We plan trucks.", "is_public_profile": True},
+        )
+        assert saved.status_code == 200, saved.text
+
+        profile = authenticated_client.get(f"/api/v2/organizations/{test_organization.id}/public")
+        assert profile.status_code == 200, profile.text
+        assert profile.json()["bio"] == "We plan trucks."
+        # The page loads its checkbox from here; it always read False.
+        assert profile.json()["is_public_profile"] is True
+
+    def test_a_member_who_is_not_the_owner_is_refused(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        response = authenticated_client.patch(
+            "/api/v2/organizations/profile", json={"bio": "Not mine to change"}
+        )
+        assert response.status_code == 403

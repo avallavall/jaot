@@ -17,6 +17,10 @@ class OrganizationPublicProfile(BaseModel):
     linkedin_url: str | None = None
     twitter_url: str | None = None
     is_verified: bool = False
+    # Listed in the public directory. The profile page reads it back into its
+    # checkbox; without it the box always loaded unchecked and every save of
+    # the page switched the listing off.
+    is_public_profile: bool = False
     created_at: datetime
     # Stats
     total_models_published: int = 0

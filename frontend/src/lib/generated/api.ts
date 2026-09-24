@@ -8763,6 +8763,11 @@ export interface components {
             /** Id */
             id: string;
             /**
+             * Is Public Profile
+             * @default false
+             */
+            is_public_profile: boolean;
+            /**
              * Is Verified
              * @default false
              */

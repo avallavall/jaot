@@ -54,6 +54,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A schedule whose model failed on every run never switched itself off.** Only a failure to queue the run was counted; a failed solve reset the count to zero.
 - **The minimum time between scheduled runs could be bypassed** depending on the minute the schedule was saved: `*/5 9 * * *` saved at 09:52 was accepted and then ran every five minutes each morning.
 - **Restoring an older version could throw away JModel text without asking**, and committing that text could report success without saving it, whenever the text did not change the compiled model (text that does not compile yet, or a comment). Both now treat the JModel source as part of the model.
+- **The owner of an organization could not save its profile page**, which answered "Only admins can update organization profile" to everyone except the operator of the instance. Its "public profile" box also always loaded unchecked, so saving the page switched the listing off.
 - **In the visual builder, a change to a coefficient alone did not make a new checkpoint**, so restoring an older version afterwards lost that change with no copy of it.
 - **Two commits at the same moment could create a duplicate version** and count versions wrongly.
 - **Copying a JModel-written model from the marketplace dropped its JModel source**, so the copy could not be run on your own data.

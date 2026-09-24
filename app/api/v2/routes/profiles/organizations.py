@@ -86,6 +86,7 @@ def get_organization_public_profile(
         linkedin_url=org.linkedin_url,
         twitter_url=org.twitter_url,
         is_verified=org.is_verified,
+        is_public_profile=bool(org.is_public_profile),
         created_at=org.created_at,
         total_models_published=total_models,
         total_activations=total_activations,
@@ -128,8 +129,14 @@ def update_organization_profile(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Only admins can update organization profile")
+    # The owner of the organization edits its profile. ``is_admin`` alone means
+    # PLATFORM admin, which signup never grants, so the only person who could
+    # save this page was the operator of the instance.
+    if not (current_user.is_admin or org.owner_user_id == current_user.id):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the owner of the organization can update its profile",
+        )
 
     if body.slug and body.slug != org.slug:
         existing = (
