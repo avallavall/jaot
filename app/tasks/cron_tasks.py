@@ -42,6 +42,7 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
         trigger = db.query(SolveTrigger).filter(SolveTrigger.id == trigger_id).first()
         if not trigger:
             logger.warning("cron_fire_task: trigger %s not found", trigger_id)
+            _retire_orphan_beat_task(db, trigger_id)
             return {"status": "skipped", "reason": "trigger_not_found"}
 
         schedule = (
@@ -49,6 +50,7 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
         )
         if not schedule:
             logger.warning("cron_fire_task: no schedule for trigger %s", trigger_id)
+            _retire_orphan_beat_task(db, trigger_id)
             return {"status": "skipped", "reason": "schedule_not_found"}
 
         # Beat fires on its own timetable, so this tick is spent whatever happens
@@ -64,6 +66,11 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
             logger.info("cron_fire_task: trigger/schedule disabled for %s", trigger_id)
             db.commit()
             return {"status": "skipped", "reason": "disabled"}
+
+        if not trigger_service.owner_is_active(db, trigger):
+            logger.info("cron_fire_task: owner of trigger %s is deactivated", trigger_id)
+            db.commit()
+            return {"status": "skipped", "reason": "owner_inactive"}
 
         # 2. Overlap check (CRON-07)
         active_cron_run = (
@@ -93,8 +100,10 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
         if error:
             _increment_failure_counter(db, schedule, trigger)
         else:
-            # Success: reset failure counter, update timestamps
-            schedule.consecutive_failures = 0
+            # Queued, not succeeded: the counter moves when the run settles
+            # (``record_cron_outcome``). Resetting it here wiped every failure
+            # the worker had counted, so a model that failed on every tick
+            # never reached the auto-disable threshold.
             schedule.last_run_at = utcnow()
 
         db.commit()
@@ -117,6 +126,44 @@ def cron_fire_task(self: Any, trigger_id: str) -> dict[str, Any]:
 
     finally:
         db.close()
+
+
+def record_cron_outcome(db: Any, schedule: Any, trigger: Any, *, failed: bool) -> None:
+    """Move the schedule's failure count when one of its runs settles."""
+    if failed:
+        _increment_failure_counter(db, schedule, trigger)
+    else:
+        schedule.consecutive_failures = 0
+
+
+def _retire_orphan_beat_task(db: Any, trigger_id: str) -> None:
+    """Delete the Beat entry of a trigger or schedule that no longer exists.
+
+    ``TriggerSchedule`` goes with its trigger by cascade, but the Beat
+    ``PeriodicTask`` has no foreign key to it. Deleting a trigger (or its
+    project, or its organization) left that entry enabled, and Beat kept sending
+    this task every tick, forever, to log "trigger not found".
+    """
+    try:
+        from sqlalchemy_celery_beat.models import (  # noqa: PLC0415
+            PeriodicTask,
+            PeriodicTaskChanged,
+        )
+
+        beat_task = (
+            db.query(PeriodicTask).filter(PeriodicTask.name == f"cron_trigger_{trigger_id}").first()
+        )
+        if beat_task is None:
+            return
+        db.delete(beat_task)
+        # commit=False: see _increment_failure_counter for why the default breaks
+        # the Session's own commit.
+        PeriodicTaskChanged.update_from_session(db, commit=False)
+        db.commit()
+        logger.info("cron_fire_task: removed the Beat entry of missing trigger %s", trigger_id)
+    except Exception:
+        logger.warning("Could not remove the Beat entry of trigger %s", trigger_id, exc_info=True)
+        db.rollback()
 
 
 def _increment_failure_counter(db: Any, schedule: Any, trigger: Any) -> None:

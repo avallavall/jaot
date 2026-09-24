@@ -313,8 +313,15 @@ class TestFailureEscalation:
         test_organization,
         test_user,
     ):
-        """Successful fire resets consecutive_failures to 0."""
+        """A run that SUCCEEDS resets consecutive_failures; queuing one does not.
+
+        The reset used to happen when the fire queued the run. A model that
+        failed in the worker on every tick then reset its own count on every
+        tick and never reached the auto-disable threshold. The count now moves
+        when the run settles (``trigger_tasks._settle_schedule``).
+        """
         from app.tasks.cron_tasks import cron_fire_task
+        from app.tasks.trigger_tasks import _settle_schedule
 
         doc = _make_real_doc(db_session, test_organization, test_user)
         ver = _make_real_version(db_session, doc)
@@ -322,30 +329,39 @@ class TestFailureEscalation:
         schedule = _make_real_schedule(db_session, trigger, consecutive_failures=3)
         db_session.commit()
 
-        ok_run = TriggerRun(
+        queued = TriggerRun(
             id=generate_id("trun_"),
             trigger_id=trigger.id,
             organization_id=trigger.organization_id,
-            status="completed",
+            status="pending",
             source="cron",
             override_data=None,
             execution_id=None,
             created_at=utcnow(),
         )
+        db_session.add(queued)
+        db_session.commit()
 
         mock_session_local.return_value = db_session
         with (
             patch.object(db_session, "close", lambda: None),
-            patch("app.services.trigger_service.fire_trigger", return_value=(ok_run, None)),
+            patch("app.services.trigger_service.fire_trigger", return_value=(queued, None)),
         ):
             cron_fire_task(trigger_id=trigger.id)
 
-        # Read fresh state from DB
-        fresh_schedule = (
-            db_session.query(TriggerSchedule).filter(TriggerSchedule.id == schedule.id).first()
-        )
-        assert fresh_schedule is not None
-        assert fresh_schedule.consecutive_failures == 0
+        def failures() -> int:
+            db_session.expire_all()
+            fresh = (
+                db_session.query(TriggerSchedule).filter(TriggerSchedule.id == schedule.id).first()
+            )
+            assert fresh is not None
+            return fresh.consecutive_failures
+
+        assert failures() == 3, "queuing a run is not a success"
+
+        queued.status = "completed"
+        _settle_schedule(db_session, trigger, queued)
+        assert failures() == 0
 
 
 class TestTierLimits:

@@ -1040,7 +1040,7 @@ class TestTriggersOnStudioModels:
     ):
         """The run must reach the model, not just the row. Asserted on the model
         the worker resolved, which is where the builder-only lookup used to end."""
-        from app.tasks.trigger_tasks import _pinned_model_json
+        from app.services.trigger_service import pinned_model_json as _pinned_model_json
 
         project, version = _create_studio_project(db_session, test_organization)
         trigger = SolveTrigger(
@@ -1070,7 +1070,7 @@ class TestTriggersOnStudioModels:
         object is therefore left unpersisted on purpose: what is pinned here is
         the worker's behaviour if it ever does happen, which must be to fail the
         run rather than solve an empty model."""
-        from app.tasks.trigger_tasks import _pinned_model_json
+        from app.services.trigger_service import pinned_model_json as _pinned_model_json
 
         project, _ = _create_studio_project(db_session, test_organization, committed=False)
         trigger = SolveTrigger(

@@ -28,9 +28,21 @@ class Queueable(Protocol):
 
     def delay(self, *args: Any, **kwargs: Any) -> Any: ...
 
+    def apply_async(self, *args: Any, **kwargs: Any) -> Any: ...
 
-def queue_after_commit(db: Session, task: Queueable, *args: Any, **kwargs: Any) -> None:
+
+def queue_after_commit(
+    db: Session,
+    task: Queueable,
+    *args: Any,
+    celery_options: dict[str, Any] | None = None,
+    **kwargs: Any,
+) -> None:
     """Call ``task.delay(*args, **kwargs)`` when ``db`` commits, never before.
+
+    ``celery_options`` (a queue, time limits) sends it with ``apply_async``
+    instead, so a job that must run on a particular worker can still wait for
+    the commit.
 
     Nothing is queued if the transaction rolls back instead. A broker that is
     down or absent is logged and swallowed: the committed row is the record of
@@ -52,7 +64,10 @@ def queue_after_commit(db: Session, task: Queueable, *args: Any, **kwargs: Any) 
             return
         settled = True
         try:
-            task.delay(*args, **kwargs)
+            if celery_options:
+                task.apply_async(args=args, kwargs=kwargs, **celery_options)
+            else:
+                task.delay(*args, **kwargs)
         except Exception:
             logger.warning("Could not queue %s after the commit", task.name, exc_info=True)
 

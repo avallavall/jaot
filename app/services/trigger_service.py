@@ -215,6 +215,140 @@ def fire_trigger(
     return run, None
 
 
+def owner_is_active(db: Session, trigger: SolveTrigger) -> bool:
+    """False when the organization, or the user who created the trigger, is off.
+
+    Deactivating an organization or deleting a user (a soft delete) cuts off
+    their sessions and API keys. The trigger secret is a credential too, and
+    cron fires need none: a deactivated account kept solving on schedule and
+    on every ``/fire`` until something noticed.
+    """
+    from app.models import Organization, User  # noqa: PLC0415
+
+    org = db.get(Organization, trigger.organization_id)
+    if org is None or not org.is_active:
+        return False
+    if trigger.created_by:
+        creator = db.get(User, trigger.created_by)
+        if creator is not None and not creator.is_active:
+            return False
+    return True
+
+
+def pinned_model_json(db: Session, trigger: SolveTrigger) -> dict[str, Any] | None:
+    """The model this trigger fires, whichever kind of model it pins.
+
+    ``None`` means the pinned version is gone — the caller fails the run rather
+    than solving something the trigger did not ask for.
+
+    A studio project pins a committed ``ModelProjectVersion``, which always
+    carries ``model_json``. A builder document pins a version snapshot, which may
+    not: those predate the column, so that path keeps its two fallbacks (the
+    document's own JSON, then the canvas as context).
+    """
+    if trigger.trigger_source == "project":
+        from app.models.model_project import ModelProjectVersion  # noqa: PLC0415
+
+        version = (
+            db.query(ModelProjectVersion)
+            .filter(ModelProjectVersion.id == trigger.model_project_version_id)
+            .first()
+        )
+        if not version:
+            return None
+        # `or {}` would turn "this version carries no model" into an empty problem,
+        # and the run would fail with "2 validation errors: variables, objective"
+        # — sending the operator to debug their overrides. None is the accurate
+        # answer, and the caller already reports it as a missing pinned version.
+        if not version.model_json:
+            return None
+        return dict(version.model_json)
+
+    from app.models.builder_document import ModelBuilderDocument  # noqa: PLC0415
+    from app.models.model_version import ModelVersion  # noqa: PLC0415
+
+    version = db.query(ModelVersion).filter(ModelVersion.id == trigger.version_id).first()
+    if not version:
+        return None
+    if version.model_json:
+        return dict(version.model_json)
+
+    doc = (
+        db.query(ModelBuilderDocument)
+        .filter(ModelBuilderDocument.id == trigger.document_id)
+        .first()
+    )
+    if doc and doc.model_json:
+        return dict(doc.model_json)
+    if version.canvas_json:
+        # Canvas JSON is not directly solvable but preserve it as context.
+        return {"canvas": version.canvas_json}
+    return {}
+
+
+def effective_solver(problem: Any) -> str:
+    """The solver a problem runs on: its own choice, ``auto`` resolved, else the default."""
+    from app.domains.solver.services.solver_service import SolverService  # noqa: PLC0415
+
+    name, _reason, _fallback = SolverService().resolve_effective_solver(
+        problem.solver_name, problem
+    )
+    return name
+
+
+def solve_dispatch(
+    db: Session,
+    trigger: SolveTrigger,
+    override_data: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """``(task kwargs, Celery options)`` for this trigger's solve.
+
+    Every other solve goes to its solver's queue with worker time limits derived
+    from its own limit. Triggered solves went to ``jaot_default``, the small
+    worker that sends email and webhooks and runs the reaper, with no limit at
+    all: one long triggered solve held it for hours, and a large one killed it
+    for memory.
+
+    Best effort: when the model cannot be built here, the task still runs on the
+    default queue and fails the run with the exact reason, which costs nothing.
+    """
+    from app.domains.solver.adapters.base import SolverNotFoundError  # noqa: PLC0415
+    from app.domains.solver.queue_routing import resolve_queue  # noqa: PLC0415
+    from app.domains.solver.time_limits import (  # noqa: PLC0415
+        compute_celery_time_limits,
+        resolve_solver_time_limit,
+    )
+    from app.schemas.optimization import OptimizationProblem  # noqa: PLC0415
+    from app.services.platform_settings_service import (  # noqa: PLC0415
+        PlatformSettingsService as PSS,
+    )
+
+    base = pinned_model_json(db, trigger)
+    if base is None:
+        return {}, {}
+    try:
+        problem = OptimizationProblem.model_validate(
+            apply_overrides(base, override_data or {}, trigger.override_schema)  # type: ignore[arg-type]
+        )
+        solver = effective_solver(problem)
+        queue = resolve_queue(solver)
+    except (ValueError, SolverNotFoundError):
+        return {}, {}
+
+    time_limit = problem.options.time_limit_seconds
+    ceiling = PSS.get_instance_limits(db)["max_solve_time_seconds"]
+    if ceiling > 0 and time_limit > ceiling:
+        time_limit = float(ceiling)
+    time_limit = resolve_solver_time_limit(
+        solver, time_limit, PSS.get_int(db, "hexaly_default_time_limit_seconds")
+    )
+    soft, hard = compute_celery_time_limits(time_limit, PSS.get_int(db, "SOLVER_DEFAULT_TIMEOUT"))
+    return (
+        {"solver_name": solver, "time_limit_seconds": time_limit},
+        {"queue": queue, "soft_time_limit": soft, "time_limit": hard},
+    )
+
+
 def _queue_solve_task(
     db: Session,
     run_id: str,
@@ -234,7 +368,19 @@ def _queue_solve_task(
     from app.shared.db.after_commit import queue_after_commit  # noqa: PLC0415
     from app.tasks.trigger_tasks import trigger_solve_task  # noqa: PLC0415
 
-    queue_after_commit(db, trigger_solve_task, run_id, trigger_id, override_data)
+    trigger = db.get(SolveTrigger, trigger_id)
+    task_kwargs, celery_options = (
+        solve_dispatch(db, trigger, override_data) if trigger is not None else ({}, {})
+    )
+    queue_after_commit(
+        db,
+        trigger_solve_task,
+        run_id,
+        trigger_id,
+        override_data,
+        celery_options=celery_options or None,
+        **task_kwargs,
+    )
     logger.debug("Queued trigger_solve_task for run %s (on commit)", run_id)
 
 

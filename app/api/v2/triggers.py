@@ -49,13 +49,14 @@ from app.schemas.trigger import (
     TriggerToggleRequest,
     TriggerUpdate,
 )
-from app.services import trigger_service
+from app.services import schedule_service, trigger_service
 from app.services.audit_service import log_action
 from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.rate_limiter import check_rate_limit
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
 from app.shared.utils.pagination import PaginatedResponse, create_paginated_response, paginate_query
+from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -511,6 +512,11 @@ def delete_trigger(
 ) -> None:
     """Hard-delete a trigger and all its runs (via CASCADE)."""
     trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.EDITOR)
+    # The schedule itself goes by cascade; its Beat entry has no foreign key and
+    # would keep firing for a trigger that no longer exists.
+    schedule = schedule_service.get_schedule_by_trigger(db, trigger.id)
+    if schedule is not None:
+        schedule_service.delete_schedule(db, schedule)
     log_action(
         db=db,
         organization_id=org.id,
@@ -579,11 +585,14 @@ def fire_trigger(
     - 409: Trigger is disabled
     - 422: Override validation failed (run still created with validation_failed status)
     """
-    # Rate limit before DB lookup to avoid wasting queries on throttled callers
+    # A per-address limit before any lookup, so guessing costs the guesser. The
+    # trigger's own budget is charged only after the secret matches: charged
+    # first, anyone who saw the fire URL could spend its 500 a day with a wrong
+    # secret and lock the real integration out until midnight.
     allowed, rate_info = check_rate_limit(
-        f"trigger_fire:{trigger_id}",
-        limit_per_minute=10,
-        limit_per_day=500,
+        f"trigger_fire_ip:{get_client_ip(request)}",
+        limit_per_minute=30,
+        limit_per_day=2000,
     )
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_info)
@@ -609,6 +618,20 @@ def fire_trigger(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid trigger secret",
+        )
+
+    allowed, rate_info = check_rate_limit(
+        f"trigger_fire:{trigger_id}",
+        limit_per_minute=10,
+        limit_per_day=500,
+    )
+    if not allowed:
+        raise HTTPException(status_code=429, detail=rate_info)
+
+    if not trigger_service.owner_is_active(db, trigger):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The organization or user that owns this trigger is deactivated.",
         )
 
     if not trigger.is_enabled:

@@ -27,6 +27,8 @@ def trigger_solve_task(
     run_id: str,
     trigger_id: str,
     override_data: dict[str, Any] | None,
+    solver_name: str | None = None,
+    time_limit_seconds: float | None = None,
 ) -> dict[str, Any]:
     """Execute a triggered solve run asynchronously.
 
@@ -47,6 +49,10 @@ def trigger_solve_task(
         run_id: TriggerRun PK to update.
         trigger_id: SolveTrigger PK.
         override_data: Override key-value pairs supplied by the caller.
+        solver_name: The effective solver, resolved when the run was queued so
+            the task landed on that solver's worker. ``None`` (a message queued
+            before this argument existed) resolves it here.
+        time_limit_seconds: The limit the Celery time limits were derived from.
 
     Returns:
         Dict with run status and summary.
@@ -86,13 +92,21 @@ def trigger_solve_task(
             )
             return {"status": run.status, "reason": "already_settled"}
 
+        from app.services import trigger_service  # noqa: PLC0415
+
+        if not trigger_service.owner_is_active(db, trigger):
+            _fail_run(db, run, "The organization or user that owns this trigger is deactivated")
+            _settle_schedule(db, trigger, run)
+            return {"status": "failed"}
+
         run.status = "running"
         db.commit()
         logger.info("TriggerRun %s started (trigger=%s)", run_id, trigger_id)
 
-        base_model_json = _pinned_model_json(db, trigger)
+        base_model_json = trigger_service.pinned_model_json(db, trigger)
         if base_model_json is None:
             _fail_run(db, run, "Pinned model version not found")
+            _settle_schedule(db, trigger, run)
             _deliver_webhook(trigger, run, "trigger.execution.failed")
             return {"status": "failed"}
 
@@ -114,8 +128,27 @@ def trigger_solve_task(
                 "OptimizationProblem validation failed for trigger run %s: %s", run_id, exc
             )
             _fail_run(db, run, f"Model validation failed: {exc}")
+            _settle_schedule(db, trigger, run)
             _deliver_webhook(trigger, run, "trigger.execution.failed")
             return {"status": "failed"}
+
+        # The instance caps every other solve is held to: the variable limit,
+        # the time-limit ceiling and the daily quota. Triggered solves skipped
+        # all three, so an operator's limits did not apply to anything fired
+        # from outside.
+        refusal = _instance_cap_refusal(db, trigger, problem)
+        if refusal is not None:
+            _fail_run(db, run, refusal)
+            _settle_schedule(db, trigger, run)
+            _deliver_webhook(trigger, run, "trigger.execution.failed")
+            return {"status": "failed"}
+        if time_limit_seconds is not None and time_limit_seconds > 0:
+            problem.options.time_limit_seconds = min(
+                problem.options.time_limit_seconds, time_limit_seconds
+            )
+        # The model's own solver. ``SolverService().solve(problem)`` without a
+        # name ran every triggered solve on SCIP, whichever solver it chose.
+        effective = solver_name or trigger_service.effective_solver(problem)
 
         from app.domains.solver.services.solver_service import SolverService  # noqa: PLC0415
         from app.shared.core.prometheus_metrics import (  # noqa: PLC0415
@@ -128,7 +161,7 @@ def trigger_solve_task(
         _solve_start = time.monotonic()
         ACTIVE_SOLVES.inc()
         try:
-            result = solver.solve(problem)
+            result = solver.solve(problem, solver_name=effective)
             _solve_elapsed = time.monotonic() - _solve_start
             SOLVE_DURATION.observe(_solve_elapsed)
             # Always use model_dump() — result is OptimizationResult (Pydantic model), not a dict
@@ -196,6 +229,7 @@ def trigger_solve_task(
             source_kind="trigger",
             source_id=trigger.id,
             started_at=start_datetime,
+            solver_name=effective,
         )
         db.add(model_execution)
         db.flush()
@@ -223,6 +257,7 @@ def trigger_solve_task(
         run.error_message = error_msg
         run.execution_time_ms = elapsed_ms
         run.completed_at = now
+        _settle_schedule(db, trigger, run)
         db.commit()
 
         if trigger.created_by:
@@ -291,55 +326,59 @@ def trigger_solve_task(
         db.close()
 
 
-def _pinned_model_json(db: Any, trigger: Any) -> dict[str, Any] | None:
-    """The model this trigger fires, whichever kind of model it pins.
+def _instance_cap_refusal(db: Any, trigger: Any, problem: Any) -> str | None:
+    """Why the instance caps refuse this solve, or None. Clamps the time limit in place."""
+    from fastapi import HTTPException  # noqa: PLC0415
 
-    ``None`` means the pinned version is gone — the caller fails the run rather
-    than solving something the trigger did not ask for.
-
-    A studio project pins a committed ``ModelProjectVersion``, which always
-    carries ``model_json``. A builder document pins a version snapshot, which may
-    not: those predate the column, so that path keeps its two fallbacks (the
-    document's own JSON, then the canvas as context).
-    """
-    if trigger.trigger_source == "project":
-        from app.models.model_project import ModelProjectVersion  # noqa: PLC0415
-
-        version = (
-            db.query(ModelProjectVersion)
-            .filter(ModelProjectVersion.id == trigger.model_project_version_id)
-            .first()
-        )
-        if not version:
-            return None
-        # `or {}` would turn "this version carries no model" into an empty problem,
-        # and the run would fail with "2 validation errors: variables, objective"
-        # — sending the operator to debug their overrides. None is the accurate
-        # answer, and the caller already reports it as a missing pinned version.
-        if not version.model_json:
-            return None
-        return dict(version.model_json)
-
-    from app.models.builder_document import ModelBuilderDocument  # noqa: PLC0415
-    from app.models.model_version import ModelVersion  # noqa: PLC0415
-
-    version = db.query(ModelVersion).filter(ModelVersion.id == trigger.version_id).first()
-    if not version:
-        return None
-    if version.model_json:
-        return dict(version.model_json)
-
-    doc = (
-        db.query(ModelBuilderDocument)
-        .filter(ModelBuilderDocument.id == trigger.document_id)
-        .first()
+    from app.models import Organization  # noqa: PLC0415
+    from app.services.platform_settings_service import (  # noqa: PLC0415
+        PlatformSettingsService as PSS,
     )
-    if doc and doc.model_json:
-        return dict(doc.model_json)
-    if version.canvas_json:
-        # Canvas JSON is not directly solvable but preserve it as context.
-        return {"canvas": version.canvas_json}
-    return {}
+    from app.services.solver_comparison_setup import enforce_instance_caps  # noqa: PLC0415
+    from app.shared.core.rate_limiter import check_rate_limit  # noqa: PLC0415
+
+    try:
+        capped = enforce_instance_caps(db, problem)
+    except HTTPException as exc:
+        detail = exc.detail
+        return detail.get("message") if isinstance(detail, dict) else str(detail)
+    problem.options.time_limit_seconds = capped.options.time_limit_seconds
+
+    daily = PSS.get_instance_limits(db)["max_daily_solves"]
+    org = db.get(Organization, trigger.organization_id)
+    if daily > 0 and org is not None:
+        allowed, _info = check_rate_limit(f"solve_daily:{org.id}", daily, daily)
+        if not allowed:
+            return (
+                f"Today's limit of {daily:,} solves has been reached, so this run did "
+                f"not solve. It resets tomorrow."
+            )
+    return None
+
+
+def _settle_schedule(db: Any, trigger: Any, run: Any) -> None:
+    """Count a settled cron run toward its schedule's auto-disable.
+
+    The counter used to move only when the fire itself failed, which for a cron
+    fire means a missing required override. A model that failed in the worker
+    on every tick reset it to zero on every enqueue, so the schedule never
+    disabled itself and "disabled after N consecutive failures" could not
+    happen for the reason it describes.
+    """
+    if getattr(run, "source", None) != "cron":
+        return
+    from app.models.trigger import TriggerSchedule  # noqa: PLC0415
+    from app.tasks.cron_tasks import record_cron_outcome  # noqa: PLC0415
+
+    schedule = db.query(TriggerSchedule).filter(TriggerSchedule.trigger_id == trigger.id).first()
+    if schedule is None:
+        return
+    try:
+        record_cron_outcome(db, schedule, trigger, failed=run.status == "failed")
+        db.commit()
+    except Exception:
+        logger.warning("Could not record the cron outcome of run %s", run.id, exc_info=True)
+        db.rollback()
 
 
 def _fail_run(db: Any, run: Any, error: str) -> None:

@@ -78,20 +78,42 @@ def validate_cron_expression(
         except StopIteration:
             break
 
-    # Enforce the configured floor between runs (0 = no floor).
-    if min_interval_minutes > 0 and len(next_runs) >= 2:
-        from datetime import datetime as dt_cls
-
-        t1 = dt_cls.fromisoformat(next_runs[0])
-        t2 = dt_cls.fromisoformat(next_runs[1])
-        diff_minutes = (t2 - t1).total_seconds() / 60
-        if diff_minutes < min_interval_minutes:
+    # Enforce the configured floor between runs (0 = no floor), over the tightest
+    # gap in the coming runs, not the first one. ``*/5 9 * * *`` created at 09:52
+    # has a first gap of about 23 hours and then fires every 5 minutes each
+    # morning; checking only the first gap let it through or not depending on
+    # the minute it was saved.
+    if min_interval_minutes > 0:
+        tightest = _tightest_gap_minutes(expression, now)
+        if tightest is not None and tightest < min_interval_minutes:
             raise ValueError(
-                f"Schedule fires too frequently ({int(diff_minutes)} min interval). "
+                f"Schedule fires too frequently ({int(tightest)} min interval). "
                 f"Minimum interval is {min_interval_minutes} minutes."
             )
 
     return {"valid": True, "next_runs": next_runs}
+
+
+#: How many upcoming runs the interval floor looks at. Enough for any pattern
+#: that repeats within a year at a daily or finer grain; CronSim yields them in
+#: microseconds.
+_INTERVAL_SAMPLE = 400
+
+
+def _tightest_gap_minutes(expression: str, start: datetime) -> float | None:
+    """The shortest time between two consecutive runs among the next few hundred."""
+    from cronsim import CronSim  # noqa: PLC0415
+
+    previous = None
+    tightest: float | None = None
+    for count, moment in enumerate(CronSim(expression, start)):
+        if previous is not None:
+            gap = (moment - previous).total_seconds() / 60
+            tightest = gap if tightest is None else min(tightest, gap)
+        previous = moment
+        if count >= _INTERVAL_SAMPLE:
+            break
+    return tightest
 
 
 def check_schedule_limit(db: Session, org_id: str) -> None:
