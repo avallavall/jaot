@@ -150,6 +150,27 @@ def _is_real_formulation(formulation: dict[str, Any] | None) -> bool:
     return bool(formulation.get("variables"))
 
 
+def _refuse_a_model_too_large_to_send(formulation: dict[str, Any] | None) -> None:
+    """Refuse, before anything is billed, a message whose model cannot fit the request."""
+    if not formulation:
+        return
+    from app.services.llm.prompt_templates import CHAT_FORMULATION_MAX_TOKENS  # noqa: PLC0415
+    from app.services.llm.token_estimation import estimate_tokens  # noqa: PLC0415
+
+    if estimate_tokens(json.dumps(formulation)) <= CHAT_FORMULATION_MAX_TOKENS:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+        detail={
+            "error": "model_too_large",
+            "message": (
+                "This model is too large for the AI assistant to work on. "
+                "It can still be edited and solved in the studio."
+            ),
+        },
+    )
+
+
 def _get_conversation_or_404(
     db: Session,
     conversation_id: str,
@@ -611,6 +632,8 @@ async def send_message(
                 "reason": "llm_monthly_budget_exhausted",
             },
         )
+
+    _refuse_a_model_too_large_to_send(conv.current_formulation)
 
     # LLM rate limiting
     allowed, rate_info = check_rate_limit(

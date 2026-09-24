@@ -60,6 +60,9 @@ class LLMErrorCode(str, Enum):
     # stream starts; the client names it instead of "something went wrong on
     # our side", which sent users retrying for the rest of the month.
     ASSISTANT_PAUSED = "assistant_paused"
+    # The conversation's model is too large to send with a message. Sent as a
+    # 413 before any stream starts, and before anything is billed.
+    MODEL_TOO_LARGE = "model_too_large"
 
     # --- Internal (generic message to user, detail in logs) ---
     SERVICE_UNAVAILABLE = "service_unavailable"
@@ -72,6 +75,7 @@ PUBLIC_CODES: frozenset[LLMErrorCode] = frozenset(
         LLMErrorCode.CONTENT_MODERATION,
         LLMErrorCode.PARAMETRIC_UNSUPPORTED,
         LLMErrorCode.ASSISTANT_PAUSED,
+        LLMErrorCode.MODEL_TOO_LARGE,
     }
 )
 

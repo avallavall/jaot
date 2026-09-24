@@ -1683,7 +1683,8 @@
         "validationFailed": "Ihre Formulierung konnte nicht validiert werden. Überprüfen Sie sie und versuchen Sie es erneut.",
         "contentModeration": "Ihre Nachricht wurde von der Inhaltsmoderation abgelehnt. Formulieren Sie sie um und versuchen Sie es erneut.",
         "parametricUnsupported": "Parametrische Formulierungen werden für diese Aktion noch nicht unterstützt.",
-        "assistantPaused": "Der KI-Assistent macht eine Pause: Das monatliche KI-Budget dieser Plattform ist erreicht. Er ist zu Beginn des nächsten Monats wieder da."
+        "assistantPaused": "Der KI-Assistent macht eine Pause: Das monatliche KI-Budget dieser Plattform ist erreicht. Er ist zu Beginn des nächsten Monats wieder da.",
+        "modelTooLarge": "Dieses Modell ist zu groß für den KI-Assistenten. Sie können es weiterhin im Studio bearbeiten und lösen."
       },
       "validation": {
         "errors": "{count, plural, one {# Fehler} other {# Fehler}}"

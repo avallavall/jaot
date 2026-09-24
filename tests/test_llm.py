@@ -757,6 +757,47 @@ class TestRefinementContext:
         assert msgs[4]["content"] == "refine"
 
 
+class TestAModelTooLargeToSend:
+    """A conversation whose model cannot fit a request is refused before the call.
+
+    Every message carries the whole current formulation. A studio conversation
+    seeded from a large project did not fit the model's context: the provider
+    refused every turn, and the user read "something went wrong on our side".
+    """
+
+    def test_the_message_is_refused_with_a_code_and_nothing_is_sent(
+        self, authenticated_client, db_session, test_conversation
+    ):
+        from app.models.llm_conversation import LLMMessage
+        from app.services.llm.prompt_templates import CHAT_FORMULATION_MAX_TOKENS
+
+        test_conversation.current_formulation = {
+            "problem_name": "huge",
+            "variables": [{"name": "x" * 40, "type": "continuous"}]
+            * (CHAT_FORMULATION_MAX_TOKENS // 8),
+        }
+        db_session.commit()
+        client = MagicMock()
+
+        with patch(
+            "app.services.llm.formulation_service.get_anthropic_client", return_value=client
+        ):
+            response = authenticated_client.post(
+                f"/api/v2/llm/conversations/{test_conversation.id}/messages",
+                json={"message": "Add a budget constraint"},
+            )
+
+        assert response.status_code == 413, response.text[:300]
+        assert response.json()["detail"]["error"] == "model_too_large"
+        assert client.messages.stream.call_count == 0
+        stored = (
+            db_session.query(LLMMessage)
+            .filter(LLMMessage.conversation_id == test_conversation.id)
+            .count()
+        )
+        assert stored == 0
+
+
 # Rate Limiting Tests (LLM-08)
 
 

@@ -1683,7 +1683,8 @@
         "validationFailed": "Votre formulation n'a pas pu être validée. Vérifiez-la et réessayez.",
         "contentModeration": "Votre message a été rejeté par la modération. Reformulez-le et réessayez.",
         "parametricUnsupported": "Les formulations paramétriques ne sont pas encore prises en charge pour cette action.",
-        "assistantPaused": "L'assistant IA fait une pause : le budget IA mensuel de cette plateforme est atteint. Il reviendra au début du mois prochain."
+        "assistantPaused": "L'assistant IA fait une pause : le budget IA mensuel de cette plateforme est atteint. Il reviendra au début du mois prochain.",
+        "modelTooLarge": "Ce modèle est trop grand pour que l'assistant IA puisse travailler dessus. Vous pouvez toujours le modifier et le résoudre dans le studio."
       },
       "validation": {
         "errors": "{count, plural, one {# erreur} other {# erreurs}}"

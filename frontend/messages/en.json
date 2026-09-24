@@ -1700,7 +1700,8 @@
         "validationFailed": "Your formulation could not be validated. Please review it and try again.",
         "contentModeration": "Your message was rejected by content moderation. Please rephrase and try again.",
         "parametricUnsupported": "Parametric formulations are not yet supported for this action.",
-        "assistantPaused": "The AI assistant is taking a short break: this platform's monthly AI budget has been reached. It will be back at the start of next month."
+        "assistantPaused": "The AI assistant is taking a short break: this platform's monthly AI budget has been reached. It will be back at the start of next month.",
+        "modelTooLarge": "This model is too large for the AI assistant to work on. You can still edit and solve it in the studio."
       },
       "validation": {
         "errors": "{count, plural, one {# error} other {# errors}}"

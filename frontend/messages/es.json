@@ -1683,7 +1683,8 @@
         "validationFailed": "No se ha podido validar tu formulación. Revísala e inténtalo de nuevo.",
         "contentModeration": "Tu mensaje ha sido rechazado por el filtro de contenido. Reformúlalo e inténtalo de nuevo.",
         "parametricUnsupported": "Las formulaciones paramétricas aún no se admiten para esta acción.",
-        "assistantPaused": "El asistente de IA se toma un descanso: se ha alcanzado el presupuesto mensual de IA de esta plataforma. Volverá a principios del mes que viene."
+        "assistantPaused": "El asistente de IA se toma un descanso: se ha alcanzado el presupuesto mensual de IA de esta plataforma. Volverá a principios del mes que viene.",
+        "modelTooLarge": "Este modelo es demasiado grande para que el asistente de IA trabaje con él. Puedes seguir editándolo y resolviéndolo en el estudio."
       },
       "validation": {
         "errors": "{count, plural, one {# error} other {# errores}}"

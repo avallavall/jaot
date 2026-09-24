@@ -17,6 +17,7 @@ export type LLMErrorCode =
   | "content_moderation"
   | "parametric_unsupported"
   | "assistant_paused"
+  | "model_too_large"
   | "service_unavailable"
   | "internal_error";
 
@@ -35,6 +36,7 @@ export const ERROR_I18N_KEY: Record<LLMErrorCode, string> = {
   content_moderation: "llm.error.contentModeration",
   parametric_unsupported: "llm.error.parametricUnsupported",
   assistant_paused: "llm.error.assistantPaused",
+  model_too_large: "llm.error.modelTooLarge",
   service_unavailable: "llm.error.serviceUnavailable",
   internal_error: "llm.error.internalError",
 };
@@ -86,6 +88,9 @@ export async function preStreamErrorCode(response: Response): Promise<LLMErrorCo
     if (d.reason === "llm_monthly_budget_exhausted" || d.error === "feature_not_available") {
       return "assistant_paused";
     }
+  }
+  if (response.status === 413 && detail && typeof detail === "object") {
+    if ((detail as { error?: unknown }).error === "model_too_large") return "model_too_large";
   }
   // The moderation refusal is a sentence; a schema error is a list of fields.
   if (response.status === 422 && typeof detail === "string") return "content_moderation";

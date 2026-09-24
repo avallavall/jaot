@@ -586,6 +586,14 @@ UI renders Markdown — never output raw HTML.
 # the formulation is sampled down to a representative head when it exceeds this. The
 # statistics block stays authoritative for the complete counts.
 MODEL_EXPLANATION_FORMULATION_MAX_TOKENS = 8000
+
+#: The most tokens the current formulation may take in a chat message. Every
+#: message carries the whole formulation, because the assistant answers with a
+#: whole new one: a sample, as the explanation uses, would come back as a model
+#: missing everything the sample left out. Past this size the request did not
+#: fit the model's context, the provider refused every turn, and the user read
+#: "something went wrong on our side".
+CHAT_FORMULATION_MAX_TOKENS = 150_000
 _FORMULATION_SAMPLE_LIST_ITEMS = 30
 _FORMULATION_SAMPLE_EXPR_CHARS = 500
 

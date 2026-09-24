@@ -20,6 +20,11 @@ describe("preStreamErrorCode", () => {
     expect(await preStreamErrorCode(response)).toBe("assistant_paused");
   });
 
+  it("names a model too large for the assistant to work on", async () => {
+    const response = refusal(413, { error: "model_too_large", message: "too large" });
+    expect(await preStreamErrorCode(response)).toBe("model_too_large");
+  });
+
   it("names a message the moderation filter refused", async () => {
     expect(await preStreamErrorCode(refusal(422, "Message not allowed"))).toBe(
       "content_moderation",
