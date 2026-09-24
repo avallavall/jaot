@@ -2546,7 +2546,7 @@
         "costPerConversation": "Coste / conversación",
         "messagesPerConversation": "Mensajes / conversación",
         "acceptanceRate": "Tasa de aceptación",
-        "acceptanceHint": "Conversaciones cuya formulación se guardó en un modelo",
+        "acceptanceHint": "Conversaciones tras las cuales se guardó el borrador del modelo",
         "thumbsUp": "Pulgares arriba",
         "thumbsDown": "Pulgares abajo"
       },

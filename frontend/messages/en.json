@@ -2546,7 +2546,7 @@
         "costPerConversation": "Cost / conversation",
         "messagesPerConversation": "Messages / conversation",
         "acceptanceRate": "Acceptance rate",
-        "acceptanceHint": "Conversations whose formulation was saved to a model",
+        "acceptanceHint": "Conversations after which the model's draft was saved",
         "thumbsUp": "Thumbs up",
         "thumbsDown": "Thumbs down"
       },

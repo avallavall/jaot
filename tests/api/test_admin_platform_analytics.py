@@ -329,8 +329,11 @@ class TestAiUsageService:
         project = _listed_project(db_session, test_organization.id, "general")
         c1 = _conv(db_session, test_organization.id, test_user.id, project_id=project.id)
         _conv(db_session, test_organization.id, test_user.id)  # not accepted
-        _msg(db_session, c1.id, input_tokens=100, output_tokens=50, cost=0.01)
+        proposal = _msg(db_session, c1.id, input_tokens=100, output_tokens=50, cost=0.01)
+        proposal.formulation_json = {"variables": []}
         _msg(db_session, c1.id, input_tokens=200, output_tokens=80, cost=0.02)
+        # The draft was saved after the assistant proposed the formulation.
+        project.draft_updated_at = utcnow() + timedelta(seconds=5)
         db_session.commit()
         out = svc.compute_ai_usage(db_session, days=30)
         assert out["conversations"] == 2
@@ -340,6 +343,48 @@ class TestAiUsageService:
         assert abs(out["total_cost_eur"] - 0.03) < 1e-6
         assert out["acceptance_rate"] == 0.5  # 1 of 2 conversations accepted
         assert out["orgs_using_ai"] == 1
+
+    # The studio links a conversation to its project when it opens it, so
+    # "linked to a project" made every studio chat an accepted one.
+    def test_a_studio_chat_whose_draft_was_never_saved_is_not_accepted(
+        self, db_session, test_organization, test_user
+    ):
+        project = _listed_project(db_session, test_organization.id, "general")
+        conv = _conv(db_session, test_organization.id, test_user.id, project_id=project.id)
+        proposal = _msg(db_session, conv.id)
+        proposal.formulation_json = {"variables": []}
+        db_session.commit()
+        out = svc.compute_ai_usage(db_session, days=30)
+        assert out["conversations"] == 1
+        assert out["acceptance_rate"] == 0.0
+
+    # The JModel generator books its spend in hidden "sys:" conversations.
+    # They are nobody's chat; their cost is real.
+    def test_ledger_conversations_are_not_chats_but_their_cost_counts(
+        self, db_session, test_organization, test_organization_2, test_user, test_user_2
+    ):
+        chat = _conv(db_session, test_organization.id, test_user.id)
+        _msg(db_session, chat.id, cost=0.01)
+        ledger = _conv(db_session, test_organization_2.id, test_user_2.id)
+        ledger.model_id = "sys:jmodel-ai"
+        _msg(db_session, ledger.id, cost=0.04)
+        _msg(db_session, ledger.id, cost=0.05)
+        db_session.commit()
+        out = svc.compute_ai_usage(db_session, days=30)
+        assert out["conversations"] == 1
+        assert out["orgs_using_ai"] == 1
+        assert out["messages"] == 1
+        assert abs(out["total_cost_eur"] - 0.10) < 1e-6
+
+    def test_the_spend_of_deleted_conversations_still_counts(self, db_session):
+        from app.models import LLMRetainedSpend
+
+        db_session.add(
+            LLMRetainedSpend(spent_at=utcnow(), cost_eur=Decimal("0.5"), reason="deleted")
+        )
+        db_session.commit()
+        out = svc.compute_ai_usage(db_session, days=30)
+        assert abs(out["total_cost_eur"] - 0.5) < 1e-6
 
     def test_thumbs(self, db_session, test_organization, test_user):
         c1 = _conv(db_session, test_organization.id, test_user.id)

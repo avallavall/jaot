@@ -2546,7 +2546,7 @@
         "costPerConversation": "Coût / conversation",
         "messagesPerConversation": "Messages / conversation",
         "acceptanceRate": "Taux d'acceptation",
-        "acceptanceHint": "Conversations dont la formulation a été enregistrée dans un modèle",
+        "acceptanceHint": "Conversations après lesquelles le brouillon du modèle a été enregistré",
         "thumbsUp": "Pouces haut",
         "thumbsDown": "Pouces bas"
       },

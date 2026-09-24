@@ -20,13 +20,14 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
 
 from app.models import (
     FormulationRating,
     LLMConversation,
     LLMMessage,
+    LLMRetainedSpend,
     ModelExecution,
     ModelProject,
     ModelProjectListing,
@@ -36,6 +37,7 @@ from app.models import (
     TriggerSchedule,
     User,
 )
+from app.services.llm.cost_tracking import LEDGER_MODEL_ID_PREFIX
 from app.shared.utils.datetime_helpers import utcnow
 
 # Hard cap for "all time" queries to prevent unbounded table scans.
@@ -371,7 +373,14 @@ def compute_reliability(db: Session, days: int) -> dict[str, Any]:
 def compute_ai_usage(db: Session, days: int) -> dict[str, Any]:
     """LLM adoption, token/cost totals, acceptance rate, and thumbs ratings."""
     cutoff = _cutoff(days)
-    conv_window = [LLMConversation.created_at >= cutoff]
+    # The "sys:" conversations are cost ledgers (the JModel generator books its
+    # spend there). They are nobody's chat, and they were counted as chats, as
+    # organizations using the assistant, and in messages per chat.
+    is_chat = or_(
+        LLMConversation.model_id.is_(None),
+        ~LLMConversation.model_id.startswith(LEDGER_MODEL_ID_PREFIX),
+    )
+    conv_window = [LLMConversation.created_at >= cutoff, is_chat]
 
     conversations = db.query(func.count(LLMConversation.id)).filter(*conv_window).scalar() or 0
     orgs_using_ai = (
@@ -380,22 +389,45 @@ def compute_ai_usage(db: Session, days: int) -> dict[str, Any]:
         .scalar()
         or 0
     )
-    # "Accepted" = the conversation got linked to a ModelProject (the studio
-    # writes model_project_id; the legacy organization_model_id column was
-    # never written by any flow).
+    # "Accepted" = the model's draft was saved after the assistant proposed a
+    # formulation in that conversation. It used to be "linked to a project",
+    # and the studio links a conversation when it opens it, so every studio
+    # chat counted as accepted and the rate was the share of studio chats.
+    first_proposal = (
+        db.query(
+            LLMMessage.conversation_id.label("conversation_id"),
+            func.min(LLMMessage.created_at).label("at"),
+        )
+        .filter(LLMMessage.role == "assistant", LLMMessage.formulation_json.isnot(None))
+        .group_by(LLMMessage.conversation_id)
+        .subquery()
+    )
     accepted = (
         db.query(func.count(LLMConversation.id))
-        .filter(*conv_window, LLMConversation.model_project_id.isnot(None))
+        .join(first_proposal, first_proposal.c.conversation_id == LLMConversation.id)
+        .join(ModelProject, ModelProject.id == LLMConversation.model_project_id)
+        .filter(*conv_window, ModelProject.draft_updated_at > first_proposal.c.at)
         .scalar()
         or 0
     )
 
     msg_window = [LLMMessage.created_at >= cutoff]
-    messages = db.query(func.count(LLMMessage.id)).filter(*msg_window).scalar() or 0
+    chat_messages = (
+        db.query(func.count(LLMMessage.id))
+        .join(LLMConversation, LLMConversation.id == LLMMessage.conversation_id)
+        .filter(*msg_window, is_chat)
+    )
+    messages = chat_messages.scalar() or 0
     total_input = db.query(func.sum(LLMMessage.input_tokens)).filter(*msg_window).scalar() or 0
     total_output = db.query(func.sum(LLMMessage.output_tokens)).filter(*msg_window).scalar() or 0
     total_cost = db.query(func.sum(LLMMessage.cost_eur)).filter(*msg_window).scalar()
-    total_cost_eur = float(total_cost) if total_cost is not None else 0.0
+    # Spend of conversations deleted since: gone from llm_messages, still billed.
+    retained = (
+        db.query(func.sum(LLMRetainedSpend.cost_eur))
+        .filter(LLMRetainedSpend.spent_at >= cutoff)
+        .scalar()
+    )
+    total_cost_eur = float(total_cost or 0) + float(retained or 0)
 
     rating_rows = (
         db.query(FormulationRating.rating, func.count(FormulationRating.id))

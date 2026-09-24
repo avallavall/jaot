@@ -2546,7 +2546,7 @@
         "costPerConversation": "Cost / conversa",
         "messagesPerConversation": "Missatges / conversa",
         "acceptanceRate": "Taxa d'acceptació",
-        "acceptanceHint": "Converses la formulació de les quals es va desar en un model",
+        "acceptanceHint": "Converses després de les quals es va desar l'esborrany del model",
         "thumbsUp": "Polzes amunt",
         "thumbsDown": "Polzes avall"
       },

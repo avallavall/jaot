@@ -2546,7 +2546,7 @@
         "costPerConversation": "Kosten / Konversation",
         "messagesPerConversation": "Nachrichten / Konversation",
         "acceptanceRate": "Akzeptanzrate",
-        "acceptanceHint": "Konversationen, deren Formulierung in einem Modell gespeichert wurde",
+        "acceptanceHint": "Konversationen, nach denen der Entwurf des Modells gespeichert wurde",
         "thumbsUp": "Daumen hoch",
         "thumbsDown": "Daumen runter"
       },
