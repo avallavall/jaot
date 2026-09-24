@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { Heart, Package, Shield, Star, Zap } from "lucide-react";
 
+import { Link, useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import type { ModelCatalogItem } from "@/lib/types";
 import { useTemplateTranslation } from "@/hooks/useTemplateTranslation";
@@ -35,6 +35,9 @@ export function MarketplaceModelCard({
   onToggleFavorite,
   onUseInStudio,
 }: MarketplaceModelCardProps) {
+  // Locale-aware: the plain next/link and window.location.href dropped the
+  // /es, /ca... prefix, and every click took a redirect to find it again.
+  const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("marketplace.card");
   const { categoryLabel } = useCommonLabels();
@@ -126,13 +129,13 @@ export function MarketplaceModelCard({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    window.location.href = `/marketplace/authors/${model.author_organization_id}`;
+                    router.push(`/marketplace/authors/${model.author_organization_id}`);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       e.stopPropagation();
-                      window.location.href = `/marketplace/authors/${model.author_organization_id}`;
+                      router.push(`/marketplace/authors/${model.author_organization_id}`);
                     }
                   }}
                 >

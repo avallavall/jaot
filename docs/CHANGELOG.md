@@ -36,6 +36,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A solver comparison shows how much searching each solver did, not only how long it took.** One small panel per solver: the nodes it explored, or the simplex iterations on a model with no tree, against the clock. The time chart says who was slower, and there are only two reasons — the loser explored far more of the tree, or each node cost it more. On a 220-item knapsack GLPK covered thirty-seven times more tree than SCIP, at twenty-eight times the rate; nothing on the page said so before. Every panel keeps its own vertical scale, because a node in one solver is not a node in another; the clock is the part they share, and a solver that reported only its final count gets a single dot rather than a curve.
 
 ### Fixed
+- **The author link on a marketplace card dropped the page language**, so a Spanish reader landed on the English author page after a redirect.
 - **HiGHS left the constant out of the objective.** For `3*x + 2*y + 100` it reported 2 where the other solvers reported 102. Automatic selection sends every linear model to HiGHS, so this was the default path.
 - **HiGHS solved a different model when a constraint named a variable on both sides.** A share rule such as `x_a >= 0.3*(x_a + x_b)` was dropped from the solve, and the answer came back "optimal". It now counts as one coefficient in every solver.
 - **Bounds on a yes/no variable were ignored by every solver.** A plant closed with an upper bound of 0 came back open.
@@ -100,6 +101,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **Frontend dependencies updated so `npm audit` reports nothing.** Tiptap 3.31.3 fixes an attribute injection in the rich text editor (GHSA-cp6q-959q-f8rh, GHSA-j95f-988m-3j2f), and the docs build no longer pulls a vulnerable TOML parser.
 - **Next.js updated to 16.3.6.** Versions from 16.0 to 16.3.2 allowed remote code execution through the image optimizer (GHSA-2xp9-vwfh-vxw4).
 - **A webhook could be sent to a service inside the server's network.** The address was checked, and then looked up a second time to connect, so a name that changed its answer between the two lookups passed the check. The webhook now goes to the address that was checked. Carrier-NAT addresses (also used by Tailscale) and multicast are now refused too.
 - **One refresh token could be used twice at the same moment**, giving two valid sessions. A copied token could then be used next to the real one. Refresh now rotates in one database statement.

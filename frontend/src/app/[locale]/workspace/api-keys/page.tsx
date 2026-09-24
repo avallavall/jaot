@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,28 +38,28 @@ export default function ClientAPIKeysPage() {
   // Set when the list could not be fetched. Without it a 5xx, a 429 or a
   // dropped connection rendered the empty state, so the page said "no keys"
   // and invited creating one more.
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [newKeyValue, setNewKeyValue] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
 
-  useEffect(() => {
-    loadKeys();
-  }, []);
-
-  const loadKeys = async () => {
+  const loadKeys = useCallback(async () => {
     setLoading(true);
-    setLoadError(null);
+    setLoadFailed(false);
     try {
       const data = await api.getKeys();
       setKeys(data || []);
-    } catch (err) {
-      setLoadError(getErrorMessage(err, t("loadError")));
+    } catch {
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadKeys();
+  }, [loadKeys]);
 
   const handleCreate = async () => {
     if (!newKeyName.trim()) return;
@@ -125,7 +125,7 @@ export default function ClientAPIKeysPage() {
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-busy="true"></div>
         </div>
-      ) : loadError ? (
+      ) : loadFailed ? (
         <div
           role="alert"
           className="flex flex-col items-center gap-4 rounded-lg border border-border py-12 text-center"

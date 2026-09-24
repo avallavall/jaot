@@ -40,8 +40,9 @@ export function AccountDataSection() {
     setDeleting(true);
     try {
       await api.deleteUserAccount(deletePassword);
-      // Redirect to homepage after deletion
-      window.location.href = "/";
+      // A full page load, not a client navigation: the account is gone, and
+      // nothing the app holds in memory about it may survive.
+      window.location.assign(new URL("/", window.location.origin).href);
     } catch (err) {
       dialog.showError(err instanceof Error ? err.message : t("deleteError"));
     } finally {
