@@ -94,6 +94,8 @@ from app.services.model_project_service import ProjectConflictError, ProjectNotP
 from app.services.model_stats_service import compute_cached
 from app.services.template_resolver import (
     ORIGIN_MARKETPLACE,
+    ORIGIN_TEMPLATE,
+    published_listing_id,
     resolve_static_listing,
     resolve_template_dict,
 )
@@ -238,7 +240,9 @@ def _seed_from_template(
     Either way the new project is born with a v1 commit so it has history from the
     first moment.
     """
-    template_dict, _origin = resolve_template_dict(template_id, db)
+    template_dict, origin = resolve_template_dict(template_id, db)
+    canvas_json: dict[str, Any] | None = None
+    dsl_source: str | None = None
     if template_dict is not None:
         input_data = (
             user_input if user_input is not None else (template_dict.get("example_input") or {})
@@ -250,12 +254,24 @@ def _seed_from_template(
         # matches "official_{id}", so the caller-supplied id may differ from the
         # listing's. Analytics + execute resolve forks through source_ref.
         source_ref = str(template_dict.get("id") or template_id)
+        # A marketplace fork asked for by the bare template id ("knapsack")
+        # resolves to the YAML card, whose id is not the listing's
+        # ("official_knapsack"). Stored as it was, the fork could not take input
+        # through /execute, was not counted as an adoption, left the listing's
+        # run statistics untouched, and could never be reviewed.
+        if source_type == ORIGIN_MARKETPLACE and origin == ORIGIN_TEMPLATE:
+            source_ref = published_listing_id(db, source_ref) or source_ref
     elif source_type == ORIGIN_MARKETPLACE:
         static = resolve_static_listing(template_id, db)
         if static is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
         listing, version = static
         problem_json = version.model_json
+        # The JModel source and the canvas travel with the model. Without the
+        # source a fork of a JModel-authored model could not be run on the
+        # adopter's own datasets ("This project has no JModel source").
+        canvas_json = version.canvas_json
+        dsl_source = version.dsl_source
         name = listing.display_name
         source_ref = listing.model_project_id
     else:
@@ -268,6 +284,8 @@ def _seed_from_template(
         user_id=user_id,
         name=name,
         problem_json=problem_json,
+        canvas_json=canvas_json,
+        dsl_source=dsl_source,
         source_type=source_type,
         source_ref=source_ref,
         auto_commit_summary=f"Created from {label} '{name}'",

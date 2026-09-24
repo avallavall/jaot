@@ -41,6 +41,11 @@ def content_hash(model_json: dict[str, Any] | None) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def _same_source(a: str | None, b: str | None) -> bool:
+    """Two JModel sources are the same text (no source and an empty one agree)."""
+    return (a or "") == (b or "")
+
+
 def draft_is_untouched(project: ModelProject) -> bool:
     """Is the draft still exactly what the project was seeded with?
 
@@ -326,19 +331,37 @@ def commit_version(
         raise ValueError("commit summary must not be empty")
 
     # Lock the project row up front to serialize sequence + current_version_id.
-    locked = db.query(ModelProject).filter(ModelProject.id == project.id).with_for_update().one()
+    # populate_existing: the request loaded this row before the lock, and without
+    # it the locked query hands back that same in-memory object unchanged. A
+    # second commit that waited on the lock then deduped against the HEAD it saw
+    # before waiting, and counted versions from a stale committed_count.
+    locked = (
+        db.query(ModelProject)
+        .populate_existing()
+        .filter(ModelProject.id == project.id)
+        .with_for_update()
+        .one()
+    )
 
     model_json = locked.draft_model_json or {}
     new_hash = content_hash(model_json)
+    new_source = dsl_source if dsl_source is not None else locked.draft_dsl_source
 
-    # No-op dedup: a commit that doesn't change the model returns the current HEAD.
+    # No-op dedup: a commit that changes neither the model nor its JModel source
+    # returns the current HEAD. The source counts on its own: text that does not
+    # compile yet, or compiles to the same model, is still the user's work, and
+    # comparing the model alone committed nothing and reported success.
     if locked.current_version_id:
         current = (
             db.query(ModelProjectVersion)
             .filter(ModelProjectVersion.id == locked.current_version_id)
             .first()
         )
-        if current is not None and current.content_hash == new_hash:
+        if (
+            current is not None
+            and current.content_hash == new_hash
+            and _same_source(current.dsl_source, new_source)
+        ):
             return current
 
     latest = _latest_version(db, locked.id)
@@ -356,7 +379,7 @@ def commit_version(
         parent_version_id=locked.current_version_id,
         model_json=model_json,
         canvas_json=canvas_json if canvas_json is not None else locked.draft_canvas_json,
-        dsl_source=dsl_source if dsl_source is not None else locked.draft_dsl_source,
+        dsl_source=new_source,
         content_hash=new_hash,
         commit_summary=clean_summary[:500],
         commit_body=body.strip() if body else None,
@@ -563,6 +586,7 @@ def checkout_into_draft(
     :class:`ProjectConflictError` is raised (→ 409) so the caller can confirm.
     """
     current_hash = None
+    current_source = None
     if project.current_version_id:
         current = (
             db.query(ModelProjectVersion)
@@ -570,10 +594,15 @@ def checkout_into_draft(
             .first()
         )
         current_hash = current.content_hash if current else None
+        current_source = current.dsl_source if current else None
 
-    draft_dirty = project.draft_content_hash is not None and project.draft_content_hash != (
-        current_hash or content_hash(None)
-    )
+    # The JModel source is part of what the draft holds. Autosave stores text
+    # edits that do not change the compiled model (broken text, comments), and a
+    # check on the model alone let a restore overwrite them without asking.
+    draft_dirty = (
+        project.draft_content_hash is not None
+        and project.draft_content_hash != (current_hash or content_hash(None))
+    ) or not _same_source(project.draft_dsl_source, current_source)
     if draft_dirty and not discard_draft:
         raise ProjectConflictError(
             "draft has uncommitted changes; pass discard_draft=true to overwrite"

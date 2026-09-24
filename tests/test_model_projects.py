@@ -693,3 +693,154 @@ class TestMigrationWiring:
         # query proves the 20260629_model_projects migration created the tables.
         assert db_session.query(ModelProject).count() >= 0
         assert db_session.query(ModelProjectVersion).count() >= 0
+
+
+class TestAJModelEditIsWorkEvenWhenTheModelDoesNotChange:
+    """# CONTRACT-TEST: restore and commit see a JModel-only edit.
+
+    Autosave stores a JModel text edit even when it does not change the compiled
+    model (broken text, a comment). Restore and commit compared the model alone,
+    so restore overwrote the text without asking and commit returned the old
+    HEAD as if the text were in it.
+    """
+
+    def _project_with_v1(self, client: TestClient) -> tuple[str, str]:
+        pid = _create_project(client)["id"]
+        client.put(
+            f"/api/v2/projects/{pid}/draft",
+            json={"model_json": _VALID_PROBLEM, "dsl_source": "var x;"},
+        )
+        v1 = client.post(f"/api/v2/projects/{pid}/commit", json={"summary": "v1"}).json()
+        return pid, v1["id"]
+
+    def test_restore_asks_before_overwriting_a_text_edit(self, authenticated_client):
+        pid, v1 = self._project_with_v1(authenticated_client)
+        edited = authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft",
+            json={"dsl_source": "var x;\n# forty lines that do not compile yet"},
+        )
+        assert edited.status_code == 200
+
+        refused = authenticated_client.post(f"/api/v2/projects/{pid}/versions/{v1}/restore")
+        assert refused.status_code == 409
+        kept = authenticated_client.get(f"/api/v2/projects/{pid}").json()
+        assert "forty lines" in kept["draft_dsl_source"]
+
+    def test_commit_records_a_text_edit(self, authenticated_client):
+        pid, v1 = self._project_with_v1(authenticated_client)
+        authenticated_client.put(
+            f"/api/v2/projects/{pid}/draft", json={"dsl_source": "var x; # annotated"}
+        )
+        v2 = authenticated_client.post(
+            f"/api/v2/projects/{pid}/commit", json={"summary": "annotate"}
+        ).json()
+        assert v2["id"] != v1
+        assert v2["dsl_source"] == "var x; # annotated"
+
+
+class TestAForkKeepsItsLinkAndItsSource:
+    """# CONTRACT-TEST: a marketplace fork points at its listing and carries its JModel source."""
+
+    def test_a_fork_by_the_bare_template_id_points_at_the_listing(
+        self, authenticated_client, db_session, test_organization
+    ):
+        from app.models.model_project import ModelProjectListing
+
+        db_session.add(
+            ModelProject(id="official_knapsack", organization_id=test_organization.id, name="k")
+        )
+        db_session.flush()
+        db_session.add(
+            ModelProjectListing(
+                model_project_id="official_knapsack",
+                name="knapsack",
+                display_name="Knapsack",
+                description="The official card",
+                generator_type="knapsack",
+                status="published",
+                is_public=True,
+            )
+        )
+        db_session.commit()
+
+        fork = authenticated_client.post("/api/v2/projects/from-marketplace/knapsack")
+        assert fork.status_code == 201, fork.text
+        stored = db_session.get(ModelProject, fork.json()["id"])
+        assert stored.source_type == "marketplace"
+        assert stored.source_ref == "official_knapsack"
+
+    def test_a_fork_of_a_jmodel_model_keeps_the_source(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        from app.models.model_project import ModelProjectListing
+        from app.services import model_project_service as svc
+
+        source = svc.create_seeded(
+            db_session,
+            org_id=test_organization.id,
+            user_id=test_user.id,
+            name="Written in JModel",
+            problem_json=_VALID_PROBLEM,
+            dsl_source="var x in [0, 10];\nmaximize x;\nsubject to c1: x <= 5;",
+            source_type="blank",
+            auto_commit_summary="v1",
+        )
+        db_session.add(
+            ModelProjectListing(
+                model_project_id=source.id,
+                name="jmodel-card",
+                display_name="JModel card",
+                description="A static listing written in JModel",
+                status="published",
+                is_public=True,
+                pinned_version_id=source.current_version_id,
+            )
+        )
+        db_session.commit()
+
+        fork = authenticated_client.post(f"/api/v2/projects/from-marketplace/{source.id}")
+        assert fork.status_code == 201, fork.text
+        assert fork.json()["draft_dsl_source"].startswith("var x in [0, 10];")
+
+
+def test_a_commit_that_loaded_the_project_before_another_commit_sees_the_new_head(
+    db_engine, db_session, test_organization, test_user
+):
+    """# CONTRACT-TEST: commit_version reads the locked row, not the copy it loaded earlier.
+
+    The lock query returned the identity-mapped object unchanged, so a second
+    commit deduped against the HEAD it had seen before waiting, created a copy
+    of the version that already held its content, and miscounted.
+    """
+    from sqlalchemy.orm import sessionmaker
+
+    from app.services import model_project_service as svc
+
+    project = svc.create_seeded(
+        db_session,
+        org_id=test_organization.id,
+        user_id=test_user.id,
+        name="Two tabs",
+        problem_json=_VALID_PROBLEM,
+        source_type="blank",
+        auto_commit_summary="v1",
+    )
+    db_session.commit()
+
+    make = sessionmaker(bind=db_engine, autoflush=False)
+    tab_a, tab_b = make(), make()
+    try:
+        stale = tab_a.get(ModelProject, project.id)  # tab A loads before B commits
+        edited = {**_VALID_PROBLEM, "constraints": [{"name": "c1", "expression": "x <= 4"}]}
+        fresh = tab_b.get(ModelProject, project.id)
+        svc.update_draft(tab_b, fresh, model_json=edited, expected_lock=None)
+        v2 = svc.commit_version(tab_b, fresh, user_id=test_user.id, summary="v2")
+        tab_b.commit()
+
+        again = svc.commit_version(tab_a, stale, user_id=test_user.id, summary="same content")
+        tab_a.commit()
+        assert again.id == v2.id, "a commit of unchanged content made a new version"
+        assert tab_a.get(ModelProject, project.id).committed_count == 2
+    finally:
+        tab_a.close()
+        tab_b.close()

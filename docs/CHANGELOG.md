@@ -53,6 +53,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Deleting a trigger left its schedule firing in the background forever.** The leftover entry is now removed on delete, and on its next tick for triggers deleted earlier.
 - **A schedule whose model failed on every run never switched itself off.** Only a failure to queue the run was counted; a failed solve reset the count to zero.
 - **The minimum time between scheduled runs could be bypassed** depending on the minute the schedule was saved: `*/5 9 * * *` saved at 09:52 was accepted and then ran every five minutes each morning.
+- **Restoring an older version could throw away JModel text without asking**, and committing that text could report success without saving it, whenever the text did not change the compiled model (text that does not compile yet, or a comment). Both now treat the JModel source as part of the model.
+- **Two commits at the same moment could create a duplicate version** and count versions wrongly.
+- **Copying a JModel-written model from the marketplace dropped its JModel source**, so the copy could not be run on your own data.
+- **Copying a marketplace model by its short name (`knapsack`) made a copy that lost its link to the listing.** It could not take new input, did not count as an adoption, and could not be reviewed.
 - **A model's star rating could stay wrong after moderation.** Deleting a review as an admin left its stars in the average, and hiding or showing a review did not change the average at all. Two reviews written at the same moment could also overwrite each other's effect.
 - **The admin author leaderboard gave one review as much weight as fifty**, and counted withdrawn models. It now averages the reviews themselves, like the public author page.
 - **A withdrawn model still showed its reviews and still accepted new ones.**

@@ -91,6 +91,12 @@ def listing_to_template_dict(listing: ModelProjectListing) -> dict[str, Any]:
     }
 
 
+def published_listing_id(db: Session, template_id: str) -> str | None:
+    """The id of the marketplace listing a template id stands for, or None."""
+    listing = _published_listing(db, template_id)
+    return listing.model_project_id if listing is not None else None
+
+
 def _published_listing(db: Session, model_id: str):  # noqa: ANN202
     """A published, public listing matched on the bare or ``official_``-prefixed id."""
     return (
