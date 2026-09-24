@@ -21,9 +21,12 @@ from app.models import ExecutionStatus, ModelExecution
 
 logger = logging.getLogger(__name__)
 
-#: Verdicts that carry a usable assignment. An infeasible or errored run has
-#: nothing to seed the next solve with.
-_USABLE_VERDICTS = frozenset({"optimal", "feasible"})
+#: Verdicts that can carry a usable assignment. An infeasible or errored run has
+#: nothing to seed the next solve with. A run stopped by its time limit is the
+#: main reason to warm start ("carry on from where it stopped"); it used to be
+#: refused here and the next solve silently ran cold. When it stopped before
+#: finding anything, the empty assignment below turns it down.
+_USABLE_VERDICTS = frozenset({"optimal", "feasible", "time_limit"})
 
 
 def load_warm_start_solution(

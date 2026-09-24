@@ -772,3 +772,39 @@ class TestMaxLengthValidation:
         assert resp.status_code != 422, (
             f"256-char name should pass validation, got {resp.status_code}: {resp.text[:200]}"
         )
+
+
+class TestWarmStartFromATimeLimitedRun:
+    """Carrying on from a run that hit its time limit is what warm start is for."""
+
+    @staticmethod
+    def _run(db_session, execution_id: str, solution: dict[str, float] | None) -> None:
+        from app.models import ModelExecution, Organization
+
+        if db_session.get(Organization, "org_warm_tl") is None:
+            db_session.add(Organization(id="org_warm_tl", name="Warm TL", is_active=True))
+            db_session.flush()
+        db_session.add(
+            ModelExecution(
+                id=execution_id,
+                organization_id="org_warm_tl",
+                input_data={"name": "warm"},
+                status="completed",
+                solver_status="time_limit",
+                result_data=OptimizationResult(
+                    status=SolverStatus.TIME_LIMIT,
+                    solution=solution,
+                    solve_time_seconds=60.0,
+                ).to_result_data(),
+            )
+        )
+        db_session.commit()
+
+    def test_the_answer_it_held_seeds_the_next_solve(self, db_session):
+        self._run(db_session, "exe_warm_tl_held", {"x": 3.0, "y": 1.0})
+        loaded = load_warm_start_solution(db_session, "exe_warm_tl_held", "org_warm_tl")
+        assert loaded == {"x": 3.0, "y": 1.0}
+
+    def test_a_run_that_found_nothing_seeds_nothing(self, db_session):
+        self._run(db_session, "exe_warm_tl_empty", None)
+        assert load_warm_start_solution(db_session, "exe_warm_tl_empty", "org_warm_tl") is None
