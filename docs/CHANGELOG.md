@@ -81,6 +81,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Large problems always failed on the advanced assistant model.** The step that splits a big problem into parts read the model's thinking as its answer.
 - **AI spend on a reply that did not finish was not counted.** A failed retry, a reply that did not validate, or a user who pressed Stop or closed the tab was billed by Anthropic and missing from the budget.
 - **Changing the AI budget took up to a minute to apply.** It now applies at once on the server that received the change.
+- **The task worker logged two errors every day** for two scheduled jobs of the old billing layer that no longer exist. Their schedule entries are removed.
 - **Numbers on screen followed the browser's language, not the page's.** A Spanish page on an English computer showed `1,234.5` in one place and `1.234,5` in another. All numbers now use the page's language.
 - **Dates on the admin pages followed the browser's language instead of the page's**, and the analytics chart could label a day as the day before for admins west of Greenwich.
 - **During a short server outage a running solve could be given up too early**, because the page sent several status checks at once and counted each failure. It now waits for one check to answer before it sends the next. The comparison and matrix pages do the same.
