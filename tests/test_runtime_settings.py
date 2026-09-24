@@ -549,3 +549,29 @@ class TestRegistrySeedability:
             "registry entries exceed the seed migration's column width "
             f"({self.SEED_COLUMN_LIMIT}): {too_long}"
         )
+
+
+class TestASecretSetInTheEnvironmentIsUsed:
+    """The Secrets tab says "Configured (env)" for a key in .env; it must be used too."""
+
+    def test_an_empty_database_row_falls_back_to_the_environment(self, db_session, monkeypatch):
+        monkeypatch.setenv("SMTP_PASSWORD", "from-the-env-file")
+        PSS.set(db_session, "SMTP_PASSWORD", "")
+        db_session.flush()
+
+        assert PSS.get_str(db_session, "SMTP_PASSWORD") == "from-the-env-file"
+        assert PSS.get_many(db_session, ["SMTP_PASSWORD"])["SMTP_PASSWORD"] == "from-the-env-file"
+
+    def test_a_value_in_the_database_still_wins(self, db_session, monkeypatch):
+        monkeypatch.setenv("SMTP_PASSWORD", "from-the-env-file")
+        PSS.set(db_session, "SMTP_PASSWORD", "from-the-panel")
+        db_session.flush()
+
+        assert PSS.get_str(db_session, "SMTP_PASSWORD") == "from-the-panel"
+
+    def test_an_ordinary_setting_never_reads_the_environment(self, db_session, monkeypatch):
+        monkeypatch.setenv("CONTACT_RECIPIENT", "someone@example.com")
+        PSS.set(db_session, "CONTACT_RECIPIENT", "")
+        db_session.flush()
+
+        assert PSS.get_str(db_session, "CONTACT_RECIPIENT") == ""

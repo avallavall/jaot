@@ -50,6 +50,21 @@ class MissingSettingError(RuntimeError):
         self.key = key
 
 
+def _secret_from_env(key: str) -> str:
+    """The environment's value for a secret setting whose database row is empty.
+
+    The Secrets tab shows "Configured (env)" for a key set in ``.env``, and the
+    missing-key error tells the operator to put it there. Only ``JWT_SECRET``
+    was ever read from it: an Anthropic key, an SMTP password or storage keys
+    set in ``.env`` were reported configured and never used. A value in the
+    database still wins.
+    """
+    definition = REGISTRY_BY_KEY.get(key)
+    if definition is None or not definition.is_secret:
+        return ""
+    return os.environ.get(key, "")
+
+
 class PlatformSettingsService:
     """Service to read/write platform settings."""
 
@@ -74,7 +89,7 @@ class PlatformSettingsService:
         """
         setting = db.query(PlatformSetting).filter(PlatformSetting.key == key).first()
         if setting:
-            return setting.value
+            return setting.value or _secret_from_env(key) or setting.value
 
         # Safety net: fall back to registry default_value
         definition = REGISTRY_BY_KEY.get(key)
@@ -84,7 +99,7 @@ class PlatformSettingsService:
                 "default. Run 'alembic upgrade head' to seed.",
                 key,
             )
-            return definition.default_value
+            return _secret_from_env(key) or definition.default_value
 
         raise MissingSettingError(key)
 
@@ -96,14 +111,14 @@ class PlatformSettingsService:
         for keys not found in the DB, same as get().
         """
         rows = db.query(PlatformSetting).filter(PlatformSetting.key.in_(keys)).all()
-        result = {row.key: row.value for row in rows}
+        result = {row.key: row.value or _secret_from_env(row.key) or row.value for row in rows}
 
         # Fill missing keys from registry defaults
         for key in keys:
             if key not in result:
                 definition = REGISTRY_BY_KEY.get(key)
                 if definition is not None and definition.default_value is not None:
-                    result[key] = definition.default_value
+                    result[key] = _secret_from_env(key) or definition.default_value
 
         return result
 
