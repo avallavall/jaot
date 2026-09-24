@@ -1760,6 +1760,7 @@
     "apiKeys": {
       "title": "API Keys",
       "subtitle": "Manage your API keys for programmatic access",
+      "loadError": "Your API keys could not be loaded. They have not been deleted.",
       "createKey": "Create Key",
       "yourApiKeys": "Your API Keys",
       "noKeysTitle": "No API keys yet",

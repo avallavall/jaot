@@ -1760,6 +1760,7 @@
     "apiKeys": {
       "title": "Clés API",
       "subtitle": "Gérez vos clés API pour l'accès programmatique",
+      "loadError": "Impossible de charger vos clés d'API. Elles n'ont pas été supprimées.",
       "createKey": "Créer une clé",
       "yourApiKeys": "Vos clés API",
       "noKeysTitle": "Aucune clé API pour le moment",

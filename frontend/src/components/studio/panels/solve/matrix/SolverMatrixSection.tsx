@@ -141,6 +141,9 @@ export function SolverMatrixSection() {
   // fix; the rest of the list is here because the endpoint always returned it
   // and nothing offered a way in. A matrix run before a model change is the
   // only thing that says what the change cost.
+  // The matrix the user asked to see. Answers for any other one are dropped.
+  const wantedBatchRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!isPersisted) return;
     let cancelled = false;
@@ -151,8 +154,9 @@ export function SolverMatrixSection() {
         setHistory(page.batches);
         const latest = page.batches[0];
         if (!latest) return;
+        wantedBatchRef.current = latest.batch_id;
         return api.solverComparison.batches.get(latest.batch_id).then((detail) => {
-          if (!cancelled) setBatch(detail);
+          if (!cancelled && wantedBatchRef.current === detail.batch_id) setBatch(detail);
         });
       })
       .catch(() => {
@@ -166,16 +170,24 @@ export function SolverMatrixSection() {
   async function openBatch(id: string) {
     if (id === batch?.batch_id) return;
     setOpenRow(null);
+    const previous = wantedBatchRef.current;
+    wantedBatchRef.current = id;
     try {
-      setBatch(await api.solverComparison.batches.get(id));
+      const detail = await api.solverComparison.batches.get(id);
+      if (wantedBatchRef.current === id) setBatch(detail);
     } catch (error) {
+      if (wantedBatchRef.current === id) wantedBatchRef.current = previous;
       toast.error(getErrorMessage(error, t("matrix.historyFailed")));
     }
   }
 
   const refresh = useCallback(async (batchId: string) => {
     try {
-      setBatch(await api.solverComparison.batches.get(batchId));
+      const detail = await api.solverComparison.batches.get(batchId);
+      // A poll that was in flight when another matrix was opened answers
+      // late; writing it switched the screen back to the old matrix and
+      // restarted its polling.
+      if (wantedBatchRef.current === batchId) setBatch(detail);
     } catch {
       // A dropped poll is not worth a toast — the next tick retries.
     }
@@ -214,6 +226,7 @@ export function SolverMatrixSection() {
         solver_names: selectedSolvers,
         settings: { time_limit_seconds: timeLimit, gap_tolerance: gapTolerance },
       });
+      wantedBatchRef.current = created.batch_id;
       setBatch(created);
       // Into the picker straight away, so the run that is happening right now
       // is the one the picker says is selected.

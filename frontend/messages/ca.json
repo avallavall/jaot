@@ -1760,6 +1760,7 @@
     "apiKeys": {
       "title": "Claus API",
       "subtitle": "Gestioneu les vostres claus API per a accés programàtic",
+      "loadError": "No s'han pogut carregar les teves claus d'API. No s'han esborrat.",
       "createKey": "Crear Clau",
       "yourApiKeys": "Les Teves Claus API",
       "noKeysTitle": "Encara no hi ha claus API",

@@ -35,6 +35,10 @@ export default function ClientAPIKeysPage() {
   const dialog = useDialog();
   const [keys, setKeys] = useState<APIKeyInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  // Set when the list could not be fetched. Without it a 5xx, a 429 or a
+  // dropped connection rendered the empty state, so the page said "no keys"
+  // and invited creating one more.
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [newKeyValue, setNewKeyValue] = useState<string | null>(null);
@@ -46,11 +50,12 @@ export default function ClientAPIKeysPage() {
 
   const loadKeys = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const data = await api.getKeys();
       setKeys(data || []);
-    } catch {
-      // Failed to load API keys
+    } catch (err) {
+      setLoadError(getErrorMessage(err, t("loadError")));
     } finally {
       setLoading(false);
     }
@@ -119,6 +124,16 @@ export default function ClientAPIKeysPage() {
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-busy="true"></div>
+        </div>
+      ) : loadError ? (
+        <div
+          role="alert"
+          className="flex flex-col items-center gap-4 rounded-lg border border-border py-12 text-center"
+        >
+          <p className="text-sm text-muted-foreground">{t("loadError")}</p>
+          <Button variant="outline" onClick={() => void loadKeys()}>
+            {tc("retry")}
+          </Button>
         </div>
       ) : keys.length === 0 ? (
         <EmptyState

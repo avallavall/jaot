@@ -67,6 +67,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The restore script could not restore an encrypted backup**, did nothing at all on an install without offsite storage, and could run a restore while the application was still writing to the database. All three are fixed.
 - **Forum sign-in failed for some users** with "Bad signature", when the signed data contained a character the address bar changes (a `~` in the name was enough).
 - **A contact-form message from an address with accents was lost without a trace.** An address such as `josé@ejemplo.es` stopped the delivery before it started, and the message stayed pending with no error and no alert.
+- **Opening another comparison while one was running could switch the screen back to the old one**, because a late answer for the old one overwrote the new one. Answers for a comparison you are no longer looking at are now ignored.
+- **The API keys page said you had no keys when the list failed to load.** It now says the list could not be loaded and offers a retry.
 - **Leaving a model in the studio within a second of an edit lost that edit.** The save waiting to go out was cancelled when the page changed, and nothing warned about it. It is now sent on the way out.
 - **The assistant said "Something went wrong on our side" when the monthly AI budget was spent or when a message was refused by the content filter.** It now says which one, so users stop retrying. In the studio, a second failure with the same cause also showed no message at all; every failure now shows.
 - **The assistant received every new message twice**, once before the current model and once after it, and each copy was billed.

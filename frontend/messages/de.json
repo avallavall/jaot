@@ -1760,6 +1760,7 @@
     "apiKeys": {
       "title": "API-Schlüssel",
       "subtitle": "Verwalten Sie Ihre API-Schlüssel für programmatischen Zugriff",
+      "loadError": "Deine API-Schlüssel konnten nicht geladen werden. Sie wurden nicht gelöscht.",
       "createKey": "Schlüssel erstellen",
       "yourApiKeys": "Ihre API-Schlüssel",
       "noKeysTitle": "Noch keine API-Schlüssel",

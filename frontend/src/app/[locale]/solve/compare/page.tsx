@@ -94,9 +94,14 @@ export default function SolverComparePage() {
     );
   }, [availableSolvers]);
 
+  // The comparison the page is meant to show. A poll for the one before (after
+  // Back, or a new start) answered late and put it on screen under the new URL.
+  const wantedIdRef = useRef<string | null>(null);
+
   const refresh = useCallback(async (id: string) => {
     try {
-      setComparison(await api.solverComparison.get(id));
+      const fetched = await api.solverComparison.get(id);
+      if (wantedIdRef.current === null || wantedIdRef.current === id) setComparison(fetched);
     } catch {
       // A dropped poll is not worth an error toast — the next tick retries.
     }
@@ -108,6 +113,7 @@ export default function SolverComparePage() {
   useEffect(() => {
     if (!idFromUrl || restoredRef.current === idFromUrl) return;
     restoredRef.current = idFromUrl;
+    wantedIdRef.current = idFromUrl;
     void refresh(idFromUrl);
   }, [idFromUrl, refresh]);
 
@@ -157,6 +163,7 @@ export default function SolverComparePage() {
           ? { project_id: projectId }
           : { problem: uploaded?.problem, uploaded_filename: uploaded?.filename }),
       });
+      wantedIdRef.current = created.id;
       setComparison(created);
       restoredRef.current = created.id;
       router.replace(`${pathname}?id=${created.id}`, { scroll: false });
