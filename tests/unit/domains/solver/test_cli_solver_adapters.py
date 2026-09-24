@@ -14,6 +14,7 @@ a skipped solver test proves nothing.
 from __future__ import annotations
 
 import random
+import sys
 
 import pytest
 
@@ -358,3 +359,49 @@ def test_a_negative_constant_objective_comes_back_negative(adapter) -> None:
 
     assert result.status is SolverStatus.OPTIMAL, result.error_message
     assert result.objective_value == pytest.approx(-3.0)
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="prctl is Linux-only")
+def test_a_solver_binary_dies_with_the_worker_that_started_it(tmp_path) -> None:
+    """# CONTRACT-TEST: killing the worker process stops the solver binary it launched.
+
+    A cancelled CBC or GLPK solve killed the Celery pool process only; the
+    binary it had started kept solving on the worker's CPUs until its own
+    time limit.
+    """
+    import multiprocessing
+    import os
+    import time
+
+    from app.domains.solver.adapters._cli_solver import run_binary
+
+    pid_file = tmp_path / "solver.pid"
+
+    def worker() -> None:
+        run_binary(["sh", "-c", f"echo $$ > {pid_file}; exec sleep 120"], timeout=300)
+
+    process = multiprocessing.get_context("fork").Process(target=worker)
+    process.start()
+    for _ in range(100):
+        if pid_file.exists() and pid_file.read_text().strip():
+            break
+        time.sleep(0.05)
+    solver_pid = int(pid_file.read_text().strip())
+
+    process.kill()  # what a revoke with terminate, or a hard time limit, does
+    process.join()
+
+    for _ in range(100):
+        try:
+            os.kill(solver_pid, 0)
+        except ProcessLookupError:
+            return
+        # A zombie still answers kill(0) until it is reaped; its state says it is dead.
+        try:
+            with open(f"/proc/{solver_pid}/stat") as stat:
+                if stat.read().split()[2] == "Z":
+                    return
+        except FileNotFoundError:
+            return
+        time.sleep(0.05)
+    pytest.fail("the solver binary outlived the worker that started it")

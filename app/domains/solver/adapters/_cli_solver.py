@@ -16,11 +16,14 @@ this module must never produce.
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import math
 import re
 import shutil
+import signal
 import subprocess  # noqa: S404 — the whole point of this module is running a binary
+import sys
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -75,6 +78,27 @@ class CliRun:
     killed: bool
 
 
+#: prctl(2) option: deliver a signal to this process when its parent dies.
+_PR_SET_PDEATHSIG = 1
+
+
+def _die_with_parent() -> None:
+    """Runs in the child between fork and exec: SIGKILL it when its parent dies.
+
+    Cancelling a solve revokes its Celery task with SIGTERM, and a hard time
+    limit SIGKILLs the pool process. Either way only that process dies. The
+    ``cbc`` or ``glpsol`` it started was reparented and kept solving on the
+    worker's CPUs until its own time limit, up to an hour, sharing the machine
+    with the next task and skewing its timings. Linux only; elsewhere the old
+    behaviour stands.
+    """
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL)
+    except Exception:  # noqa: BLE001, S110 — best effort, and nothing can be logged here
+        pass
+
+
 def run_binary(argv: list[str], *, timeout: float) -> CliRun:
     """Run ``argv`` and capture its output, killing it if it overruns.
 
@@ -90,6 +114,7 @@ def run_binary(argv: list[str], *, timeout: float) -> CliRun:
             text=True,
             timeout=timeout,
             check=False,
+            preexec_fn=_die_with_parent if sys.platform.startswith("linux") else None,  # noqa: PLW1509
         )
     except subprocess.TimeoutExpired as exc:
         logger.warning("Killed %s after %.1fs (hard timeout)", argv[0], timeout)
