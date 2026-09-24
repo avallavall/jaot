@@ -371,19 +371,21 @@ class SolverService:
         sub_worst = _build_scalarized_problem(problem, scalar_obj2_w)
         result_worst = adapter.solve(sub_worst)
 
+        # When obj2 has no worst value (unbounded the other way) or a single
+        # value, step away from its optimum in the direction that makes it
+        # WORSE. The old step went the other way whenever the optimum was zero
+        # or negative, and always for a constant MAXIMIZE objective: every
+        # epsilon then asked for better than the optimum, every subproblem was
+        # infeasible, and the front came back empty.
+        step = max(1.0, abs(f2_optimal))
+        worse = f2_optimal + step if obj2.sense == ObjectiveSense.MINIMIZE else f2_optimal - step
         if result_worst.status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
-            # Expand range in the direction that worsens obj2 per its sense.
-            # MINIMIZE: worst is higher, so multiply by 2 (or subtract if negative).
-            # MAXIMIZE: worst is lower, so halve (or add if negative).
-            if obj2.sense == ObjectiveSense.MINIMIZE:
-                f2_worst = f2_optimal * 2.0 if f2_optimal > 0 else f2_optimal - 1.0
-            else:  # MAXIMIZE: worst is a lower value
-                f2_worst = f2_optimal / 2.0 if f2_optimal > 0 else f2_optimal + 1.0
+            f2_worst = worse
         else:
             f2_worst = _compute_objective_value(result_worst, obj2, self.parser, variable_names)
 
         if abs(f2_worst - f2_optimal) < 1e-9:
-            f2_worst = f2_optimal + 1.0
+            f2_worst = worse
 
         epsilons = np.linspace(f2_worst, f2_optimal, config.n_points + 1)[:-1]
 

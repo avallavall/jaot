@@ -280,3 +280,53 @@ class TestMultiObjectiveIntegration:
         for pt in points:
             assert "Obj_X" in pt.objective_values
             assert "Obj_Y" in pt.objective_values
+
+
+class TestEpsilonRangeWhenTheSecondObjectiveHasNoWorstValue:
+    """The epsilon grid must step from the optimum toward WORSE values.
+
+    When the second objective is unbounded the other way (or constant), the
+    worst value is made up. It used to be made up on the wrong side whenever
+    the optimum was zero or negative, and for any constant MAXIMIZE objective,
+    so every epsilon was better than the optimum and the front came back empty.
+    """
+
+    @staticmethod
+    def _problem() -> OptimizationProblem:
+        # Emissions x cost nothing to add and have no cap, so maximizing them is
+        # unbounded. Their optimum is 0.
+        return OptimizationProblem.model_validate(
+            {
+                "objective": {"sense": "maximize", "expression": "y"},
+                "variables": [
+                    {"name": "x", "type": "continuous", "lower_bound": 0},
+                    {"name": "y", "type": "continuous", "lower_bound": 0, "upper_bound": 5},
+                ],
+                "constraints": [{"name": "needs_emissions", "expression": "y <= x"}],
+            }
+        )
+
+    @staticmethod
+    def _config(expression: str, sense: ObjectiveSense) -> MultiObjectiveConfig:
+        return MultiObjectiveConfig(
+            mode="epsilon",
+            objectives=[
+                ObjectiveSpec(expression="y", sense=ObjectiveSense.MAXIMIZE, label="Output"),
+                ObjectiveSpec(expression=expression, sense=sense, label="Emissions"),
+            ],
+            n_points=4,
+        )
+
+    def test_minimize_with_an_optimum_of_zero(self):
+        points = SolverService(solver_name="scip").solve_multi_objective(
+            self._problem(), self._config("x", ObjectiveSense.MINIMIZE)
+        )
+        assert points, "the front came back empty"
+        assert all(p.f2 > 0 for p in points)
+
+    def test_maximize_with_a_negative_optimum(self):
+        points = SolverService(solver_name="scip").solve_multi_objective(
+            self._problem(), self._config("-x", ObjectiveSense.MAXIMIZE)
+        )
+        assert points, "the front came back empty"
+        assert all(p.f2 < 0 for p in points)
