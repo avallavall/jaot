@@ -245,3 +245,88 @@ class TestSectionsRequest:
         assert resp.status_code == 200, resp.text
         db_session.refresh(owned_listing)
         assert owned_listing.section_overview.startswith("## Overview")
+
+
+class TestTwoUploadsAtOnce:
+    """Two screenshot uploads at the same moment keep both, or refuse one.
+
+    Both read the same list, both passed the count check, and the second commit
+    wrote its list over the first: one screenshot vanished from the listing and
+    its file stayed in storage with nothing pointing at it.
+    """
+
+    def test_the_last_free_slot_goes_to_one_upload(
+        self, db_session: Session, db_engine, owned_listing, test_user
+    ):
+        import io
+        import threading
+
+        from fastapi import HTTPException, UploadFile
+        from sqlalchemy.orm import sessionmaker
+        from starlette.datastructures import Headers
+
+        from app.models import User
+
+        existing = [f"https://cdn.example.test/old{i}.png" for i in range(5)]
+        owned_listing.screenshot_urls = existing
+        db_session.commit()
+
+        barrier = threading.Barrier(2, timeout=5)
+        lock = threading.Lock()
+        uploaded: list[str] = []
+        deleted: list[str] = []
+
+        class _Storage:
+            def upload_image(self, file_bytes, folder, **kwargs):  # noqa: ANN001, ANN003
+                with lock:
+                    url = f"https://cdn.example.test/new{len(uploaded)}.png"
+                    uploaded.append(url)
+                barrier.wait()  # both uploads have read the list and passed the check
+                return url
+
+            def delete_image(self, url):  # noqa: ANN001
+                deleted.append(url)
+
+        Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+        outcomes: list[object] = []
+
+        def upload() -> None:
+            session = Session()
+            try:
+                user = session.get(User, test_user.id)
+                file = UploadFile(
+                    file=io.BytesIO(PNG_BYTES),
+                    filename="shot.png",
+                    size=len(PNG_BYTES),
+                    headers=Headers({"content-type": "image/png"}),
+                )
+                response = media_module.upload_screenshot(
+                    owned_listing.model_project_id, file, session, user
+                )
+                outcomes.append(response.url)
+            except HTTPException as exc:
+                session.rollback()
+                outcomes.append(exc.status_code)
+            finally:
+                session.close()
+
+        storage = _Storage()
+        original = media_module.get_storage_service
+        media_module.get_storage_service = lambda *a, **kw: storage
+        try:
+            threads = [threading.Thread(target=upload) for _ in range(2)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=30)
+        finally:
+            media_module.get_storage_service = original
+
+        db_session.expire_all()
+        final = db_session.get(ModelProjectListing, owned_listing.model_project_id).screenshot_urls
+        stored = [o for o in outcomes if isinstance(o, str)]
+        assert sorted(o for o in outcomes if isinstance(o, int)) == [400]
+        assert final == [*existing, *stored]
+        assert len(final) == media_module.MAX_SCREENSHOTS
+        # The refused upload's file is removed, not left behind.
+        assert deleted == [u for u in uploaded if u not in stored]

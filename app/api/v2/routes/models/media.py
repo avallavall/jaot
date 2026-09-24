@@ -7,6 +7,7 @@ shape — the id IS the project id.
 
 import io
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from PIL import Image as PILImage
@@ -135,6 +136,14 @@ def _validate_image(file: UploadFile) -> bytes:
     return content
 
 
+def _delete_quietly(storage: Any, url: str) -> None:
+    """Delete a stored image; a failure is logged and leaves an orphaned file."""
+    try:
+        storage.delete_image(url)
+    except Exception:
+        logger.warning("Failed to delete screenshot from storage: %s", url, exc_info=True)
+
+
 def _get_storage():  # noqa: ANN202
     """Get storage service, raise 503 if not configured.
 
@@ -233,8 +242,20 @@ def upload_screenshot(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload 
 
     url = storage.upload_image(content, "screenshots", max_width=SCREENSHOT_MAX_WIDTH)
 
-    updated = [*current_urls, url]
-    model.screenshot_urls = updated
+    # The list is read again under a row lock. Two uploads at once both read
+    # the same list and the second commit dropped the first one's URL, leaving
+    # its file in storage with nothing pointing at it. The upload itself stays
+    # outside the lock: it is a network call.
+    db.refresh(model, with_for_update={"of": ModelProjectListing})
+    current_urls = model.screenshot_urls or []
+    if len(current_urls) >= MAX_SCREENSHOTS:
+        db.rollback()
+        _delete_quietly(storage, url)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maximum of {MAX_SCREENSHOTS} screenshots reached. Delete one before uploading.",
+        )
+    model.screenshot_urls = [*current_urls, url]
     db.commit()
 
     return ScreenshotUploadResponse(url=url, screenshots=model.screenshot_urls)
@@ -251,19 +272,20 @@ def delete_screenshot(
     model = _get_listing_for_owner(model_id, current_user, db)
     storage = _get_storage()
 
+    # Locked for the same reason as the upload, and the file is deleted only
+    # after the list is saved: a failed commit no longer leaves a URL to a
+    # file that is gone.
+    db.refresh(model, with_for_update={"of": ModelProjectListing})
     current_urls: list[str] = model.screenshot_urls or []
     if index < 0 or index >= len(current_urls):
+        db.rollback()
         raise HTTPException(status_code=400, detail=f"Invalid screenshot index {index}")
 
     url_to_delete = current_urls[index]
-    try:
-        storage.delete_image(url_to_delete)
-    except Exception:
-        logger.warning("Failed to delete screenshot from storage: %s", url_to_delete, exc_info=True)
-
     updated = [u for i, u in enumerate(current_urls) if i != index]
     model.screenshot_urls = updated if updated else None
     db.commit()
+    _delete_quietly(storage, url_to_delete)
 
     return ScreenshotListResponse(screenshots=model.screenshot_urls or [])
 

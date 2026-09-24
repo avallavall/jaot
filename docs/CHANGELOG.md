@@ -80,6 +80,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Large problems always failed on the advanced assistant model.** The step that splits a big problem into parts read the model's thinking as its answer.
 - **AI spend on a reply that did not finish was not counted.** A failed retry, a reply that did not validate, or a user who pressed Stop or closed the tab was billed by Anthropic and missing from the budget.
 - **Changing the AI budget took up to a minute to apply.** It now applies at once on the server that received the change.
+- **Two screenshots uploaded at the same moment could lose one of them.** Both uploads succeeded, but the listing kept only one, and the other file stayed in storage. Now one of them is refused when only one slot is left.
 - **A lost solve could stay "pending" in the history for good while large solver-comparison matrices were waiting to run.** The clean-up job only looked at the 500 oldest open runs, and the waiting comparison columns filled that list.
 - **Cancelling a run could say "cancelled" while the run was stored as completed.** A cancel that arrived as a model run was saving its result was overwritten, and cancelling a run that had already finished also answered "cancelled". The answer now matches what is stored.
 - **Two `/solve` calls with the same `Idempotency-Key` at the same moment could solve the model twice.** The second one now waits for the first one's result.
