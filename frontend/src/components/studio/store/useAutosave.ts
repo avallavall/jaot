@@ -38,7 +38,15 @@ const RETRY_MS = 10_000;
 export function useAutosave(store: ModelProjectStore, modelId: string): void {
   const { activeWorkspaceId } = useAuth();
   const t = useTranslations("studio");
+  // In a ref, not in the effect's deps: a new `t` identity (seen on a tab switch)
+  // re-ran the effect, and its cleanup is where a pending save gets sent or lost.
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // True while a save is scheduled and not yet sent.
+  const pending = useRef(false);
   // Lock versions the server handed back to THIS client. A 409 against anything
   // else means another writer, not one of our own overlapping saves.
   const ownVersions = useRef<Set<number>>(new Set());
@@ -115,10 +123,10 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
               store.getState().setSaveState("error");
               if (!conflictWarned.current) {
                 conflictWarned.current = true;
-                toast.error(t("autosaveConflict"), {
+                toast.error(tRef.current("autosaveConflict"), {
                   duration: Infinity,
                   action: {
-                    label: t("autosaveConflictOverwrite"),
+                    label: tRef.current("autosaveConflictOverwrite"),
                     onClick: () => void overwrite(),
                   },
                 });
@@ -140,10 +148,18 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
           }
           store.getState().setSaveState("error");
           // Self-heal: retry with the latest in-memory state. A new edit replaces
-          // this timer via the debounce path; unmount clears it.
-          if (timer.current) clearTimeout(timer.current);
-          timer.current = setTimeout(() => persist(), RETRY_MS);
+          // this timer via the debounce path; unmount sends it at once.
+          schedule(RETRY_MS);
         });
+    };
+
+    const schedule = (ms: number) => {
+      if (timer.current) clearTimeout(timer.current);
+      pending.current = true;
+      timer.current = setTimeout(() => {
+        pending.current = false;
+        persist();
+      }, ms);
     };
 
     const unsub = store.subscribe((state, prev) => {
@@ -160,13 +176,27 @@ export function useAutosave(store: ModelProjectStore, modelId: string): void {
       // Raised here rather than in persist(): the debounce below is exactly the
       // window in which a reload took the edit with nothing said.
       store.getState().setUnsavedDraft(true);
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => persist(), DEBOUNCE_MS);
+      schedule(DEBOUNCE_MS);
     });
 
     return () => {
       if (timer.current) clearTimeout(timer.current);
       unsub();
+      // Leaving the model inside the debounce window (a sidebar link, the
+      // breadcrumb, another model) cancelled the save, and no beforeunload
+      // fires on a client-side navigation: the edit was gone when the model
+      // was opened again. The pending save is sent now instead.
+      if (pending.current) {
+        pending.current = false;
+        const st = store.getState();
+        if (st.unsavedDraft && !st.archived && !st.accessLost) {
+          try {
+            persist();
+          } catch {
+            // A throw inside a React cleanup would break the unmount itself.
+          }
+        }
+      }
     };
-  }, [store, modelId, activeWorkspaceId, t]);
+  }, [store, modelId, activeWorkspaceId]);
 }

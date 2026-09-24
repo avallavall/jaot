@@ -174,3 +174,39 @@ describe("autosave when the workspace is taken away mid-session", () => {
     expect(store.getState().accessLost).toBe(false);
   });
 });
+
+describe("leaving the model inside the debounce window", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("sends the pending save instead of dropping it", async () => {
+    const store = makeStore();
+    updateDraft.mockResolvedValue({ draft_lock_version: 2 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { unmount } = renderHook(() => useAutosave(store as any, "mp_1"));
+
+    act(() => {
+      store.edit({ variables: [{ name: "late" }] });
+      vi.advanceTimersByTime(DEBOUNCE_MS / 2); // still inside the window
+    });
+    expect(updateDraft).not.toHaveBeenCalled();
+
+    unmount(); // a client-side navigation out of the model
+    expect(updateDraft).toHaveBeenCalledTimes(1);
+    expect(updateDraft.mock.calls[0][1].model_json).toEqual({ variables: [{ name: "late" }] });
+  });
+
+  it("sends nothing when there was nothing pending", () => {
+    const store = makeStore();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { unmount } = renderHook(() => useAutosave(store as any, "mp_1"));
+    unmount();
+    expect(updateDraft).not.toHaveBeenCalled();
+  });
+});
