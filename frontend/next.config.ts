@@ -12,6 +12,12 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
+  // The build type-checks with tsconfig.build.json, which leaves the tests
+  // out. On Next.js 16.3 the image build type-checked a unit test that imports
+  // e2e/, which .dockerignore keeps out of the image, and the production build
+  // failed on a file that never ships. `tsc` still checks the tests through
+  // tsconfig.json.
+  typescript: { tsconfigPath: "tsconfig.build.json" },
   output: "standalone",
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   skipTrailingSlashRedirect: true,
