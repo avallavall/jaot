@@ -684,6 +684,10 @@ class ExpressionParser:
             )
 
         rhs_value = rhs.constant - lhs.constant
+        # Merge again after the move: ``x_a >= 0.3*(x_a + x_b)`` put x_a in the
+        # row twice. SCIP sums the two, but HiGHS refuses a row that names a
+        # column twice, and that row used to vanish from the solve.
+        lhs.terms, _ = self._consolidate(lhs.terms, 0.0)
         lhs.constant = 0.0
 
         return ParsedConstraint(lhs=lhs, operator=operator, rhs=rhs_value)

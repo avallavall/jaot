@@ -11,13 +11,13 @@ calls remain outside this file and app/domains/solver/adapters/_scip_*.py helper
 from __future__ import annotations
 
 import logging
-import math
 import time
 from collections.abc import Callable
 from typing import Any
 
 from pyscipopt import SCIP_EVENTTYPE, SCIP_PARAMSETTING, Eventhdlr, Model  # noqa: F401
 
+from app.domains.solver.adapters._cli_solver import relative_gap
 from app.domains.solver.adapters._scip_expression import (
     anchor_constant_expr,
     build_scip_expression as _build_scip_expression_impl,
@@ -30,6 +30,7 @@ from app.domains.solver.adapters.base import (
     STRICT_EPSILON,
     CachedVersion,
     SolverCapabilities,
+    binary_bounds,
 )
 from app.domains.solver.constraint_activity import (
     activity_of,
@@ -127,13 +128,10 @@ class _ProgressEventHandler(Eventhdlr):
             # SCIP uses ±1e+20 as "no bound yet" — skip until we have something.
             if not _is_finite_bound(primal):
                 return
-            try:
-                gap = m.getGap()
-            except Exception:
-                gap = None
-            if gap is not None and not _is_finite_bound(gap):
-                gap = None
             dual = m.getDualbound()
+            # The gap every adapter reports: SCIP's own getGap divides by the
+            # smaller of the two bounds and says 1e20 when they differ in sign.
+            gap = relative_gap(primal, dual) if _is_finite_bound(dual) else None
             self._iter += 1
             point = ProgressPoint(
                 iteration=self._iter,
@@ -395,9 +393,12 @@ class SCIPAdapter(CachedVersion):
             ub = var.upper_bound if var.upper_bound is not None else None
 
             if var.type == VariableType.BINARY:
+                bin_lb, bin_ub = binary_bounds(var.lower_bound, var.upper_bound)
                 scip_var = model.addVar(
                     name=var.name,
                     vtype="B",  # Binary
+                    lb=bin_lb,
+                    ub=bin_ub,
                 )
             elif var.type == VariableType.INTEGER:
                 scip_var = model.addVar(
@@ -859,16 +860,23 @@ class SCIPAdapter(CachedVersion):
 
         try:
             if model.getNSols() == 0:
-                result.status = SolverStatus.INFEASIBLE
-                result.error_message = "No solution found"
+                # A limit stopped the search before any feasible point. That
+                # proves nothing about feasibility: SCIP says "infeasible" itself
+                # when it proves it, and this path used to say it for every hard
+                # model that ran out of time. The infeasibility diagnosis then
+                # treated a timed-out candidate as infeasible and returned a
+                # wrong conflict set.
+                result.status = SolverStatus.TIME_LIMIT
+                result.dual_bound = self._compute_dual_bound(model)
+                result.error_message = "No feasible solution found before the limit"
                 return result
 
             result.objective_value = model.getObjVal()
             result.variables, result.solution = self._extract_variable_values(
                 model, scip_vars, problem
             )
-            result.gap = self._compute_mip_gap(model)
             result.dual_bound = self._compute_dual_bound(model)
+            result.gap = relative_gap(result.objective_value, result.dual_bound)
 
             logger.info("Solution found: obj=%.4f", result.objective_value)
 
@@ -909,15 +917,6 @@ class SCIPAdapter(CachedVersion):
         return var_solutions, solution_dict
 
     @staticmethod
-    def _compute_mip_gap(model: Model) -> float | None:
-        """Return MIP gap if available, otherwise None."""
-        try:
-            return model.getGap()
-        except Exception:
-            logger.debug("MIP gap extraction failed", exc_info=True)
-            return None
-
-    @staticmethod
     def _compute_dual_bound(model: Model) -> float | None:
         """The best objective value SCIP proved could still exist.
 
@@ -933,7 +932,9 @@ class SCIPAdapter(CachedVersion):
         except Exception:
             logger.debug("Dual bound extraction failed", exc_info=True)
             return None
-        if bound is None or not math.isfinite(bound):
+        # SCIP's "infinity" is 1e20, a finite float, so a finiteness check let it
+        # through as a bound of a hundred quintillion.
+        if bound is None or not _is_finite_bound(bound):
             return None
         return float(bound)
 

@@ -45,9 +45,16 @@ class InvalidProblemError(ValueError):
         self.detail = detail
 
 
+# A number literal that does not sit inside a name, with the exponent the
+# tokenizer also accepts. Without removing these first, "5e-05*x" reported an
+# undefined variable "e", and every imported file with a coefficient below 1e-4
+# was refused with a 400.
+_NUMBER_LITERAL = re.compile(r"(?<![A-Za-z0-9_])(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
+
+
 def extract_variable_names(expression: str) -> set[str]:
     """Extract variable names from a mathematical expression."""
-    tokens = re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*", expression)
+    tokens = re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*", _NUMBER_LITERAL.sub(" ", expression))
     return {t for t in tokens if t not in _EXCLUDED_TOKENS}
 
 

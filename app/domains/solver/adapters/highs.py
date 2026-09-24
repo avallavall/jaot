@@ -21,6 +21,7 @@ from app.domains.solver.adapters.base import (
     STRICT_EPSILON,
     CachedVersion,
     SolverCapabilities,
+    binary_bounds,
 )
 from app.domains.solver.constraint_activity import is_binding_within_bounds
 from app.domains.solver.sensitivity_values import publishable_value
@@ -88,7 +89,12 @@ def _pin_process_threads(requested: int) -> int:
 _HIGHS_STATUS_MAP: dict[str, SolverStatus] = {
     "Optimal": SolverStatus.OPTIMAL,
     "Infeasible": SolverStatus.INFEASIBLE,
-    "Primal infeasible or unbounded": SolverStatus.INFEASIBLE,
+    # Presolve found the model has no bounded optimum but did not work out why.
+    # Reporting that as "infeasible" sent users to the infeasibility diagnosis
+    # of an unbounded model. ``solve`` runs once more without presolve to get a
+    # definite answer; if HiGHS still cannot tell, the run is an ERROR that says
+    # exactly this.
+    "Primal infeasible or unbounded": SolverStatus.ERROR,
     "Unbounded": SolverStatus.UNBOUNDED,
     "Bound on objective reached": SolverStatus.OPTIMAL,
     "Target for objective reached": SolverStatus.OPTIMAL,
@@ -107,6 +113,19 @@ _HIGHS_STATUS_MAP: dict[str, SolverStatus] = {
     "Interrupted by HiGHS": SolverStatus.TIME_LIMIT,
     "Unknown": SolverStatus.ERROR,
 }
+
+_AMBIGUOUS_STATUS = "Primal infeasible or unbounded"
+
+
+def _checked(status: object, what: str) -> None:
+    """Raise when a HiGHS call returns ``kError``.
+
+    highspy reports a refused input through the return value, not an exception.
+    Ignoring it let HiGHS solve a different model and call the answer optimal:
+    a row naming the same column twice was dropped whole.
+    """
+    if str(status).endswith("kError"):
+        raise ValueError(f"HiGHS rejected the {what}.")
 
 
 class HiGHSAdapter(CachedVersion):
@@ -189,7 +208,12 @@ class HiGHSAdapter(CachedVersion):
             self._add_constraints(h, problem.constraints, col_map)
             self._set_objective(h, highspy, problem.objective, col_map)
 
-            h.run()
+            h.run()  # type: ignore[attr-defined]
+            if self._status_string(h) == _AMBIGUOUS_STATUS:
+                remaining = problem.options.time_limit_seconds - (time.monotonic() - start_time)
+                h.setOptionValue("presolve", "off")  # type: ignore[attr-defined]
+                h.setOptionValue("time_limit", max(1.0, remaining))  # type: ignore[attr-defined]
+                h.run()  # type: ignore[attr-defined]
 
             solve_time = time.monotonic() - start_time
             return self._extract_result(h, col_map, problem, solve_time)
@@ -234,12 +258,15 @@ class HiGHSAdapter(CachedVersion):
             lb = var.lower_bound if var.lower_bound is not None else -_HIGHS_INF
             ub = var.upper_bound if var.upper_bound is not None else _HIGHS_INF
             if var.type == VariableType.BINARY:
-                lb, ub = 0.0, 1.0
-            h.addVar(lb, ub)  # type: ignore[attr-defined]
+                lb, ub = binary_bounds(var.lower_bound, var.upper_bound)
+            _checked(h.addVar(lb, ub), f"variable {var.name!r}")  # type: ignore[attr-defined]
             if var.type in (VariableType.INTEGER, VariableType.BINARY):
-                h.changeColIntegrality(  # type: ignore[attr-defined]
-                    idx,
-                    highspy_module.HighsVarType.kInteger,  # type: ignore[attr-defined]
+                _checked(
+                    h.changeColIntegrality(  # type: ignore[attr-defined]
+                        idx,
+                        highspy_module.HighsVarType.kInteger,  # type: ignore[attr-defined]
+                    ),
+                    f"integrality of {var.name!r}",
                 )
             col_map[var.name] = idx
         return col_map
@@ -276,7 +303,13 @@ class HiGHSAdapter(CachedVersion):
                 # constant terms are already folded into the RHS by parse_constraint()
 
             lower, upper = self._operator_bounds(parsed.operator, float(parsed.rhs))
-            h.addRow(lower, upper, len(indices), indices, coeffs)  # type: ignore[attr-defined]
+            # A refused row used to be skipped without a word, so HiGHS solved a
+            # model with one constraint fewer, called it optimal, and every later
+            # row's dual and activity belonged to the constraint after it.
+            _checked(
+                h.addRow(lower, upper, len(indices), indices, coeffs),  # type: ignore[attr-defined]
+                f"constraint {constraint.name or constraint.expression!r}",
+            )
 
     def _operator_bounds(self, operator: str, rhs: float) -> tuple[float, float]:
         """Convert operator + rhs to HiGHS (lower, upper) two-sided bounds."""
@@ -313,12 +346,22 @@ class HiGHSAdapter(CachedVersion):
             )
 
         parsed = self._parser.parse_expression(objective.expression)  # type: ignore[attr-defined]
+        # The constant of ``3*x + 2*y + 100``. SCIP, CBC, GLPK and Hexaly all
+        # report it; HiGHS answered 2 where they answered 102, and ``auto`` sends
+        # every pure LP here.
+        _checked(
+            h.changeObjectiveOffset(float(parsed.constant)),  # type: ignore[attr-defined]
+            "objective constant",
+        )
         for term in parsed.terms:
             if len(term.variables) == 1:
                 var_name = term.variables[0]
                 if var_name in col_map:
-                    h.changeColCost(  # type: ignore[attr-defined]
-                        col_map[var_name], float(term.coefficient)
+                    _checked(
+                        h.changeColCost(  # type: ignore[attr-defined]
+                            col_map[var_name], float(term.coefficient)
+                        ),
+                        f"objective coefficient of {var_name!r}",
                     )
             elif len(term.variables) >= 2:
                 # never solve a silent linear relaxation of a quadratic model
@@ -335,12 +378,26 @@ class HiGHSAdapter(CachedVersion):
         NOT the enum key names like "kOptimal". The _HIGHS_STATUS_MAP uses these
         human-readable strings as keys.
         """
-        model_status = h.getModelStatus()  # type: ignore[attr-defined]
-        status_str = h.modelStatusToString(model_status)  # type: ignore[attr-defined]
+        status_str = self._status_string(h)
         mapped = _HIGHS_STATUS_MAP.get(status_str)
         if mapped is None:
             logger.warning("Unknown HiGHS status string %r — returning ERROR", status_str)
         return mapped if mapped is not None else SolverStatus.ERROR
+
+    @staticmethod
+    def _status_string(h: object) -> str:
+        return str(h.modelStatusToString(h.getModelStatus()))  # type: ignore[attr-defined]
+
+    @staticmethod
+    def _has_feasible_point(h: object) -> bool:
+        """True when HiGHS holds a feasible solution, whatever stopped it."""
+        try:
+            import highspy  # noqa: PLC0415
+
+            status = h.getInfo().primal_solution_status  # type: ignore[attr-defined]
+            return int(status) == int(highspy.SolutionStatus.kSolutionStatusFeasible)
+        except Exception:  # pragma: no cover - defensive
+            return False
 
     def _extract_result(
         self,
@@ -352,11 +409,20 @@ class HiGHSAdapter(CachedVersion):
         """Extract solution from HiGHS model after h.run()."""
         status = self._map_status(h)
 
-        if status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
-            return OptimizationResult(
-                status=status,
-                solve_time_seconds=solve_time,
-            )
+        # A run stopped by a limit can still hold the best solution it found.
+        # SCIP, CBC and GLPK return it; this adapter returned nothing, so the
+        # comparison showed HiGHS as having found no answer at all.
+        has_incumbent = status is SolverStatus.TIME_LIMIT and self._has_feasible_point(h)
+        if status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE) and not has_incumbent:
+            result = OptimizationResult(status=status, solve_time_seconds=solve_time)
+            if status is SolverStatus.TIME_LIMIT:
+                result.dual_bound = self._extract_counters(h, problem).get("dual_bound")
+            elif self._status_string(h) == _AMBIGUOUS_STATUS:
+                result.error_message = (
+                    "HiGHS found that the model has no optimal solution but could "
+                    "not tell whether it is infeasible or unbounded."
+                )
+            return result
 
         obj_value = h.getObjectiveValue()  # type: ignore[attr-defined]
         sol = h.getSolution()  # type: ignore[attr-defined]
@@ -411,6 +477,9 @@ class HiGHSAdapter(CachedVersion):
         # (col_dual). Without this the capability flag `supports_sensitivity=True`
         # was a lie — pure-LP solves auto-routed here came back with no
         # sensitivity, so the UI showed an empty "Sensitivity" tab.
+        # Only at the optimum: duals at a point a limit stopped at price nothing.
+        if status is not SolverStatus.OPTIMAL:
+            return result
         try:
             result.sensitivity = self._extract_sensitivity(sol, col_map, problem, col_values)
         except Exception as exc:  # never let sensitivity break a valid solve

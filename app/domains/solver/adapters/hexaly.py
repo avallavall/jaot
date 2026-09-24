@@ -56,6 +56,7 @@ from app.domains.solver.adapters.base import (
     CachedVersion,
     SolverCapabilities,
     SolverError,
+    binary_bounds,
 )
 from app.domains.solver.services.expression_parser import (
     ExpressionParser,
@@ -359,7 +360,16 @@ class HexalyAdapter(CachedVersion):
                 ub = int(var.upper_bound) if var.upper_bound is not None else 10**9
                 hex_vars[var.name] = model.int(lb, ub)
             elif var.type == VariableType.BINARY:
-                hex_vars[var.name] = model.bool()
+                handle = model.bool()
+                # ``model.bool()`` takes no bounds, so a binary the caller closed
+                # with ``upper_bound: 0`` (or forced with ``lower_bound: 1``)
+                # gets a constraint instead of being solved as a free 0/1.
+                lb, ub = binary_bounds(var.lower_bound, var.upper_bound)
+                if lb > 0:
+                    model.constraint(handle >= 1)
+                if ub < 1:
+                    model.constraint(handle <= 0)
+                hex_vars[var.name] = handle
             else:
                 raise SolverError(f"Unsupported variable type for Hexaly: {var.type}")
         return hex_vars

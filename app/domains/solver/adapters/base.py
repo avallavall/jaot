@@ -118,6 +118,20 @@ class CachedVersion:
 # Shared across adapters for strict inequality (< / >) conversion
 STRICT_EPSILON = 1e-6
 
+
+def binary_bounds(lower: float | None, upper: float | None) -> tuple[float, float]:
+    """The bounds of a binary variable: its own bounds, kept inside [0, 1].
+
+    Validation accepts ``{"type": "binary", "upper_bound": 0}``, which is how a
+    caller closes a plant or forbids an arc. Every adapter built binaries as a
+    plain 0/1 and dropped those bounds, so the solve returned the forbidden 1
+    and called the answer optimal.
+    """
+    lb = 0.0 if lower is None else max(0.0, float(lower))
+    ub = 1.0 if upper is None else min(1.0, float(upper))
+    return lb, ub
+
+
 DEFAULT_SOLVER_NAME = "scip"
 HEXALY_SOLVER_NAME = "hexaly"
 

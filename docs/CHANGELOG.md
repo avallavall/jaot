@@ -35,6 +35,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ### Added
 - **A solver comparison shows how much searching each solver did, not only how long it took.** One small panel per solver: the nodes it explored, or the simplex iterations on a model with no tree, against the clock. The time chart says who was slower, and there are only two reasons — the loser explored far more of the tree, or each node cost it more. On a 220-item knapsack GLPK covered thirty-seven times more tree than SCIP, at twenty-eight times the rate; nothing on the page said so before. Every panel keeps its own vertical scale, because a node in one solver is not a node in another; the clock is the part they share, and a solver that reported only its final count gets a single dot rather than a curve.
 
+### Fixed
+- **HiGHS left the constant out of the objective.** For `3*x + 2*y + 100` it reported 2 where the other solvers reported 102. Automatic selection sends every linear model to HiGHS, so this was the default path.
+- **HiGHS solved a different model when a constraint named a variable on both sides.** A share rule such as `x_a >= 0.3*(x_a + x_b)` was dropped from the solve, and the answer came back "optimal". It now counts as one coefficient in every solver.
+- **Bounds on a yes/no variable were ignored by every solver.** A plant closed with an upper bound of 0 came back open.
+- **SCIP said "infeasible" when it had only run out of time.** A hard model that found no solution before its time limit now reports the time limit and the bound it proved, like the other solvers.
+- **HiGHS threw away the answer it held when the time limit hit.** It now returns that answer with its bound and gap.
+- **HiGHS called an unbounded model infeasible.** It now checks once more and reports which one it is.
+- **SCIP reported a gap of 10^20 on some runs**, and measured its gap differently from the other solvers. All four now use the same formula.
+- **A coefficient written like `5e-05` made validation refuse the model**, so imported files with very small or very large numbers could not be solved.
+- **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
+
 ---
 
 ## [3.9.0] - 2026-09-01

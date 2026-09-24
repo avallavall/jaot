@@ -19,6 +19,7 @@ from app.domains.solver.adapters._scip_expression import (
     build_scip_expression,
     set_scip_objective,
 )
+from app.domains.solver.adapters.base import binary_bounds
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
     Constraint,
@@ -74,7 +75,8 @@ def create_variables(model: Model, variables: list[Variable]) -> dict[str, Any]:
         ub = var.upper_bound if var.upper_bound is not None else None
 
         if var.type == VariableType.BINARY:
-            scip_var = model.addVar(name=var.name, vtype="B")
+            bin_lb, bin_ub = binary_bounds(var.lower_bound, var.upper_bound)
+            scip_var = model.addVar(name=var.name, vtype="B", lb=bin_lb, ub=bin_ub)
         elif var.type == VariableType.INTEGER:
             scip_var = model.addVar(name=var.name, vtype="I", lb=lb, ub=ub)
         else:
