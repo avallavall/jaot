@@ -462,15 +462,26 @@ class AuthorAnalyticsService:
         )
         org_name_map = {o.id: o.name for o in orgs}
 
-        # Avg rating per org
+        # Avg rating per org, over the review rows themselves, the way the public
+        # author profile computes it. It was the mean of each listing's own
+        # average, so a listing with one review weighed as much as one with
+        # fifty, and withdrawn listings were counted.
+        from app.models import ModelReview  # noqa: PLC0415
+        from app.services.marketplace_fusion import MARKETPLACE_VISIBLE  # noqa: PLC0415
+
         rating_rows = (
             self.db.query(
                 ModelProjectListing.author_organization_id,
-                func.avg(ModelProjectListing.avg_rating).label("avg_r"),
+                func.avg(ModelReview.rating).label("avg_r"),
+            )
+            .join(
+                ModelReview,
+                ModelReview.model_project_id == ModelProjectListing.model_project_id,
             )
             .filter(
                 ModelProjectListing.author_organization_id.in_(org_ids),
-                ModelProjectListing.avg_rating.isnot(None),
+                *MARKETPLACE_VISIBLE,
+                ModelReview.is_visible == True,  # noqa: E712
             )
             .group_by(ModelProjectListing.author_organization_id)
             .all()

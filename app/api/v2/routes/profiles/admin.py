@@ -19,6 +19,7 @@ from app.schemas.profile import (
     ReviewReportResponse,
     ReviewVisibilityResponse,
 )
+from app.services.review_rating import recompute_avg_rating
 from app.shared.utils.pagination import paginate_query
 
 router = APIRouter(prefix="/admin", tags=["admin-profiles"])
@@ -183,27 +184,7 @@ def admin_delete_review(
 
     model_id = review.model_project_id
     db.delete(review)
-
-    # Recalculate the listing's rolled-up average.
-    listing = (
-        db.query(ModelProjectListing)
-        .filter(ModelProjectListing.model_project_id == model_id)
-        .first()
-    )
-    if listing:
-        all_ratings = (
-            db.query(ModelReview.rating)
-            .filter(
-                ModelReview.model_project_id == model_id,
-                ModelReview.is_visible == True,  # noqa: E712
-            )
-            .all()
-        )
-
-        if all_ratings:
-            listing.avg_rating = sum(r[0] for r in all_ratings) / len(all_ratings)
-        else:
-            listing.avg_rating = None
+    recompute_avg_rating(db, model_id)
 
     db.commit()
 
@@ -233,6 +214,8 @@ def toggle_review_visibility(
     db.query(ModelReviewReport).filter(ModelReviewReport.review_id == review.id).delete(
         synchronize_session=False
     )
+    # Hiding a review takes it out of the average; showing it again puts it back.
+    recompute_avg_rating(db, review.model_project_id)
     db.commit()
 
     return ReviewVisibilityResponse(status="updated", is_visible=visible)

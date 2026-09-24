@@ -32,6 +32,8 @@ from app.schemas.profile import (
     ReviewListResponse,
     ReviewResponse,
 )
+from app.services.marketplace_fusion import MARKETPLACE_VISIBLE
+from app.services.review_rating import recompute_avg_rating
 from app.shared.core.http_errors import CodedHTTPException
 from app.shared.utils.pagination import paginate_query
 
@@ -41,28 +43,21 @@ router = APIRouter(tags=["reviews"])
 
 
 def _listing_or_404(db: Session, model_id: str) -> ModelProjectListing:
+    """A listing that is on the marketplace, or 404.
+
+    The same filter every other catalogue surface uses. Without it a withdrawn
+    or private listing still served its reviews to anonymous callers (while its
+    own page answered 404, which the review route contradicted) and still
+    accepted new reviews that notified the author.
+    """
     listing = (
         db.query(ModelProjectListing)
-        .filter(ModelProjectListing.model_project_id == model_id)
+        .filter(ModelProjectListing.model_project_id == model_id, *MARKETPLACE_VISIBLE)
         .first()
     )
     if not listing:
         raise HTTPException(status_code=404, detail="Model not found")
     return listing
-
-
-def _recompute_avg_rating(db: Session, listing: ModelProjectListing, model_id: str) -> None:
-    """Roll the visible reviews' average up onto the listing (None when there are none)."""
-    ratings = [
-        r[0]
-        for r in db.query(ModelReview.rating)
-        .filter(
-            ModelReview.model_project_id == model_id,
-            ModelReview.is_visible == True,  # noqa: E712
-        )
-        .all()
-    ]
-    listing.avg_rating = (sum(ratings) / len(ratings)) if ratings else None
 
 
 @router.get("/models/catalog/{catalog_id}/reviews", response_model=ReviewListResponse)
@@ -225,8 +220,7 @@ def create_review(
     )
 
     db.add(review)
-    db.flush()
-    _recompute_avg_rating(db, listing, catalog_id)
+    recompute_avg_rating(db, catalog_id)
 
     db.commit()
     db.refresh(review)
@@ -325,16 +319,7 @@ def delete_review(
 
     model_id = review.model_project_id
     db.delete(review)
-    db.flush()
-
-    # Recompute the listing's rolled-up average.
-    listing = (
-        db.query(ModelProjectListing)
-        .filter(ModelProjectListing.model_project_id == model_id)
-        .first()
-    )
-    if listing:
-        _recompute_avg_rating(db, listing, model_id)
+    recompute_avg_rating(db, model_id)
 
     db.commit()
 
