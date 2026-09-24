@@ -218,3 +218,62 @@ class TestCommunityStatus:
         """Community status endpoint is accessible without authentication."""
         resp = client.get("/api/v2/community/status")
         assert resp.status_code == 200
+
+
+class TestDiscourseReadsThePayloadWeSigned:
+    """Discourse parses the redirect's query string, where a bare "+" is a space.
+
+    The base64 payload went out unencoded. Whenever it held a "+" (a "~" in the
+    user's name is enough), Discourse read a different payload from the one
+    signed and refused the login with "Bad signature".
+    """
+
+    def test_the_signature_holds_after_the_query_string_is_parsed(
+        self, authenticated_client, test_user, db_session
+    ):
+        secret, url = TestDiscourseSso.SSO_SECRET, TestDiscourseSso.DISCOURSE_URL
+        _set_pss(db_session, "DISCOURSE_SSO_SECRET", secret)
+        _set_pss(db_session, "DISCOURSE_URL", url)
+
+        # base64 of URL-encoded ASCII yields "+" only from a byte whose low six
+        # bits are 62: "~" is the one urlencode leaves alone. A tilde in the
+        # name is enough to hit it on most nonces.
+        test_user.name = "Ann ~~~ Lee"
+        db_session.commit()
+
+        payloads_with_plus = 0
+        for n in range(12):
+            b64, sig = TestDiscourseSso()._build_sso_payload(nonce=f"nonce-{n}")
+            resp = authenticated_client.get(
+                "/api/v2/community/discourse-sso",
+                params={"sso": b64, "sig": sig},
+                follow_redirects=False,
+            )
+            query = parse_qs(urlparse(resp.headers["location"]).query)
+            sso, returned_sig = query["sso"][0], query["sig"][0]
+            expected = hmac.new(secret.encode(), sso.encode(), hashlib.sha256).hexdigest()
+            assert returned_sig == expected
+            payloads_with_plus += "+" in sso
+        assert payloads_with_plus, "no payload contained '+', so nothing was proven"
+
+    def test_an_unverified_email_asks_discourse_to_check_it(
+        self, authenticated_client, test_user, db_session
+    ):
+        secret, url = TestDiscourseSso.SSO_SECRET, TestDiscourseSso.DISCOURSE_URL
+        _set_pss(db_session, "DISCOURSE_SSO_SECRET", secret)
+        _set_pss(db_session, "DISCOURSE_URL", url)
+
+        def fields_for(verified: bool) -> dict:
+            test_user.email_verified = verified
+            db_session.commit()
+            b64, sig = TestDiscourseSso()._build_sso_payload()
+            resp = authenticated_client.get(
+                "/api/v2/community/discourse-sso",
+                params={"sso": b64, "sig": sig},
+                follow_redirects=False,
+            )
+            sso = parse_qs(urlparse(resp.headers["location"]).query)["sso"][0]
+            return parse_qs(base64.b64decode(sso).decode())
+
+        assert fields_for(False)["require_activation"] == ["true"]
+        assert "require_activation" not in fields_for(True)

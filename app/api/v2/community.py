@@ -78,23 +78,30 @@ def discourse_sso(
         [discourse_url + "/session/sso_login"],
     )[0]
 
-    response_payload = urlencode(
-        {
-            "nonce": nonce,
-            "email": user.email,
-            "external_id": user.id,
-            "name": user.name,
-            "username": user.email.split("@")[0],
-            "suppress_welcome_message": "true",
-        }
-    )
+    fields = {
+        "nonce": nonce,
+        "email": user.email,
+        "external_id": user.id,
+        "name": user.name,
+        "username": user.email.split("@")[0],
+        "suppress_welcome_message": "true",
+    }
+    # JAOT does not require a verified email to sign up, and Discourse trusts
+    # the email SSO hands it: someone who registered with another person's
+    # address could take over that person's forum account. Discourse checks
+    # the address itself when we have not.
+    if not user.email_verified:
+        fields["require_activation"] = "true"
+    response_payload = urlencode(fields)
 
     # Base64 encode and sign
     response_b64 = base64.b64encode(response_payload.encode()).decode()
     response_sig = hmac.new(secret.encode(), response_b64.encode(), hashlib.sha256).hexdigest()
 
     # Redirect back to Discourse
-    redirect_url = f"{return_sso_url}?sso={response_b64}&sig={response_sig}"
+    # Encoded: base64 carries "+", "/" and "=", and Discourse reads a bare "+" in
+    # a query string as a space, so most logins failed with "Bad signature".
+    redirect_url = f"{return_sso_url}?{urlencode({'sso': response_b64, 'sig': response_sig})}"
     return RedirectResponse(url=redirect_url, status_code=302)
 
 
