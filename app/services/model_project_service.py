@@ -9,9 +9,9 @@ import json
 import logging
 from typing import Any
 
-from sqlalchemy import desc, or_
+from sqlalchemy import desc, false, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.models.model_project import (
     ModelProject,
@@ -177,6 +177,7 @@ def list_projects(
     workspace_id: str | None = None,
     q: str | None = None,
     created_by: str | None = None,
+    open_workspace_ids: set[str] | None = None,
     skip: int = 0,
     limit: int = 50,
 ) -> list[ModelProject]:
@@ -184,8 +185,33 @@ def list_projects(
 
     The list is org-scoped (collaborative). Pass ``created_by`` to narrow it to a
     single user's models (the "Mine" filter).
+
+    ``open_workspace_ids`` is what ``workspace_ids_open_to`` returned for the
+    caller: models filed in any other workspace are left out. ``None`` means the
+    caller may read every workspace. Without it the list named every walled
+    model, and each of their pages answered 403.
+
+    The three draft payloads are not loaded: the list shows none of them, and a
+    large model's draft runs to megabytes.
     """
-    query = db.query(ModelProject).filter(ModelProject.organization_id == org_id)
+    query = (
+        db.query(ModelProject)
+        .options(
+            defer(ModelProject.draft_model_json),
+            defer(ModelProject.draft_canvas_json),
+            defer(ModelProject.draft_dsl_source),
+        )
+        .filter(ModelProject.organization_id == org_id)
+    )
+    if open_workspace_ids is not None:
+        query = query.filter(
+            or_(
+                ModelProject.workspace_id.is_(None),
+                ModelProject.workspace_id.in_(open_workspace_ids)
+                if open_workspace_ids
+                else false(),
+            )
+        )
     if status:
         query = query.filter(ModelProject.status == status)
     if workspace_id:

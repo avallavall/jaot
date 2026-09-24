@@ -52,6 +52,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **Workspace walls had three gaps.** The model list named models filed in a workspace you are not in; anyone in the organization could change the logo, screenshots and description of a published model they could not open; and the live-progress connection sent the full solution of a walled run. All three now ask for the same workspace role as the model itself. An archived model also refuses changes to its public page.
 - **The settings audit log kept every secret in plain text.** Rotating the Anthropic key, the SMTP password or the JWT secret stored the old and new value, and the Audit tab showed them. They are now masked, and an upgrade masks the entries already stored.
 - **Anyone could block every password reset and email verification on the instance for a day.** The limit on those links was shared by all users, so a hundred junk requests used it up for everyone. Each link now has its own limit.
 

@@ -6,11 +6,11 @@ import logging
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
-from app.api.deps import DBSession
+from app.api.deps import DBSession, enforce_execution_workspace
 from app.models import ModelExecution, Organization, User
 from app.services.auth import principal_from_jwt, resolve_principal
 
@@ -239,7 +239,7 @@ def _handshake(
     auth_result = _authenticate_websocket(db, websocket, token)
     if auth_result is None:
         raise _Refused(4001, "Authentication required")
-    _user, organization = auth_result
+    user, organization = auth_result
 
     execution = db.query(ModelExecution).filter(ModelExecution.id == execution_id).first()
     if not execution:
@@ -251,6 +251,13 @@ def _handshake(
         raise _Refused(4004, "Execution not found")
     if execution.organization_id != organization.id:
         raise _Refused(4003, "Access denied")
+    # The same wall as GET /executions/<id>. Without it a member outside the
+    # model's workspace got the run's full solution in the opening snapshot,
+    # and every later update, from a socket the HTTP route would refuse.
+    try:
+        enforce_execution_workspace(db, execution, user, organization)
+    except HTTPException:
+        raise _Refused(4003, "Access denied") from None
 
     return execution.id, _snapshot(execution_id, execution)
 

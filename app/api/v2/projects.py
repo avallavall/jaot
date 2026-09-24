@@ -38,7 +38,9 @@ from app.api.deps import (
     check_workspace_role,
     enforce_org_rate_limit,
     enforce_workspace_of,
+    workspace_ids_open_to,
 )
+from app.api.v2._access import ARCHIVED_DETAIL
 from app.api.v2._render import render_or_422
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
@@ -117,12 +119,6 @@ class FromMarketplaceRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-#: Refusal shown when a write lands on an archived project. One sentence for
-#: every route, because a caller that hits two of them must not have to work
-#: out whether two different messages mean the same thing.
-_ARCHIVED_DETAIL = "This model is archived. Restore it before making changes."
-
-
 def _project_or_404(
     db: DBSession,
     project_id: str,
@@ -162,7 +158,7 @@ def _writable_project_or_404(
     """
     project = _project_or_404(db, project_id, org, user, role)
     if project.status == "archived":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_ARCHIVED_DETAIL)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=ARCHIVED_DETAIL)
     return project
 
 
@@ -565,8 +561,8 @@ def list_model_projects(
     workspace_id: str | None = Query(None),
     q: str | None = Query(None),
     mine: bool = Query(False),
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
 ) -> list[ProjectListItem]:
     """List the organization's ModelProjects (newest-updated first).
 
@@ -581,6 +577,7 @@ def list_model_projects(
         workspace_id=workspace_id,
         q=q,
         created_by=user.id if mine else None,
+        open_workspace_ids=workspace_ids_open_to(db, user, org),
         skip=skip,
         limit=limit,
     )
@@ -694,7 +691,7 @@ def update_model_project(
     """
     project = _project_or_404(db, project_id, org, user, WorkspaceRole.EDITOR)
     if project.status == "archived" and body.status != "active":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_ARCHIVED_DETAIL)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=ARCHIVED_DETAIL)
     svc.update_meta(db, project, name=body.name, description=body.description, status=body.status)
     db.commit()
     db.refresh(project)

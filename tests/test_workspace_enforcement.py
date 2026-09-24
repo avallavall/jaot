@@ -1084,3 +1084,118 @@ class TestATaskIdAndAMatrixDoNotGoRoundTheWall:
         with pytest.raises(HTTPException) as refused:
             enforce_execution_workspace(db_session, execution, outsider, org)
         assert refused.value.status_code == 403
+
+
+class TestTheWallCoversTheModelListItsPublicPageAndItsSocket:
+    """# CONTRACT-TEST: the model list, a listing's media and the progress socket obey the wall.
+
+    Found in the 2026-09-24 review. The model list named every model filed in a
+    workspace the caller is not in. The logo, screenshot and description routes
+    of a marketplace listing checked the organization only, so a workspace
+    viewer (or a member outside the workspace) could change the public page of
+    a model ``publish`` would not let them touch. The progress socket sent the
+    full solution of a walled run.
+    """
+
+    @staticmethod
+    def _walled(db, ws, org):
+        from app.models import ModelProjectListing
+        from app.models.model_project import ModelProject
+        from app.models.optimization_model import ExecutionStatus, ModelExecution
+
+        project = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=org.id,
+            workspace_id=ws.id,
+            name="Walled model",
+            status="active",
+            draft_model_json=_SIMPLE_PROBLEM,
+        )
+        db.add(project)
+        db.flush()
+        db.add(
+            ModelProjectListing(
+                model_project_id=project.id,
+                author_organization_id=org.id,
+                status="published",
+                name="Walled model",
+                display_name="Walled model",
+                description="A model filed in a workspace",
+            )
+        )
+        execution = ModelExecution(
+            id=generate_id("exe_"),
+            organization_id=org.id,
+            model_project_id=project.id,
+            input_data=_SIMPLE_PROBLEM,
+            status=ExecutionStatus.COMPLETED.value,
+            result_data={"objective_value": 1.0, "model": {"x": 1.0}},
+        )
+        db.add(execution)
+        db.commit()
+        return project, execution
+
+    def test_the_model_list_leaves_the_walled_model_out(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org = enforcement_setup["ws"], enforcement_setup["org"]
+        project, _ = self._walled(db_session, ws, org)
+        for who, should_see in (("non_member", False), ("viewer", True), ("owner", True)):
+            mock_auth(enforcement_setup[who])
+            listed = client.get("/api/v2/projects")
+            assert listed.status_code == 200, listed.text
+            assert (project.id in listed.text) is should_see, who
+
+    def test_only_an_editor_changes_the_public_page(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org = enforcement_setup["ws"], enforcement_setup["org"]
+        project, _ = self._walled(db_session, ws, org)
+        url = f"/api/v2/models/catalog/{project.id}/sections"
+        body = {"section_overview": "Rewritten by someone who cannot open the model"}
+
+        for who in ("non_member", "viewer"):
+            mock_auth(enforcement_setup[who])
+            assert client.put(url, json=body).status_code == 403, who
+            assert client.delete(f"/api/v2/models/catalog/{project.id}/logo").status_code == 403
+
+        mock_auth(enforcement_setup["editor"])
+        assert client.put(url, json=body).status_code == 200
+
+    def test_an_archived_model_refuses_a_new_description(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        ws, org = enforcement_setup["ws"], enforcement_setup["org"]
+        project, _ = self._walled(db_session, ws, org)
+        project.status = "archived"
+        db_session.commit()
+        mock_auth(enforcement_setup["editor"])
+        response = client.put(
+            f"/api/v2/models/catalog/{project.id}/sections",
+            json={"section_overview": "late edit"},
+        )
+        assert response.status_code == 409
+
+    def test_the_progress_socket_refuses_a_walled_run(self, client, db_session, enforcement_setup):
+        from starlette.websockets import WebSocketDisconnect
+
+        from app.services.auth.jwt_service import JWTService
+
+        ws, org = enforcement_setup["ws"], enforcement_setup["org"]
+        _, execution = self._walled(db_session, ws, org)
+
+        def connect(who: str):
+            user = enforcement_setup[who]
+            token = JWTService.create_access_token(user_id=user.id, org_id=org.id)
+            return client.websocket_connect(
+                f"/api/v2/ws/executions/{execution.id}",
+                cookies={"jaot_access_token": token},
+            )
+
+        with pytest.raises(WebSocketDisconnect) as refused:
+            with connect("non_member"):
+                pass  # pragma: no cover
+        assert refused.value.code == 4003
+
+        with connect("viewer") as socket:
+            assert socket.receive_json()["type"] == "snapshot"

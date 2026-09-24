@@ -127,6 +127,22 @@ def test_the_execution_table_does_not_read_the_model_drafts(
     sql.assert_never_selected("model_projects", _PROJECT_PAYLOADS)
 
 
+# CONTRACT-TEST: the model list reads no working copy.
+# A list row shows ten small columns; each draft of a large model runs to MBs.
+def test_the_model_list_does_not_read_the_drafts(
+    authenticated_client, db_session: Session, test_organization: Organization
+) -> None:
+    _project(db_session, test_organization, "mp_payload_list")
+    db_session.commit()
+
+    with _Statements(db_session) as sql:
+        resp = authenticated_client.get("/api/v2/projects")
+
+    assert resp.status_code == 200, resp.text
+    assert any(r["id"] == "mp_payload_list" for r in resp.json())
+    sql.assert_never_selected("model_projects", (*_PROJECT_PAYLOADS, "draft_dsl_source"))
+
+
 # CONTRACT-TEST: the reaper's sweep reads no payloads.
 # It scans up to 500 rows to decide whether a run has gone quiet, and reads four
 # fields to do it. Loading the entity made that sweep ~55 MB, on a schedule.

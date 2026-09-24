@@ -29,6 +29,11 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.shared.core.http_errors import CodedHTTPException
 
+#: Refusal shown when a write lands on an archived project. One sentence for
+#: every route, because a caller that hits two of them must not have to work
+#: out whether two different messages mean the same thing.
+ARCHIVED_DETAIL = "This model is archived. Restore it before making changes."
+
 
 def execution_or_404(
     db: Session,

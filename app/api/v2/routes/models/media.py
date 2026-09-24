@@ -12,9 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from PIL import Image as PILImage
 from sqlalchemy.orm import Session
 
-from app.api.deps import DBSession
+from app.api.deps import DBSession, enforce_workspace_of
+from app.api.v2._access import ARCHIVED_DETAIL
 from app.api.v2.auth import get_current_user
-from app.models import ModelProjectListing, User
+from app.models import ModelProject, ModelProjectListing, Organization, User
+from app.models.workspace import WorkspaceRole
 from app.schemas.model import (
     LogoUploadResponse,
     ModelCatalogResponse,
@@ -44,7 +46,14 @@ def _get_listing_for_owner(
     current_user: User,
     db: Session,
 ) -> ModelProjectListing:
-    """Fetch a marketplace listing and verify author-org ownership."""
+    """Fetch a marketplace listing the caller may change, or refuse.
+
+    The organization check alone let a workspace viewer, or a member outside the
+    workspace, change the public page of a model they cannot even open: its
+    logo, its screenshots, its description. ``publish`` writes the same columns
+    and asks for the editor role in the model's workspace, so these ask too. An
+    archived model refuses them the way it refuses every other write.
+    """
     listing = (
         db.query(ModelProjectListing)
         .filter(ModelProjectListing.model_project_id == model_id)
@@ -54,6 +63,19 @@ def _get_listing_for_owner(
         raise HTTPException(status_code=404, detail="Model not found")
     if listing.author_organization_id != current_user.organization_id:
         raise HTTPException(status_code=403, detail="Not authorized to modify this model")
+    project = (
+        db.query(ModelProject)
+        .filter(
+            ModelProject.id == model_id,
+            ModelProject.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+    if project is not None:
+        org = db.get(Organization, current_user.organization_id)
+        enforce_workspace_of(db, project, current_user, org, WorkspaceRole.EDITOR)
+        if project.status == "archived":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=ARCHIVED_DETAIL)
     return listing
 
 
@@ -144,8 +166,8 @@ def upload_logo(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload blocks
     current_user: User = Depends(get_current_user),
 ) -> LogoUploadResponse:
     """Upload or replace a model logo image."""
-    storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
+    storage = _get_storage()
     content = _validate_image(file)
 
     if model.logo_url:
@@ -175,8 +197,8 @@ def delete_logo(
     current_user: User = Depends(get_current_user),
 ) -> None:
     """Delete the model logo image."""
-    storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
+    storage = _get_storage()
 
     if model.logo_url:
         try:
@@ -198,8 +220,8 @@ def upload_screenshot(  # sync ON PURPOSE -> threadpool (ADR-009): boto3 upload 
     current_user: User = Depends(get_current_user),
 ) -> ScreenshotUploadResponse:
     """Upload a screenshot image for a model (max 6)."""
-    storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
+    storage = _get_storage()
     content = _validate_image(file)
 
     current_urls: list[str] = model.screenshot_urls or []
@@ -226,8 +248,8 @@ def delete_screenshot(
     current_user: User = Depends(get_current_user),
 ) -> ScreenshotListResponse:
     """Delete a screenshot by index (0-based)."""
-    storage = _get_storage()
     model = _get_listing_for_owner(model_id, current_user, db)
+    storage = _get_storage()
 
     current_urls: list[str] = model.screenshot_urls or []
     if index < 0 or index >= len(current_urls):
