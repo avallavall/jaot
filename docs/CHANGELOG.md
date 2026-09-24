@@ -53,6 +53,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Deleting a trigger left its schedule firing in the background forever.** The leftover entry is now removed on delete, and on its next tick for triggers deleted earlier.
 - **A schedule whose model failed on every run never switched itself off.** Only a failure to queue the run was counted; a failed solve reset the count to zero.
 - **The minimum time between scheduled runs could be bypassed** depending on the minute the schedule was saved: `*/5 9 * * *` saved at 09:52 was accepted and then ran every five minutes each morning.
+- **The backup script stayed silent when the database dump failed**, and left the broken half-written file as the newest backup. It now sends the failure email and keeps only verified dumps.
+- **The restore script could not restore an encrypted backup**, did nothing at all on an install without offsite storage, and could run a restore while the application was still writing to the database. All three are fixed.
 - **Forum sign-in failed for some users** with "Bad signature", when the signed data contained a character the address bar changes (a `~` in the name was enough).
 - **A contact-form message from an address with accents was lost without a trace.** An address such as `josé@ejemplo.es` stopped the delivery before it started, and the message stayed pending with no error and no alert.
 - **The assistant received every new message twice**, once before the current model and once after it, and each copy was billed.
