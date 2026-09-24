@@ -396,3 +396,79 @@ class TestBudgetGuardrail:
             )
 
         assert response.status_code == 200, response.text
+
+
+class TestSpendSurvivesDeletion:
+    """# CONTRACT-TEST: deleting a conversation or an account never lowers the month's AI spend.
+
+    The budget sums llm_messages.cost_eur, and those rows go with their
+    conversation. Chatting and deleting ran the platform key past its budget
+    without end.
+    """
+
+    def test_deleting_a_conversation_keeps_its_spend(
+        self, authenticated_client, db_session, test_conversation
+    ):
+        from app.models.llm_conversation import LLMRetainedSpend
+
+        now = utcnow()
+        last_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(
+            days=1
+        )
+        _add_costed_message(db_session, test_conversation, 1.25, created_at=now)
+        _add_costed_message(db_session, test_conversation, 99.0, created_at=last_month)
+        assert get_month_cost_eur(db_session) == pytest.approx(1.25, abs=1e-6)
+
+        response = authenticated_client.delete(f"/api/v2/llm/conversations/{test_conversation.id}")
+        assert response.status_code == 204
+
+        db_session.expire_all()
+        assert db_session.get(LLMConversation, test_conversation.id) is None
+        assert get_month_cost_eur(db_session) == pytest.approx(1.25, abs=1e-6)
+        # Each month keeps its own spend: last month's 99 stays in last month.
+        retained = sorted(float(r.cost_eur) for r in db_session.query(LLMRetainedSpend))
+        assert retained == pytest.approx([1.25, 99.0])
+
+    def test_deleting_an_account_keeps_its_spend(self, db_session, test_user, test_conversation):
+        from app.services.gdpr_service import delete_user_account
+
+        _add_costed_message(db_session, test_conversation, 3.5)
+        delete_user_account(db_session, test_user)
+        db_session.commit()
+
+        db_session.expire_all()
+        assert db_session.query(LLMMessage).count() == 0
+        assert get_month_cost_eur(db_session) == pytest.approx(3.5, abs=1e-6)
+
+
+class _FailingStream(MockStreamContext):
+    """Bills the input (message_start) and then breaks, like a dropped connection."""
+
+    async def _iter(self):
+        yield self.events[0]
+        raise RuntimeError("upstream connection reset")
+
+
+class TestSpendOfAnUnfinishedReply:
+    """Tokens Anthropic billed that reached no assistant message still count."""
+
+    def test_a_reply_that_fails_after_billing_still_counts(
+        self, authenticated_client, db_session, test_conversation
+    ):
+        client = MagicMock()
+        client.messages.stream = MagicMock(
+            return_value=_FailingStream(_make_stream_events_with_usage())
+        )
+        with patch(
+            "app.services.llm.formulation_service.get_anthropic_client", return_value=client
+        ):
+            response = authenticated_client.post(
+                f"/api/v2/llm/conversations/{test_conversation.id}/messages",
+                json={"message": "Minimize x subject to x <= 5"},
+            )
+        assert response.status_code == 200, response.text
+        assert "event: error" in response.text
+
+        db_session.expire_all()
+        reset_budget_cache()
+        assert get_month_cost_eur(db_session) > 0

@@ -177,6 +177,11 @@ def delete_user_account(db: Session, user: User) -> None:
     # LLM messages via conversations
     conv_ids = [c.id for c in db.query(LLMConversation.id).filter_by(user_id=user_id).all()]
     if conv_ids:
+        # The platform-key spend stays in the monthly budget, with no link to
+        # the person: an amount, a date and a reason.
+        from app.services.llm.cost_tracking import retain_spend_of  # noqa: PLC0415
+
+        retain_spend_of(db, conv_ids, "account_deleted")
         db.query(LLMMessage).filter(LLMMessage.conversation_id.in_(conv_ids)).delete(
             synchronize_session=False
         )

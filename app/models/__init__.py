@@ -8,7 +8,7 @@ from app.models.contact_message import ContactMessage
 from app.models.conversation_attachment import ConversationAttachment
 from app.models.favorite import RecentModel, UserFavorite
 from app.models.formulation_rating import FormulationRating
-from app.models.llm_conversation import LLMConversation, LLMMessage
+from app.models.llm_conversation import LLMConversation, LLMMessage, LLMRetainedSpend
 from app.models.model_project import (
     ModelProject,
     ModelProjectDataset,
@@ -87,6 +87,7 @@ __all__ = [
     # LLM Conversations
     "LLMConversation",
     "LLMMessage",
+    "LLMRetainedSpend",
     # Feedback
     "FormulationRating",
     # Audit Log

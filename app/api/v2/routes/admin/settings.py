@@ -24,6 +24,11 @@ from app.schemas.admin_settings import (
     SettingsValuesResponse,
     SettingValueResponse,
 )
+from app.services.llm.cost_tracking import (
+    BUDGET_SETTING_KEY,
+    PRICING_SETTING_KEY,
+    reset_budget_cache,
+)
 from app.services.platform_settings_service import PlatformSettingsService
 from app.services.settings_registry import (
     REGISTRY_BY_CATEGORY,
@@ -138,6 +143,11 @@ def update_values(
     db.commit()
 
     updated_keys = [a.setting_key for a in audits]
+    # The budget gate caches (spend, budget) for a minute. Without this an
+    # admin who raised a spent budget saw the assistant stay paused, and one
+    # who lowered it saw it keep spending, until the cache ran out.
+    if {BUDGET_SETTING_KEY, PRICING_SETTING_KEY} & set(updated_keys):
+        reset_budget_cache()
     return SettingsUpdateResponse(updated=updated_keys, errors=errors)
 
 

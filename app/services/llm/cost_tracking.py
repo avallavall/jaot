@@ -31,7 +31,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.llm_conversation import LLMConversation, LLMMessage
+from app.models.llm_conversation import LLMConversation, LLMMessage, LLMRetainedSpend
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -105,15 +105,58 @@ def compute_message_cost_eur(
 
 
 def get_month_cost_eur(db: Session) -> float:
-    """SUM(llm_messages.cost_eur) for the current calendar month (UTC)."""
+    """This calendar month's spend (UTC): live messages plus retained spend."""
     now = utcnow()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    total = (
+    live = (
         db.query(func.coalesce(func.sum(LLMMessage.cost_eur), 0))
         .filter(LLMMessage.created_at >= month_start)
         .scalar()
     )
-    return float(total or 0)
+    retained = (
+        db.query(func.coalesce(func.sum(LLMRetainedSpend.cost_eur), 0))
+        .filter(LLMRetainedSpend.spent_at >= month_start)
+        .scalar()
+    )
+    return float(live or 0) + float(retained or 0)
+
+
+def retain_spend_of(db: Session, conversation_ids: list[str], reason: str) -> None:
+    """Move the billed spend of conversations about to be deleted into the ledger.
+
+    One row per calendar month the spend falls in, dated at its latest message,
+    so a deletion never moves money from one month into another. Does not
+    commit: it belongs to the transaction that deletes the conversations.
+    """
+    if not conversation_ids:
+        return
+    month = func.date_trunc("month", LLMMessage.created_at)
+    rows = (
+        db.query(
+            func.max(LLMMessage.created_at),
+            func.sum(LLMMessage.cost_eur),
+            func.coalesce(func.sum(LLMMessage.input_tokens), 0),
+            func.coalesce(func.sum(LLMMessage.output_tokens), 0),
+        )
+        .filter(
+            LLMMessage.conversation_id.in_(conversation_ids),
+            LLMMessage.cost_eur.isnot(None),
+        )
+        .group_by(month)
+        .all()
+    )
+    for spent_at, cost, input_tokens, output_tokens in rows:
+        if not cost:
+            continue
+        db.add(
+            LLMRetainedSpend(
+                spent_at=spent_at,
+                cost_eur=cost,
+                input_tokens=int(input_tokens),
+                output_tokens=int(output_tokens),
+                reason=reason,
+            )
+        )
 
 
 def get_budget_status(db: Session) -> tuple[float, float]:
@@ -214,6 +257,7 @@ def record_standalone_llm_spend(
             )
         )
         db.commit()
+        reset_budget_cache()
     except Exception:
         logger.warning("Failed to record standalone LLM spend", exc_info=True)
         db.rollback()
@@ -230,4 +274,5 @@ __all__ = [
     "is_llm_budget_exceeded",
     "record_standalone_llm_spend",
     "reset_budget_cache",
+    "retain_spend_of",
 ]

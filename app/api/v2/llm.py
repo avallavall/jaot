@@ -59,6 +59,8 @@ from app.services.llm.cost_tracking import (
     compute_message_cost_eur,
     is_llm_budget_exceeded,
     record_standalone_llm_spend,
+    reset_budget_cache,
+    retain_spend_of,
 )
 from app.services.llm.errors import (
     LLMErrorCode,
@@ -356,8 +358,12 @@ def delete_conversation(
             detail="Conversation not found",
         )
 
+    # The messages carry the conversation's cost, and the monthly budget sums
+    # them. Deleting them took that spend off the month.
+    retain_spend_of(db, [conv.id], "conversation_deleted")
     db.delete(conv)
     db.commit()
+    reset_budget_cache()
     return
 
 
@@ -391,6 +397,8 @@ async def _stream_llm_response(
     # triggered (retries and chunked-generation calls each bill separately).
     total_input_tokens = 0
     total_output_tokens = 0
+    # True once the tokens above are on a persisted assistant message.
+    spend_booked = False
 
     try:
         async for event in stream_gen:
@@ -510,6 +518,8 @@ async def _stream_llm_response(
                             conv.current_formulation = formulation_data
 
                         db.commit()
+                        spend_booked = True
+                        reset_budget_cache()
                     except Exception as e:
                         logger.error("Failed to persist assistant message: %s", e)
                         db.rollback()
@@ -536,6 +546,20 @@ async def _stream_llm_response(
             "event": "error",
             "data": json.dumps({"code": code.value, "request_id": request_id}),
         }
+    finally:
+        # Tokens Anthropic billed that reached no assistant message: a failed
+        # retry, a reply that did not validate, a client that pressed Stop or
+        # closed the tab. They were dropped, so the budget saw none of it.
+        if not spend_booked and bill_platform and (total_input_tokens or total_output_tokens):
+            record_standalone_llm_spend(
+                db,
+                org_id=org_id,
+                user_id=conv.user_id,
+                model=model,
+                input_tokens=total_input_tokens,
+                output_tokens=total_output_tokens,
+                summary="Spend of an assistant reply that was not completed",
+            )
 
 
 @router.post(

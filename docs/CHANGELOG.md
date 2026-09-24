@@ -53,9 +53,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Deleting a trigger left its schedule firing in the background forever.** The leftover entry is now removed on delete, and on its next tick for triggers deleted earlier.
 - **A schedule whose model failed on every run never switched itself off.** Only a failure to queue the run was counted; a failed solve reset the count to zero.
 - **The minimum time between scheduled runs could be bypassed** depending on the minute the schedule was saved: `*/5 9 * * *` saved at 09:52 was accepted and then ran every five minutes each morning.
+- **AI spend on a reply that did not finish was not counted.** A failed retry, a reply that did not validate, or a user who pressed Stop or closed the tab was billed by Anthropic and missing from the budget.
+- **Changing the AI budget took up to a minute to apply.** It now applies at once on the server that received the change.
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **The monthly AI budget could be bypassed by deleting conversations.** The budget added up the cost stored on each message, so deleting a chat (or an account) took its cost off the month. Chatting and deleting could spend without limit. Deleted spend now keeps counting, with no link to the person.
 - **Running a model through `/models/{id}/execute` (and the MCP tool built on it) skipped every solve limit.** The variable cap, the time ceiling, the daily quota and the rate limit now apply there too, and the time ceiling reaches the solver for models built from a card.
 - **A deactivated organization kept solving through its triggers**, both on schedule and through the trigger secret. Triggers of a deactivated organization or user no longer fire.
 - **Anyone who saw a trigger's URL could use up its daily budget with a wrong secret.** A wrong secret no longer counts against the trigger's limit.

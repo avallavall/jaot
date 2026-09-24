@@ -142,3 +142,38 @@ class LLMMessage(Base):
 
     def __repr__(self) -> str:
         return f"<LLMMessage(id={self.id}, role={self.role})>"
+
+
+def _default_retained_id() -> str:
+    return generate_id("lrs_")
+
+
+class LLMRetainedSpend(Base):
+    """Platform-key spend that must keep counting after its messages are gone.
+
+    The monthly AI budget is the sum of ``llm_messages.cost_eur``, and those rows
+    go with their conversation. Deleting a conversation (any API key can) or an
+    account removed that spend from the month, so chatting and deleting could
+    run the platform's Anthropic bill past its budget without end. The cost of
+    what is deleted moves here first.
+
+    No link to a user or an organization on purpose: an account erased under
+    GDPR leaves an amount of money and a date, and nothing that points at them.
+    """
+
+    __tablename__ = "llm_retained_spend"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_default_retained_id)
+    # When the spend happened (the latest message it covers), so it counts in the
+    # month it was billed, not the month it was deleted.
+    spent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    cost_eur: Mapped[Decimal] = mapped_column(Numeric(12, 6), nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reason: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+
+    def __repr__(self) -> str:
+        return f"<LLMRetainedSpend(id={self.id}, cost_eur={self.cost_eur}, reason={self.reason})>"

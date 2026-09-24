@@ -119,6 +119,7 @@ _ALL_TABLES = [
     "formulation_ratings",
     "conversation_attachments",
     "llm_messages",
+    "llm_retained_spend",
     "llm_conversations",
     "trigger_runs",
     "trigger_schedules",
