@@ -879,6 +879,11 @@ def build_messages(
         truncated = list(reversed(selected))
 
     for msg in truncated:
+        # The Messages API refuses an empty content block in a non-final turn.
+        # A reply whose whole budget went to thinking was stored as "", and from
+        # then on every message of that conversation failed with a 400.
+        if not (msg.get("content") or "").strip():
+            continue
         entry = {"role": msg["role"], "content": msg["content"]}
         messages.append(entry)
 

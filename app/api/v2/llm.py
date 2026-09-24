@@ -671,10 +671,14 @@ async def send_message(
             "extracted_text": attachment.extracted_text,
         }
 
-    # Build message history for Anthropic API (with refinement context)
+    # Build message history for Anthropic API (with refinement context).
+    # Without the message just stored: build_messages appends it as the new turn,
+    # and the commit above expired ``conv``, so the reload already contained it.
+    # The model received every new message twice and each was billed twice.
     history = [
         {"role": msg.role, "content": msg.content, "formulation_json": msg.formulation_json}
         for msg in sorted(conv.messages, key=lambda m: m.created_at)
+        if msg.id != user_msg.id
     ]
     api_messages = build_messages(
         history,

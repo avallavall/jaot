@@ -472,3 +472,40 @@ class TestSpendOfAnUnfinishedReply:
         db_session.expire_all()
         reset_budget_cache()
         assert get_month_cost_eur(db_session) > 0
+
+
+class TestWhatTheModelIsSent:
+    """The request sent to Anthropic carries each turn once, and none of them empty."""
+
+    def test_a_new_message_is_sent_once(self, authenticated_client, db_session, test_conversation):
+        """Production sessions expire on commit, so the reload held the new message too."""
+        client = _mock_anthropic_client()
+        db_session.expire_on_commit = True
+        try:
+            with patch(
+                "app.services.llm.formulation_service.get_anthropic_client", return_value=client
+            ):
+                response = authenticated_client.post(
+                    f"/api/v2/llm/conversations/{test_conversation.id}/messages",
+                    json={"message": "Minimize the unique probe phrase"},
+                )
+        finally:
+            db_session.expire_on_commit = False
+        assert response.status_code == 200, response.text
+
+        sent = client.messages.stream.call_args.kwargs["messages"]
+        mentions = [m for m in sent if "unique probe phrase" in str(m["content"])]
+        assert len(mentions) == 1, sent
+
+    def test_an_empty_stored_reply_is_left_out_of_the_history(self):
+        from app.services.llm.prompt_templates import build_messages
+
+        messages = build_messages(
+            [
+                {"role": "user", "content": "first"},
+                {"role": "assistant", "content": ""},
+            ],
+            "second",
+        )
+        assert all(m["content"] for m in messages)
+        assert messages[-1] == {"role": "user", "content": "second"}

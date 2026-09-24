@@ -412,9 +412,9 @@ class TestAutoRetry:
             chunk_call += 1
             mock_resp = MagicMock()
             if chunk_call <= 1:
-                mock_resp.content = [MagicMock(text=vars_response)]
+                mock_resp.content = [MagicMock(type="text", text=vars_response)]
             else:
-                mock_resp.content = [MagicMock(text=constraints_response)]
+                mock_resp.content = [MagicMock(type="text", text=constraints_response)]
             return mock_resp
 
         mock_client.messages.create = AsyncMock(side_effect=create_side_effect)
@@ -537,9 +537,9 @@ class TestChunkedGeneration:
         mock_client = MagicMock()
         # _generate_chunk uses client.messages.create (non-streaming)
         mock_response_vars = MagicMock()
-        mock_response_vars.content = [MagicMock(text=vars_response)]
+        mock_response_vars.content = [MagicMock(type="text", text=vars_response)]
         mock_response_constraints = MagicMock()
-        mock_response_constraints.content = [MagicMock(text=constraints_response)]
+        mock_response_constraints.content = [MagicMock(type="text", text=constraints_response)]
 
         call_count = 0
 
@@ -598,7 +598,7 @@ class TestChunkedGeneration:
 
         mock_client = MagicMock()
         mock_response_vars = MagicMock()
-        mock_response_vars.content = [MagicMock(text=vars_response)]
+        mock_response_vars.content = [MagicMock(type="text", text=vars_response)]
 
         call_count = 0
 
@@ -669,9 +669,9 @@ class TestGracefulDegradation:
         )
 
         mock_response_vars = MagicMock()
-        mock_response_vars.content = [MagicMock(text=vars_response)]
+        mock_response_vars.content = [MagicMock(type="text", text=vars_response)]
         mock_response_constraints = MagicMock()
-        mock_response_constraints.content = [MagicMock(text=constraints_response)]
+        mock_response_constraints.content = [MagicMock(type="text", text=constraints_response)]
 
         chunk_call = 0
 
@@ -737,3 +737,58 @@ class TestGracefulDegradation:
         f = Formulation.model_validate(result)
         assert f.problem_name == "Test"
         assert f.constraints == []
+
+
+class TestChunkedGenerationReadsPastTheThinkingBlock:
+    """With adaptive thinking the reply starts with a thinking block, which has no text.
+
+    ``response.content[0].text`` raised on it, every chunk failed, and a large
+    problem on the advanced model always ended in "generation_failed" after
+    four billed calls.
+    """
+
+    @pytest.mark.asyncio
+    async def test_a_thinking_block_first_still_yields_the_formulation(self):
+        from types import SimpleNamespace
+
+        from app.services.llm.chunked_generation import generate_formulation_chunked
+
+        variables = json.dumps(
+            {
+                "problem_name": "Thinking",
+                "summary": "A test",
+                "variables": [
+                    {
+                        "name": "x",
+                        "type": "continuous",
+                        "lower_bound": 0,
+                        "upper_bound": 10,
+                        "description": "var",
+                    }
+                ],
+                "objective": {"sense": "minimize", "expression": "x", "description": "min x"},
+            }
+        )
+        constraints = json.dumps(
+            {"constraints": [{"name": "c1", "expression": "x <= 10", "description": "limit"}]}
+        )
+
+        def reply(text: str) -> MagicMock:
+            response = MagicMock()
+            response.content = [
+                SimpleNamespace(type="thinking", thinking="Let me work this out."),
+                SimpleNamespace(type="text", text=text),
+            ]
+            return response
+
+        client = MagicMock()
+        client.messages.create = AsyncMock(side_effect=[reply(variables), reply(constraints)])
+        with patch("app.services.llm.chunked_generation.get_anthropic_client", return_value=client):
+            events = [
+                event
+                async for event in generate_formulation_chunked(
+                    [{"role": "user", "content": "test"}], "claude-opus-5", thinking=True
+                )
+            ]
+
+        assert "formulation" in [e["type"] for e in events]

@@ -19,7 +19,7 @@ from app.schemas.llm import (
     Formulation,
     VariablesChunk,
 )
-from app.services.llm.anthropic_client import get_anthropic_client
+from app.services.llm.anthropic_client import collect_text, get_anthropic_client
 from app.services.llm.errors import LLMStatusCode
 from app.services.llm.prompt_templates import FORMULATION_SYSTEM_PROMPT
 from app.services.llm.thinking import apply_thinking
@@ -99,7 +99,9 @@ async def _generate_chunk(
                 "input_tokens": _in if isinstance(_in, int) else 0,
                 "output_tokens": _out if isinstance(_out, int) else 0,
             }
-        text = response.content[0].text
+        # The text blocks only: with adaptive thinking the first block is the
+        # thinking, which has no .text, and every chunk failed on it.
+        text = collect_text(response)
         result: dict[str, Any] = json.loads(text)
         return result, usage
     except Exception as e:

@@ -428,9 +428,9 @@ class TestNoLeakageOnAnthropicFailure:
             chunk_counter += 1
             mock_resp = MagicMock()
             if chunk_counter <= 1:
-                mock_resp.content = [MagicMock(text=variables_json)]
+                mock_resp.content = [MagicMock(type="text", text=variables_json)]
             else:
-                mock_resp.content = [MagicMock(text=constraints_json)]
+                mock_resp.content = [MagicMock(type="text", text=constraints_json)]
             return mock_resp
 
         mock_client.messages.create = AsyncMock(side_effect=create_side_effect)
