@@ -24,7 +24,7 @@ sequenceDiagram
         API->>Frontend: 503 "Maintenance mode"
     end
 
-    API->>API: _enforce_tier_caps(org.plan) → max_variables, daily solve quota
+    API->>API: enforce_tier_caps(org.plan) → max_variables, daily solve quota
     alt limit exceeded
         API->>Frontend: 403 "Limit exceeded"
     end
@@ -71,7 +71,7 @@ sequenceDiagram
 
 ### Pre-Solve Validation
 1. **`validate_problem()`**: checks variable refs in objective/constraints — rejects BEFORE enqueue
-2. **`_enforce_tier_caps()`**: validates plan limits (max_variables, max_solves/day)
+2. **`enforce_tier_caps()`**: validates plan limits (max_variables, max_solves/day)
 3. **Maintenance mode**: `solve_maintenance_gate` = true → 503 for everyone
 
 ### One async pipeline (ADR-007)

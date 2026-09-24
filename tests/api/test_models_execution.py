@@ -338,3 +338,64 @@ class TestAsyncExecution:
         """Test cancelling non-existent execution."""
         response = authenticated_client.post("/api/v2/models/async/nonexistent_task/cancel")
         assert response.status_code == 404
+
+
+class TestExecuteIsHeldToTheInstanceCaps:
+    """# CONTRACT-TEST: /models/{id}/execute applies the caps every solve route applies.
+
+    It applied none of them: a member refused on /solve (variable cap, daily
+    quota) could run the same model here, and so could the MCP tool built on
+    it. For a card-based model the worker also rendered the card again, which
+    dropped the time-limit ceiling the API had applied.
+    """
+
+    def test_the_variable_cap_refuses_the_run(
+        self, authenticated_client, db_session, test_organization
+    ):
+        from app.services.platform_settings_service import PlatformSettingsService as PSS
+
+        PSS.set(db_session, "instance_max_variables", "1")
+        two_vars = {
+            **BOUNDED_MILP_INPUT,
+            "variables": [
+                *BOUNDED_MILP_INPUT["variables"],
+                {"name": "y", "type": "integer", "lower_bound": 0, "upper_bound": 1},
+            ],
+        }
+        db_session.add(
+            ModelProject(
+                id="test_capped_exec",
+                organization_id=test_organization.id,
+                name="Too big",
+                status="active",
+                draft_model_json=two_vars,
+            )
+        )
+        db_session.commit()
+
+        response = authenticated_client.post(
+            "/api/v2/models/test_capped_exec/execute", json={"input_data": {}}
+        )
+        assert response.status_code == 403, response.text
+        assert "variable" in response.text
+        assert (
+            db_session.query(ModelExecution).filter_by(model_project_id="test_capped_exec").count()
+            == 0
+        )
+
+    def test_the_time_ceiling_reaches_the_worker_for_a_card_based_model(
+        self, authenticated_client, db_session, test_organization
+    ):
+        from app.services.platform_settings_service import PlatformSettingsService as PSS
+
+        PSS.set(db_session, "instance_max_solve_time_seconds", "7")
+        db_session.commit()
+        model_id = _seed_fork(db_session, test_organization, "ceiling")
+
+        response = authenticated_client.post(
+            f"/api/v2/models/{model_id}/execute", json={"input_data": BOUNDED_MILP_INPUT}
+        )
+        assert response.status_code == 200, response.text
+        execution = db_session.get(ModelExecution, response.json()["id"])
+        db_session.refresh(execution)
+        assert execution.input_data["options"]["time_limit_seconds"] == 7

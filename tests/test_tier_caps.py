@@ -1,7 +1,7 @@
 """Tests for tier cap enforcement on solve and LLM endpoints.
 
 Updated for pricing restructure (2026-03):
-- _enforce_tier_caps now takes (db, org, problem) and uses PSS.get_instance_limits
+- enforce_tier_caps now takes (db, org, problem) and uses PSS.get_instance_limits
 - Feature gating removed: all features available on all tiers
 - No more warm_start rejection on free tier
 - No more LLM feature_not_available on free tier
@@ -124,15 +124,15 @@ def _make_problem(num_vars: int = 2, time_limit: int = 30, warm_start: bool = Fa
 
 
 class TestEnforceTierCapsUnit:
-    """Unit tests for the _enforce_tier_caps function.
+    """Unit tests for the enforce_tier_caps function.
 
-    _enforce_tier_caps(db, org, problem) uses PSS.get_instance_limits.
+    enforce_tier_caps(db, org, problem) uses PSS.get_instance_limits.
     """
 
     @patch("app.api.v2.solve_pipeline.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve_pipeline.check_rate_limit", return_value=(True, None))
     def test_variable_limit_exceeded_free(self, mock_rl, mock_pss):
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         db = MagicMock()
         org = _make_org("free")
@@ -141,7 +141,7 @@ class TestEnforceTierCapsUnit:
         from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
-            _enforce_tier_caps(db, org, problem)
+            enforce_tier_caps(db, org, problem)
         assert exc_info.value.status_code == 403
         assert exc_info.value.detail["error"] == "variable_limit_exceeded"
         assert exc_info.value.detail["limit"] == 5000
@@ -150,37 +150,37 @@ class TestEnforceTierCapsUnit:
     @patch("app.api.v2.solve_pipeline.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve_pipeline.check_rate_limit", return_value=(True, None))
     def test_variable_limit_ok_free(self, mock_rl, mock_pss):
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         db = MagicMock()
         org = _make_org("free")
         problem = OptimizationProblem(**_make_problem(num_vars=500))
 
         # Should not raise
-        _enforce_tier_caps(db, org, problem)
+        enforce_tier_caps(db, org, problem)
 
     @patch("app.api.v2.solve_pipeline.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve_pipeline.check_rate_limit", return_value=(True, None))
     def test_time_limit_clamped_free(self, mock_rl, mock_pss):
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         db = MagicMock()
         org = _make_org("free")
         problem = OptimizationProblem(**_make_problem(time_limit=120))
 
-        clamped = _enforce_tier_caps(db, org, problem)
+        clamped = enforce_tier_caps(db, org, problem)
         assert clamped.options.time_limit_seconds == 60
 
     @patch("app.api.v2.solve_pipeline.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
     @patch("app.api.v2.solve_pipeline.check_rate_limit", return_value=(True, None))
     def test_time_limit_not_clamped_when_under(self, mock_rl, mock_pss):
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         db = MagicMock()
         org = _make_org("free")
         problem = OptimizationProblem(**_make_problem(time_limit=20))
 
-        result = _enforce_tier_caps(db, org, problem)
+        result = enforce_tier_caps(db, org, problem)
         assert result.options.time_limit_seconds == 20
 
     @patch("app.api.v2.solve_pipeline.PSS.get_instance_limits", return_value=FREE_PLAN_CONFIG)
@@ -189,7 +189,7 @@ class TestEnforceTierCapsUnit:
         return_value=(False, {"error": "rate limited"}),
     )
     def test_daily_solve_quota_exceeded(self, mock_rl, mock_pss):
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         db = MagicMock()
         org = _make_org("free")
@@ -198,7 +198,7 @@ class TestEnforceTierCapsUnit:
         from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
-            _enforce_tier_caps(db, org, problem)
+            enforce_tier_caps(db, org, problem)
         assert exc_info.value.status_code == 403
         assert exc_info.value.detail["error"] == "daily_solve_quota_exceeded"
 
@@ -213,7 +213,7 @@ class TestEnforceTierCapsUnit:
           - time_limit_seconds is clamped to the free cap (60s) since we passed 30s
             (no change expected because 30 < 60)
         """
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         db = MagicMock()
         org = _make_org("free")
@@ -221,7 +221,7 @@ class TestEnforceTierCapsUnit:
         original_warm_start_id = problem.warm_start.execution_id
 
         # Should NOT raise -- feature gating was removed
-        result = _enforce_tier_caps(db, org, problem)
+        result = enforce_tier_caps(db, org, problem)
 
         # warm_start preserved
         assert result.warm_start is not None
@@ -237,13 +237,13 @@ class TestEnforceTierCapsUnit:
         Asserts warm_start survives the call and time_limit_seconds is NOT
         clamped (we pass 120s, starter cap is 300s).
         """
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         db = MagicMock()
         org = _make_org("starter")
         problem = OptimizationProblem(**_make_problem(time_limit=120, warm_start=True))
 
-        result = _enforce_tier_caps(db, org, problem)
+        result = enforce_tier_caps(db, org, problem)
 
         assert result.warm_start is not None
         assert result.warm_start.execution_id == "exe_prev001"
@@ -272,25 +272,25 @@ class TestZeroMeansUnlimited:
     @patch("app.api.v2.solve_pipeline.PSS.get_instance_limits", return_value=UNLIMITED_PLAN_CONFIG)
     @patch("app.api.v2.solve_pipeline.check_rate_limit", return_value=(True, None))
     def test_variable_limit_zero_accepts_any_model(self, mock_rl, mock_pss):
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         org = _make_org("free")
         problem = OptimizationProblem(**_make_problem(num_vars=20_000))
 
         # 20k variables against a limit of 0 — must pass, not raise 403.
-        result = _enforce_tier_caps(MagicMock(), org, problem)
+        result = enforce_tier_caps(MagicMock(), org, problem)
         assert len(result.variables) == 20_000
 
     # CONTRACT-TEST: max_solve_time_seconds = 0 means no clamp
     @patch("app.api.v2.solve_pipeline.PSS.get_instance_limits", return_value=UNLIMITED_PLAN_CONFIG)
     @patch("app.api.v2.solve_pipeline.check_rate_limit", return_value=(True, None))
     def test_time_limit_zero_leaves_request_untouched(self, mock_rl, mock_pss):
-        from app.api.v2.solve_pipeline import _enforce_tier_caps
+        from app.api.v2.solve_pipeline import enforce_tier_caps
 
         org = _make_org("free")
         problem = OptimizationProblem(**_make_problem(time_limit=604_800))  # a week
 
-        result = _enforce_tier_caps(MagicMock(), org, problem)
+        result = enforce_tier_caps(MagicMock(), org, problem)
         assert result.options.time_limit_seconds == 604_800
 
     def test_solver_options_accept_hardware_scale_values(self):

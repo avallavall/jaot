@@ -523,13 +523,13 @@ def solve_model_async(
     Args:
         execution_id: ID of the ModelExecution record
         model_id: ID of the ModelProject being executed
-        template: Generator template to render with ``input_data`` (generator-backed
-            models); None for a static model
+        template: Generator template, rendered with ``input_data`` only when no
+            ``problem_data`` came with the message (one queued by an older API)
         input_data: Input parameters for the generator (ignored for static models)
         organization_id: Organization making the request
         solver_name: Optional solver name (defaults to SCIP if None)
-        problem_data: The validated OptimizationProblem payload of a static model
-            (used when ``template`` is None)
+        problem_data: The problem the API validated, capped and stamped with its
+            time limit. Solved as sent when present.
 
     Returns:
         Execution result dictionary
@@ -584,13 +584,14 @@ def solve_model_async(
             },
         )
 
-        # Generator-backed models render input through the template engine;
-        # static models ship their validated problem payload directly.
-        if template is not None:
+        # The API ships the problem it capped and stamped, for both kinds of
+        # model. A message queued before it did (a template and no payload)
+        # still renders the card here.
+        if problem_data is not None:
+            problem = OptimizationProblem.model_validate(problem_data)
+        elif template is not None:
             template_engine = get_template_engine()
             problem = template_engine.render(template, input_data)
-        elif problem_data is not None:
-            problem = OptimizationProblem.model_validate(problem_data)
         else:
             raise ValueError(f"Model {model_id} has neither a template nor problem_data")
 

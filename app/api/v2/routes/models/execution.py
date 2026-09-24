@@ -13,6 +13,7 @@ from app.api.deps import (
     CurrentOrg,
     DBSession,
     enforce_execution_workspace,
+    enforce_org_rate_limit,
     enforce_workspace_of,
     workspace_ids_open_to,
 )
@@ -21,7 +22,7 @@ from app.api.v2._render import render_or_422
 from app.api.v2._solver_limits import compute_celery_time_limits, resolve_solver_time_limit
 from app.api.v2.auth import get_current_user
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
-from app.api.v2.solve_pipeline import wait_for_task
+from app.api.v2.solve_pipeline import enforce_tier_caps, wait_for_task
 from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import execution_writer
 from app.domains.solver.adapters.base import (
@@ -201,7 +202,6 @@ def execute_model(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     template = _resolve_generator_template(db, project)
-    problem_data: dict[str, Any] | None = None
     if template is not None:
         # Render the problem first — auto-routing classification needs it.
         problem = render_or_422(template_engine, template, body.input_data)
@@ -231,7 +231,13 @@ def execute_model(
                     exc, prefix="Stored model is not a valid optimization problem."
                 ),
             ) from exc
-        problem_data = problem.model_dump(mode="json")
+
+    # The limits every other solve route applies: the organization's rate
+    # limit, then the variable cap, the time-limit ceiling and the daily quota.
+    # This route applied none of them, so a member refused on /solve could
+    # run the same model here, and so could the MCP tool built on it.
+    enforce_org_rate_limit(db, org)
+    problem = enforce_tier_caps(db, org, problem)
 
     # Resolve "auto" to a concrete solver BEFORE queueing or solving.
     # Parity with /api/v2/solve (Phase 7.4 / D-11 / D-13): this endpoint used to
@@ -267,6 +273,10 @@ def execute_model(
     problem.options.time_limit_seconds = resolve_solver_time_limit(
         db, effective_solver_name, problem.options.time_limit_seconds
     )
+    # The worker solves exactly this problem: capped, and with the time limit
+    # above. For a generator-backed model it used to render the card again from
+    # input_data, which dropped both the clamp and the Hexaly default.
+    problem_data = problem.model_dump(mode="json")
 
     execution = ModelExecution(
         id=generate_id("exe_"),

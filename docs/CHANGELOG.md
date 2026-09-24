@@ -56,6 +56,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **Running a model through `/models/{id}/execute` (and the MCP tool built on it) skipped every solve limit.** The variable cap, the time ceiling, the daily quota and the rate limit now apply there too, and the time ceiling reaches the solver for models built from a card.
 - **A deactivated organization kept solving through its triggers**, both on schedule and through the trigger secret. Triggers of a deactivated organization or user no longer fire.
 - **Anyone who saw a trigger's URL could use up its daily budget with a wrong secret.** A wrong secret no longer counts against the trigger's limit.
 - **Workspace walls had three gaps.** The model list named models filed in a workspace you are not in; anyone in the organization could change the logo, screenshots and description of a published model they could not open; and the live-progress connection sent the full solution of a walled run. All three now ask for the same workspace role as the model itself. An archived model also refuses changes to its public page.

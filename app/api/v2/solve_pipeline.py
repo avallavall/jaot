@@ -127,7 +127,7 @@ class EnqueuedSolve:
         self.envelope = envelope
 
 
-def _enforce_tier_caps(
+def enforce_tier_caps(
     db: Session,
     org: Organization,
     problem: OptimizationProblem,
@@ -252,7 +252,7 @@ def enqueue_async_solve(
     from app.domains.solver.tasks.solve_tasks import solve_async
     from app.shared.utils.id_generator import generate_id
 
-    problem = _enforce_tier_caps(db, org, problem)
+    problem = enforce_tier_caps(db, org, problem)
     # Recover flat/imported variable index structure (a JModel-compiled problem
     # already carries it; this is a no-op there). Do it before enqueue so the
     # structure travels with the problem to the worker and lands on the result.
@@ -613,7 +613,7 @@ def _enqueue_multi_objective_async(
     from app.domains.solver.tasks.solve_tasks import solve_multi_objective_async
     from app.shared.utils.id_generator import generate_id
 
-    problem = _enforce_tier_caps(db, org, problem)
+    problem = enforce_tier_caps(db, org, problem)
     annotate_variable_structure(problem)  # recover flat index structure (no-op for JModel)
     execution_id = generate_id("exe_")
 
