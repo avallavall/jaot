@@ -250,6 +250,14 @@ const dependencies = [
     usedFor: "Open-source LP/MIP solver, run as a separate program",
   },
   {
+    name: "JAOS",
+    version: "0.5.0",
+    license: "Apache 2.0",
+    copyright: "Copyright (c) JAOS contributors",
+    url: "https://github.com/avallavall/jaos",
+    usedFor: "Open-source LP/MIP solver, run through its Python library",
+  },
+  {
     name: "pypdf",
     version: "5.1+",
     license: "BSD-3-Clause",
@@ -370,6 +378,23 @@ export default async function LicensesPage() {
             <p><span className="font-medium text-foreground">{t("licenses.fieldUsedFor")}</span> {t("licenses.usedForGlpk")}</p>
           </div>
           <p className="text-sm italic">{t("licenses.glpkNote")}</p>
+        </section>
+
+        {/* JAOS */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">JAOS 0.5.0</h2>
+          <div className="text-sm space-y-1 mb-4">
+            <p><span className="font-medium text-foreground">{t("licenses.fieldLicense")}</span> Apache License, Version 2.0</p>
+            <p><span className="font-medium text-foreground">{t("licenses.fieldCopyright")}</span> Copyright (c) JAOS contributors</p>
+            <p>
+              <span className="font-medium text-foreground">{t("licenses.fieldUrl")}</span>{" "}
+              <a href="https://github.com/avallavall/jaos" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+                https://github.com/avallavall/jaos
+              </a>
+            </p>
+            <p><span className="font-medium text-foreground">{t("licenses.fieldUsedFor")}</span> {t("licenses.usedForJaos")}</p>
+          </div>
+          <p className="text-sm italic">{t("licenses.apacheNote")}</p>
         </section>
 
         {/* requests */}

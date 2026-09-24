@@ -127,7 +127,7 @@
     "liveCancelled": "Cancel·lat",
     "liveWaiting": "Esperant la primera solució…",
     "liveNoProgressStream": "{solver} no emet progrés mentre cerca. El resultat apareixerà quan acabi de resoldre.",
-    "liveStreamNote": "SCIP transmet el progrés en directe. La resta de solvers només informen del resultat final.",
+    "liveStreamNote": "SCIP i JAOS transmeten el progrés en directe. La resta de solvers només informen del resultat final.",
     "solveStatusLabel": "Estat",
     "solveSolverLabel": "Solver",
     "liveConvergence": "Convergència",
@@ -874,7 +874,7 @@
         "title": "Estudiants i investigadors",
         "item1": "Crea un model amb l'assistent i llegeix les matemàtiques que genera",
         "item2": "Plantilles des d'un primer LP fins a un MIP complet, amb exemples resolts",
-        "item3": "Quatre solvers de codi obert que pots executar l'un al costat de l'altre sobre el mateix model",
+        "item3": "Cinc solvers de codi obert que pots executar l'un al costat de l'altre sobre el mateix model",
         "item4": "Gratuït i de codi obert, i el pots instal·lar a la teva pròpia màquina",
         "cta": "Prova gratuïtament"
       },
@@ -956,7 +956,7 @@
     "solverRace": {
       "eyebrow": "Triar solver",
       "title": "El solver més ràpid depèn del model",
-      "subtitle": "JAOT porta SCIP, HiGHS, CBC i GLPK. L'ordre canvia d'un model a l'altre, així que JAOT executa el teu problema en tots ells en les mateixes condicions i mostra què ha fet cadascun. A sota, un trimestre de càrrega de cambres d'envelliment a la mateixa planta.",
+      "subtitle": "JAOT porta SCIP, HiGHS, CBC, GLPK i JAOS. L'ordre canvia d'un model a l'altre, així que JAOT executa el teu problema en tots ells en les mateixes condicions i mostra què ha fet cadascun. A sota, un trimestre de càrrega de cambres d'envelliment a la mateixa planta.",
       "chartHeading": "Temps total, escala logarítmica",
       "instance": "{variables} variables, {constraints} restriccions",
       "outOfTime": "Sense temps",
@@ -966,7 +966,7 @@
       "rowCutOff": "Va demostrar que cap pla necessita menys de {bound} cambres, després de {nodes} nodes, i no va trobar cap pla",
       "scaleNote": "L'escala és logarítmica: cada pas són deu vegades l'anterior, així que la llargada de la barra no és proporcional al número que té al costat.",
       "verdict": "{winner} va acabar primer. {slowest} va arribar a la mateixa resposta {ratio} vegades més lent. Amb un altre model l'ordre canvia, així que l'única manera de triar és mesurar.",
-      "cutOffNote": "{solvers} va esgotar els {limit} segons i no va trobar cap pla. Sí que va demostrar que cap pla necessita menys de {bound} cambres. Aquesta cota encara és útil: et diu fins a quin punt qualsevol pla pot quedar lluny del millor.",
+      "cutOffNote": "{count, plural, one {{solvers} va esgotar els {limit} segons i no va trobar cap pla. Sí que va demostrar que cap pla necessita menys de {bound} cambres. Aquesta cota encara és útil: et diu fins a quin punt qualsevol pla pot quedar lluny del millor.} other {{solvers} van esgotar els {limit} segons i no van trobar cap pla. Cadascun va demostrar una cota, que apareix a la seva fila: cap pla necessita menys cambres que aquesta. Una cota encara és útil: et diu fins a quin punt qualsevol pla pot quedar lluny del millor.}}",
       "terms": "Tots els solvers van rebre el mateix límit de {limit} segons i els mateixos {threads} fils, l'un darrere l'altre en un sol servidor de {cores} nuclis. Els segons només són comparables dins d'aquesta execució.",
       "sameTerms": {
         "title": "Les mateixes condicions",
@@ -994,7 +994,7 @@
       },
       "step3": {
         "title": "Resol i llegeix l'anàlisi",
-        "description": "Executa un solver, o compara els quatre sobre el mateix model. Després llegeix quines restriccions estan al límit, què val una unitat més, i exporta la solució."
+        "description": "Executa un solver, o compara els cinc sobre el mateix model. Després llegeix quines restriccions estan al límit, què val una unitat més, i exporta la solució."
       }
     },
     "cta": {
@@ -1090,7 +1090,7 @@
       },
       "section2": {
         "title": "2. Descripció del servei",
-        "body": "JAOT és una plataforma de codi obert per crear, compartir i resoldre models d’optimització matemàtica. Inclou un marketplace gratuït i col·laboratiu de plantilles d’optimització, un estudi de models amb llenç visual, editor de text JModel i editor JSON, un assistent de formulació amb IA opcional, un endpoint de Model Context Protocol (MCP) per a accés programàtic i espais de treball compartits per organització. Els models es resolen localment amb solvers de codi obert, actualment SCIP, HiGHS, CBC i GLPK. La instància de jaot.io és el desplegament de referència operat per l’equip de JAOT; qualsevol pot autoallotjar el mateix programari sota la Llicència Apache 2.0."
+        "body": "JAOT és una plataforma de codi obert per crear, compartir i resoldre models d’optimització matemàtica. Inclou un marketplace gratuït i col·laboratiu de plantilles d’optimització, un estudi de models amb llenç visual, editor de text JModel i editor JSON, un assistent de formulació amb IA opcional, un endpoint de Model Context Protocol (MCP) per a accés programàtic i espais de treball compartits per organització. Els models es resolen localment amb solvers de codi obert, actualment SCIP, HiGHS, CBC, GLPK i JAOS. La instància de jaot.io és el desplegament de referència operat per l’equip de JAOT; qualsevol pot autoallotjar el mateix programari sota la Llicència Apache 2.0."
       },
       "section3": {
         "title": "3. Ús acceptable",
@@ -1113,7 +1113,7 @@
       },
       "section6": {
         "title": "6. Avís sobre el solver",
-        "body1": "Els solvers d’optimització s’ofereixen “tal qual”. JAOT executa els teus models amb solvers de codi obert (SCIP, HiGHS, CBC i GLPK) amb el millor esforç, però no garanteix que una solució sigui globalment òptima, factible per al teu escenari real o adequada per a decisions crítiques sense verificació independent.",
+        "body1": "Els solvers d’optimització s’ofereixen “tal qual”. JAOT executa els teus models amb solvers de codi obert (SCIP, HiGHS, CBC, GLPK i JAOS) amb el millor esforç, però no garanteix que una solució sigui globalment òptima, factible per al teu escenari real o adequada per a decisions crítiques sense verificació independent.",
         "body2": "Els resultats depenen completament de com es formuli el model. Ets responsable d’assegurar que les teves dades representen amb exactitud el teu problema i de validar de manera independent qualsevol resultat abans d’actuar-hi."
       },
       "section7": {
@@ -1157,6 +1157,7 @@
       "usedForPyscipopt": "Interfície de Python per al solver SCIP",
       "usedForCbc": "Solver LP/MIP de codi obert, executat com a programa a part",
       "usedForGlpk": "Solver LP/MIP de codi obert, executat com a programa a part",
+      "usedForJaos": "Solver LP/MIP de codi obert, executat a través de la seva biblioteca de Python",
       "separateProcessNote": "CBC es distribueix com el programa de línia d'ordres de Debian, sense modificar. JAOT escriu el model en un fitxer, executa el programa i llegeix la seva sortida. No hi ha codi de CBC enllaçat dins de JAOT.",
       "glpkNote": "GLPK està sota la GPL i JAOT sota la llicència Apache. JAOT mai no enllaça la biblioteca de GLPK: distribueix el programa glpsol de Debian, escriu el model en un fitxer, executa el programa i llegeix la seva sortida. Dos programes separats dins de la mateixa imatge són una agregació, de manera que el codi de JAOT continua sota la llicència Apache i GLPK conserva les seves condicions.",
       "usedForRequests": "Client HTTP per a la comunicació amb APIs externes",
@@ -4719,6 +4720,9 @@
     "glpk": {
       "description": "Solver LP/MIP de GNU, d'un sol fil"
     },
+    "jaos": {
+      "description": "Solver LP/MIP de codi obert, determinista"
+    },
     "unavailable": "El solver '{name}' no està disponible en aquest servidor.",
     "noProgressNotice": "{solver} no informa del progrés mentre cerca: veuràs el resultat quan acabi de resoldre.",
     "noSensitivityNotice": "{solver} no calcula preus ombra: la pestanya Sensibilitat quedarà buida en aquesta execució.",
@@ -4775,7 +4779,7 @@
   "metadata": {
     "home": {
       "title": "JAOT - Plataforma d'optimització amb IA i marketplace de models | Crea, usa o automatitza",
-      "description": "Plataforma d'optimització amb un marketplace de models gratuït i col·laboratiu. Crea models versionats amb un assistent d'IA, bifurca models de la comunitat o connecta agents d'IA via MCP. Solvers: SCIP, HiGHS, CBC i GLPK."
+      "description": "Plataforma d'optimització amb un marketplace de models gratuït i col·laboratiu. Crea models versionats amb un assistent d'IA, bifurca models de la comunitat o connecta agents d'IA via MCP. Solvers: SCIP, HiGHS, CBC, GLPK i JAOS."
     },
     "terms": {
       "title": "Termes de servei - JAOT",

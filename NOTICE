@@ -4,8 +4,9 @@ Copyright 2025-2026 Adrià Vallaura
 Licensed under the Apache License, Version 2.0.
 
 This product uses the SCIP Optimization Suite developed at
-Zuse Institute Berlin (https://www.scipopt.org/) and the HiGHS
-optimization solver (https://highs.dev/).
+Zuse Institute Berlin (https://www.scipopt.org/), the HiGHS
+optimization solver (https://highs.dev/) and the JAOS solver
+(https://github.com/avallavall/jaos, Apache-2.0).
 
 It also ships two command-line solvers as separate programs: CBC
 (https://github.com/coin-or/Cbc, EPL-2.0) and GLPK

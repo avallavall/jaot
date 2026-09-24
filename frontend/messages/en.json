@@ -127,7 +127,7 @@
     "liveCancelled": "Cancelled",
     "liveWaiting": "Waiting for the first incumbent…",
     "liveNoProgressStream": "{solver} does not stream progress while it searches. The result appears when the solve finishes.",
-    "liveStreamNote": "SCIP streams live progress. The other solvers report only the final result.",
+    "liveStreamNote": "SCIP and JAOS stream live progress. The other solvers report only the final result.",
     "solveStatusLabel": "Status",
     "solveSolverLabel": "Solver",
     "liveConvergence": "Convergence",
@@ -874,7 +874,7 @@
         "title": "Students and researchers",
         "item1": "Build a model with the assistant and read the mathematics it produces",
         "item2": "Templates from a first LP to a full MIP, with worked examples",
-        "item3": "Four open source solvers you can run side by side on the same model",
+        "item3": "Five open source solvers you can run side by side on the same model",
         "item4": "Free and open source, and you can install it on your own machine",
         "cta": "Try for free"
       },
@@ -956,7 +956,7 @@
     "solverRace": {
       "eyebrow": "Choosing a solver",
       "title": "The fastest solver depends on the model",
-      "subtitle": "JAOT ships SCIP, HiGHS, CBC and GLPK. The ranking changes from one model to the next, so JAOT runs your problem on all of them under the same terms and shows what each one did. Below, one quarter of burn-in chamber loading at the same plant.",
+      "subtitle": "JAOT ships SCIP, HiGHS, CBC, GLPK and JAOS. The ranking changes from one model to the next, so JAOT runs your problem on all of them under the same terms and shows what each one did. Below, one quarter of burn-in chamber loading at the same plant.",
       "chartHeading": "Total time, logarithmic scale",
       "instance": "{variables} variables, {constraints} constraints",
       "outOfTime": "Out of time",
@@ -966,7 +966,7 @@
       "rowCutOff": "Proved that no plan needs fewer than {bound} chambers, after {nodes} nodes, and never found a plan",
       "scaleNote": "The scale is logarithmic: each step is ten times the one before, so bar length is not proportional to the number beside it.",
       "verdict": "{winner} finished first. {slowest} reached the same answer {ratio} times slower. On another model the order changes, so the only way to choose is to measure.",
-      "cutOffNote": "{solvers} used the full {limit} seconds and never found a plan. It did prove that no plan needs fewer than {bound} chambers. That bound is still useful: it tells you how far any plan can be from the best one.",
+      "cutOffNote": "{count, plural, one {{solvers} used the full {limit} seconds and never found a plan. It did prove that no plan needs fewer than {bound} chambers. That bound is still useful: it tells you how far any plan can be from the best one.} other {{solvers} used the full {limit} seconds and never found a plan. Each one still proved a bound, shown on its row: no plan needs fewer chambers than that. A bound is still useful: it tells you how far any plan can be from the best one.}}",
       "terms": "Every solver got the same {limit}-second limit and the same {threads} threads, one run after another on one {cores}-core server. The seconds are comparable within this run only.",
       "sameTerms": {
         "title": "The same terms",
@@ -1030,7 +1030,7 @@
       },
       "step3": {
         "title": "Solve and read the analysis",
-        "description": "Run one solver, or compare all four on the same model. Then read which constraints bind, what one more unit is worth, and export the solution."
+        "description": "Run one solver, or compare all five on the same model. Then read which constraints bind, what one more unit is worth, and export the solution."
       }
     },
     "cta": {
@@ -1126,7 +1126,7 @@
       },
       "section2": {
         "title": "2. Description of Service",
-        "body": "JAOT is an open-source platform for building, sharing, and solving mathematical optimization models. It includes a free, collaborative marketplace of optimization templates, a model studio with a visual canvas, a JModel text editor and a JSON editor, an optional AI formulation assistant, a Model Context Protocol (MCP) endpoint for programmatic access, and shared organization workspaces. Models are solved locally using open-source solvers, currently SCIP, HiGHS, CBC and GLPK. The instance at jaot.io is the reference deployment operated by the JAOT team; anyone can self-host the same software under the Apache License 2.0."
+        "body": "JAOT is an open-source platform for building, sharing, and solving mathematical optimization models. It includes a free, collaborative marketplace of optimization templates, a model studio with a visual canvas, a JModel text editor and a JSON editor, an optional AI formulation assistant, a Model Context Protocol (MCP) endpoint for programmatic access, and shared organization workspaces. Models are solved locally using open-source solvers, currently SCIP, HiGHS, CBC, GLPK and JAOS. The instance at jaot.io is the reference deployment operated by the JAOT team; anyone can self-host the same software under the Apache License 2.0."
       },
       "section3": {
         "title": "3. Acceptable Use",
@@ -1149,7 +1149,7 @@
       },
       "section6": {
         "title": "6. Solver Disclaimer",
-        "body1": "The optimization solvers are provided on an “as is” basis. JAOT runs your models with open-source solvers (SCIP, HiGHS, CBC and GLPK) on a best-effort basis but does not guarantee that a solution is globally optimal, feasible for your real-world scenario, or suitable for critical decision-making without independent verification.",
+        "body1": "The optimization solvers are provided on an “as is” basis. JAOT runs your models with open-source solvers (SCIP, HiGHS, CBC, GLPK and JAOS) on a best-effort basis but does not guarantee that a solution is globally optimal, feasible for your real-world scenario, or suitable for critical decision-making without independent verification.",
         "body2": "Results depend entirely on how a model is formulated. You are responsible for ensuring that your inputs accurately represent your problem and for independently validating any result before you act on it."
       },
       "section7": {
@@ -1193,6 +1193,7 @@
       "usedForPyscipopt": "Python interface to the SCIP solver",
       "usedForCbc": "Open-source LP/MIP solver, run as a separate program",
       "usedForGlpk": "Open-source LP/MIP solver, run as a separate program",
+      "usedForJaos": "Open-source LP/MIP solver, run through its Python library",
       "separateProcessNote": "CBC ships as the stock command-line program from Debian. JAOT writes the model to a file, runs the program and reads its output. No CBC code is linked into JAOT.",
       "glpkNote": "GLPK is under the GPL and JAOT is under the Apache License. JAOT never links the GLPK library: it ships the stock glpsol program from Debian, writes the model to a file, runs the program and reads its output. Two separate programs in the same image are an aggregate, so JAOT's own source stays under the Apache License and GLPK keeps its own terms.",
       "usedForRequests": "HTTP client for external API communication",
@@ -4719,6 +4720,9 @@
     "glpk": {
       "description": "GNU LP/MIP solver, single-threaded"
     },
+    "jaos": {
+      "description": "Open-source LP/MIP solver, deterministic"
+    },
     "unavailable": "Solver '{name}' is not available on this server.",
     "noProgressNotice": "{solver} reports no progress while it searches. You see the result when the solve finishes.",
     "noSensitivityNotice": "{solver} computes no shadow prices. The Sensitivity tab will be empty for this run.",
@@ -4775,7 +4779,7 @@
   "metadata": {
     "home": {
       "title": "JAOT - AI Optimization Platform and Model Marketplace | Build, Use, or Automate",
-      "description": "Optimization platform with a free, collaborative model marketplace. Build versioned models with an AI assistant, fork community models, or connect AI agents over MCP. Solvers: SCIP, HiGHS, CBC and GLPK."
+      "description": "Optimization platform with a free, collaborative model marketplace. Build versioned models with an AI assistant, fork community models, or connect AI agents over MCP. Solvers: SCIP, HiGHS, CBC, GLPK and JAOS."
     },
     "terms": {
       "title": "Terms of Service - JAOT",

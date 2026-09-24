@@ -1,9 +1,10 @@
 import { getFormatter, getTranslations } from "next-intl/server";
+import { solverDisplayName } from "@/lib/solver-display";
 import { cn } from "@/lib/utils";
 import { COMPARISON_META, COMPARISON_ROWS } from "./data/comparisonShowcase";
 
 /**
- * The same plan, run by all four solvers under the same terms.
+ * The same plan, run by every solver JAOT ships under the same terms.
  *
  * Every other section on this page shows what JAOT does with a model. This one
  * shows the choice underneath it: there is no best solver, and the ranking
@@ -114,8 +115,8 @@ export async function SolverRaceShowcase() {
       <div className="mt-8 space-y-3 border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
         <p>
           {t("verdict", {
-            winner: winner.solver,
-            slowest: slowestAnswer.solver,
+            winner: solverDisplayName(winner.solver),
+            slowest: solverDisplayName(slowestAnswer.solver),
             ratio: format.number(slowestAnswer.slowdown ?? 0, {
               minimumFractionDigits: 1,
               maximumFractionDigits: 1,
@@ -124,8 +125,14 @@ export async function SolverRaceShowcase() {
         </p>
         {cutOff.length > 0 && (
           <p>
+            {/* One solver cut off gets its bound in the sentence. Two or more
+                each proved a different bound, and each row already shows its own. */}
             {t("cutOffNote", {
-              solvers: cutOff.map((row) => row.solver).join(", "),
+              count: cutOff.length,
+              solvers: format.list(
+                cutOff.map((row) => solverDisplayName(row.solver)),
+                { type: "conjunction" },
+              ),
               limit: format.number(COMPARISON_META.timeLimitSeconds),
               bound: format.number(cutOff[0].bound ?? 0),
             })}

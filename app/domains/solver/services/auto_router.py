@@ -51,6 +51,10 @@ Three reasons they are not promoted to first-class candidates:
   measured instances is an anecdote, and the winner changed between them. A
   routing rule invented from that would be a guess wearing a slug.
 
+**JAOS is not a substitute either (2026-09-24).** Its own README reports 0 of 30
+MIPLIB 2017 instances solved in 20 s, where HiGHS solves 8. A user picks it by
+name or sees it as a comparer column. It is never in ``_SUBSTITUTES``.
+
 The comparer is how a user answers "which solver for THIS model", with numbers,
 and then names it explicitly. That is the honest division of labour, and it is
 why this module does not try to guess it.

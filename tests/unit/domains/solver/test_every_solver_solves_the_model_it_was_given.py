@@ -1,6 +1,6 @@
 """Every adapter must solve the model it was given, and report what happened.
 
-# CONTRACT-TEST: SCIP, HiGHS, CBC and GLPK return the same answer for the same model.
+# CONTRACT-TEST: SCIP, HiGHS, CBC, GLPK and JAOS return the same answer for the same model.
 
 Each case here was a real divergence, found by running the four solvers on the
 same small model (2026-09-24):
@@ -28,6 +28,7 @@ from app.domains.solver.adapters._cli_solver import relative_gap
 from app.domains.solver.adapters.cbc import CBCAdapter
 from app.domains.solver.adapters.glpk import GLPKAdapter
 from app.domains.solver.adapters.highs import HiGHSAdapter
+from app.domains.solver.adapters.jaos import JAOSAdapter
 from app.domains.solver.adapters.scip import SCIPAdapter
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.domains.solver.services.problem_validation import iter_problem_errors
@@ -44,7 +45,13 @@ from app.schemas.optimization import (
 
 pytestmark = pytest.mark.unit
 
-ADAPTERS = {"scip": SCIPAdapter, "highs": HiGHSAdapter, "cbc": CBCAdapter, "glpk": GLPKAdapter}
+ADAPTERS = {
+    "scip": SCIPAdapter,
+    "highs": HiGHSAdapter,
+    "cbc": CBCAdapter,
+    "glpk": GLPKAdapter,
+    "jaos": JAOSAdapter,
+}
 
 
 @pytest.fixture(params=sorted(ADAPTERS))

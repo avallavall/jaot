@@ -40,8 +40,8 @@ what keeps a twenty-minute solve from holding a web worker.
 This is the part most people want to extend.
 
 A solver is reached through one `SolverAdapter` — a `typing.Protocol` with three methods:
-`is_available()`, `version()`, and `solve()`. Four implementations ship (SCIP and HiGHS as
-Python bindings; CBC and GLPK driven as separate processes), plus a profile-gated Hexaly.
+`is_available()`, `version()`, and `solve()`. Five implementations ship (SCIP, HiGHS and JAOS
+as Python bindings; CBC and GLPK driven as separate processes), plus a profile-gated Hexaly.
 
 **Adding a solver means writing one adapter.** Nothing else in the platform names a solver:
 `OptimizationProblem` and `OptimizationResult` are solver-agnostic by construction, and an

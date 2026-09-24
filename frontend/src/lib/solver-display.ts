@@ -2,8 +2,9 @@
  * Solver brand-name display (Phase 07-simplify / R-7).
  *
  * Solver names travel through the API as lowercase enum strings
- * ("scip" / "highs" / "cbc" / "glpk" / "hexaly") but product UI must render the
- * brand capitalisation ("SCIP" / "HiGHS" / "CBC" / "GLPK" / "Hexaly"). Unknown
+ * ("scip" / "highs" / "cbc" / "glpk" / "jaos" / "hexaly") but product UI must
+ * render the brand capitalisation ("SCIP" / "HiGHS" / "CBC" / "GLPK" / "JAOS" /
+ * "Hexaly"). Unknown
  * names fall back to uppercase for forward compatibility when future solvers
  * land.
  *
@@ -14,10 +15,11 @@ export const SOLVER_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   scip: "SCIP",
   highs: "HiGHS",
   hexaly: "Hexaly",
-  // The uppercase fallback below already produces these two. They are listed
+  // The uppercase fallback below already produces these three. They are listed
   // anyway so this map reads as the roster of solvers JAOT ships.
   cbc: "CBC",
   glpk: "GLPK",
+  jaos: "JAOS",
 };
 
 export function solverDisplayName(name: string): string {

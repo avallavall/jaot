@@ -127,7 +127,7 @@
     "liveCancelled": "Abgebrochen",
     "liveWaiting": "Warten auf die erste Lösung…",
     "liveNoProgressStream": "{solver} sendet während der Suche keinen Fortschritt. Das Ergebnis erscheint, wenn der Solve fertig ist.",
-    "liveStreamNote": "SCIP überträgt den Fortschritt live. Die anderen Solver melden nur das Endergebnis.",
+    "liveStreamNote": "SCIP und JAOS übertragen den Fortschritt live. Die anderen Solver melden nur das Endergebnis.",
     "solveStatusLabel": "Status",
     "solveSolverLabel": "Solver",
     "liveConvergence": "Konvergenz",
@@ -874,7 +874,7 @@
         "title": "Studierende und Forschende",
         "item1": "Bauen Sie ein Modell mit dem Assistenten und lesen Sie die Mathematik, die er erzeugt",
         "item2": "Vorlagen vom ersten LP bis zum vollständigen MIP, mit durchgerechneten Beispielen",
-        "item3": "Vier Open-Source-Solver, die Sie nebeneinander auf demselben Modell laufen lassen können",
+        "item3": "Fünf Open-Source-Solver, die Sie nebeneinander auf demselben Modell laufen lassen können",
         "item4": "Kostenlos und Open Source, und Sie können es auf Ihrem eigenen Rechner installieren",
         "cta": "Kostenlos testen"
       },
@@ -956,7 +956,7 @@
     "solverRace": {
       "eyebrow": "Einen Solver wählen",
       "title": "Der schnellste Solver hängt vom Modell ab",
-      "subtitle": "JAOT liefert SCIP, HiGHS, CBC und GLPK mit. Die Reihenfolge ändert sich von Modell zu Modell. Deshalb lässt JAOT Ihr Problem auf allen unter denselben Bedingungen laufen und zeigt, was jeder getan hat. Unten: ein Quartal Beladung der Burn-in-Kammern im selben Werk.",
+      "subtitle": "JAOT liefert SCIP, HiGHS, CBC, GLPK und JAOS mit. Die Reihenfolge ändert sich von Modell zu Modell. Deshalb lässt JAOT Ihr Problem auf allen unter denselben Bedingungen laufen und zeigt, was jeder getan hat. Unten: ein Quartal Beladung der Burn-in-Kammern im selben Werk.",
       "chartHeading": "Gesamtzeit, logarithmische Skala",
       "instance": "{variables} Variablen, {constraints} Nebenbedingungen",
       "outOfTime": "Zeit abgelaufen",
@@ -966,7 +966,7 @@
       "rowCutOff": "Bewies nach {nodes} Knoten, dass kein Plan mit weniger als {bound} Kammern auskommt, und fand nie einen Plan",
       "scaleNote": "Die Skala ist logarithmisch: Jeder Schritt ist das Zehnfache des vorigen. Die Balkenlänge ist also nicht proportional zur Zahl daneben.",
       "verdict": "{winner} war zuerst fertig. {slowest} erreichte dieselbe Antwort {ratio}-mal langsamer. Bei einem anderen Modell ändert sich die Reihenfolge. Die einzige Möglichkeit zu wählen ist also, zu messen.",
-      "cutOffNote": "{solvers} nutzte die vollen {limit} Sekunden und fand nie einen Plan. Er bewies aber, dass kein Plan mit weniger als {bound} Kammern auskommt. Diese Schranke ist trotzdem nützlich: Sie sagt Ihnen, wie weit ein Plan höchstens vom besten entfernt sein kann.",
+      "cutOffNote": "{count, plural, one {{solvers} nutzte die vollen {limit} Sekunden und fand nie einen Plan. Er bewies aber, dass kein Plan mit weniger als {bound} Kammern auskommt. Diese Schranke ist trotzdem nützlich: Sie sagt Ihnen, wie weit ein Plan höchstens vom besten entfernt sein kann.} other {{solvers} nutzten die vollen {limit} Sekunden und fanden nie einen Plan. Jeder bewies aber eine Schranke, die in seiner Zeile steht: Kein Plan kommt mit weniger Kammern aus. Eine Schranke ist trotzdem nützlich: Sie sagt Ihnen, wie weit ein Plan höchstens vom besten entfernt sein kann.}}",
       "terms": "Jeder Solver bekam dasselbe Limit von {limit} Sekunden und dieselben {threads} Threads, einer nach dem anderen auf einem Server mit {cores} Kernen. Die Sekunden sind nur innerhalb dieses Laufs vergleichbar.",
       "sameTerms": {
         "title": "Dieselben Bedingungen",
@@ -994,7 +994,7 @@
       },
       "step3": {
         "title": "Lösen und die Analyse lesen",
-        "description": "Lassen Sie einen Solver laufen oder vergleichen Sie alle vier auf demselben Modell. Lesen Sie dann, welche Nebenbedingungen bindend sind und was eine weitere Einheit wert ist, und exportieren Sie die Lösung."
+        "description": "Lassen Sie einen Solver laufen oder vergleichen Sie alle fünf auf demselben Modell. Lesen Sie dann, welche Nebenbedingungen bindend sind und was eine weitere Einheit wert ist, und exportieren Sie die Lösung."
       }
     },
     "cta": {
@@ -1090,7 +1090,7 @@
       },
       "section2": {
         "title": "2. Beschreibung des Dienstes",
-        "body": "JAOT ist eine Open-Source-Plattform zum Erstellen, Teilen und Lösen mathematischer Optimierungsmodelle. Sie umfasst einen kostenlosen, kollaborativen Marktplatz mit Optimierungsvorlagen, ein Modell-Studio mit visuellem Canvas, JModel-Texteditor und JSON-Editor, einen optionalen KI-Formulierungsassistenten, einen Model-Context-Protocol-(MCP-)Endpunkt für den programmatischen Zugriff sowie gemeinsame Organisations-Arbeitsbereiche. Modelle werden lokal mit Open-Source-Solvern gelöst, derzeit SCIP, HiGHS, CBC und GLPK. Die Instanz jaot.io ist die vom JAOT-Team betriebene Referenzbereitstellung; jede Person kann dieselbe Software unter der Apache-Lizenz 2.0 selbst hosten."
+        "body": "JAOT ist eine Open-Source-Plattform zum Erstellen, Teilen und Lösen mathematischer Optimierungsmodelle. Sie umfasst einen kostenlosen, kollaborativen Marktplatz mit Optimierungsvorlagen, ein Modell-Studio mit visuellem Canvas, JModel-Texteditor und JSON-Editor, einen optionalen KI-Formulierungsassistenten, einen Model-Context-Protocol-(MCP-)Endpunkt für den programmatischen Zugriff sowie gemeinsame Organisations-Arbeitsbereiche. Modelle werden lokal mit Open-Source-Solvern gelöst, derzeit SCIP, HiGHS, CBC, GLPK und JAOS. Die Instanz jaot.io ist die vom JAOT-Team betriebene Referenzbereitstellung; jede Person kann dieselbe Software unter der Apache-Lizenz 2.0 selbst hosten."
       },
       "section3": {
         "title": "3. Zulässige Nutzung",
@@ -1113,7 +1113,7 @@
       },
       "section6": {
         "title": "6. Solver-Haftungsausschluss",
-        "body1": "Die Optimierungs-Solver werden „wie besehen“ bereitgestellt. JAOT führt Ihre Modelle mit Open-Source-Solvern (SCIP, HiGHS, CBC und GLPK) nach bestem Bemühen aus, garantiert jedoch nicht, dass eine Lösung global optimal, für Ihr reales Szenario zulässig oder ohne unabhängige Überprüfung für kritische Entscheidungen geeignet ist.",
+        "body1": "Die Optimierungs-Solver werden „wie besehen“ bereitgestellt. JAOT führt Ihre Modelle mit Open-Source-Solvern (SCIP, HiGHS, CBC, GLPK und JAOS) nach bestem Bemühen aus, garantiert jedoch nicht, dass eine Lösung global optimal, für Ihr reales Szenario zulässig oder ohne unabhängige Überprüfung für kritische Entscheidungen geeignet ist.",
         "body2": "Die Ergebnisse hängen vollständig davon ab, wie ein Modell formuliert ist. Sie sind dafür verantwortlich, dass Ihre Eingaben Ihr Problem korrekt abbilden, und dafür, jedes Ergebnis unabhängig zu validieren, bevor Sie danach handeln."
       },
       "section7": {
@@ -1157,6 +1157,7 @@
       "usedForPyscipopt": "Python-Schnittstelle zum SCIP-Solver",
       "usedForCbc": "Open-Source-LP/MIP-Solver, als eigenes Programm ausgeführt",
       "usedForGlpk": "Open-Source-LP/MIP-Solver, als eigenes Programm ausgeführt",
+      "usedForJaos": "Open-Source-LP/MIP-Solver, über seine Python-Bibliothek ausgeführt",
       "separateProcessNote": "CBC wird unverändert als Debian-Kommandozeilenprogramm ausgeliefert. JAOT schreibt das Modell in eine Datei, startet das Programm und liest dessen Ausgabe. Es ist kein CBC-Code in JAOT eingebunden.",
       "glpkNote": "GLPK steht unter der GPL, JAOT unter der Apache-Lizenz. JAOT bindet die GLPK-Bibliothek nie ein: Es liefert das Debian-Programm glpsol aus, schreibt das Modell in eine Datei, startet das Programm und liest dessen Ausgabe. Zwei getrennte Programme im selben Image sind eine Zusammenstellung, also bleibt JAOTs eigener Quelltext unter der Apache-Lizenz und GLPK behält seine Bedingungen.",
       "usedForRequests": "HTTP-Client für die Kommunikation mit externen APIs",
@@ -4719,6 +4720,9 @@
     "glpk": {
       "description": "GNU-LP/MIP-Solver, Single-Thread"
     },
+    "jaos": {
+      "description": "Open-Source-LP/MIP-Solver, deterministisch"
+    },
     "unavailable": "Solver '{name}' ist auf diesem Server nicht verfügbar.",
     "noProgressNotice": "{solver} meldet während der Suche keinen Fortschritt. Das Ergebnis erscheint, wenn der Solve fertig ist.",
     "noSensitivityNotice": "{solver} berechnet keine Schattenpreise. Der Reiter Sensitivität bleibt für diesen Lauf leer.",
@@ -4775,7 +4779,7 @@
   "metadata": {
     "home": {
       "title": "JAOT - KI-Optimierungsplattform und Modell-Marktplatz | Bauen, Nutzen oder Automatisieren",
-      "description": "Optimierungsplattform mit einem kostenlosen, kollaborativen Modell-Marktplatz. Bauen Sie versionierte Modelle mit einem KI-Assistenten, forken Sie Community-Modelle oder verbinden Sie KI-Agenten über MCP. Solver: SCIP, HiGHS, CBC und GLPK."
+      "description": "Optimierungsplattform mit einem kostenlosen, kollaborativen Modell-Marktplatz. Bauen Sie versionierte Modelle mit einem KI-Assistenten, forken Sie Community-Modelle oder verbinden Sie KI-Agenten über MCP. Solver: SCIP, HiGHS, CBC, GLPK und JAOS."
     },
     "terms": {
       "title": "Nutzungsbedingungen - JAOT",

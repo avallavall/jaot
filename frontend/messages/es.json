@@ -127,7 +127,7 @@
     "liveCancelled": "Cancelado",
     "liveWaiting": "Esperando la primera solución…",
     "liveNoProgressStream": "{solver} no emite progreso mientras busca. El resultado aparecerá cuando termine de resolver.",
-    "liveStreamNote": "SCIP transmite el progreso en directo. Los demás solvers solo informan del resultado final.",
+    "liveStreamNote": "SCIP y JAOS transmiten el progreso en directo. Los demás solvers solo informan del resultado final.",
     "solveStatusLabel": "Estado",
     "solveSolverLabel": "Solver",
     "liveConvergence": "Convergencia",
@@ -874,7 +874,7 @@
         "title": "Estudiantes e investigadores",
         "item1": "Crea un modelo con el asistente y lee las matemáticas que produce",
         "item2": "Plantillas desde un primer LP hasta un MIP completo, con ejemplos resueltos",
-        "item3": "Cuatro solvers de código abierto que puedes ejecutar sobre el mismo modelo y comparar",
+        "item3": "Cinco solvers de código abierto que puedes ejecutar sobre el mismo modelo y comparar",
         "item4": "Gratis y de código abierto, y puedes instalarlo en tu propia máquina",
         "cta": "Prueba gratis"
       },
@@ -956,7 +956,7 @@
     "solverRace": {
       "eyebrow": "Elegir solver",
       "title": "El solver más rápido depende del modelo",
-      "subtitle": "JAOT trae SCIP, HiGHS, CBC y GLPK. El orden cambia de un modelo a otro, así que JAOT ejecuta tu problema en todos ellos en las mismas condiciones y muestra qué hizo cada uno. Abajo, un trimestre de carga de cámaras de envejecimiento en la misma planta.",
+      "subtitle": "JAOT trae SCIP, HiGHS, CBC, GLPK y JAOS. El orden cambia de un modelo a otro, así que JAOT ejecuta tu problema en todos ellos en las mismas condiciones y muestra qué hizo cada uno. Abajo, un trimestre de carga de cámaras de envejecimiento en la misma planta.",
       "chartHeading": "Tiempo total, escala logarítmica",
       "instance": "{variables} variables, {constraints} restricciones",
       "outOfTime": "Sin tiempo",
@@ -966,7 +966,7 @@
       "rowCutOff": "Demostró que ningún plan necesita menos de {bound} cámaras, tras {nodes} nodos, y no encontró ningún plan",
       "scaleNote": "La escala es logarítmica: cada paso son diez veces el anterior, así que la longitud de la barra no es proporcional al número que tiene al lado.",
       "verdict": "{winner} acabó primero. {slowest} llegó a la misma respuesta {ratio} veces más lento. Con otro modelo el orden cambia, así que la única forma de elegir es medir.",
-      "cutOffNote": "{solvers} agotó los {limit} segundos y no encontró ningún plan. Sí demostró que ningún plan necesita menos de {bound} cámaras. Esa cota sigue siendo útil: te dice a qué distancia del mejor plan puede estar cualquier plan.",
+      "cutOffNote": "{count, plural, one {{solvers} agotó los {limit} segundos y no encontró ningún plan. Sí demostró que ningún plan necesita menos de {bound} cámaras. Esa cota sigue siendo útil: te dice a qué distancia del mejor plan puede estar cualquier plan.} other {{solvers} agotaron los {limit} segundos y no encontraron ningún plan. Cada uno demostró una cota, que aparece en su fila: ningún plan necesita menos cámaras que esa. Una cota sigue siendo útil: te dice a qué distancia del mejor plan puede estar cualquier plan.}}",
       "terms": "Todos los solvers recibieron el mismo límite de {limit} segundos y los mismos {threads} hilos, uno detrás de otro en un servidor de {cores} núcleos. Los segundos solo son comparables dentro de esta ejecución.",
       "sameTerms": {
         "title": "Las mismas condiciones",
@@ -994,7 +994,7 @@
       },
       "step3": {
         "title": "Resuelve y lee el análisis",
-        "description": "Ejecuta un solver o compara los cuatro sobre el mismo modelo. Después lee qué restricciones están al límite y cuánto vale una unidad más, y exporta la solución."
+        "description": "Ejecuta un solver o compara los cinco sobre el mismo modelo. Después lee qué restricciones están al límite y cuánto vale una unidad más, y exporta la solución."
       }
     },
     "cta": {
@@ -1090,7 +1090,7 @@
       },
       "section2": {
         "title": "2. Descripción del servicio",
-        "body": "JAOT es una plataforma de código abierto para crear, compartir y resolver modelos de optimización matemática. Incluye un marketplace gratuito y colaborativo de plantillas de optimización, un estudio de modelos con lienzo visual, editor de texto JModel y editor JSON, un asistente de formulación con IA opcional, un endpoint de Model Context Protocol (MCP) para acceso programático y espacios de trabajo compartidos por organización. Los modelos se resuelven localmente con solvers de código abierto, actualmente SCIP, HiGHS, CBC y GLPK. La instancia de jaot.io es el despliegue de referencia operado por el equipo de JAOT; cualquiera puede autoalojar el mismo software bajo la Licencia Apache 2.0."
+        "body": "JAOT es una plataforma de código abierto para crear, compartir y resolver modelos de optimización matemática. Incluye un marketplace gratuito y colaborativo de plantillas de optimización, un estudio de modelos con lienzo visual, editor de texto JModel y editor JSON, un asistente de formulación con IA opcional, un endpoint de Model Context Protocol (MCP) para acceso programático y espacios de trabajo compartidos por organización. Los modelos se resuelven localmente con solvers de código abierto, actualmente SCIP, HiGHS, CBC, GLPK y JAOS. La instancia de jaot.io es el despliegue de referencia operado por el equipo de JAOT; cualquiera puede autoalojar el mismo software bajo la Licencia Apache 2.0."
       },
       "section3": {
         "title": "3. Uso aceptable",
@@ -1113,7 +1113,7 @@
       },
       "section6": {
         "title": "6. Aviso sobre el solver",
-        "body1": "Los solvers de optimización se ofrecen “tal cual”. JAOT ejecuta tus modelos con solvers de código abierto (SCIP, HiGHS, CBC y GLPK) con el mejor esfuerzo, pero no garantiza que una solución sea globalmente óptima, factible para tu escenario real o adecuada para decisiones críticas sin verificación independiente.",
+        "body1": "Los solvers de optimización se ofrecen “tal cual”. JAOT ejecuta tus modelos con solvers de código abierto (SCIP, HiGHS, CBC, GLPK y JAOS) con el mejor esfuerzo, pero no garantiza que una solución sea globalmente óptima, factible para tu escenario real o adecuada para decisiones críticas sin verificación independiente.",
         "body2": "Los resultados dependen por completo de cómo se formule el modelo. Eres responsable de asegurar que tus datos representan con exactitud tu problema y de validar de forma independiente cualquier resultado antes de actuar en consecuencia."
       },
       "section7": {
@@ -1157,6 +1157,7 @@
       "usedForPyscipopt": "Interfaz de Python para el solver SCIP",
       "usedForCbc": "Solver LP/MIP de código abierto, ejecutado como programa aparte",
       "usedForGlpk": "Solver LP/MIP de código abierto, ejecutado como programa aparte",
+      "usedForJaos": "Solver LP/MIP de código abierto, ejecutado a través de su biblioteca de Python",
       "separateProcessNote": "CBC se distribuye como el programa de línea de comandos de Debian, sin modificar. JAOT escribe el modelo en un fichero, ejecuta el programa y lee su salida. No hay código de CBC enlazado dentro de JAOT.",
       "glpkNote": "GLPK está bajo la GPL y JAOT bajo la licencia Apache. JAOT nunca enlaza la biblioteca de GLPK: distribuye el programa glpsol de Debian, escribe el modelo en un fichero, ejecuta el programa y lee su salida. Dos programas separados en la misma imagen son una agregación, así que el código de JAOT sigue bajo la licencia Apache y GLPK conserva sus condiciones.",
       "usedForRequests": "Cliente HTTP para la comunicación con APIs externas",
@@ -4719,6 +4720,9 @@
     "glpk": {
       "description": "Solver LP/MIP de GNU, de un solo hilo"
     },
+    "jaos": {
+      "description": "Solver LP/MIP de código abierto, determinista"
+    },
     "unavailable": "El solver '{name}' no está disponible en este servidor.",
     "noProgressNotice": "{solver} no informa del progreso mientras busca: verás el resultado cuando termine de resolver.",
     "noSensitivityNotice": "{solver} no calcula precios sombra: la pestaña Sensibilidad quedará vacía en esta ejecución.",
@@ -4775,7 +4779,7 @@
   "metadata": {
     "home": {
       "title": "JAOT - Plataforma de optimización con IA y marketplace de modelos | Crea, usa o automatiza",
-      "description": "Plataforma de optimización con un marketplace de modelos gratuito y colaborativo. Crea modelos versionados con un asistente de IA, bifurca modelos de la comunidad o conecta agentes de IA vía MCP. Solvers: SCIP, HiGHS, CBC y GLPK."
+      "description": "Plataforma de optimización con un marketplace de modelos gratuito y colaborativo. Crea modelos versionados con un asistente de IA, bifurca modelos de la comunidad o conecta agentes de IA vía MCP. Solvers: SCIP, HiGHS, CBC, GLPK y JAOS."
     },
     "terms": {
       "title": "Términos de servicio - JAOT",

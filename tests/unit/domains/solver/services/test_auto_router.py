@@ -274,6 +274,7 @@ def _declared_capabilities() -> dict[str, object]:
     from app.domains.solver.adapters.glpk import GLPKAdapter
     from app.domains.solver.adapters.hexaly import HexalyAdapter
     from app.domains.solver.adapters.highs import HiGHSAdapter
+    from app.domains.solver.adapters.jaos import JAOSAdapter
     from app.domains.solver.adapters.scip import SCIPAdapter
 
     return {
@@ -281,6 +282,7 @@ def _declared_capabilities() -> dict[str, object]:
         "highs": HiGHSAdapter.capabilities,
         "cbc": CBCAdapter.capabilities,
         "glpk": GLPKAdapter.capabilities,
+        "jaos": JAOSAdapter.capabilities,
         "hexaly": HexalyAdapter.capabilities,
     }
 
@@ -347,6 +349,15 @@ def test_an_lp_with_neither_highs_nor_scip_falls_to_cbc():
         name, reason, _ = select_solver(_lp_problem())
     assert name == "cbc"
     assert reason == AUTO_REASON_SUBSTITUTED
+
+
+# CONTRACT-TEST: auto never picks JAOS. Its own README reports 0 of 30 MIPLIB
+# 2017 instances in 20 s, where HiGHS solves 8. A user picks it by name.
+@pytest.mark.parametrize("problem", [_lp_problem(), _mip_problem()])
+def test_jaos_is_never_a_substitute(problem):
+    with _installed("jaos"):
+        name, _reason, _ = select_solver(problem)
+    assert name != "jaos"
 
 
 def test_glpk_is_the_last_resort():

@@ -59,7 +59,7 @@ class SolverCapabilities:
     supports_multi_objective: bool
     # Live Solve: the adapter can stream per-incumbent progress through the
     # ``on_progress`` callback of ``solve()``. Default False (keeps every existing
-    # instantiation valid); only SCIP sets it True today.
+    # instantiation valid); SCIP and JAOS set it True.
     supports_progress: bool = False
 
 
@@ -89,10 +89,10 @@ UNREAD_VERSION: Any = object()
 class CachedVersion:
     """Ask the solver its version once per process, however it is asked.
 
-    The five adapters read a version in genuinely different ways — two query a
-    Python binding, two start a child process, one reads package metadata — but
-    they all cache it identically, and writing that four times meant the fifth
-    (Hexaly) quietly did not, re-reading on every solver listing.
+    The six adapters read a version in different ways. Three query a Python
+    binding, two start a child process, and one reads package metadata. They all
+    cache it the same way. When that was written out in each adapter, Hexaly
+    did not cache it and re-read the version on every solver listing.
 
     The default lives on the class, so an adapter opts in by inheriting and
     implementing :meth:`_read_version`; nothing has to be remembered in

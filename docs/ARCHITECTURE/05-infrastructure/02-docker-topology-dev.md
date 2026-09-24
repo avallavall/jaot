@@ -11,7 +11,7 @@ graph TB
     subgraph DevStack["docker-compose.yml (dev)"]
         DevAPI["API FastAPI<br/>8001 (0.0.0.0)<br/>hot-reload = true<br/>DEBUG = true<br/>workers = 1"]
 
-        DevCelery["celery_worker<br/>-Q jaot_default,solve_scip,<br/>solve_highs,solve_cbc,solve_glpk"]
+        DevCelery["celery_worker<br/>-Q jaot_default,solve_scip,<br/>solve_highs,solve_cbc,solve_glpk,<br/>solve_jaos"]
         DevCeleryCompare["celery_worker_compare<br/>-Q solve_compare"]
         DevCeleryDefault["celery-worker-test-default<br/>profile: test"]
         DevCeleryScip["celery-worker-test-scip<br/>profile: test"]

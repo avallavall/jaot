@@ -15,12 +15,16 @@
  * dimensionless, it falls from 100% to 0.0005% on that same instance, and a
  * logarithmic axis shows every decade of it.
  *
- * Only two of the five solvers can answer at all, and saying so is the point:
+ * Only three of the six solvers can answer at all, and saying so is the point:
  *
  *  - SCIP publishes a snapshot per incumbent, with the clock. It is drawn.
  *  - CBC prints the same thing in its log, with the clock. It is drawn.
+ *  - JAOS reports through a callback, with the clock. The adapter records a
+ *    point at each new incumbent. Between incumbents it records a point when
+ *    the bound moves, at most one every 0.25 s. A last point at the final
+ *    answer closes the trace. It is drawn.
  *  - GLPK prints a trace with no clock in it, only an iteration number. There is
- *    no honest way to put that on an axis of seconds beside the other two.
+ *    no honest way to put that on an axis of seconds beside the others.
  *  - HiGHS says nothing at all while it searches.
  *
  * A solver that ran and reported nothing is named under the chart. Left out

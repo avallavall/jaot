@@ -25,7 +25,7 @@ Each solver counts as one execution against the instance's daily solve limit. A 
 
 ## Which solvers can compare
 
-Pass the names from `GET /api/v2/solvers/available`. The comparable ones are `scip`, `highs`, `cbc` and `glpk`. Hexaly cannot take part: it needs its own container image and licence, and the comparison worker runs from the base image.
+Pass the names from `GET /api/v2/solvers/available`. The comparable ones are `scip`, `highs`, `cbc`, `glpk` and `jaos`. Hexaly cannot take part: it needs its own container image and licence, and the comparison worker runs from the base image.
 
 A solver that cannot express the model still gets a row. The row carries `solver_status: "unsupported"` and an `unsupported_reason` code (`integer_variables`, `quadratic_terms`, `not_registered`, `not_available`). It never reaches the worker, so it costs no quota. There is no such thing as a blank cell here, because a blank cell reads as zero.
 

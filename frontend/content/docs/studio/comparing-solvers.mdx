@@ -52,7 +52,7 @@ When the comparison finishes, **Run again** repeats it with the same problem, th
 
 **Times are comparable inside one comparison and nowhere else.** The machine that produced them is stated above the table, and each row carries the version of the solver that produced it. A comparison you ran last month, on a machine under a different load and possibly an older build, is not a fair opponent for one you run today.
 
-**A solver that searched past the shared limit is named under the table.** Every solver is asked for the same limit against the same clock, and all four normally stop within hundredths of a second of it. A solver can still overrun on a hard model, because they all check the time only between search steps. When one does, its Search time turns amber and a notice under the table names the solver and by how much. Read that row's times as "it was allowed to run longer", not as a fair loss.
+**A solver that searched past the shared limit is named under the table.** Every solver is asked for the same limit against the same clock, and all five normally stop within hundredths of a second of it. A solver can still overrun on a hard model, because they all check the time only between search steps. When one does, its Search time turns amber and a notice under the table names the solver and by how much. Read that row's times as "it was allowed to run longer", not as a fair loss.
 
 ### A solver that cannot run your model
 
@@ -89,7 +89,7 @@ A solver that ran but does not appear in a chart is named underneath it. A missi
 
 **Every panel of the work chart keeps its own vertical scale, on purpose.** A node in one solver is not a node in another: they presolve differently, add different cuts and end up searching a different tree, so putting the counts on one shared axis would invite exactly the comparison the table warns against. What the panels do share is the clock, because a second means the same thing to all of them. A solver that reported only its final count gets a single dot rather than a curve.
 
-**Only SCIP and CBC report while they search.** The gap chart needs a running commentary with a clock attached, and that is not something every solver publishes: GLPK prints its progress without any timing, and HiGHS says nothing at all until it finishes. Both are named under the chart rather than left out of it. This is also why the chart plots the gap and not the objective: the gap is a fraction, it runs from 100% down to a few ten-thousandths of a percent on a real model, and a logarithmic axis shows every decade. Objective values cannot be scaled that way — on a knapsack the opening bound is routinely twice the answer, and an axis wide enough for both flattens the entire search onto one line.
+**Only SCIP, CBC and JAOS report while they search.** The gap chart needs a running commentary with a clock attached, and that is not something every solver publishes: GLPK prints its progress without any timing, and HiGHS says nothing at all until it finishes. Both are named under the chart rather than left out of it. This is also why the chart plots the gap and not the objective: the gap is a fraction, it runs from 100% down to a few ten-thousandths of a percent on a real model, and a logarithmic axis shows every decade. Objective values cannot be scaled that way — on a knapsack the opening bound is routinely twice the answer, and an axis wide enough for both flattens the entire search onto one line.
 
 ## The solver matrix
 

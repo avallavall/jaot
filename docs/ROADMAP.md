@@ -7,6 +7,11 @@ as we learn. The best way to influence it is to
 
 ## Now
 
+**JAOS ships as a fifth solver.** [JAOS](https://github.com/avallavall/jaos) is an
+open-source LP/MIP solver in its own repository, usable without JAOT. JAOT runs it through
+the adapter contract, like SCIP and HiGHS. It streams live progress, reports LP shadow
+prices and takes partial warm starts. Automatic selection does not pick it yet.
+
 **Foundations before features.** The analysis layer is where we wanted it: exact
 post-solve facts, per-family KPIs, what-if answers by real re-solves, and an interface
 that adapts to what your chosen solver can actually deliver. Before building the next
@@ -97,13 +102,6 @@ Nothing queued right now — the last item here (the solve analytics screen read
 well before the data arrives) shipped; see Now.
 
 ## Later / Exploring
-
-- **A solver of our own** — we are researching what an in-house solver could look like. It
-  lives in its own open-source repository, [jaos](https://github.com/avallavall/jaos),
-  published alongside JAOT rather than inside it: a solver has no business depending on the
-  platform that happens to use it, and keeping it standalone means anyone can use it without
-  JAOT at all. The platform will then adopt it the way it adopts any other solver — through
-  the adapter contract, same as SCIP and HiGHS. Early exploration; no design commitments yet.
 
 - **Optimization for Odoo** — a module that brings real optimization to Odoo, where the
   decisions worth optimizing already live (purchasing, inventory, production, delivery

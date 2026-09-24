@@ -18,6 +18,7 @@ describe("solverDisplayName", () => {
     expect(solverDisplayName("highs")).toBe("HiGHS");
     expect(solverDisplayName("cbc")).toBe("CBC");
     expect(solverDisplayName("glpk")).toBe("GLPK");
+    expect(solverDisplayName("jaos")).toBe("JAOS");
     expect(solverDisplayName("hexaly")).toBe("Hexaly");
   });
 

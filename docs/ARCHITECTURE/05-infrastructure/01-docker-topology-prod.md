@@ -11,22 +11,23 @@ graph TB
     subgraph Server["Production host"]
         subgraph Frontend_Net["frontend network"]
             Caddy["Caddy (reverse proxy)<br/>TLS + rate limit<br/>80 / 443<br/>256M / 1.0 CPU"]
-            Frontend["Frontend Next.js<br/>3000 internal<br/>512M / 1.0 CPU"]
+            Frontend["Frontend Next.js<br/>3000 internal<br/>1G / 2.0 CPU"]
         end
 
         subgraph Backend_Net["backend network"]
-            API["API FastAPI + Uvicorn<br/>8001 internal<br/>4G / 4.0 CPU<br/>4 workers"]
+            API["API FastAPI + Uvicorn<br/>8001 internal<br/>5G / 6.0 CPU<br/>4 workers"]
 
-            CeleryDefault["celery_worker_default<br/>-Q jaot_default<br/>256M / 0.25 CPU<br/>concurrency=2"]
-            CeleryScip["celery_worker_scip<br/>-Q solve_scip<br/>3G / 2.0 CPU<br/>concurrency=2"]
+            CeleryDefault["celery_worker_default<br/>-Q jaot_default<br/>512M / 0.5 CPU<br/>concurrency=2"]
+            CeleryScip["celery_worker_scip<br/>-Q solve_scip<br/>5G / 4.0 CPU<br/>concurrency=2"]
             CeleryHighs["celery_worker_highs<br/>-Q solve_highs<br/>1.5G / 2.0 CPU<br/>concurrency=1"]
             CeleryCbc["celery_worker_cbc<br/>-Q solve_cbc<br/>1.5G / 2.0 CPU<br/>concurrency=1"]
             CeleryGlpk["celery_worker_glpk<br/>-Q solve_glpk<br/>1.5G / 1.0 CPU<br/>concurrency=1"]
+            CeleryJaos["celery_worker_jaos<br/>-Q solve_jaos<br/>1.5G / 1.0 CPU<br/>concurrency=1"]
             CeleryCompare["celery_worker_compare<br/>-Q solve_compare<br/>3G / 2.0 CPU<br/>concurrency=1"]
             CeleryHexaly["celery_worker_hexaly<br/>-Q solve_hexaly<br/>2G / 1.0 CPU<br/>profile: hexaly"]
             CeleryBeat["celery_beat<br/>DatabaseScheduler<br/>128M / 0.5 CPU"]
 
-            PostgreSQL["PostgreSQL 18<br/>5432 internal<br/>1.5G / 2.0 CPU<br/>vol: postgres_data + wal_archive"]
+            PostgreSQL["PostgreSQL 18<br/>5432 internal<br/>2.5G / 2.0 CPU<br/>vol: postgres_data + wal_archive"]
             Redis["Redis 7<br/>6379 internal<br/>384M<br/>vol: redis_data"]
             RabbitMQ["RabbitMQ 3<br/>5672 / 15672 internal<br/>512M / 1.0 CPU<br/>vol: rabbitmq_data"]
             Qdrant["Qdrant (RAG)<br/>6333 internal<br/>384M / 1.0 CPU<br/>vol: qdrant_data"]
@@ -34,8 +35,8 @@ graph TB
 
         subgraph Plausible_Net["plausible_backend network (internal)"]
             PlausibleDB["plausible_db<br/>postgres:16<br/>512M"]
-            PlausibleEvents["plausible_events_db<br/>clickhouse:24.12<br/>1G"]
-            Plausible["plausible CE v3.2.0<br/>8800→8000 (SSH tunnel)<br/>2G"]
+            PlausibleEvents["plausible_events_db<br/>clickhouse:24.12<br/>2G"]
+            Plausible["plausible CE v3.2.0<br/>8800→8000 (SSH tunnel)<br/>1G"]
         end
 
         subgraph Monitoring_Net["monitoring network"]
@@ -68,6 +69,7 @@ graph TB
     CeleryHighs -->|consume solve_highs| RabbitMQ
     CeleryCbc -->|consume solve_cbc| RabbitMQ
     CeleryGlpk -->|consume solve_glpk| RabbitMQ
+    CeleryJaos -->|consume solve_jaos| RabbitMQ
     CeleryCompare -->|consume solve_compare| RabbitMQ
     CeleryHexaly -->|consume solve_hexaly| RabbitMQ
     CeleryBeat -->|schedule| RabbitMQ
@@ -77,6 +79,7 @@ graph TB
     CeleryHighs --> PostgreSQL
     CeleryCbc --> PostgreSQL
     CeleryGlpk --> PostgreSQL
+    CeleryJaos --> PostgreSQL
     CeleryCompare --> PostgreSQL
     CeleryHexaly --> PostgreSQL
 
@@ -85,6 +88,7 @@ graph TB
     CeleryHighs --> Redis
     CeleryCbc --> Redis
     CeleryGlpk --> Redis
+    CeleryJaos --> Redis
     CeleryCompare --> Redis
     CeleryHexaly --> Redis
 
@@ -107,8 +111,9 @@ graph TB
 
 - **4 isolated Docker networks**: `frontend` (Caddy, Frontend, Plausible app, Blackbox), `backend` (API, workers, infra), `monitoring` (Prometheus, Grafana, exporters), `plausible_backend` (internal — Plausible postgres + ClickHouse, unreachable from outside).
 - **Plausible CE analytics (Phase 8):** 3 containers — `plausible_db` (postgres:16), `plausible_events_db` (clickhouse:24.12), `plausible` (CE v3.2.0). Dashboard access via SSH tunnel to `127.0.0.1:8800`. Only `/js/script.js` and `/api/event` are publicly proxied through Caddy.
-- **Total memory commitment (workers):** SCIP 3G + compare 3G + HiGHS 1.5G + CBC 1.5G + GLPK 1.5G + default 256M = 10.75G, plus Hexaly 2G when its profile is on. These are limits, not reservations: the solver workers sit near zero until a solve arrives, and only one comparison ever runs at a time.
+- **Total memory commitment (workers):** SCIP 5G + compare 3G + HiGHS 1.5G + CBC 1.5G + GLPK 1.5G + JAOS 1.5G + default 512M = 14.5G, plus Hexaly 2G when its profile is on. These are limits, not reservations: the solver workers sit near zero until a solve arrives, and only one comparison ever runs at a time.
 - **Critical volumes:** `postgres_data` (daily backup), `wal_archive` (continuous PITR), `redis_data`, `rabbitmq_data`, `caddy_data` (TLS certs).
 - **Security posture:** `cap_drop: ALL`, `read_only: true`, `tmpfs /tmp`, `security_opt: no-new-privileges:true` for all workers.
 - **CBC and GLPK workers:** both launch a command-line program as a child process, so a solve there is two processes and the `pids` limit has to allow for it. Their `/tmp` tmpfs is where the model file is written — a model with tens of thousands of variables needs several MB of it.
+- **JAOS worker:** the JAOS library runs inside the worker process through ctypes, as HiGHS does. There is no child process and no model file. It gets one CPU because JAOT leaves the JAOS tree batch at its default, so a MIP explores one node at a time.
 - **Hexaly worker:** `celery_worker_hexaly` is profile-gated (`profiles: ["hexaly"]`, 2G memory limit); activated with `--profile hexaly` and a platform license mount at `/etc/jaot/hexaly.lic`.

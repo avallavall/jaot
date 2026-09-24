@@ -38,7 +38,7 @@ flowchart TB
 
     BEAT["Celery beat<br/>DB-backed scheduler"] --> MQ
     MQ --> WORKERS["Celery workers<br/>one per solver queue,<br/>plus default and compare"]
-    WORKERS --> ADAPTERS["<b>SolverAdapter protocol</b><br/>app/domains/solver/adapters<br/>SCIP (PySCIPOpt) · HiGHS (highspy)<br/>CBC (cbc) · GLPK (glpsol)<br/>Hexaly — profile-gated, BYO licence"]
+    WORKERS --> ADAPTERS["<b>SolverAdapter protocol</b><br/>app/domains/solver/adapters<br/>SCIP (PySCIPOpt) · HiGHS (highspy) · JAOS (jaos)<br/>CBC (cbc) · GLPK (glpsol)<br/>Hexaly — profile-gated, BYO licence"]
     WORKERS -.->|"writes the run"| PG
 ```
 
@@ -128,7 +128,7 @@ Shared database with `organization_id` column scoping. Every query filtered by `
 
 ## Solver
 
-Solver-agnostic abstraction via **SolverAdapter Protocol** (shipped Phase 4, v2.2). Currently ships SCIP (via PySCIPOpt), HiGHS (via highspy), and CBC and GLPK as command-line programs the adapter runs as separate processes, plus an optional Hexaly adapter (proprietary SDK, bring-your-own-license). New solvers are added by implementing a single adapter behind the protocol.
+Solver-agnostic abstraction via **SolverAdapter Protocol** (shipped Phase 4, v2.2). Currently ships SCIP (via PySCIPOpt), HiGHS (via highspy) and JAOS (via its own Python library), and CBC and GLPK as command-line programs the adapter runs as separate processes, plus an optional Hexaly adapter (proprietary SDK, bring-your-own-license). New solvers are added by implementing a single adapter behind the protocol.
 
 Architecture (`app/domains/solver/`):
 - **`adapters/base.py`** — the `SolverAdapter` Protocol. Its surface is `capabilities`, `is_available()`, `version()` and `solve()`. `validate_license` was removed in Phase 7.4 (D-10): Hexaly's licence is a platform concern, not an adapter one. Also here: the `SolverCapabilities` frozen dataclass (9 fields), the exception hierarchy (`SolverError`, `SolverNotFoundError`, `SolverUnavailableError`), and the `MultiObjectiveSolverAdapter` extension a solver opts into

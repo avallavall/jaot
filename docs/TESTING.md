@@ -21,7 +21,7 @@ from a clean checkout.
 
 | | |
 |---|---|
-| Backend tests | **5,754** collected across 261 files. That is 3,711 test functions — 1,073 written at module level and 2,638 as methods on test classes — plus what parametrization adds |
+| Backend tests | **5,754** collected across 262 files. That is 3,733 test functions — 1,086 written at module level and 2,647 as methods on test classes — plus what parametrization adds |
 | Line coverage (`app/`) | **87.4%**, enforced in CI at `--cov-fail-under=78` |
 | API surface | 194 paths / 238 operations, counted from the OpenAPI schema |
 | Database in tests | real PostgreSQL — never mocked |
@@ -201,8 +201,8 @@ no secrets. This is what runs on your PR:
 | Job | What it gates |
 |---|---|
 | `lint-backend` | `ruff check` + `ruff format --check` over the five gated directories, then `lint-imports` (7 contracts) |
-| `security-backend` | `pip-audit -r requirements.txt` (strict) + `bandit -r app/ -lll` |
-| `test-backend` | `pytest` with `--cov-fail-under=78` against a real PostgreSQL service; installs `coinor-cbc` and `glpk-utils` so the CLI-solver tests run instead of skipping |
+| `security-backend` | `pip-audit -r requirements.txt` (strict; it cannot audit the `jaos` URL dependency, lists it under "Skip Reason" and still exits 0) + `bandit -r app/ -lll` |
+| `test-backend` | `pytest` with `--cov-fail-under=78` against a real PostgreSQL service; installs `coinor-cbc` and `glpk-utils` so the CLI-solver tests run instead of skipping; the JAOS wheel comes from `requirements.txt` |
 | `types-frontend` | regenerates `api.ts` from the schema and fails on any difference (see above) |
 | `lint-frontend` | ESLint + `check-i18n` + `npm audit` (critical blocks) |
 | `test-frontend` | Vitest |

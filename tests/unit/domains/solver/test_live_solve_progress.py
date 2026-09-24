@@ -3,7 +3,7 @@
 Covers the additive, contract-safe wiring added for Live Solve:
 - SCIP fires ``on_progress`` with a ``ProgressPoint`` for each new incumbent.
 - ``solve(on_progress=None)`` is a perfect no-op (existing behaviour unchanged).
-- ``capabilities.supports_progress`` is True only for SCIP.
+- ``capabilities.supports_progress`` is True for SCIP and JAOS only.
 - ``SolverService.solve`` forwards ``on_progress`` to the adapter.
 - The async task's progress publisher emits a ``solve_progress`` event on the
   existing ``ws:execution:{id}`` channel.
@@ -74,17 +74,23 @@ def test_scip_solve_on_progress_none_is_noop() -> None:
 
 @pytest.mark.unit
 def test_supports_progress_capability_matrix() -> None:
-    """Only SCIP advertises supports_progress; HiGHS and Hexaly do not.
+    """SCIP and JAOS advertise supports_progress; HiGHS, CBC, GLPK and Hexaly do not.
 
     Reads the class-level ``capabilities`` so HexalyAdapter.__init__ (which loads a
     platform license) is never invoked.
     """
+    from app.domains.solver.adapters.cbc import CBCAdapter
+    from app.domains.solver.adapters.glpk import GLPKAdapter
     from app.domains.solver.adapters.hexaly import HexalyAdapter
     from app.domains.solver.adapters.highs import HiGHSAdapter
+    from app.domains.solver.adapters.jaos import JAOSAdapter
     from app.domains.solver.adapters.scip import SCIPAdapter
 
     assert SCIPAdapter.capabilities.supports_progress is True
+    assert JAOSAdapter.capabilities.supports_progress is True
     assert HiGHSAdapter.capabilities.supports_progress is False
+    assert CBCAdapter.capabilities.supports_progress is False
+    assert GLPKAdapter.capabilities.supports_progress is False
     assert HexalyAdapter.capabilities.supports_progress is False
 
 

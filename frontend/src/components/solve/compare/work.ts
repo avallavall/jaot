@@ -89,7 +89,9 @@ export function workOf(row: ComparisonSolverResult): { unit: WorkUnit; total: nu
  * to the floor and ends at a quarter of the number the table shows beside it.
  * Carrying the running total forward whenever the count drops rebuilds the 200.
  *
- * SCIP never restarts its count, so its trace comes through untouched.
+ * SCIP never restarts its count, so its trace comes through untouched. JAOS
+ * reports a running total that never goes back within one solve, so its
+ * trace comes through untouched too.
  *
  * The trace's own `iteration` field is deliberately not used here. It is the
  * snapshot number — the adapters set it to the length of the list so far — and

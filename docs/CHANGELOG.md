@@ -32,6 +32,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+### Added
+- **JAOS is a fifth solver.** JAOS is an open-source LP/MIP solver (Apache-2.0). It gives the same answer and does the same work on any machine and thread count. Pick it by name, or add it as a column in a solver comparison. Automatic selection never picks it.
+- **JAOS shows its progress while it solves**, as SCIP does: the best plan, the bound and the gap, live. A comparison draws its trace next to the other solvers'.
+- **JAOS reports shadow prices and reduced costs for a linear model**, and takes a warm start from an earlier run. A partial start is completed. The run says whether JAOS used it.
+
+### Changed
+- **The solver race on the home page runs all five solvers.** JAOS ran out of time on the burn-in plan, like GLPK. It found no plan in 60 seconds. Its bound says no plan uses fewer than 17 chambers. When two solvers run out of time, the note under the chart now names both and no longer shows only the first one's bound.
+
+### Fixed
+- **The Hexaly runbooks named a container that does not exist**, so their `docker logs` and `docker exec` commands failed. They now use `jaot_prod_celery_hexaly`.
+
 ## [3.10.0] - 2026-09-24
 
 ### Added

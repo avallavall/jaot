@@ -8,7 +8,7 @@
 
 ## Services
 
-`deploy/docker-compose.prod.yml` defines **28 services** across four Docker networks (`frontend`, `backend`, `monitoring`, `plausible_backend`). Two are profile-gated and do not start with a plain `up -d`: the one-shot `migrate` runner and the Hexaly worker (`celery_worker_hexaly`, only on deployments holding a Hexaly platform licence). So a normal production host runs **26 long-running containers**.
+`deploy/docker-compose.prod.yml` defines **29 services** across four Docker networks (`frontend`, `backend`, `monitoring`, `plausible_backend`). Two are profile-gated and do not start with a plain `up -d`: the one-shot `migrate` runner and the Hexaly worker (`celery_worker_hexaly`, only on deployments holding a Hexaly platform licence). So a normal production host runs **27 long-running containers**.
 
 ### Application
 
@@ -19,11 +19,12 @@
 | `rabbitmq` | jaot_prod_rabbitmq | 15672 (localhost) | Message broker (management UI on 15672) |
 | `qdrant` | jaot_prod_qdrant | 6333 (internal) | Qdrant vector DB for RAG (384-dim, 290 docs indexed) |
 | `api` | jaot_prod_api | 8001 (internal) | FastAPI backend, 4 Uvicorn workers |
-| `celery_worker_default` | jaot_prod_celery_default | -- | Default queue (`jaot_default`): email, webhooks, cron (256 MB) |
-| `celery_worker_scip` | jaot_prod_celery_scip | -- | SCIP solver queue (`solve_scip`) — 3 GB |
+| `celery_worker_default` | jaot_prod_celery_default | -- | Default queue (`jaot_default`): email, webhooks, cron (512 MB) |
+| `celery_worker_scip` | jaot_prod_celery_scip | -- | SCIP solver queue (`solve_scip`) — 5 GB |
 | `celery_worker_highs` | jaot_prod_celery_highs | -- | HiGHS solver queue (`solve_highs`) — 1.5 GB |
 | `celery_worker_cbc` | jaot_prod_celery_cbc | -- | CBC solver queue (`solve_cbc`) — 1.5 GB; launches the `cbc` binary |
 | `celery_worker_glpk` | jaot_prod_celery_glpk | -- | GLPK solver queue (`solve_glpk`) — 1.5 GB; launches `glpsol` |
+| `celery_worker_jaos` | jaot_prod_celery_jaos | -- | JAOS solver queue (`solve_jaos`) — 1.5 GB; the JAOS library runs in-process |
 | `celery_worker_compare` | jaot_prod_celery_compare | -- | Solver-comparison queue (`solve_compare`) — 3 GB; concurrency 1 |
 | `celery_worker_hexaly` | jaot_prod_celery_hexaly | -- | Hexaly solver queue (`solve_hexaly`) — 2 GB; profile: hexaly |
 | `celery_beat` | jaot_prod_beat | -- | Cron scheduler (DB-backed via sqlalchemy_celery_beat) |
@@ -230,6 +231,21 @@ docker compose -f deploy/docker-compose.prod.yml exec api alembic -c infra/alemb
 
 A migration may DROP or RENAME when that is the right change, but a rollback only restores the container image — never the schema. So any migration that cannot be undone by its own `downgrade()` needs a database backup taken before the deploy, and a line saying so in the deploy plan.
 
+### Changing `max_connections`
+
+`deploy/config/postgresql.conf` sets `max_connections`. Postgres reads it only when it starts. The deploy restarts the app services and never restarts `postgres`, so a new value has no effect until someone restarts that container.
+
+The JAOS worker raised the value from 100 to 120 (2026-09-24). After the first deploy that carries it, restart Postgres once:
+
+```bash
+docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.home.yml --env-file .env.production restart postgres
+
+# Confirm the new value
+docker exec jaot_prod_postgres psql -U jaot -d jaot -c "SHOW max_connections;"
+```
+
+The restart takes a few seconds. Requests that need the database fail during that time. The connection budget behind the number is in [05-celery-queue-workers.md](../ARCHITECTURE/05-infrastructure/05-celery-queue-workers.md#pool-sizes).
+
 ---
 
 ## Local Development (without Docker)
@@ -300,7 +316,7 @@ docker compose -f deploy/docker-compose.prod.yml exec postgres psql -U jaot -d j
 ```
 
 **Celery does not process tasks:** find out which queue is stuck first. A solve
-sits in `solve_scip`, `solve_highs`, `solve_cbc`, `solve_glpk` or `solve_compare`;
+sits in `solve_scip`, `solve_highs`, `solve_cbc`, `solve_glpk`, `solve_jaos` or `solve_compare`;
 everything else sits in `jaot_default`.
 ```bash
 docker compose -f deploy/docker-compose.prod.yml logs celery_worker_default
@@ -336,7 +352,7 @@ All production containers run with:
   file to SCIP. `app/shared/core/upload_capacity.py` checks Content-Length
   against the free space before reading the body and answers 413 with what the
   server can take, so raising the ceiling means raising this `tmpfs`.
-- Memory limits enforced per container (32 MB to 4 GB)
+- Memory limits enforced per container (32 MB to 5 GB)
 - Monitoring ports bound to `127.0.0.1` only
 - Docker socket mounted read-only (cAdvisor only)
 

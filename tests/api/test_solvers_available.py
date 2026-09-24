@@ -138,15 +138,16 @@ class TestComparableFlag:
     def test_the_solvers_that_can_compare_say_so(self, authenticated_client) -> None:
         """The in-image solvers are always listed and always comparable.
 
-        Only SCIP and HiGHS are asserted by name. CBC and GLPK are command-line
-        programs that report their own absence through ``is_available()``, so an
-        image built without the binaries lists neither — which is right, and
-        which is why naming them here would make this test a statement about the
-        image rather than about the flag.
+        SCIP, HiGHS and JAOS are asserted by name: all three are Python packages
+        in requirements.txt. CBC and GLPK are command-line programs that report
+        their own absence through ``is_available()``, so an image built without
+        the binaries lists neither — which is right, and which is why naming them
+        here would make this test a statement about the image rather than about
+        the flag.
         """
         response = authenticated_client.get("/api/v2/solvers/available")
         by_name = {s["name"]: s for s in response.json()["solvers"]}
-        for name in ("scip", "highs"):
+        for name in ("scip", "highs", "jaos"):
             assert by_name[name]["comparable"] is True, f"{name} must be comparable"
 
 
@@ -161,7 +162,7 @@ class TestVersionReporting:
     def test_the_in_image_solvers_report_a_version(self, authenticated_client) -> None:
         response = authenticated_client.get("/api/v2/solvers/available")
         by_name = {s["name"]: s for s in response.json()["solvers"]}
-        for name in ("scip", "highs"):
+        for name in ("scip", "highs", "jaos"):
             assert by_name[name].get("version"), f"{name} reported no version"
 
     # A version that cannot be read is absent, never invented and never an

@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 
 /**
- * The footer read "Powered by SCIP & HiGHS" on every public page. The platform
- * ships four solvers — the studio's own solver matrix offers all four, and the
- * SEO description on the same pages already said "SCIP, HiGHS, CBC and GLPK".
+ * The footer once read "Powered by SCIP & HiGHS" on every public page. The
+ * platform shipped four solvers then. The studio's own solver matrix offered
+ * all four, and the SEO description on the same pages already named them.
  * These are licence-visible dependencies, and the footer is where a stranger
  * looks to see what the site is built on.
  */
@@ -12,8 +12,8 @@ import { SOLVER_CREDITS } from "../Footer";
 
 // CONTRACT-TEST: the footer credits every solver the platform ships
 describe("the solvers the footer credits", () => {
-  it("names all four", () => {
-    expect(SOLVER_CREDITS.map((s) => s.name)).toEqual(["SCIP", "HiGHS", "CBC", "GLPK"]);
+  it("names all five", () => {
+    expect(SOLVER_CREDITS.map((s) => s.name)).toEqual(["SCIP", "HiGHS", "CBC", "GLPK", "JAOS"]);
   });
 
   it("links each one to where it lives", () => {

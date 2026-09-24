@@ -54,7 +54,7 @@ STORAGEBOX_USER=$(load_env_var STORAGEBOX_USER)
 # celery_worker` would fail with "no such service". celery_worker_hexaly is
 # intentionally excluded: it is profile-gated (`profiles: ["hexaly"]`),
 # deployed out-of-band via `--profile hexaly`, and its image is gated off in CI.
-APP_SERVICES="api celery_worker_default celery_worker_scip celery_worker_highs celery_worker_cbc celery_worker_glpk celery_worker_compare celery_beat frontend"
+APP_SERVICES="api celery_worker_default celery_worker_scip celery_worker_highs celery_worker_cbc celery_worker_glpk celery_worker_jaos celery_worker_compare celery_beat frontend"
 
 # The same env file the deploy passes. Without it Compose fails to interpolate
 # the required variables (GRAFANA_ADMIN_PASSWORD, ALERT_EMAIL_RECIPIENT) and

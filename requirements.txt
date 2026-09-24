@@ -59,6 +59,12 @@ sentence-transformers>=5.6.0
 
 # Solver backends
 highspy>=1.14.0                    # HiGHS LP/MIP solver Python bindings (Phase 5 / HIGH-01)
+# JAOS (Apache-2.0, github.com/avallavall/jaos). Not on PyPI: the manylinux wheel comes from the
+# project's GitHub Release, so no image and no CI job needs a compiler. The #sha256= fragment makes
+# pip and uv check this one file without turning hash mode on for the other lines. pip-audit
+# cannot audit a URL dependency and lists it as skipped. To upgrade: new tag, new URL, new hash
+# (`gh release view vX.Y.Z -R avallavall/jaos` shows each asset's digest).
+jaos @ https://github.com/avallavall/jaos/releases/download/v0.5.0/jaos-0.5.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl#sha256=ffa402f14b20dff5559c37efb13fd958628354d9c8d548fe8b93b6802f8119d2 ; sys_platform == "linux" and platform_machine == "x86_64"
 # Hexaly (proprietary, BYOL) is an optional extra — see requirements-hexaly.txt
 
 # YAML — direct import for template schema and RAG document types

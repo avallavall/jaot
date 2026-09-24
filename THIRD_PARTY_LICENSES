@@ -2,7 +2,7 @@ THIRD-PARTY LICENSE ATTRIBUTIONS
 =================================
 
 This file documents the license terms for third-party software components used
-by JAOT. It covers the solver engines (SCIP, HiGHS, CBC, GLPK), their Python
+by JAOT. It covers the solver engines (SCIP, HiGHS, CBC, GLPK, JAOS), their Python
 interfaces (PySCIPOpt, highspy), PDF extraction (pypdf), and Apache 2.0 licensed
 direct dependencies (requests).
 
@@ -31,6 +31,7 @@ SUMMARY
   HiGHS        1.12+     MIT           HiGHS developers (Univ. of Edinburgh)
   CBC          2.10.12   EPL-2.0       COIN-OR Foundation
   GLPK         5.0       GPL-3.0       Free Software Foundation, Inc.
+  JAOS         0.5.0     Apache 2.0    JAOS authors
   pypdf        5.1+      BSD-3-Clause  Mathieu Fenniak and contributors
   requests     2.32.5    Apache 2.0    Kenneth Reitz
 
@@ -327,6 +328,24 @@ Delivery and why JAOT stays Apache 2.0:
 Full license text: https://www.gnu.org/licenses/gpl-3.0.txt
 Source code:       https://ftp.gnu.org/gnu/glpk/, and from Debian with
                    `apt-get source glpk-utils`.
+
+
+========================================================================
+JAOS 0.5.0  (Just Another Optimization Solver)
+========================================================================
+
+License:    Apache License, Version 2.0
+Copyright:  JAOS authors
+URL:        https://github.com/avallavall/jaos
+Used for:   Open-source LP/MIP solver, one of the engines a user can pick
+Delivery:   The manylinux x86_64 wheel attached to the JAOS v0.5.0 GitHub
+            Release, pinned by URL and sha256 in requirements.txt. The wheel
+            carries the C library (libjaos.so) and its ctypes binding. JAOT
+            loads the library into the worker process. JAOS has no NOTICE
+            file of its own.
+
+Full Apache License 2.0 text: See SCIP section above for full Apache
+License 2.0 text.
 
 
 ========================================================================

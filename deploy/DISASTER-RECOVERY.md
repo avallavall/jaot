@@ -112,17 +112,21 @@ curl -s http://localhost:8001/api/v2/health/status
 
 | Service | Container Name | Memory Limit |
 |---------|---------------|-------------|
-| PostgreSQL | `jaot_prod_postgres` | 1536 MB |
-| Redis | `jaot_prod_redis` | 256 MB |
+| PostgreSQL | `jaot_prod_postgres` | 2560 MB |
+| Redis | `jaot_prod_redis` | 384 MB |
 | RabbitMQ | `jaot_prod_rabbitmq` | 512 MB |
 | Qdrant (RAG) | `jaot_prod_qdrant` | 384 MB |
-| API (FastAPI) | `jaot_prod_api` | 4 GB |
-| Celery Worker (default) | `jaot_prod_celery_default` | 256 MB |
-| Celery Worker (SCIP) | `jaot_prod_celery_scip` | 3 GB |
-| Celery Worker (HiGHS) | `jaot_prod_celery_highs` | 1 GB |
+| API (FastAPI) | `jaot_prod_api` | 5 GB |
+| Celery Worker (default) | `jaot_prod_celery_default` | 512 MB |
+| Celery Worker (SCIP) | `jaot_prod_celery_scip` | 5 GB |
+| Celery Worker (HiGHS) | `jaot_prod_celery_highs` | 1.5 GB |
+| Celery Worker (CBC) | `jaot_prod_celery_cbc` | 1.5 GB |
+| Celery Worker (GLPK) | `jaot_prod_celery_glpk` | 1.5 GB |
+| Celery Worker (JAOS) | `jaot_prod_celery_jaos` | 1.5 GB |
+| Celery Worker (compare) | `jaot_prod_celery_compare` | 3 GB |
 | Celery Worker (Hexaly) | `jaot_prod_celery_hexaly` | 2 GB |
 | Celery Beat | `jaot_prod_beat` | 128 MB |
-| Frontend (Next.js) | `jaot_prod_frontend` | 512 MB |
+| Frontend (Next.js) | `jaot_prod_frontend` | 1 GB |
 | Caddy (reverse proxy) | `jaot_prod_caddy` | 256 MB |
 | Prometheus | `jaot_prod_prometheus` | 512 MB |
 | Grafana | `jaot_prod_grafana` | 256 MB |
@@ -300,7 +304,7 @@ This happens on the very first deploy or if Docker images have been pruned.
 
 ### 3.4 Database Rollback Warning
 
-**Rollback does NOT revert database migrations.** Migrations are designed to be backward-compatible (additive-only). If a migration is destructive (DROP/RENAME), the only database recovery path is restoring from backup.
+**Rollback does NOT revert database migrations.** A rollback restores the container images, not the schema. A migration may DROP or RENAME when that is the right change (owner, 2026-08-02). Such a migration needs a backup taken before the deploy and a note in the deploy plan, because restoring that backup is the only way back.
 
 ---
 
@@ -312,8 +316,8 @@ This happens on the very first deploy or if Docker images have been pruned.
 
 **Symptoms:** API returns 500 errors, new connections refused.
 
-**PostgreSQL config:** `max_connections = 100` (from `deploy/config/postgresql.conf`)
-**App pool:** `DB_POOL_SIZE=5`, `DB_MAX_OVERFLOW=5` per service (api + celery_worker + celery_beat = up to 30 connections)
+**PostgreSQL config:** `max_connections = 120` (from `deploy/config/postgresql.conf`). Postgres reads it only at start; see `docs/operations/DEPLOYMENT.md#changing-max_connections`.
+**App pool:** `DB_POOL_SIZE=5`, `DB_MAX_OVERFLOW=5` on each API process, `celery_worker_default`, `celery_worker_scip` and `celery_beat`; 2/2 on the five single-concurrency workers. Worst case ≈ 90 connections, ≈ 100 with the Hexaly profile. The budget is in `docs/ARCHITECTURE/05-infrastructure/05-celery-queue-workers.md#pool-sizes`.
 
 **Diagnosis:**
 
@@ -757,7 +761,7 @@ License rotation = swap the `.lic` file on the deploy host and restart the Hexal
 
 3. **Confirm the worker picked up the new license** — the startup log must show the new fingerprint (sha256[:8] of the new `.lic`):
    ```bash
-   docker logs jaot_prod_celery_worker_hexaly 2>&1 | grep "Platform Hexaly license loaded"
+   docker logs jaot_prod_celery_hexaly 2>&1 | grep "Platform Hexaly license loaded"
    ```
 
 **Failure modes:**

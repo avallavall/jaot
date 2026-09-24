@@ -15,7 +15,8 @@ def test_solver_queue_map_contains_every_shipped_solver() -> None:
 
     Phase 7 landed ``"hexaly": "solve_hexaly"``; CBC and GLPK landed with their
     own workers rather than sharing SCIP's, because they launch a child process
-    that holds its worker slot for the whole run. Future commercial solvers
+    that holds its worker slot for the whole run. JAOS (2026-09-24) has its own
+    worker for the same reason: a slow run must not hold a SCIP slot. Future commercial solvers
     (gurobi, cplex) remain explicit extension points.
     """
     from app.domains.solver.queue_routing import SOLVER_QUEUE_MAP
@@ -24,6 +25,7 @@ def test_solver_queue_map_contains_every_shipped_solver() -> None:
     assert SOLVER_QUEUE_MAP["highs"] == "solve_highs"
     assert SOLVER_QUEUE_MAP["cbc"] == "solve_cbc"
     assert SOLVER_QUEUE_MAP["glpk"] == "solve_glpk"
+    assert SOLVER_QUEUE_MAP["jaos"] == "solve_jaos"
     assert SOLVER_QUEUE_MAP["hexaly"] == "solve_hexaly"
     # Future extension points must not be pre-reserved.
     assert "gurobi" not in SOLVER_QUEUE_MAP
@@ -39,6 +41,7 @@ def test_resolve_queue_maps_every_shipped_solver() -> None:
     assert resolve_queue("highs") == "solve_highs"
     assert resolve_queue("cbc") == "solve_cbc"
     assert resolve_queue("glpk") == "solve_glpk"
+    assert resolve_queue("jaos") == "solve_jaos"
     assert resolve_queue("hexaly") == "solve_hexaly"
 
 

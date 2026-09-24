@@ -60,6 +60,7 @@ _SOLVER_DESCRIPTIONS: dict[str, str] = {
     # comparison, and a user who does not know it will read the seconds as a
     # verdict on the model rather than on the solver.
     "glpk": "GNU LP/MIP solver, single-threaded",
+    "jaos": "Open-source LP/MIP solver, deterministic",
     "hexaly": "Commercial solver for quadratic / non-convex problems",
 }
 

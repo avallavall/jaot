@@ -15,7 +15,7 @@ classDiagram
         +supports_sensitivity: bool
         +supports_warm_start: bool
         +supports_multi_objective: bool
-        +requires_license: bool
+        +supports_progress: bool
     }
 
     class SolverAdapter {
@@ -39,7 +39,7 @@ classDiagram
         +solve(problem) OptimizationResult
     }
 
-    class HighsAdapter {
+    class HiGHSAdapter {
         +capabilities
         +is_available() bool
         #_read_version() str|None
@@ -57,6 +57,13 @@ classDiagram
     class GLPKAdapter {
         +capabilities
         +binary_path() str|None
+        +is_available() bool
+        #_read_version() str|None
+        +solve(problem) OptimizationResult
+    }
+
+    class JAOSAdapter {
+        +capabilities
         +is_available() bool
         #_read_version() str|None
         +solve(problem) OptimizationResult
@@ -115,16 +122,18 @@ classDiagram
     SolverError <|-- SolverQueueMismatchError
 
     SolverAdapter <|.. SCIPAdapter
-    SolverAdapter <|.. HighsAdapter
+    SolverAdapter <|.. HiGHSAdapter
     SolverAdapter <|.. CBCAdapter
     SolverAdapter <|.. GLPKAdapter
+    SolverAdapter <|.. JAOSAdapter
     SolverAdapter <|.. HexalyAdapter
     SolverAdapter <|-- MultiObjectiveSolverAdapter
 
     CachedVersion <|-- SCIPAdapter
-    CachedVersion <|-- HighsAdapter
+    CachedVersion <|-- HiGHSAdapter
     CachedVersion <|-- CBCAdapter
     CachedVersion <|-- GLPKAdapter
+    CachedVersion <|-- JAOSAdapter
     CachedVersion <|-- HexalyAdapter
 
     SolverAdapter ..> SolverCapabilities
@@ -139,8 +148,9 @@ classDiagram
 ## Notes
 
 - **`SolverAdapter`:** `typing.Protocol` without `@runtime_checkable` — static mypy is enough (PEP 544). `app/domains/solver/adapters/base.py`. `validate_license()` left the Protocol in Phase 7.4 / D-10: Hexaly loads the platform licence in `__init__` and fail-fasts, so there is no per-request gate.
-- **`CachedVersion`:** the one place "ask the solver its version, once per process" is written. Inheritance rather than a fifth copy of the same four lines — that copy-paste is how HexalyAdapter ended up without a cache, re-reading package metadata on every solver listing. Two of the five start a child process to answer, so the cache is not cosmetic. `app/domains/solver/adapters/base.py`.
+- **`CachedVersion`:** the one place "ask the solver its version, once per process" is written. Inheritance rather than a fifth copy of the same four lines — that copy-paste is how HexalyAdapter ended up without a cache, re-reading package metadata on every solver listing. Two of the six start a child process to answer, so the cache is not cosmetic. `app/domains/solver/adapters/base.py`.
 - **`CBCAdapter` / `GLPKAdapter`:** command-line solvers driven as separate processes, never linked (GLPK is GPLv3 and JAOT is Apache-2.0). They report their own absence through `is_available()`, so an image built without the binary simply does not list them.
+- **`JAOSAdapter`:** the JAOS C library, loaded into the worker process through the ctypes binding in its wheel. It imports `jaos` lazily, so a process without the wheel still starts and `is_available()` returns False. Automatic routing never picks it: a user names it or selects it in the comparer.
 - **`SolverCapabilities`:** `frozen=True` dataclass, immutable metadata per adapter.
 - **Exceptions:** 4 types. `SolverQueueMismatchError` raised by `_assert_queue_match()` if the container's `SOLVER_QUEUE` env var does not match the task's queue.
 - **`MultiObjectiveSolverAdapter`:** opt-in for HiGHS/Hexaly in phases 5-7. SCIP (Phase 4) does not implement it — the orchestrator uses a weighted fallback.

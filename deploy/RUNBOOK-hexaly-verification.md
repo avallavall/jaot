@@ -48,7 +48,7 @@ Hexaly-worker-enabled release (i.e. `jaot-worker-hexaly:<sha>` present in
 2. Confirm the `.lic` file is mounted and readable by the container:
 
    ```bash
-   docker exec jaot_prod_celery_worker_hexaly ls -la /etc/jaot/hexaly.lic
+   docker exec jaot_prod_celery_hexaly ls -la /etc/jaot/hexaly.lic
    ```
 
    **Expected:** file present, permissions `-r--------` or `-rw-------` (0400/0600).
@@ -56,7 +56,7 @@ Hexaly-worker-enabled release (i.e. `jaot-worker-hexaly:<sha>` present in
 3. Verify the worker startup log shows the license was loaded:
 
    ```bash
-   docker logs jaot_prod_celery_worker_hexaly 2>&1 | grep "Platform Hexaly license loaded"
+   docker logs jaot_prod_celery_hexaly 2>&1 | grep "Platform Hexaly license loaded"
    ```
 
    **Expected:** one line with `fingerprint=<8-hex>` and `expires_at=<ISO date or "unknown">`.
@@ -82,7 +82,7 @@ Hexaly-worker-enabled release (i.e. `jaot-worker-hexaly:<sha>` present in
    ```
 
    **If `status: degraded`:** inspect worker logs
-   (`docker logs jaot_prod_celery_worker_hexaly`) for SDK import errors,
+   (`docker logs jaot_prod_celery_hexaly`) for SDK import errors,
    missing `.lic` file, or queue mismatch.
 
 ---
@@ -151,7 +151,7 @@ can request a Hexaly solve.
    docker logs jaot_prod_api 2>&1 | grep -c "BEGIN HEXALY" || true
 
    # 3b. Plaintext not in Hexaly worker logs
-   docker logs jaot_prod_celery_worker_hexaly 2>&1 | grep -c "BEGIN HEXALY" || true
+   docker logs jaot_prod_celery_hexaly 2>&1 | grep -c "BEGIN HEXALY" || true
 
    # 3c. Plaintext not in Celery result backend (Redis)
    docker exec jaot_prod_redis redis-cli --scan --pattern 'celery-task-meta-*' \
@@ -180,10 +180,10 @@ can request a Hexaly solve.
 
 - **Worker unhealthy at preflight:** the `.lic` file is missing from the
   mount path, or `HexalyAdapter.__init__` detected an expired license. Check
-  `docker logs jaot_prod_celery_worker_hexaly` for the RuntimeError message.
+  `docker logs jaot_prod_celery_hexaly` for the RuntimeError message.
   Fix the `.lic` file and restart the worker (see `DISASTER-RECOVERY.md §6.4`).
 - **Task stays `queued` indefinitely:** the `solve_hexaly` queue binding is
-  broken. Check `docker logs jaot_prod_celery_worker_hexaly` for
+  broken. Check `docker logs jaot_prod_celery_hexaly` for
   `Ready. Celery connected to amqp://...` and
   `consumer: Connected ... Receiving` on the `solve_hexaly` queue.
 - **Task fails with `hexaly_internal_error`:** the Hexaly SDK raised an

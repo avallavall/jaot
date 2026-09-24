@@ -20,7 +20,7 @@ Most people only ever meet three: a **model**, a **dataset**, and an **execution
 | **Dataset** | The numbers that fill a JModel source. One model, many datasets. |
 | **Template** | A ready-made model shape you fill in with your own input. |
 | **Generator** | The code behind a template that turns your input into a problem. |
-| **Solver** | The program that searches for the answer: SCIP, HiGHS, CBC, GLPK. |
+| **Solver** | The program that searches for the answer: SCIP, HiGHS, CBC, GLPK, JAOS. |
 | **Execution** | One run of one problem by one solver. What produces an answer. |
 | **Comparison** | The same problem run by several solvers, to choose between them. |
 
@@ -71,9 +71,9 @@ Each template declares which generator builds it. You pick a template; you never
 
 ## Solver
 
-**The program that does the searching.** JAOT ships four (SCIP, HiGHS, CBC and GLPK) and can be built with a fifth (Hexaly). They all take the same problem and return the same shape of answer, so switching one for another changes the time and sometimes the route, never the meaning.
+**The program that does the searching.** JAOT ships five (SCIP, HiGHS, CBC, GLPK and JAOS) and can be built with a sixth (Hexaly). They all take the same problem and return the same shape of answer, so switching one for another changes the time and sometimes the route, never the meaning.
 
-`solver_name: "auto"` lets the platform pick. Which one it picks, and why it will not pick CBC or GLPK for you, is in [what `auto` picks](/docs/api/solve#what-auto-picks).
+`solver_name: "auto"` lets the platform pick. Which one it picks, and why it will not pick CBC, GLPK or JAOS for you, is in [what `auto` picks](/docs/api/solve#what-auto-picks).
 
 ## Execution
 

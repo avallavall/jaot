@@ -472,8 +472,9 @@ including any rows in `pending` (Celery tasks will start logging "vanished" warn
 any rows the team has not yet replied to. Cold-storage backups (§6) can be used to restore
 the table contents, but the operator must coordinate the restore manually.
 
-Per the root `CLAUDE.md` "additive-only" rule, this rollback path exists but is reserved
-for unrecoverable schema corruption only. Do NOT use it as a "let me try the migration
+This rollback path exists but is reserved for unrecoverable schema corruption only. A
+rollback of the app restores the container image, not the schema, so dropping this table
+is a separate decision and needs a backup first. Do NOT use it as a "let me try the migration
 again" shortcut — the additive shape of `contact_messages` means a re-up has nothing to
 roll back to in practice.
 

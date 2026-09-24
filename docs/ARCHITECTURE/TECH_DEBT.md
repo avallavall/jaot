@@ -68,7 +68,8 @@ the owner on 2026-09-01.** It is not deferred work any more; nobody should re-op
 
 The connection budget it existed to raise is documented where it is enforced:
 [`05-celery-queue-workers.md`](05-infrastructure/05-celery-queue-workers.md#pool-sizes). It fits
-inside `max_connections = 100` and it was sized on purpose. The gauges
+inside `max_connections = 120` (100 until the JAOS worker joined on 2026-09-24) and it was sized
+on purpose. The gauges
 `jaot_db_pool_checked_out` and `jaot_db_pool_capacity` say when it stops fitting.
 
 PgBouncer would put a container in the path of every query. It also breaks two things this

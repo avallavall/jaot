@@ -33,7 +33,7 @@ Solve an optimization problem synchronously. The request blocks until the solver
 | `options` | object | No | Solver options |
 | `options.time_limit_seconds` | number | No | Maximum solve time in seconds, 1–86400 (default: 300). Long solves should use the async endpoint. |
 | `options.gap_tolerance` | number | No | Optimality gap tolerance (default: 0.0001) |
-| `solver_name` | string | No | Solver override: `"scip"`, `"highs"`, `"cbc"`, `"glpk"`, `"hexaly"`, or `"auto"` (default: platform default). See [what `auto` picks](#what-auto-picks). |
+| `solver_name` | string | No | Solver override: `"scip"`, `"highs"`, `"cbc"`, `"glpk"`, `"jaos"`, `"hexaly"`, or `"auto"` (default: platform default). See [what `auto` picks](#what-auto-picks). |
 | `warm_start` | object | No | Warm-start a solve from a previous execution (`{"execution_id": "exe_..."}`) |
 | `template` | string | No | Template name for template-based solving |
 | `input` | object | No | Input data for template-based solving |
@@ -433,5 +433,10 @@ limit without finding any feasible answer.
 A substitute is never given a model it cannot express, so a quadratic never reaches CBC or
 GLPK whatever else is missing.
 
-To pick CBC or GLPK, name one — and use the [solver comparer](/docs/api/solver-comparison)
+**JAOS is never picked by `auto`, not even as a substitute.** JAOS is an open-source LP/MIP
+solver written in C. It is deterministic: the same model gives the same answer and the same
+work count on any machine and any thread count. In JAOT it solves linear and mixed-integer
+models only. It returns exact shadow prices and reduced costs for an LP, and none for a MIP.
+
+To pick CBC, GLPK or JAOS, name one — and use the [solver comparer](/docs/api/solver-comparison)
 to find out which one is right for your model, with numbers, instead of guessing.

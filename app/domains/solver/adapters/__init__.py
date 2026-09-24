@@ -27,6 +27,7 @@ from app.domains.solver.adapters.base import (
 from app.domains.solver.adapters.cbc import CBCAdapter
 from app.domains.solver.adapters.glpk import GLPKAdapter
 from app.domains.solver.adapters.highs import HiGHSAdapter
+from app.domains.solver.adapters.jaos import JAOSAdapter
 from app.domains.solver.adapters.registry import SolverRegistry, registry
 from app.domains.solver.adapters.scip import SCIPAdapter
 
@@ -76,6 +77,10 @@ def register_default_adapters() -> None:
     # does not list them.
     registry.register("cbc", CBCAdapter())
     registry.register("glpk", GLPKAdapter())
+    # JAOS is a wheel in requirements.txt, so every image has it. Like CBC and
+    # GLPK it registers unconditionally: its module imports the library lazily,
+    # and `is_available()` reports a wheel whose libjaos.so cannot load.
+    registry.register("jaos", JAOSAdapter())
 
     from app.domains.solver.adapters.hexaly_availability import (  # noqa: PLC0415
         hexaly_available,
@@ -101,6 +106,7 @@ __all__ = [
     "CBCAdapter",
     "GLPKAdapter",
     "HiGHSAdapter",
+    "JAOSAdapter",
     "MultiObjectiveSolverAdapter",
     "SCIPAdapter",
     "SolverAdapter",

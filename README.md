@@ -10,7 +10,7 @@ is the one holding you back.
 [![Release](https://img.shields.io/github/v/release/avallavall/jaot?label=release)](https://github.com/avallavall/jaot/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
-[![Solvers](https://img.shields.io/badge/solvers-SCIP%20%C2%B7%20HiGHS%20%C2%B7%20CBC%20%C2%B7%20GLPK-orange.svg)](#built-with)
+[![Solvers](https://img.shields.io/badge/solvers-SCIP%20%C2%B7%20HiGHS%20%C2%B7%20CBC%20%C2%B7%20GLPK%20%C2%B7%20JAOS-orange.svg)](#built-with)
 
 **Live demo → [jaot.io](https://jaot.io)** — the reference deployment, running the
 same images you can build from this repo. Browse the marketplace and the docs
@@ -36,8 +36,8 @@ as exact.
 
 It is **a platform, not a library and not a hosted service** — you run it yourself
 with `docker compose up`. It comes with a web interface, a REST API, and an MCP
-server so AI agents can use it too. Four solvers ship with it (SCIP, HiGHS, CBC
-and GLPK) and adding another means writing one adapter.
+server so AI agents can use it too. Five solvers ship with it (SCIP, HiGHS, CBC,
+GLPK and JAOS) and adding another means writing one adapter.
 
 **Free, with no paid tier.** No billing, no credits, no upsell — the marketplace is
 people sharing models, not selling them. Fair use is a set of request limits and
@@ -53,9 +53,9 @@ a private one need not.
 ### Solve
 
 - **Solver-agnostic core** — an `OptimizationProblem` schema that stays
-  independent of the solver. Ships SCIP (via PySCIPOpt), HiGHS (via highspy),
-  and CBC and GLPK as separate command-line programs; an optional Hexaly adapter
-  is bring-your-own-license.
+  independent of the solver. Ships SCIP (via PySCIPOpt), HiGHS (via highspy)
+  and JAOS (via its own Python library), and CBC and GLPK as separate
+  command-line programs; an optional Hexaly adapter is bring-your-own-license.
 - **Compare solvers on the same problem** — run one model on several solvers
   under identical terms (same time limit, same gap tolerance, one machine, one
   at a time) and read what each of them actually did: result, objective, best
@@ -212,7 +212,7 @@ flowchart TB
 
     API -->|"enqueue a solve"| MQ["RabbitMQ<br/>one queue per solver"]
     MQ --> WORKERS["Celery workers"]
-    WORKERS --> ADAPTERS["<b>SolverAdapter protocol</b><br/>app/domains/solver/adapters<br/>SCIP · HiGHS · CBC · GLPK<br/>Hexaly, profile-gated"]
+    WORKERS --> ADAPTERS["<b>SolverAdapter protocol</b><br/>app/domains/solver/adapters<br/>SCIP · HiGHS · CBC · GLPK · JAOS<br/>Hexaly, profile-gated"]
     WORKERS -.->|"writes the run"| PG
 ```
 
@@ -308,9 +308,9 @@ Issues and focused PRs welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ## Citing the solvers
 
-JAOT is powered by **SCIP 10** (via PySCIPOpt) and **HiGHS**, and also ships
+JAOT is powered by **SCIP 10** (via PySCIPOpt) and **HiGHS**. It also ships
 **CBC** (EPL-2.0) and **GLPK** (GPL-3.0-or-later) as separate command-line
-programs. As the SCIP team [requests](https://www.scipopt.org/index.php#cite),
+programs, and **JAOS** (Apache-2.0) as a Python library. As the SCIP team [requests](https://www.scipopt.org/index.php#cite),
 any work that uses SCIP should acknowledge and cite it. If JAOT helps your
 research or product, please cite the underlying solvers:
 

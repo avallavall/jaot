@@ -44,14 +44,15 @@ const FOOTER_COLUMNS = [
  * Mirrors the adapters in `app/domains/solver/adapters/`. Hexaly is not here:
  * it is profile-gated and not part of what a public instance runs. These are
  * licence-visible dependencies and the footer is where a stranger looks to see
- * what the site is built on — it used to name two of the four, while the SEO
- * description on the same pages already said all four.
+ * what the site is built on. It once named two of the four solvers JAOT had
+ * then. The SEO description on the same pages already named all four.
  */
 export const SOLVER_CREDITS = [
   { name: "SCIP", href: "https://www.scipopt.org/" },
   { name: "HiGHS", href: "https://highs.dev/" },
   { name: "CBC", href: "https://github.com/coin-or/Cbc" },
   { name: "GLPK", href: "https://www.gnu.org/software/glpk/" },
+  { name: "JAOS", href: "https://github.com/avallavall/jaos" },
 ] as const;
 
 export default async function Footer() {

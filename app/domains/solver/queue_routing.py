@@ -16,6 +16,9 @@ SOLVER_QUEUE_MAP: dict[str, str] = {
     # queue up behind it the solves everyone else is waiting for.
     "cbc": "solve_cbc",
     "glpk": "solve_glpk",
+    # JAOS runs in the worker process through ctypes. It has its own worker for
+    # the reason CBC and GLPK do: a slow run must not hold a solve_scip slot.
+    "jaos": "solve_jaos",
     # Phase 7 — D-17. WR-03 guard at resolve_queue below preserved:
     # the generic "Unknown solver" message never enumerates installed
     # commercial solvers, so landing "hexaly" here does NOT leak which
