@@ -17,6 +17,7 @@ set -euo pipefail
 # POSTGRES_DB (default jaot), STORAGEBOX_USER (for --from-offsite).
 
 COMPOSE_FILE="/opt/jaot/deploy/docker-compose.prod.yml"
+ENV_FILE="/opt/jaot/.env.production"
 BACKUP_DIR="/opt/jaot/backups"
 LOG_FILE="${BACKUP_DIR}/restore.log"
 
@@ -33,8 +34,12 @@ log_error()   { local msg="[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $*"; echo -e "
 log_success() { local msg="[$(date '+%Y-%m-%d %H:%M:%S')] [OK]    $*"; echo -e "${GREEN}${msg}${NC}"; echo "$msg" >> "${LOG_FILE}" 2>/dev/null || true; }
 
 # Targeted grep avoids `source` (no code execution risk).
+# `|| true`: under set -euo pipefail a key missing from the file made grep exit
+# 1 and killed the script right here, with no message. STORAGEBOX_USER is
+# optional, so on an install without offsite storage no command of this script
+# ran at all, `--list` and `help` included. backup.sh had this fix already.
 load_env_var() {
-    grep "^${1}=" /opt/jaot/.env.production 2>/dev/null | head -1 | cut -d'=' -f2-
+    grep "^${1}=" "${ENV_FILE}" 2>/dev/null | head -1 | cut -d'=' -f2- || true
 }
 
 pg_user=$(load_env_var POSTGRES_USER)
@@ -49,17 +54,33 @@ STORAGEBOX_USER=$(load_env_var STORAGEBOX_USER)
 # celery_worker` would fail with "no such service". celery_worker_hexaly is
 # intentionally excluded: it is profile-gated (`profiles: ["hexaly"]`),
 # deployed out-of-band via `--profile hexaly`, and its image is gated off in CI.
-APP_SERVICES="api celery_worker_default celery_worker_scip celery_worker_highs celery_beat frontend"
+APP_SERVICES="api celery_worker_default celery_worker_scip celery_worker_highs celery_worker_cbc celery_worker_glpk celery_worker_compare celery_beat frontend"
+
+# The same env file the deploy passes. Without it Compose fails to interpolate
+# the required variables (GRAFANA_ADMIN_PASSWORD, ALERT_EMAIL_RECIPIENT) and
+# does nothing.
+compose() {
+    docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" "$@"
+}
 
 stop_app_services() {
     log_info "Stopping application services..."
-    docker compose -f "${COMPOSE_FILE}" stop ${APP_SERVICES} 2>/dev/null || true
+    # A failure here must stop the restore. It used to be swallowed
+    # (2>/dev/null || true), and pg_restore --clean then ran under a live API
+    # and live workers writing to the tables it was dropping.
+    if ! compose stop ${APP_SERVICES}; then
+        log_error "Could not stop the application services -- not restoring under a live app"
+        exit 1
+    fi
     log_success "Application services stopped"
 }
 
 start_app_services() {
     log_info "Starting application services..."
-    docker compose -f "${COMPOSE_FILE}" up -d ${APP_SERVICES}
+    # `start`, not `up -d`: it starts the containers that were stopped, with the
+    # configuration they were created with. `up -d` from this one file would
+    # recreate them without the host's override file.
+    compose start ${APP_SERVICES}
     log_success "Application services started"
 }
 
@@ -71,10 +92,13 @@ decrypt_if_needed() {
             log_error "Backup is encrypted but no key found at /opt/jaot/.backup-key.gpg"
             exit 1
         fi
-        log_info "Decrypting backup..."
+        # To stderr: the caller captures this function's stdout as the file
+        # path, and the log lines went into it. Every encrypted backup failed
+        # to restore with "du: cannot access".
+        log_info "Decrypting backup..." >&2
         gpg --batch --yes --passphrase-file /opt/jaot/.backup-key.gpg \
             --decrypt -o "$decrypted" "$file"
-        log_success "Backup decrypted: $(basename "$decrypted")"
+        log_success "Backup decrypted: $(basename "$decrypted")" >&2
         echo "$decrypted"
     else
         echo "$file"

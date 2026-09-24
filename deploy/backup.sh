@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -eo pipefail
+# -E: the ERR trap in main() must also fire inside the functions it calls.
+# Without it a failed pg_dump (or cp, or gpg) inside create_backup stopped the
+# script with no failure email: bash does not inherit an ERR trap into a
+# function unless errtrace is on.
+set -Eeo pipefail
 
 # JAOT Database Backup — automated daily pg_dump with tiered retention + offsite sync.
 # Runs as a cron job on the production host.
@@ -123,14 +127,25 @@ create_backup() {
     mkdir -p "${BACKUP_DIR}/daily" "${BACKUP_DIR}/weekly" "${BACKUP_DIR}/monthly"
 
     # pg_dump -Fc: compressed custom format, supports parallel restore.
+    # Written under a name that is not a backup (no ".dump") and renamed only
+    # once it is verified. A dump that failed half-way used to stay in daily/
+    # as the newest file, and the runbook's "restore the latest" picks exactly
+    # that one.
+    local partial="${BACKUP_DIR}/daily/jaot_${DATE}.partial"
     log "Running pg_dump (user=${pg_user}, db=${pg_db}, format=custom)..."
-    docker exec jaot_prod_postgres pg_dump -U "${pg_user}" -Fc "${pg_db}" \
-        > "${BACKUP_DIR}/daily/${FILENAME}"
+    if ! docker exec jaot_prod_postgres pg_dump -U "${pg_user}" -Fc "${pg_db}" > "${partial}"; then
+        rm -f "${partial}"
+        log "ERROR: pg_dump failed"
+        send_failure_notification "pg_dump failed for ${FILENAME}"
+        exit 1
+    fi
 
     local backup_size
-    backup_size=$(stat -c%s "${BACKUP_DIR}/daily/${FILENAME}" 2>/dev/null || echo "0")
+    backup_size=$(stat -c%s "${partial}" 2>/dev/null || echo "0")
     if [ "${backup_size}" -eq 0 ]; then
+        rm -f "${partial}"
         log "ERROR: Backup file is empty (0 bytes)"
+        send_failure_notification "Backup file is empty (0 bytes) for ${FILENAME}"
         exit 1
     fi
 
@@ -152,9 +167,12 @@ create_backup() {
     # mid-dump produces, and it is exactly what the 0-byte test cannot see.
     log "Verifying backup integrity..."
     if docker exec -i jaot_prod_postgres pg_restore -f /dev/null \
-        < "${BACKUP_DIR}/daily/${FILENAME}" > /dev/null 2>&1; then
+        < "${partial}" > /dev/null 2>&1; then
         log "Backup integrity verified (full archive readable)"
+        mv "${partial}" "${BACKUP_DIR}/daily/${FILENAME}"
     else
+        # Kept for inspection under a name no restore or retention step reads.
+        mv "${partial}" "${BACKUP_DIR}/daily/jaot_${DATE}.corrupt"
         log "ERROR: Backup integrity check FAILED -- dump may be corrupt"
         send_failure_notification "Backup integrity verification failed for ${FILENAME}"
         exit 1

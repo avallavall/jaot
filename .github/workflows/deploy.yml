@@ -21,9 +21,16 @@ concurrency:
 jobs:
   deploy:
     runs-on: [self-hosted, home]
+    # workflow_run's `branches` filter matches the HEAD branch of the run, and a
+    # pull request from a fork whose branch is called "main" has head_branch
+    # "main". Without the event and repository checks such a PR's green CI
+    # started a production deploy (of origin/main, but a deploy all the same:
+    # backup, migrations, restart).
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     steps:
       # No actions/checkout: we operate on the canonical /opt/jaot tree
       # (where .env.production, secrets/ and the docker volumes live), not the
