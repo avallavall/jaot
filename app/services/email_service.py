@@ -171,6 +171,7 @@ class SMTPBackend(EmailBackend):
 
         msg.attach(MIMEText(html, "html"))
 
+        server: smtplib.SMTP | None = None
         try:
             logger.debug(f"Connecting to SMTP {self.host}:{self.port}")
             if self.use_tls:
@@ -184,16 +185,26 @@ class SMTPBackend(EmailBackend):
 
             server.sendmail(sender, [recipient], msg.as_string())
             server.quit()
+            server = None
             logger.info(f"Email sent to {recipient}: {subject}")
             return True
         except smtplib.SMTPAuthenticationError:
             logger.error(f"SMTP authentication failed for {self.host} (credentials masked)")
             return False
-        except (smtplib.SMTPException, OSError) as e:
+        # UnicodeError: smtplib writes RCPT TO in ASCII, so an address such as
+        # josé@ejemplo.es raised here, out of a method that promises a bool.
+        except (smtplib.SMTPException, OSError, UnicodeError, ValueError) as e:
             # Mask any credential details that might leak via exception message
             error_msg = str(e).replace(self._password, "***") if self._password else str(e)
             logger.error(f"Failed to send email to {to}: {error_msg}")
             return False
+        finally:
+            # Every failure after the connect used to leave the socket open.
+            if server is not None:
+                try:
+                    server.close()
+                except Exception:
+                    logger.debug("Closing the SMTP connection failed", exc_info=True)
 
 
 class EmailService:

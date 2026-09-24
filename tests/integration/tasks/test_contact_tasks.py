@@ -187,3 +187,32 @@ def test_send_contact_email_passes_only_message_id_via_celery(db_session):
     assert "name" not in payload_kwargs
     assert "email" not in payload_kwargs
     assert "body" not in payload_kwargs
+
+
+# A visitor may write from an internationalized address. formataddr refuses a
+# non-ASCII address, and it ran before the send's error handling: the task died,
+# the row stayed "pending" with no error and no alert, and the message was lost.
+def test_a_non_ascii_address_is_still_delivered(db_session):
+    msg = _seed_message(db_session, email="josé@ejemplo.es", name="José")
+
+    with patch.object(EmailService, "send", return_value=True) as mock_send:
+        result = send_contact_email.apply(args=(msg.id,)).get()
+
+    assert result["status"] == "sent"
+    kwargs = mock_send.call_args.kwargs
+    assert kwargs["reply_to"] is None
+    assert "josé@ejemplo.es" in kwargs["html"]
+    db_session.refresh(msg)
+    assert msg.status == "sent"
+
+
+def test_the_smtp_backend_answers_false_for_an_address_smtp_cannot_carry():
+    """``SMTPBackend.send`` promises a bool; UnicodeEncodeError escaped it."""
+    from app.services.email_service import SMTPBackend
+
+    backend = SMTPBackend(host="smtp.example.com", port=587, use_tls=True)
+    server = MagicMock()
+    server.sendmail.side_effect = UnicodeEncodeError("ascii", "josé", 3, 4, "not ascii")
+    with patch("app.services.email_service.smtplib.SMTP", return_value=server):
+        assert backend.send(to="josé@ejemplo.es", subject="Hi", html="<p>x</p>") is False
+    server.close.assert_called_once()

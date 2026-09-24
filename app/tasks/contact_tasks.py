@@ -42,6 +42,20 @@ def _log_send_attempt(
     )
 
 
+def _reply_to(name: str, address: str) -> str | None:
+    """A Reply-To header for the visitor, or None when the address cannot be one.
+
+    ``formataddr`` refuses a non-ASCII address such as ``josé@ejemplo.es`` with
+    UnicodeEncodeError. It ran outside the send's error handling, so the task
+    died, the row stayed "pending" with no error and no alert, and the message
+    was lost. The address is in the body either way.
+    """
+    try:
+        return formataddr((name, address))
+    except (UnicodeError, ValueError):
+        return None
+
+
 @celery_app.task(  # type: ignore[misc]
     name="app.tasks.contact_tasks.send_contact_email",
     bind=True,
@@ -91,7 +105,7 @@ def send_contact_email(self: Any, message_id: str) -> dict[str, Any]:
         # a bare token that is not an address. formataddr quotes the display
         # name; `_header` in email_service removes the line breaks formataddr
         # does not. The two are complementary and both are needed.
-        reply_to_header = formataddr((msg.name, msg.email))
+        reply_to_header = _reply_to(msg.name, msg.email)
         body_text = (
             f"Locale: {msg.locale or 'unknown'}\n"
             f"Submitted at: {msg.created_at.isoformat()}\n"

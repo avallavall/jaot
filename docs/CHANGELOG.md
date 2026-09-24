@@ -53,6 +53,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Deleting a trigger left its schedule firing in the background forever.** The leftover entry is now removed on delete, and on its next tick for triggers deleted earlier.
 - **A schedule whose model failed on every run never switched itself off.** Only a failure to queue the run was counted; a failed solve reset the count to zero.
 - **The minimum time between scheduled runs could be bypassed** depending on the minute the schedule was saved: `*/5 9 * * *` saved at 09:52 was accepted and then ran every five minutes each morning.
+- **A contact-form message from an address with accents was lost without a trace.** An address such as `josé@ejemplo.es` stopped the delivery before it started, and the message stayed pending with no error and no alert.
 - **The assistant received every new message twice**, once before the current model and once after it, and each copy was billed.
 - **One empty reply broke the rest of a conversation.** A reply that spent its whole budget thinking was stored empty, and every later message in that chat then failed.
 - **Large problems always failed on the advanced assistant model.** The step that splits a big problem into parts read the model's thinking as its answer.
