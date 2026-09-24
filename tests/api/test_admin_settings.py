@@ -757,3 +757,90 @@ class TestSettingsFullFlow:
             if i["setting_key"] == "SOLVER_DEFAULT_TIMEOUT" and i["new_value"] == registry_default
         ]
         assert len(reset_entries) >= 1
+
+
+class TestTheAuditTrailNeverHoldsASecret:
+    """A rotated API key or password was stored and served in plain text."""
+
+    # CONTRACT-TEST: the settings audit trail masks every secret.
+    def test_a_rotated_secret_is_masked_in_the_trail(self, admin_client, db_session):
+        for value in ("sk-ant-first-value", "sk-ant-second-value"):
+            response = admin_client.put(
+                "/api/v2/admin/settings/values",
+                json={"updates": {"ANTHROPIC_API_KEY": value}},
+            )
+            assert response.status_code == 200
+        reset = admin_client.post("/api/v2/admin/settings/reset/ANTHROPIC_API_KEY")
+        assert reset.status_code == 200
+
+        items = admin_client.get("/api/v2/admin/settings/audit").json()["items"]
+        rows = [i for i in items if i["setting_key"] == "ANTHROPIC_API_KEY"]
+        assert len(rows) == 3
+        served = {v for row in rows for v in (row["old_value"], row["new_value"]) if v}
+        assert served == {"****"}
+
+        from app.models.platform_setting_audit import PlatformSettingAudit
+
+        stored = db_session.query(PlatformSettingAudit).filter_by(setting_key="ANTHROPIC_API_KEY")
+        assert all("sk-ant" not in f"{r.old_value}{r.new_value}" for r in stored)
+
+    def test_an_ordinary_setting_keeps_its_values(self, admin_client):
+        admin_client.put(
+            "/api/v2/admin/settings/values",
+            json={"updates": {"SOLVER_DEFAULT_TIMEOUT": "90"}},
+        )
+        items = admin_client.get("/api/v2/admin/settings/audit").json()["items"]
+        row = next(i for i in items if i["setting_key"] == "SOLVER_DEFAULT_TIMEOUT")
+        assert row["new_value"] == "90"
+
+    def test_the_migration_masks_rows_written_before_the_fix(self, db_engine, db_session):
+        import importlib.util
+        from pathlib import Path
+
+        from alembic.migration import MigrationContext
+        from alembic.operations import Operations
+
+        from app.models.platform_setting_audit import PlatformSettingAudit
+
+        db_session.add_all(
+            [
+                PlatformSettingAudit(
+                    setting_key="SMTP_PASSWORD",
+                    old_value="hunter2",
+                    new_value="hunter3",
+                    changed_by="admin",
+                ),
+                PlatformSettingAudit(
+                    setting_key="SMTP_PASSWORD", old_value=None, new_value="", changed_by="admin"
+                ),
+                PlatformSettingAudit(
+                    setting_key="SMTP_HOST",
+                    old_value="a.example",
+                    new_value="b.example",
+                    changed_by="admin",
+                ),
+            ]
+        )
+        db_session.commit()
+
+        path = Path("infra/alembic/versions/20260924_mask_secret_audit.py")
+        spec = importlib.util.spec_from_file_location("mask_secret_audit", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with db_engine.connect() as connection:
+            with Operations.context(MigrationContext.configure(connection)):
+                module.upgrade()
+            connection.commit()
+
+        db_session.expire_all()
+        rows = {
+            (r.setting_key, r.old_value, r.new_value)
+            for r in db_session.query(PlatformSettingAudit).filter(
+                PlatformSettingAudit.setting_key.in_(["SMTP_PASSWORD", "SMTP_HOST"])
+            )
+        }
+        assert rows == {
+            ("SMTP_PASSWORD", "****", "****"),
+            ("SMTP_PASSWORD", None, ""),
+            ("SMTP_HOST", "a.example", "b.example"),
+        }

@@ -27,6 +27,18 @@ logger = logging.getLogger(__name__)
 _SENTINEL = object()
 
 
+def _audit_value(definition: object, value: str | None) -> str | None:
+    """What the audit trail keeps of a value: ``****`` for a secret, else the value.
+
+    The trail is read back by ``GET /admin/settings/audit`` and printed on the
+    Audit tab. It used to keep every rotated API key and password in plain text,
+    next to a Values tab that masked the same keys.
+    """
+    if not value:
+        return None
+    return "****" if getattr(definition, "is_secret", False) else value
+
+
 class MissingSettingError(RuntimeError):
     """A required platform setting is missing from the database."""
 
@@ -366,8 +378,8 @@ class PlatformSettingsService:
 
             audit = PlatformSettingAudit(
                 setting_key=key,
-                old_value=old_value if old_value else None,
-                new_value=new_value,
+                old_value=_audit_value(definition, old_value),
+                new_value=_audit_value(definition, new_value) or new_value,
                 changed_by=changed_by,
                 category=definition.category.value if definition.category else None,
             )
@@ -409,8 +421,8 @@ class PlatformSettingsService:
 
         audit = PlatformSettingAudit(
             setting_key=key,
-            old_value=old_value if old_value else None,
-            new_value=default,
+            old_value=_audit_value(definition, old_value),
+            new_value=_audit_value(definition, default) or default,
             changed_by=changed_by,
             category=(definition.category.value if definition.category else None),
         )
