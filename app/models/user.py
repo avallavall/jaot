@@ -71,6 +71,11 @@ class User(Base):
     # Locale preference (NULL = use browser detection)
     locale: Mapped[str | None] = mapped_column(String(10), nullable=True, default=None)
 
+    # The day of the last onboarding email sent after signup (1, 3 or 14).
+    # NULL until the first one. The hourly sweep in app/tasks/email_tasks.py
+    # sends the next one when it is due.
+    onboarding_last_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     # Guidance preferences
     skill_level: Mapped[str] = mapped_column(
         String(20), default="beginner", nullable=False, server_default="beginner"

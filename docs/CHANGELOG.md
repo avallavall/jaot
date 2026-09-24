@@ -80,6 +80,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Large problems always failed on the advanced assistant model.** The step that splits a big problem into parts read the model's thinking as its answer.
 - **AI spend on a reply that did not finish was not counted.** A failed retry, a reply that did not validate, or a user who pressed Stop or closed the tab was billed by Anthropic and missing from the budget.
 - **Changing the AI budget took up to a minute to apply.** It now applies at once on the server that received the change.
+- **The general worker restarted every 30 minutes while any new user's onboarding email was waiting**, and the tasks it was running at that moment ran a second time. The emails for days 1, 3 and 14 waited inside the worker, which RabbitMQ does not allow past 30 minutes. They are now sent by an hourly job, and an account deleted or deactivated before the email is due no longer gets it.
 - **Emails about a new review or an adopted model were always in English.** They now use the language the author chose, like the same notice on the web page.
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 

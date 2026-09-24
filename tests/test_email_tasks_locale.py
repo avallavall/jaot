@@ -122,7 +122,10 @@ class TestScheduleOnboardingSequenceLocale:
                 assert kwargs_dict.get("locale") == "es", f"locale not passed in {kwargs_dict}"
 
     def test_locale_none_works(self):
-        """schedule_onboarding_sequence without locale should enqueue 5 with locale=None."""
+        """schedule_onboarding_sequence without locale queues day 0 with locale=None.
+
+        The later days come from the hourly sweep (tests/test_onboarding_sweep.py).
+        """
         with patch("app.tasks.email_tasks.send_onboarding_email") as mock_task:
             mock_task.apply_async = MagicMock()
             from app.tasks.email_tasks import schedule_onboarding_sequence
@@ -132,9 +135,8 @@ class TestScheduleOnboardingSequenceLocale:
                 user_name="New User",
             )
             assert result["status"] == "scheduled"
-            assert len(result["days"]) == 4
-            # All 5 days should have been enqueued
-            assert mock_task.apply_async.call_count == 4
+            assert result["days"] == [0]
+            assert mock_task.apply_async.call_count == 1
             # No call should set a non-None locale (locale absent or explicitly None)
             for c in mock_task.apply_async.call_args_list:
                 kwargs_dict = c[1].get("kwargs", {})

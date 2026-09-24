@@ -219,7 +219,7 @@ class TestEmailTasks:
         assert result["status"] == "error"
 
     def test_schedule_onboarding_sequence(self):
-        """Scheduling should queue 5 tasks."""
+        """Signup queues day 0 only; the hourly sweep sends the later days."""
         with patch("app.tasks.email_tasks.send_onboarding_email") as mock_task:
             mock_task.apply_async = MagicMock()
             from app.tasks.email_tasks import schedule_onboarding_sequence
@@ -230,5 +230,5 @@ class TestEmailTasks:
                 api_key_prefix="ok_live_",
             )
             assert result["status"] == "scheduled"
-            assert len(result["days"]) == 4
-            assert mock_task.apply_async.call_count == 4
+            assert result["days"] == [0]
+            assert mock_task.apply_async.call_count == 1

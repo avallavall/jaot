@@ -92,6 +92,7 @@ celery_app.conf.update(
 )
 
 _DAILY_SECONDS: int = 86400
+_HOURLY_SECONDS: int = 3600
 # W1/F-01 — reaper cadence. 15 min keeps the zombie window well under the
 # smallest reap threshold (EXECUTION_REAPER_PENDING_MAX_SECONDS, default 30 min).
 _REAPER_INTERVAL_SECONDS: int = 900
@@ -113,6 +114,14 @@ celery_app.conf.beat_schedule = {
     "reap-stale-executions": {
         "task": "reap_stale_executions",
         "schedule": _REAPER_INTERVAL_SECONDS,
+        "options": {"queue": _GENERIC_QUEUE},
+    },
+    # The onboarding emails after day 0. They used to be queued at signup with
+    # a countdown of up to 14 days, and RabbitMQ closes a channel that holds a
+    # message unacknowledged past consumer_timeout (30 minutes).
+    "send-due-onboarding-emails": {
+        "task": "send_due_onboarding_emails",
+        "schedule": _HOURLY_SECONDS,
         "options": {"queue": _GENERIC_QUEUE},
     },
 }

@@ -3,10 +3,13 @@ Celery tasks for onboarding email sequence.
 
 Tasks:
     - send_onboarding_email: Send a specific onboarding email to a user
-    - schedule_onboarding_sequence: Schedule the sequence for a new user
+    - schedule_onboarding_sequence: Send the day-0 email to a new user
+    - send_due_onboarding_emails: Hourly beat sweep that sends the later emails
     - send_notification_email: Deliver one notification off the request path
 
-We use Celery's `apply_async(countdown=...)` for scheduling future sends.
+The later emails are not queued with a countdown. A worker holds a delayed
+message unacknowledged until it is due, and RabbitMQ closes a channel that
+holds one longer than ``consumer_timeout`` (30 minutes by default).
 """
 
 import logging
@@ -157,38 +160,113 @@ def schedule_onboarding_sequence(
     user_email: str, user_name: str, api_key_prefix: str = "ok_live_", locale: str | None = None
 ) -> dict[str, Any]:
     """
-    Schedule the full onboarding email sequence for a new user.
+    Send the day-0 onboarding email to a new user.
 
-    Called once when a user signs up. Schedules whatever days
-    ``ONBOARDING_SEQUENCE`` holds — today 0, 1, 3 and 14, each ``day`` days
-    after signup, with day 0 given a 5-second delay so the row it describes is
-    committed first. The list is read from the sequence rather than repeated
-    here: this docstring used to promise a Day 7 email nobody ever wrote.
+    Called once when a user signs up. Day 0 gets a 5-second delay so the row
+    it describes is committed first. The later days are sent by
+    :func:`send_due_onboarding_emails`.
+
+    They were queued here with a countdown of up to 14 days. A worker holds
+    such a message unacknowledged until it is due, and RabbitMQ closes a
+    channel that holds one longer than ``consumer_timeout`` (30 minutes). The
+    worker then lost its connection every 30 minutes, the other tasks running
+    on it at that moment could not acknowledge and ran again, and a user who
+    had deleted their account still got the later emails.
     """
-    day_offsets = sorted(ONBOARDING_SEQUENCE.keys())
+    send_onboarding_email.apply_async(
+        kwargs={
+            "user_email": user_email,
+            "user_name": user_name,
+            "day": 0,
+            "api_key_prefix": api_key_prefix,
+            "locale": locale,
+        },
+        countdown=5,
+    )
 
-    for day in day_offsets:
-        eta_delta = timedelta(days=day)
+    logger.info("Onboarding day 0 queued for a new user")
+    return {"status": "scheduled", "user_email": user_email, "days": [0]}
 
-        # Day 0 is sent immediately (but still via task for consistency)
-        if day == 0:
-            eta_delta = timedelta(seconds=5)  # Small delay to avoid race conditions
 
-        send_onboarding_email.apply_async(
-            kwargs={
-                "user_email": user_email,
-                "user_name": user_name,
-                "day": day,
-                "api_key_prefix": api_key_prefix,
-                "locale": locale,
-            },
-            eta=None,  # Will use countdown instead
-            countdown=int(eta_delta.total_seconds()),
+#: The onboarding days sent by the sweep: every day in the sequence after 0.
+_LATER_DAYS: tuple[int, ...] = tuple(sorted(d for d in ONBOARDING_SEQUENCE if d > 0))
+#: How long after the last email is due a user is still looked at. A sweep
+#: that did not run for this long does not send old emails to old accounts.
+_SWEEP_GRACE_DAYS = 2
+#: At most this many emails per sweep. The rest go out an hour later.
+_SWEEP_LIMIT = 500
+
+
+@celery_app.task(name="send_due_onboarding_emails")  # type: ignore[misc]
+def send_due_onboarding_emails() -> dict[str, Any]:
+    """Send each new user the onboarding email that is due now. Run hourly by beat.
+
+    A user gets only the latest email that is due: a user 15 days old who
+    never got day 3 gets day 14 and not both. Each user is claimed with a
+    conditional UPDATE, so two sweeps at once send one email. The address,
+    name and language are read now, so a deleted or deactivated account gets
+    nothing, and a user who changed their language gets the new one.
+    """
+    from sqlalchemy import and_, func, or_, update
+
+    from app.models import User
+    from app.shared.db.session import SessionLocal
+    from app.shared.utils.datetime_helpers import utcnow
+
+    now = utcnow()
+    sent_through = func.coalesce(User.onboarding_last_day, 0)
+    is_due = or_(
+        *(
+            and_(User.created_at <= now - timedelta(days=day), sent_through < day)
+            for day in _LATER_DAYS
         )
-
-    logger.info(f"Onboarding sequence scheduled for {user_email}: days {day_offsets}")
-    return {
-        "status": "scheduled",
-        "user_email": user_email,
-        "days": day_offsets,
-    }
+    )
+    summary = {"queued": 0, "errors": 0}
+    db = SessionLocal()
+    try:
+        candidates = (
+            db.query(User.id, User.created_at)
+            .filter(
+                User.is_active.is_(True),
+                User.created_at > now - timedelta(days=_LATER_DAYS[-1] + _SWEEP_GRACE_DAYS),
+                is_due,
+            )
+            .order_by(User.created_at)
+            .limit(_SWEEP_LIMIT)
+            .all()
+        )
+        for user_id, created_at in candidates:
+            day = max(d for d in _LATER_DAYS if created_at <= now - timedelta(days=d))
+            try:
+                claimed = db.execute(
+                    update(User)
+                    .where(
+                        User.id == user_id,
+                        User.is_active.is_(True),
+                        func.coalesce(User.onboarding_last_day, 0) < day,
+                    )
+                    .values(onboarding_last_day=day)
+                    .returning(User.email, User.name, User.locale)
+                ).first()
+                if claimed is None:
+                    db.rollback()  # another sweep sent it, or the account went
+                    continue
+                # Queued before the commit: when the broker refuses it, the
+                # rollback leaves the email due for the next sweep.
+                send_onboarding_email.delay(
+                    user_email=claimed.email,
+                    user_name=claimed.name,
+                    day=day,
+                    locale=claimed.locale,
+                )
+                db.commit()
+                summary["queued"] += 1
+            except Exception as exc:  # noqa: BLE001 — one user must not stop the sweep
+                db.rollback()
+                summary["errors"] += 1
+                logger.error("Onboarding day %s for user %s failed: %s", day, user_id, exc)
+    finally:
+        db.close()
+    if summary["queued"] or summary["errors"]:
+        logger.info("Onboarding sweep: %s", summary)
+    return summary

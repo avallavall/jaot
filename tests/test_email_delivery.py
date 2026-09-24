@@ -31,8 +31,13 @@ from app.services.platform_settings_service import PlatformSettingsService as PS
 class TestCeleryTaskEnqueueing:
     """Verify email tasks are properly enqueued through Celery."""
 
-    def test_schedule_enqueues_all_four_days(self):
-        """schedule_onboarding_sequence should call apply_async 5 times."""
+    def test_schedule_enqueues_day_zero_only(self):
+        """Signup queues day 0 only. The later days come from the hourly sweep.
+
+        They were queued here with a countdown of up to 14 days, and RabbitMQ
+        closes a channel that holds a message unacknowledged past its
+        consumer_timeout (tests/test_onboarding_sweep.py).
+        """
         with patch("app.tasks.email_tasks.send_onboarding_email") as mock_task:
             mock_task.apply_async = MagicMock()
             from app.tasks.email_tasks import schedule_onboarding_sequence
@@ -43,10 +48,10 @@ class TestCeleryTaskEnqueueing:
                 api_key_prefix="ok_live_",
             )
             assert result["status"] == "scheduled"
-            assert mock_task.apply_async.call_count == 4
+            assert mock_task.apply_async.call_count == 1
 
-    def test_schedule_passes_correct_kwargs_per_day(self):
-        """Each apply_async call should include user_email, user_name, day, and api_key_prefix."""
+    def test_schedule_passes_correct_kwargs(self):
+        """The day-0 call includes user_email, user_name, day and api_key_prefix."""
         with patch("app.tasks.email_tasks.send_onboarding_email") as mock_task:
             mock_task.apply_async = MagicMock()
             from app.tasks.email_tasks import schedule_onboarding_sequence
@@ -57,15 +62,14 @@ class TestCeleryTaskEnqueueing:
                 api_key_prefix="ok_live_abc",
             )
 
-            expected_days = sorted(ONBOARDING_SEQUENCE.keys())
-            actual_days = []
-            for call_args in mock_task.apply_async.call_args_list:
-                kwargs_dict = call_args[1].get("kwargs", {})
-                actual_days.append(kwargs_dict["day"])
-                assert kwargs_dict["user_email"] == "alice@test.com"
-                assert kwargs_dict["user_name"] == "Alice"
-
-            assert sorted(actual_days) == expected_days
+            kwargs_dict = mock_task.apply_async.call_args[1]["kwargs"]
+            assert kwargs_dict == {
+                "user_email": "alice@test.com",
+                "user_name": "Alice",
+                "day": 0,
+                "api_key_prefix": "ok_live_abc",
+                "locale": None,
+            }
 
     def test_schedule_day0_has_short_countdown(self):
         """Day 0 should have a countdown of 5 seconds, not days."""
