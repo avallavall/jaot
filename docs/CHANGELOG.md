@@ -100,6 +100,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **Next.js updated to 16.3.6.** Versions from 16.0 to 16.3.2 allowed remote code execution through the image optimizer (GHSA-2xp9-vwfh-vxw4).
 - **A webhook could be sent to a service inside the server's network.** The address was checked, and then looked up a second time to connect, so a name that changed its answer between the two lookups passed the check. The webhook now goes to the address that was checked. Carrier-NAT addresses (also used by Tailscale) and multicast are now refused too.
 - **One refresh token could be used twice at the same moment**, giving two valid sessions. A copied token could then be used next to the real one. Refresh now rotates in one database statement.
 - **Anonymous calls through the MCP server skipped the per-address limit** that every other public request has. Each tool call now counts against the caller's own address.
