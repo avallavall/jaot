@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
   Users,
@@ -84,6 +84,7 @@ export function AnalyticsKPIGrid({
   breakdown,
   compare,
 }: AnalyticsKPIGridProps) {
+  const locale = useLocale();
   const t = useTranslations("admin.featureAnalytics");
   const bdMap = useBreakdownMap(breakdown);
   const solvesEntry = bdMap.get("solver.solve");
@@ -141,7 +142,7 @@ export function AnalyticsKPIGrid({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {card.value.toLocaleString()}
+              {card.value.toLocaleString(locale)}
             </div>
             <DeltaBadge
               current={card.value}

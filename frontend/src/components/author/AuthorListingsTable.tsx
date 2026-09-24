@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ExternalLink, Loader2, PackageOpen, Pencil, Star } from "lucide-react";
 
@@ -32,6 +32,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export function AuthorListingsTable({ listings, onChanged }: AuthorListingsTableProps) {
+  const locale = useLocale();
   const t = useTranslations("author.listings");
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -107,10 +108,10 @@ export function AuthorListingsTable({ listings, onChanged }: AuthorListingsTable
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {row.total_activations.toLocaleString()}
+                  {row.total_activations.toLocaleString(locale)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {row.total_executions.toLocaleString()}
+                  {row.total_executions.toLocaleString(locale)}
                 </TableCell>
                 <TableCell className="text-right">
                   {row.avg_rating === null ? (

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Activity, Clock, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface AdminExecution {
@@ -54,6 +54,7 @@ interface AdminExecutionsResponse {
 }
 
 export default function AdminExecutionsPage() {
+  const locale = useLocale();
   const t = useTranslations("admin.executions");
   const tc = useTranslations("common");
   const { dayTime } = useDateFormat();
@@ -145,7 +146,7 @@ export default function AdminExecutionsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">{t("totalExecutions")}</p>
                 <p className="text-2xl font-bold">
-                  {stats ? stats.total.toLocaleString() : "—"}
+                  {stats ? stats.total.toLocaleString(locale) : "—"}
                 </p>
               </div>
             </div>

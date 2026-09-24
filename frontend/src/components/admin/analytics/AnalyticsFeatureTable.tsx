@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EventBreakdownEntry, SortConfig } from "./analytics-types";
@@ -57,6 +57,7 @@ export function AnalyticsFeatureTable({
   totalEvents,
   compare,
 }: AnalyticsFeatureTableProps) {
+  const locale = useLocale();
   const t = useTranslations("admin.featureAnalytics");
   const [sort, setSort] = useState<SortConfig>({
     field: "count",
@@ -146,7 +147,7 @@ export function AnalyticsFeatureTable({
                       </span>
                     </td>
                     <td className="py-2 text-right font-mono">
-                      {entry.count.toLocaleString()}
+                      {entry.count.toLocaleString(locale)}
                     </td>
                     <td className="py-2 text-right text-muted-foreground">
                       {pct}%

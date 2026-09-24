@@ -12,6 +12,7 @@ import {
   cellOf,
   heatOf,
 } from "./matrix-metrics";
+import { pageLocale } from "@/lib/page-locale";
 
 /** How far behind the best of its row, as colour. Four steps, one ramp. */
 const HEAT_CLASS: Record<Heat, string> = {
@@ -227,13 +228,13 @@ function Cell({
 export function formatMetric(value: number, metric: MatrixMetric): string {
   switch (metric) {
     case "time":
-      return `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} s`;
+      return `${value.toLocaleString(pageLocale(), { maximumFractionDigits: 2 })} s`;
     case "gap":
-      return `${(value * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+      return `${(value * 100).toLocaleString(pageLocale(), { maximumFractionDigits: 2 })}%`;
     case "objective":
-      return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+      return value.toLocaleString(pageLocale(), { maximumFractionDigits: 4 });
     case "nodes":
     case "iterations":
-      return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      return value.toLocaleString(pageLocale(), { maximumFractionDigits: 0 });
   }
 }

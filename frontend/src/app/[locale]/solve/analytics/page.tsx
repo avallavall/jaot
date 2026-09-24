@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   api,
   type SolveAnalyticsSummary,
@@ -67,6 +67,7 @@ function formatPct(rate: number): string {
 }
 
 export default function SolveAnalyticsPage() {
+  const locale = useLocale();
   const t = useTranslations("solve.analytics");
   // Origin labels live in one namespace shared with the badge — see execution-origin.
   const tOrigin = useTranslations("solve.origin");
@@ -478,7 +479,7 @@ export default function SolveAnalyticsPage() {
                             </td>
                             <td className="p-2">{exe.solver_status || "-"}</td>
                             <td className="p-2 text-right font-mono">
-                              {exe.objective_value?.toLocaleString(undefined, { maximumFractionDigits: 4 }) ?? "-"}
+                              {exe.objective_value?.toLocaleString(locale, { maximumFractionDigits: 4 }) ?? "-"}
                             </td>
                             <td className="p-2 text-right">{formatMs(exe.execution_time_ms)}</td>
                             <td className="p-2 text-right">{exe.num_variables ?? "-"}</td>

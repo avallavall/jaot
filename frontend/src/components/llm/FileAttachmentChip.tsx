@@ -2,7 +2,7 @@
 
 import { FileText, X, Loader2 } from "lucide-react";
 import type { AttachmentInfo } from "@/lib/llm-types";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 interface FileAttachmentChipProps {
   attachment: AttachmentInfo;
@@ -15,6 +15,7 @@ interface FileAttachmentChipProps {
  * filename, character count, estimated tokens, preview text, and remove button.
  */
 export function FileAttachmentChip({ attachment, onRemove, removing }: FileAttachmentChipProps) {
+  const locale = useLocale();
   const t = useTranslations("builder");
 
   return (
@@ -23,10 +24,10 @@ export function FileAttachmentChip({ attachment, onRemove, removing }: FileAttac
         <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
         <span className="font-medium truncate">{attachment.filename}</span>
         <span className="text-muted-foreground text-xs whitespace-nowrap">
-          {t("llm.attachment.chars", { count: attachment.char_count.toLocaleString() })}
+          {t("llm.attachment.chars", { count: attachment.char_count.toLocaleString(locale) })}
         </span>
         <span className="text-muted-foreground text-xs whitespace-nowrap">
-          {t("llm.attachment.estimatedTokens", { count: attachment.estimated_tokens.toLocaleString() })}
+          {t("llm.attachment.estimatedTokens", { count: attachment.estimated_tokens.toLocaleString(locale) })}
         </span>
         <button
           type="button"

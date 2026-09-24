@@ -256,7 +256,7 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
                 <div key={key}>
                   <div className="mb-1 flex justify-between text-sm">
                     <span>{t(key)}</span>
-                    <span className="tabular-nums font-medium">{value.toLocaleString()}</span>
+                    <span className="tabular-nums font-medium">{value.toLocaleString(locale)}</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted">
                     {/* Impressions are only recorded on the catalog list, so a model
@@ -372,10 +372,10 @@ export function AuthorAnalyticsPanel({ locale }: { locale: string }) {
                   <TableRow key={m.model_id}>
                     <TableCell className="font-medium">{m.model_name}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {m.views.toLocaleString()}
+                      {m.views.toLocaleString(locale)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {m.activations.toLocaleString()}
+                      {m.activations.toLocaleString(locale)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {m.conversion_rate}%

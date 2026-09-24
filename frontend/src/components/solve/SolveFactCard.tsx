@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 interface SolveFactCardProps {
   /** The persisted `solver_status` (optimal | feasible | time_limit | ...). */
@@ -30,13 +30,14 @@ export function SolveFactCard({
   iterations,
   solveTimeSeconds,
 }: SolveFactCardProps) {
+  const locale = useLocale();
   const t = useTranslations("solve.execution.summary");
   const gapPct = gap != null ? `${(gap * 100).toFixed(2)}%` : "—";
 
   const { key, values } = headline(status, nodes, gap);
 
   const fmtNum = (v: number | null | undefined, digits = 6): string =>
-    v == null ? "—" : v.toLocaleString(undefined, { maximumFractionDigits: digits });
+    v == null ? "—" : v.toLocaleString(locale, { maximumFractionDigits: digits });
 
   return (
     <div

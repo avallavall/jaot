@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { VariableSolution } from "@/lib/types";
 import type { VariableBounds } from "@/lib/variable-bounds";
@@ -254,6 +254,7 @@ function SolutionRowView({
 /** A binary "selected" member shows just its label; anything else shows its
  *  value too, since the magnitude is the information there. */
 function EntryChip({ entry }: { entry: SolutionLeaf }) {
+  const locale = useLocale();
   const isOnBinary = entry.type === "binary" && Math.abs(entry.value - 1) < NEAR_ZERO;
   return (
     <span
@@ -263,7 +264,7 @@ function EntryChip({ entry }: { entry: SolutionLeaf }) {
       {entry.label}
       {!isOnBinary && (
         <span className="text-muted-foreground tabular-nums">
-          = {entry.value.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+          = {entry.value.toLocaleString(locale, { maximumFractionDigits: 6 })}
         </span>
       )}
     </span>

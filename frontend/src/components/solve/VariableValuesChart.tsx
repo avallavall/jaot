@@ -11,7 +11,7 @@ import {
   Cell,
 } from "recharts";
 import type { VariableSolution } from "@/lib/types";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 interface VariableValuesChartProps {
   variables: VariableSolution[];
@@ -30,6 +30,7 @@ function getColor(type: string): string {
 const NEAR_ZERO = 1e-9;
 
 export function VariableValuesChart({ variables }: VariableValuesChartProps) {
+  const locale = useLocale();
   const t = useTranslations("solve.visualization");
   // When the chart carries no information (all bars identical) we collapse to an
   // aggregate; this lets the user force the chart anyway.
@@ -67,7 +68,7 @@ export function VariableValuesChart({ variables }: VariableValuesChartProps) {
 
   if (variables.length === 0) return null;
 
-  const valueStr = commonValue.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  const valueStr = commonValue.toLocaleString(locale, { maximumFractionDigits: 6 });
 
   if (uninformative && !forceChart) {
     return (
@@ -109,7 +110,7 @@ export function VariableValuesChart({ variables }: VariableValuesChartProps) {
                 type="number"
                 tick={{ fontSize: 11 }}
                 tickFormatter={(v: number) =>
-                  v.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                  v.toLocaleString(locale, { maximumFractionDigits: 2 })
                 }
               />
               <YAxis
@@ -127,7 +128,7 @@ export function VariableValuesChart({ variables }: VariableValuesChartProps) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(value: any) =>
                   typeof value === "number"
-                    ? value.toLocaleString(undefined, { maximumFractionDigits: 6 })
+                    ? value.toLocaleString(locale, { maximumFractionDigits: 6 })
                     : String(value ?? "")
                 }
               />
@@ -152,10 +153,11 @@ export function VariableValuesChart({ variables }: VariableValuesChartProps) {
 }
 
 function Stat({ value, label }: { value: number; label: string }) {
+  const locale = useLocale();
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
       <div className="font-mono text-2xl font-semibold text-foreground tabular-nums">
-        {value.toLocaleString()}
+        {value.toLocaleString(locale)}
       </div>
       <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
     </div>

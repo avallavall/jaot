@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { AuthorLeaderboardEntry } from "@/lib/types";
 
 interface AuthorLeaderboardProps {
@@ -17,6 +17,7 @@ interface AuthorLeaderboardProps {
 }
 
 export function AuthorLeaderboard({ authors }: AuthorLeaderboardProps) {
+  const locale = useLocale();
   const t = useTranslations("admin.marketplace");
 
   return (
@@ -53,7 +54,7 @@ export function AuthorLeaderboard({ authors }: AuthorLeaderboardProps) {
                       lives on the only analytics page. */}
                   <TableCell className="font-medium">{author.org_name}</TableCell>
                   <TableCell className="text-right">
-                    {author.total_activations.toLocaleString()}
+                    {author.total_activations.toLocaleString(locale)}
                   </TableCell>
                   <TableCell className="text-right">
                     {author.models_published}

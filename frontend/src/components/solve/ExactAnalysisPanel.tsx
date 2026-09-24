@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { ConstraintFamilyStats, ExactAnalysis } from "@/lib/types";
+import { pageLocale } from "@/lib/page-locale";
 
 interface ExactAnalysisPanelProps {
   executionId: string;
@@ -298,5 +299,5 @@ function UtilizationTable({
 }
 
 function fmt(v: number): string {
-  return v.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  return v.toLocaleString(pageLocale(), { maximumFractionDigits: 4 });
 }

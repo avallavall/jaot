@@ -17,6 +17,7 @@ import { ComparisonCharts } from "./ComparisonCharts";
 import { ComparisonExportButtons } from "./ComparisonExportButtons";
 import { searchOverstatedBy, searchSecondsOf } from "./comparison-charts";
 import { comparisonRows, toJson } from "./export";
+import { pageLocale } from "@/lib/page-locale";
 
 /** Solver verdicts that mean a real answer came back. */
 const SOLVED_STATUSES = new Set(["optimal", "feasible"]);
@@ -182,7 +183,7 @@ function ResultRow({
             reader actually wants from two timings side by side. */}
         {ratio !== null && ratio > 1.05 ? (
           <span className="ml-1 text-muted-foreground">
-            ({ratio.toLocaleString(undefined, { maximumFractionDigits: 1 })}×)
+            ({ratio.toLocaleString(pageLocale(), { maximumFractionDigits: 1 })}×)
           </span>
         ) : null}
       </TableCell>
@@ -406,26 +407,26 @@ function formatSeconds(value: number | null): string {
   if (value === null || value === undefined) return "—";
   if (value < 0.001) return "<1 ms";
   if (value < 1) return `${Math.round(value * 1000)} ms`;
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} s`;
+  return `${value.toLocaleString(pageLocale(), { maximumFractionDigits: 2 })} s`;
 }
 
 function formatNumber(value: number | null): string {
   if (value === null || value === undefined) return "—";
-  return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  return value.toLocaleString(pageLocale(), { maximumFractionDigits: 4 });
 }
 
 function formatCount(value: number | null): string {
   if (value === null || value === undefined) return "—";
-  return value.toLocaleString();
+  return value.toLocaleString(pageLocale());
 }
 
 function formatGap(value: number | null): string {
   if (value === null || value === undefined) return "—";
-  return `${(value * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+  return `${(value * 100).toLocaleString(pageLocale(), { maximumFractionDigits: 2 })}%`;
 }
 
 function formatGapTolerance(value: number): string {
-  return `${(value * 100).toLocaleString(undefined, { maximumFractionDigits: 4 })}%`;
+  return `${(value * 100).toLocaleString(pageLocale(), { maximumFractionDigits: 4 })}%`;
 }
 
 function formatMs(value: number | null): string {
@@ -434,5 +435,5 @@ function formatMs(value: number | null): string {
   // means and makes the rest of the row look unmeasured.
   if (value < 1) return "<1 ms";
   if (value < 1000) return `${value} ms`;
-  return `${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} s`;
+  return `${(value / 1000).toLocaleString(pageLocale(), { maximumFractionDigits: 2 })} s`;
 }

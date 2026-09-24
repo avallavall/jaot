@@ -16,6 +16,7 @@ import {
 import type { ComparisonSolverResult } from "@/lib/types";
 
 import { convergenceData, convergenceSeries } from "./convergence";
+import { pageLocale } from "@/lib/page-locale";
 
 /** Five tokens, five solvers, in the order the comparison ran them. */
 const CHART_COLORS = [
@@ -37,7 +38,7 @@ const TOOLTIP_STYLE = {
 };
 
 function seconds(value: number): string {
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: value < 1 ? 2 : 1 })} s`;
+  return `${value.toLocaleString(pageLocale(), { maximumFractionDigits: value < 1 ? 2 : 1 })} s`;
 }
 
 /**
@@ -51,7 +52,7 @@ function percent(value: number): string {
   const pct = value * 100;
   if (pct === 0) return "0%";
   const digits = pct >= 1 ? 1 : Math.min(8, Math.ceil(-Math.log10(pct)) + 1);
-  return `${pct.toLocaleString(undefined, { maximumFractionDigits: digits })}%`;
+  return `${pct.toLocaleString(pageLocale(), { maximumFractionDigits: digits })}%`;
 }
 
 /**

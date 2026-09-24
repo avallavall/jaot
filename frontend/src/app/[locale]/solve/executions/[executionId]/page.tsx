@@ -23,7 +23,7 @@ import { readVariableBounds } from "@/lib/variable-bounds";
 import { SolveFactCard } from "@/components/solve/SolveFactCard";
 import { useSolverCapabilities } from "@/hooks/useSolvers";
 import { solverDisplayName } from "@/lib/solver-display";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { useDateFormat } from "@/hooks/useDateFormat";
 import { Database } from "lucide-react";
@@ -32,6 +32,7 @@ import { Database } from "lucide-react";
 const EXECUTION_POLL_MS = 3000;
 
 export default function ExecutionDetailPage() {
+  const locale = useLocale();
   const t = useTranslations("solve.execution");
   const tError = useTranslations("errors.codes");
   const { dayTime } = useDateFormat();
@@ -245,7 +246,7 @@ export default function ExecutionDetailPage() {
         <div className="mb-6 p-5 bg-primary/10 rounded-lg border border-primary/20">
           <div className="text-sm text-muted-foreground mb-1">{t("objectiveValue")}</div>
           <div className="text-2xl font-bold text-primary">
-            {execution.objective_value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+            {execution.objective_value.toLocaleString(locale, { maximumFractionDigits: 4 })}
           </div>
         </div>
       )}

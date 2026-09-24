@@ -15,6 +15,7 @@ import {
 import type { ComparisonSolverResult } from "@/lib/types";
 
 import { type WorkPanel, workData } from "./work";
+import { pageLocale } from "@/lib/page-locale";
 
 /** Five tokens, five solvers, in the order the comparison ran them. */
 const CHART_COLORS = [
@@ -41,16 +42,16 @@ const PANEL_HEIGHT = 88;
 const AXIS_HEIGHT = 30;
 
 function seconds(value: number): string {
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: value < 1 ? 2 : 1 })} s`;
+  return `${value.toLocaleString(pageLocale(), { maximumFractionDigits: value < 1 ? 2 : 1 })} s`;
 }
 
 /** Node counts reach the millions, and a full number on a 54px axis wraps. */
 function compact(value: number): string {
-  return value.toLocaleString(undefined, { notation: "compact", maximumFractionDigits: 1 });
+  return value.toLocaleString(pageLocale(), { notation: "compact", maximumFractionDigits: 1 });
 }
 
 function whole(value: number): string {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return value.toLocaleString(pageLocale(), { maximumFractionDigits: 0 });
 }
 
 /**

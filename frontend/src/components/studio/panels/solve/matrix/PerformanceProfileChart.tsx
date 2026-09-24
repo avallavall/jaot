@@ -16,6 +16,7 @@ import {
 import type { ComparisonMatrixRow } from "@/lib/types";
 
 import { performanceProfile, profileSeries } from "./performance-profile";
+import { pageLocale } from "@/lib/page-locale";
 
 /** Five tokens, five solvers. The order follows the columns of the matrix. */
 const CHART_COLORS = [
@@ -41,7 +42,7 @@ function percent(value: number): string {
 }
 
 function factor(value: number): string {
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: value < 10 ? 1 : 0 })}x`;
+  return `${value.toLocaleString(pageLocale(), { maximumFractionDigits: value < 10 ? 1 : 0 })}x`;
 }
 
 /**

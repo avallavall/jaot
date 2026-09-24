@@ -20,7 +20,7 @@ import {
   Cpu,
   FileJson,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { SolverSelect } from "@/components/solve/SolverSelect";
 import { SensitivityTab } from "@/components/solve/SensitivityTab";
 import { useSolverCapabilities, useSolvers } from "@/hooks/useSolvers";
@@ -49,6 +49,7 @@ const EXAMPLE_PROBLEM = {
 };
 
 export default function CustomSolvePage() {
+  const locale = useLocale();
   const t = useTranslations("solve.custom");
   const tError = useTranslations("errors.codes");
   const router = useRouter();
@@ -256,7 +257,7 @@ export default function CustomSolvePage() {
                     <p className="font-semibold text-lg capitalize">{result.status}</p>
                     {result.objective_value != null && (
                       <p className="text-2xl font-bold text-primary">
-                        {result.objective_value.toLocaleString(undefined, {
+                        {result.objective_value.toLocaleString(locale, {
                           maximumFractionDigits: 4,
                         })}
                       </p>
@@ -315,7 +316,7 @@ export default function CustomSolvePage() {
                             <div key={name} className="flex justify-between">
                               <span className="font-mono text-sm">{name}</span>
                               <span className="font-semibold">
-                                {value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                                {value.toLocaleString(locale, { maximumFractionDigits: 4 })}
                               </span>
                             </div>
                           ))}

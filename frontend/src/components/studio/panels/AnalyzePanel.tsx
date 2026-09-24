@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Store } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
@@ -28,6 +28,7 @@ const HEALTH_TONE: Record<string, string> = {
  * button is a stub until the studio AI tab provides a project conversation.
  */
 export function AnalyzePanel() {
+  const locale = useLocale();
   const t = useTranslations("studio");
   const tHelp = useTranslations("studio.helpTooltips");
   const router = useRouter();
@@ -77,13 +78,13 @@ export function AnalyzePanel() {
   const cards: Array<{ label: string; value: string; help?: string }> = [
     { label: t("statClass"), value: problemClass, help: tHelp("problemClass") },
     { label: t("statObjective"), value: sense },
-    { label: t("statVariables"), value: stats.varTotal.toLocaleString() },
-    { label: t("statConstraints"), value: stats.constraintTotal.toLocaleString() },
+    { label: t("statVariables"), value: stats.varTotal.toLocaleString(locale) },
+    { label: t("statConstraints"), value: stats.constraintTotal.toLocaleString(locale) },
     {
       label: t("statComposition"),
       value: `${stats.varBinary} · ${stats.varInteger} · ${stats.varContinuous}`,
     },
-    { label: t("statNonzeros"), value: stats.nonzeros.toLocaleString(), help: tHelp("nonzeros") },
+    { label: t("statNonzeros"), value: stats.nonzeros.toLocaleString(locale), help: tHelp("nonzeros") },
     { label: t("statOperators"), value: opsValue },
     { label: t("statAvgTerms"), value: avgTerms },
     {

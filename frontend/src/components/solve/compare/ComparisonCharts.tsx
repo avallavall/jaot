@@ -28,6 +28,7 @@ import {
   splitBars,
   timeBars,
 } from "./comparison-charts";
+import { pageLocale } from "@/lib/page-locale";
 
 /** Row height plus room for the axis. Four solvers must not need a scrollbar. */
 function chartHeight(rows: number): number {
@@ -46,7 +47,7 @@ const TOOLTIP_STYLE = {
 };
 
 function seconds(value: number): string {
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: value < 1 ? 3 : 2 })} s`;
+  return `${value.toLocaleString(pageLocale(), { maximumFractionDigits: value < 1 ? 3 : 2 })} s`;
 }
 
 /**
@@ -110,7 +111,7 @@ function BoundChart({ bars, omitted }: { bars: BoundBar[]; omitted: BoundOmissio
               allowDataOverflow
               tick={AXIS_TICK}
               tickFormatter={(value: number) =>
-                value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                value.toLocaleString(pageLocale(), { maximumFractionDigits: 2 })
               }
             />
             <YAxis
@@ -212,7 +213,7 @@ function TimeChart({ bars }: { bars: TimeBar[] }) {
                 return [
                   t("charts.timeTooltip", {
                     seconds: seconds(bar.seconds),
-                    ratio: bar.ratio.toLocaleString(undefined, { maximumFractionDigits: 1 }),
+                    ratio: bar.ratio.toLocaleString(pageLocale(), { maximumFractionDigits: 1 }),
                   }),
                   "",
                 ];

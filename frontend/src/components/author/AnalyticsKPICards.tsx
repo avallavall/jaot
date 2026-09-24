@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Eye, Download, TrendingUp } from "lucide-react";
 import type { AnalyticsSummary } from "@/lib/types";
 
@@ -10,19 +10,20 @@ interface AnalyticsKPICardsProps {
 }
 
 export function AnalyticsKPICards({ data }: AnalyticsKPICardsProps) {
+  const locale = useLocale();
   const t = useTranslations("author.analytics");
 
   const cards = [
     {
       label: t("totalViews"),
-      value: data.total_views.toLocaleString(),
+      value: data.total_views.toLocaleString(locale),
       icon: Eye,
       color: "text-blue-600",
       bg: "bg-blue-50",
     },
     {
       label: t("totalActivations"),
-      value: data.total_activations.toLocaleString(),
+      value: data.total_activations.toLocaleString(locale),
       icon: Download,
       color: "text-green-600",
       bg: "bg-green-50",

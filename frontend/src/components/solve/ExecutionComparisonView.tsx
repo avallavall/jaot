@@ -6,6 +6,7 @@ import { OriginBadge } from "@/components/solve/OriginBadge";
 import { extractVariables } from "@/lib/result-utils";
 import { useTranslations } from "next-intl";
 import { useDateFormat } from "@/hooks/useDateFormat";
+import { pageLocale } from "@/lib/page-locale";
 
 interface ComparedVariable {
   name: string;
@@ -26,23 +27,23 @@ interface ExecutionComparisonViewProps {
 
 function formatValue(v: number | null): string {
   if (v === null) return "—";
-  return v.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  return v.toLocaleString(pageLocale(), { maximumFractionDigits: 4 });
 }
 
 function formatDelta(delta: number | null): string {
   if (delta === null) return "";
   const sign = delta >= 0 ? "+" : "";
-  return `${sign}${delta.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
+  return `${sign}${delta.toLocaleString(pageLocale(), { maximumFractionDigits: 4 })}`;
 }
 
 function formatMs(ms: number): string {
   const sign = ms >= 0 ? "+" : "";
-  return `${sign}${ms.toLocaleString()} ms`;
+  return `${sign}${ms.toLocaleString(pageLocale())} ms`;
 }
 
 function formatObjDelta(delta: number, sense: string | undefined): { text: string; color: string } {
   const sign = delta >= 0 ? "+" : "";
-  const text = `${sign}${delta.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
+  const text = `${sign}${delta.toLocaleString(pageLocale(), { maximumFractionDigits: 4 })}`;
   // For minimize: negative delta = improved (green). For maximize: positive delta = improved (green).
   const isImproved =
     sense === "maximize" ? delta > 0 : sense === "minimize" ? delta < 0 : null;

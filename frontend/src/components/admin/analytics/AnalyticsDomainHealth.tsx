@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DomainSummaryEntry } from "./analytics-types";
 import { DOMAIN_COLORS } from "./analytics-helpers";
@@ -16,6 +16,7 @@ function colorForDomain(domain: string): string {
 export function AnalyticsDomainHealth({
   domains,
 }: AnalyticsDomainHealthProps) {
+  const locale = useLocale();
   const t = useTranslations("admin.featureAnalytics");
   const total = domains.reduce((sum, d) => sum + d.count, 0);
 
@@ -73,7 +74,7 @@ export function AnalyticsDomainHealth({
                 />
                 <span className="font-medium capitalize">{d.domain}</span>
                 <span className="text-muted-foreground">
-                  {d.count.toLocaleString()} ({pct}%)
+                  {d.count.toLocaleString(locale)} ({pct}%)
                 </span>
               </div>
             );

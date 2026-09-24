@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { AlertCircle, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { solverDisplayName } from "@/lib/solver-display";
@@ -24,11 +24,12 @@ interface LiveSolvePanelProps {
  * Hexaly) it shows a clean final-result summary instead of an empty live box.
  */
 export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePanelProps) {
+  const locale = useLocale();
   const t = useTranslations("studio");
   const { status, points, lastEvent, result, solverName } = session;
   const metrics = computeMetrics(points, lastEvent);
   const fmt = (v: number | null, digits = 4): string =>
-    v === null ? "—" : v.toLocaleString(undefined, { maximumFractionDigits: digits });
+    v === null ? "—" : v.toLocaleString(locale, { maximumFractionDigits: digits });
 
   const running = status === "running";
   // The session status says whether the RUN finished, not whether the model was
@@ -107,7 +108,7 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
               testid="studio-solve-objective"
               value={
                 result.objective_value != null
-                  ? result.objective_value.toLocaleString(undefined, { maximumFractionDigits: 6 })
+                  ? result.objective_value.toLocaleString(locale, { maximumFractionDigits: 6 })
                   : "—"
               }
             />

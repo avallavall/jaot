@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { VariableSolution, VariableType } from "@/lib/types";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { boundStatus, type VariableBounds } from "@/lib/variable-bounds";
+import { pageLocale } from "@/lib/page-locale";
 
 interface SolutionExplorerTableProps {
   variables: VariableSolution[];
@@ -20,6 +21,7 @@ type TypeFilter = "all" | VariableType;
 const NEAR_ZERO = 1e-9;
 
 export function SolutionExplorerTable({ variables, bounds }: SolutionExplorerTableProps) {
+  const locale = useLocale();
   const t = useTranslations("solve.explorer");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -118,7 +120,7 @@ export function SolutionExplorerTable({ variables, bounds }: SolutionExplorerTab
                       <TypeBadge type={v.type} />
                     </td>
                     <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
-                      {v.value.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                      {v.value.toLocaleString(locale, { maximumFractionDigits: 6 })}
                     </td>
                     <BoundCells value={v.value} bounds={bounds?.[v.name]} />
                   </tr>
@@ -135,7 +137,7 @@ export function SolutionExplorerTable({ variables, bounds }: SolutionExplorerTab
 
 /** How a number reads in these four columns. */
 function num(value: number): string {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  return value.toLocaleString(pageLocale(), { maximumFractionDigits: 6 });
 }
 
 /**

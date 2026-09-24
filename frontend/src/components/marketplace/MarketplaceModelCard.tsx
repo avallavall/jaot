@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Heart, Package, Shield, Star, Zap } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ export function MarketplaceModelCard({
   onToggleFavorite,
   onUseInStudio,
 }: MarketplaceModelCardProps) {
+  const locale = useLocale();
   const t = useTranslations("marketplace.card");
   const { categoryLabel } = useCommonLabels();
   const tmpl = useTemplateTranslation(model.id);
@@ -111,7 +112,7 @@ export function MarketplaceModelCard({
               <div className="flex items-center justify-end gap-2 text-sm">
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <Zap className="w-3 h-3" />
-                  {model.total_activations.toLocaleString()}
+                  {model.total_activations.toLocaleString(locale)}
                 </span>
               </div>
             )}

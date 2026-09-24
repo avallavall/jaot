@@ -9,6 +9,7 @@ import { getErrorMessage } from "@/lib/errors";
 import type { DecisionScenario, RhsScenario, ScenarioAnalysisJob } from "@/lib/types";
 import { AdvancedModelToggle } from "@/components/llm/AdvancedModelToggle";
 import { useAdvancedModel } from "@/hooks/useAdvancedModel";
+import { pageLocale } from "@/lib/page-locale";
 
 interface ScenarioAnalysisSectionProps {
   executionId: string;
@@ -391,5 +392,5 @@ function ScenarioExplanation({
 }
 
 function fmt(v: number): string {
-  return v.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  return v.toLocaleString(pageLocale(), { maximumFractionDigits: 4 });
 }
