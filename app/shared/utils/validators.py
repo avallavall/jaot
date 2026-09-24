@@ -34,6 +34,20 @@ def _resolve_hostname(hostname: str) -> list[str]:
     return ips
 
 
+def _is_blocked(ip_str: str) -> bool:
+    """True for any address the server must not call on a user's behalf.
+
+    Anything not globally routable is refused. The earlier test listed private,
+    loopback, link-local and reserved, and let through 100.64.0.0/10 (carrier
+    NAT, which is also the address range of a Tailscale network) and multicast.
+    """
+    ip = ipaddress.ip_address(ip_str)
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped is not None:
+        ip = mapped
+    return not ip.is_global or ip.is_multicast
+
+
 def blocked_url_target(url: str) -> str | None:
     """Return the blocked address a URL points at, or None.
 
@@ -53,8 +67,7 @@ def blocked_url_target(url: str) -> str | None:
     except ValueError:
         return None
     for ip_str in ips:
-        ip = ipaddress.ip_address(ip_str)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+        if _is_blocked(ip_str):
             return ip_str
     return None
 
@@ -62,9 +75,10 @@ def blocked_url_target(url: str) -> str | None:
 def validate_url_not_private(url: str) -> None:
     """Validate that a URL does not resolve to a private/internal IP.
 
-    Prevents SSRF by blocking RFC 1918, loopback, link-local, and
-    reserved IP ranges. Uses a short DNS cache to avoid per-request
-    resolution overhead.
+    Prevents SSRF by refusing every address that is not globally routable
+    (see :func:`_is_blocked`). Uses a short DNS cache to avoid per-request
+    resolution overhead. A caller that then connects must use
+    :func:`pin_public_url`, or it resolves the name a second time.
 
     Raises:
         ValueError: If the URL has no hostname, cannot be resolved,
@@ -78,6 +92,36 @@ def validate_url_not_private(url: str) -> None:
     ips = _resolve_hostname(hostname)
 
     for ip_str in ips:
-        ip = ipaddress.ip_address(ip_str)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-            raise ValueError(f"URL resolves to blocked IP range: {ip}")
+        if _is_blocked(ip_str):
+            raise ValueError(f"URL resolves to blocked IP range: {ip_str}")
+
+
+def pin_public_url(url: str) -> tuple[str, str, str]:
+    """Check a URL's address once and return a URL that connects to that address.
+
+    Returns ``(pinned_url, host_header, hostname)``. The caller sends to
+    ``pinned_url`` with ``Host: host_header`` and, for https, the TLS server
+    name ``hostname``, so the certificate is still checked against the name.
+
+    The name used to be resolved twice: once here to check it, and again by
+    the HTTP client when it connected. A name with a zero TTL could answer a
+    public address to the first lookup and ``127.0.0.1`` or a LAN address to
+    the second, and the webhook was posted inside the network.
+
+    Raises:
+        ValueError: as :func:`validate_url_not_private`.
+    """
+    validate_url_not_private(url)
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ""
+    # IPv4 first: the workers may have no IPv6 route, and the HTTP client no
+    # longer gets the chance to fall back to another address by itself.
+    ips = sorted(dict.fromkeys(_resolve_hostname(hostname)), key=lambda a: ":" in a)
+    address = ips[0]
+    port = f":{parsed.port}" if parsed.port else ""
+    host = f"[{hostname}]" if ":" in hostname else hostname
+    netloc = (f"[{address}]" if ":" in address else address) + port
+    userinfo = parsed.netloc.rpartition("@")[0]
+    if userinfo:
+        netloc = f"{userinfo}@{netloc}"
+    return parsed._replace(netloc=netloc).geturl(), host + port, hostname

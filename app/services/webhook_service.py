@@ -65,10 +65,10 @@ def deliver_webhook(
     Returns:
         True if delivery succeeded (2xx response), False otherwise.
     """
-    from app.shared.utils.validators import validate_url_not_private
+    from app.shared.utils.validators import pin_public_url
 
     try:
-        validate_url_not_private(url)
+        target_url, host_header, server_name = pin_public_url(url)
     except ValueError as e:
         logger.warning("SSRF blocked: %s", e)
         return False
@@ -80,7 +80,11 @@ def deliver_webhook(
         "User-Agent": WEBHOOK_USER_AGENT,
         "X-Jaot-Event": payload.get("event", "unknown"),
         "X-Jaot-Delivery-Timestamp": str(int(time.time())),
+        # The connection goes to the address that was checked; the name stays
+        # in Host and in the TLS server name.
+        "Host": host_header,
     }
+    extensions = {"sni_hostname": server_name} if target_url.startswith("https:") else {}
 
     if secret:
         signature = _sign_payload(payload_bytes, secret)
@@ -88,7 +92,9 @@ def deliver_webhook(
 
     try:
         with httpx.Client(timeout=WEBHOOK_TIMEOUT) as client:
-            resp = client.post(url, content=payload_bytes, headers=headers)
+            resp = client.post(
+                target_url, content=payload_bytes, headers=headers, extensions=extensions
+            )
 
         if 200 <= resp.status_code < 300:
             logger.info(f"Webhook delivered to {url}: {payload.get('event')} ({resp.status_code})")
