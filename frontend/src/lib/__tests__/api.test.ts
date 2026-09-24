@@ -389,6 +389,30 @@ describe("a request whose session has ended", () => {
     window.removeEventListener("jaot:session-expired", expired);
   });
 
+  // The upload, import and export paths call fetch() themselves. A failed
+  // refresh there threw Error("Refresh failed"): the page printed those two
+  // English words and the session never ended.
+  it("ends the session when a file import cannot refresh it", async () => {
+    const expired = vi.fn();
+    window.addEventListener("jaot:session-expired", expired);
+
+    // The import, the refresh, and the /auth/me check: all 401.
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(reply(401));
+    const file = new File(["a,b"], "data.csv", { type: "text/csv" });
+    window.history.pushState({}, "", "/es/studio/mp_1");
+
+    const error = await api.importProjectDataset("mp_1", file).catch((e: unknown) => e);
+    window.history.pushState({}, "", "/");
+
+    expect(error).toMatchObject({ name: "ApiError", status: 401 });
+    expect((error as Error).message).not.toBe("Refresh failed");
+    expect(expired).toHaveBeenCalledTimes(1);
+    const importCall = fetchSpy.mock.calls[0];
+    // And it says which language the page is in, as every other request does.
+    expect((importCall[1]?.headers as Record<string, string>)["X-JAOT-Locale"]).toBe("es");
+    window.removeEventListener("jaot:session-expired", expired);
+  });
+
   // CONTRACT-TEST: a probe for a session never reports one as ended
   //
   // AuthProvider asks /auth/me on every page load, including the home page, the

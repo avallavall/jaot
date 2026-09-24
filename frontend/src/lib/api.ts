@@ -415,6 +415,23 @@ async function refreshAccessToken(): Promise<void> {
   return refreshPromise;
 }
 
+/**
+ * The refresh for the paths that call fetch() themselves: uploads, imports and
+ * exports. A failed refresh there threw a bare Error("Refresh failed"), so the
+ * page printed those two English words and the session never ended. It now
+ * ends the way request() ends it.
+ */
+async function refreshOrEndSession(): Promise<void> {
+  try {
+    await refreshAccessToken();
+  } catch {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("jaot:session-expired"));
+    }
+    throw new ApiError(401, "Your session ended. Sign in again to carry on.");
+  }
+}
+
 export type RequestOptions = RequestInit & {
   params?: QueryParams;
   _retried?: boolean;
@@ -1727,14 +1744,14 @@ export const api = {
       if (paramName) formData.append("param_name", paramName);
       return fetch(buildUrl(`/api/v2/projects/${id}/datasets/import`), {
         method: "POST",
-        headers: authHeaders(), // NO Content-Type — browser sets multipart boundary
+        headers: { ...localeHeader(), ...authHeaders() }, // NO Content-Type — browser sets multipart boundary
         body: formData,
         credentials: "include",
       });
     };
     let res = await doUpload();
     if (res.status === 401) {
-      await refreshAccessToken();
+      await refreshOrEndSession();
       res = await doUpload();
     }
     if (!res.ok) {
@@ -2005,7 +2022,7 @@ export const api = {
           buildUrl(`/api/v2/llm/conversations/${conversationId}/attachments`),
           {
             method: "POST",
-            headers: authHeaders(), // NO Content-Type — browser sets multipart boundary
+            headers: { ...localeHeader(), ...authHeaders() }, // NO Content-Type — browser sets multipart boundary
             body: formData,
             credentials: "include",
           },
@@ -2015,7 +2032,7 @@ export const api = {
       let res = await doUpload();
 
       if (res.status === 401) {
-        await refreshAccessToken();
+        await refreshOrEndSession();
         res = await doUpload();
       }
 
@@ -2048,7 +2065,7 @@ export const api = {
         formData.append("file", file);
         return fetch(buildUrl("/api/v2/solve/import/preview"), {
           method: "POST",
-          headers: authHeaders(),
+          headers: { ...localeHeader(), ...authHeaders() },
           body: formData,
           credentials: "include",
         });
@@ -2057,7 +2074,7 @@ export const api = {
       let res = await doUpload();
 
       if (res.status === 401) {
-        await refreshAccessToken();
+        await refreshOrEndSession();
         res = await doUpload();
       }
 
@@ -2084,7 +2101,7 @@ export const api = {
         }
         return fetch(buildUrl("/api/v2/solve/import"), {
           method: "POST",
-          headers: authHeaders(),
+          headers: { ...localeHeader(), ...authHeaders() },
           body: formData,
           credentials: "include",
         });
@@ -2093,7 +2110,7 @@ export const api = {
       let res = await doUpload();
 
       if (res.status === 401) {
-        await refreshAccessToken();
+        await refreshOrEndSession();
         res = await doUpload();
       }
 
@@ -2124,14 +2141,14 @@ export const api = {
       const url = buildUrl(`/api/v2/solve/export/${executionId}/${fmt}`);
       const doFetch = async (): Promise<Response> =>
         fetch(url, {
-          headers: { ...authHeaders() },
+          headers: { ...localeHeader(), ...authHeaders() },
           credentials: "include",
         });
 
       let res = await doFetch();
 
       if (res.status === 401) {
-        await refreshAccessToken();
+        await refreshOrEndSession();
         res = await doFetch();
       }
 
@@ -2158,7 +2175,7 @@ export const api = {
       const doFetch = async (): Promise<Response> =>
         fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
+          headers: { "Content-Type": "application/json", ...localeHeader(), ...authHeaders() },
           credentials: "include",
           body: JSON.stringify(problem),
         });
@@ -2166,7 +2183,7 @@ export const api = {
       let res = await doFetch();
 
       if (res.status === 401) {
-        await refreshAccessToken();
+        await refreshOrEndSession();
         res = await doFetch();
       }
 
