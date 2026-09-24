@@ -51,6 +51,9 @@ Remove both layers **entirely** — delete the code, do not flag it off.
 4. **Data:** additive-only rule holds — no DROP/RENAME. Dead tables and columns stay
    in the schema, unmapped and unwritten; a cleanup migration may drop them in a
    LATER release. Historic `credits_consumed` values remain in old rows.
+   **Update 2026-09-24:** the additive-only rule was retired on 2026-08-02, and the owner
+   decided to delete the dead data. `20260924_drop_billing_tables` dropped the 9 tables and
+   13 columns; the deploy's backup is the only copy of their rows.
 5. **Docs/positioning:** README/docs/CLAUDE.md stop describing credits and Stripe;
    quotas are documented as plain usage limits. Final marketing polish still lands
    in release-finalization (last).

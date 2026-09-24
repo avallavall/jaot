@@ -624,17 +624,6 @@ class TestOwnerProtections:
         assert invite.is_revoked is True
 
 
-class TestRemoveMemberCascade:
-    """Removing a workspace member who has created pending invites and
-    a workspace-scoped credit pool must not orphan any rows.
-
-    The member row is deleted, but workspace_invites.created_by is a plain
-    string (not a FK with cascade), and workspace_credit_pools is scoped
-    to the workspace rather than the member, so both should survive the
-    removal with consistent values.
-    """
-
-
 class TestAnEmailInviteReachesItsAddressAndOnlyThat:
     """# CONTRACT-TEST: an email invite is emailed, never logged, and accepted only by its address.
 

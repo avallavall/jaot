@@ -2,7 +2,7 @@
 
 **Scope:** Operationalizes the production
 rollout of the `default`-queue purge, the `celery` → `jaot_default` rename, and the manual
-replay of the three idempotent daily tasks. The locked decisions are
+replay of the idempotent daily task. The locked decisions are
 **D-01**, **D-02**, **D-03**. Source of truth for the routing config that lands
 in this deploy: plan `10-01` (code rename) + plan `10-02` (boot-time queue audit + Prometheus
 alert + integration test). Bug provenance: the **F1** carry-out follow-up
@@ -26,9 +26,9 @@ referenced below (verified against `deploy/docker-compose.prod.yml`):
 - The unused `default` queue MUST NOT exist after this procedure completes successfully.
   If it reappears, the boot-time audit shipped in plan `10-02` is bypassed or a producer
   has been re-introduced — STOP and read `app/shared/core/celery_app.py`.
-- The ONLY tasks safe to manually re-fire after the purge are the three idempotent dailies
-  named in **D-02**: `process_scheduled_withdrawals`, `run_balance_reconciliation`,
-  `hexaly_platform_license_expiry_sweep`. Every other task in the purged `default` queue
+- The ONLY task safe to manually re-fire after the purge is the idempotent daily named in
+  **D-02**: `hexaly_platform_license_expiry_sweep` (D-02 also named two billing tasks; they
+  left with ADR-008, see §6). Every other task in the purged `default` queue
   (user-triggered emails, webhooks, on-demand financial operations) is accepted as
   data-integrity cost per **D-01** — replay-spam risk on non-verified-idempotent tasks
   outweighs the benefit of replaying ~37 days of stale fires.
@@ -42,7 +42,7 @@ referenced below (verified against `deploy/docker-compose.prod.yml`):
 3. [Deploy the code fix (plan 10-01 + 10-02)](#3-deploy-the-code-fix-plan-10-01--10-02)
 4. [Verify worker is GREEN on `jaot_default`](#4-verify-worker-is-green-on-jaot_default)
 5. [Drain or purge the legacy `celery` queue](#5-drain-or-purge-the-legacy-celery-queue)
-6. [Manual replay: 3 idempotent dailies (D-02)](#6-manual-replay-3-idempotent-dailies-d-02)
+6. [Manual replay: the idempotent daily (D-02)](#6-manual-replay-the-idempotent-daily-d-02)
 7. [Post-procedure sign-off](#7-post-procedure-sign-off)
 
 ---
@@ -318,63 +318,46 @@ for all rows.
 
 ---
 
-## 6. Manual replay: 3 idempotent dailies (D-02)
+## 6. Manual replay: the idempotent daily (D-02)
 
 **Per D-02 (locked):** before considering the system recovered, manually fire ONE fresh
-execution of each of the three idempotent daily tasks. Rationale per task:
+execution of the idempotent daily task.
 
-- `process_scheduled_withdrawals` — there may be `WithdrawalSchedule` records with
-  `next_execution <= now()` that accumulated during the 37-day bug window. The service's
-  idempotency guards (`app/tasks/financial_tasks.py` and
-  `CreditsService.process_scheduled_withdrawals`) prevent double-execution; safe to re-fire.
-- `run_balance_reconciliation` — `ReconciliationService.run_reconciliation` is read-mostly
-  and writes only alert events on drift. Safe to re-run; brings the daily reconciliation
-  state to today.
+D-02 named three tasks. Two of them, `process_scheduled_withdrawals` and
+`run_balance_reconciliation`, left with the billing layer (ADR-008). Their Beat entries were
+removed by the migration `20260924_drop_billing_beat` and their tables by
+`20260924_drop_billing_tables`. Firing them now only makes the worker log "Received
+unregistered task". The one left:
+
 - `hexaly_platform_license_expiry_sweep` — refreshes the
   `jaot_hexaly_platform_license_days_remaining` Prometheus gauge to today's days-remaining
   value. The 24h notification dedup (Phase 7 E-12) prevents alert-storm even if the gauge
   trips the < 30 days threshold.
 
-**Replay command (run once per task).** All three replays go through the helper script
-`deploy/scripts/replay-daily-task.sh`, which takes the task name as `$1` and exits non-zero
-if it's missing. This replaces the previous inline `docker exec ... python -c "..."` form,
-whose triple-nested quoting (single-quoted SSH arg + double-quoted `python -c` + escaped
-double-quoted task name) was brittle to operator copy-paste between shells (IN-03):
+**Replay command.** It goes through the helper script `deploy/scripts/replay-daily-task.sh`,
+which takes the task name as `$1` and exits non-zero if it's missing. This replaces the
+previous inline `docker exec ... python -c "..."` form, whose triple-nested quoting was
+brittle to operator copy-paste between shells (IN-03):
 
 ```bash
-ssh jaot@<SERVER_IP> \
-  'docker exec jaot_prod_api bash /opt/jaot/deploy/scripts/replay-daily-task.sh process_scheduled_withdrawals'
+ssh jaot@<SERVER_IP>   'docker exec jaot_prod_api bash /opt/jaot/deploy/scripts/replay-daily-task.sh hexaly_platform_license_expiry_sweep'
 ```
 
-Expected: a single line containing a Celery task id (UUID-like). Record it for §7. Repeat
-for the other two task names:
+Expected: a single line containing a Celery task id (UUID-like). Record it for §7.
+
+**Verify it was consumed by the new worker:**
 
 ```bash
-ssh jaot@<SERVER_IP> \
-  'docker exec jaot_prod_api bash /opt/jaot/deploy/scripts/replay-daily-task.sh run_balance_reconciliation'
+ssh jaot@<SERVER_IP>   'docker logs --tail 200 jaot_prod_celery_default | grep -E "hexaly_platform_license_expiry_sweep"'
 ```
 
-```bash
-ssh jaot@<SERVER_IP> \
-  'docker exec jaot_prod_api bash /opt/jaot/deploy/scripts/replay-daily-task.sh hexaly_platform_license_expiry_sweep'
-```
-
-**Verify all three were consumed by the new worker:**
-
-```bash
-ssh jaot@<SERVER_IP> \
-  'docker logs --tail 200 jaot_prod_celery_default | grep -E "(process_scheduled_withdrawals|run_balance_reconciliation|hexaly_platform_license_expiry_sweep)"'
-```
-
-Expected: three matching task ids (the same UUIDs printed above) with INFO log lines ending
-in `succeeded` (or `Task ... succeeded in ...`). If any task shows `FAILED` or never
-appears in the log, the new worker is not consuming `jaot_default` — re-read §4 verification
-and §3 logs. Do NOT re-fire a failed task without first understanding why it failed (one
-of the three is `process_scheduled_withdrawals`, which moves money — debug before re-firing).
+Expected: the task id printed above with an INFO log line ending in `succeeded`. If it shows
+`FAILED` or never appears in the log, the new worker is not consuming `jaot_default` —
+re-read §4 verification and §3 logs.
 
 **Note on bypassing beat.** This manual replay short-circuits the beat scheduler — beat
-will still fire all three tasks at their next 24h tick. That's intentional: the manual
-replay's goal is to surface today's state immediately, not to perturb the schedule.
+will still fire the task at its next 24h tick. That's intentional: the manual replay's goal
+is to surface today's state immediately, not to perturb the schedule.
 
 ---
 
@@ -393,8 +376,6 @@ itself).
 | `jaot_default` queue first-seen in Prometheus (§4) | `<UTC>` |
 | Legacy `celery` queue disposition (§5) | `drained` / `purged` / `empty` (pick one) |
 | Legacy `celery` count drained or purged | `<M>` (or `0`) |
-| Replay task id — `process_scheduled_withdrawals` (§6) | `<task-id>` |
-| Replay task id — `run_balance_reconciliation` (§6) | `<task-id>` |
 | Replay task id — `hexaly_platform_license_expiry_sweep` (§6) | `<task-id>` |
 | Boot-time audit log line observed (§3 plan 10-02) | `yes` / `no` |
 | Prometheus queue-depth alert rule loaded (§4) | `yes` / `no` |
@@ -403,7 +384,7 @@ itself).
 
 ```
 Operator: <initials> at <UTC timestamp>; Phase 10 deploy + replay complete.
-References: D-01 (purge default), D-02 (3-task replay), D-03 (5-step sequence).
+References: D-01 (purge default), D-02 (daily replay), D-03 (5-step sequence).
 Plan commits deployed: <list of SHAs for plan 10-01 and plan 10-02 from `git log` in §1>.
 ```
 

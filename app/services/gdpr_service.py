@@ -3,7 +3,6 @@
 import logging
 from typing import Any
 
-from sqlalchemy import text
 from sqlalchemy.orm import Session, load_only
 
 from app.models import (
@@ -225,32 +224,12 @@ def delete_user_account(db: Session, user: User) -> None:
         db.query(ModelExecution).filter_by(organization_id=org_id).delete()
         db.query(ModelProject).filter_by(organization_id=org_id).delete(synchronize_session=False)
 
-        # Legacy money-era tables (ADR-008): the ORM models are gone but the
-        # tables remain under the additive rule — the right to erasure still
-        # applies to their historic rows, so purge them with raw SQL.
-        for legacy_table in (
-            "credit_transactions",
-            "withdrawal_schedules",
-            "withdrawals",
-            "invoices",
-            "usage_records",
-            "featured_placements",
-            "seller_tos_acceptances",
-        ):
-            db.execute(
-                text(f"DELETE FROM {legacy_table} WHERE organization_id = :org_id"),  # noqa: S608
-                {"org_id": org_id},
-            )
-
-        # Workspaces (legacy per-workspace credit pools purged raw as above)
+        # Workspaces. The money-era tables (ADR-008) that held rows of the
+        # organization were dropped by 20260924_drop_billing_tables.
         workspace_ids = [
             w.id for w in db.query(Workspace.id).filter_by(organization_id=org_id).all()
         ]
         if workspace_ids:
-            db.execute(
-                text("DELETE FROM workspace_credit_pools WHERE workspace_id = ANY(:ws_ids)"),
-                {"ws_ids": workspace_ids},
-            )
             db.query(WorkspaceInvite).filter(
                 WorkspaceInvite.workspace_id.in_(workspace_ids)
             ).delete(synchronize_session=False)

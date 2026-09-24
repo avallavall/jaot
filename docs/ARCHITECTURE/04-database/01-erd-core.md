@@ -4,9 +4,8 @@
 
 > **Note (ADR-008):** the billing entities that used to live here (`credit_transactions`,
 > `workspace_credit_pools`, `invoices`, plus the credit/Stripe columns on `organizations`
-> and `model_executions`) were removed from the application. Their tables/columns still
-> exist in the database — dead, unmapped, and nullable — because migrations are
-> kept for one release; a later release drops them.
+> and `model_executions`) were removed from the application. The migration
+> `20260924_drop_billing_tables` dropped their 9 tables and 13 columns from the database.
 
 ## Diagram
 

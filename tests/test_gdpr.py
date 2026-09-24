@@ -61,17 +61,6 @@ def _seed_related_records(db: Session, user: User, org: Organization) -> None:
             type="info",
         )
     )
-    # ADR-008: the legacy credit_transactions table has no ORM model; seed via
-    # raw SQL so the deletion test still proves the raw-SQL purge empties it.
-    db.execute(
-        text(
-            "INSERT INTO credit_transactions "
-            "(id, organization_id, credits_amount, balance_after, earned_balance_after, "
-            "description, transaction_type, created_at) "
-            "VALUES ('txn_gdpr01', :org, 10, 10, 0, 'seed', 'credit', now())"
-        ),
-        {"org": org.id},
-    )
     db.add(
         RefreshToken(
             user_id=user.id,
@@ -342,12 +331,6 @@ class TestAccountDeletion:
             db_session.query(ModelProjectListing).filter_by(model_project_id="mp_gdpr01").count()
             == 0
         )
-        # ADR-008: legacy (ORM-less) money tables are purged via raw SQL — the
-        # right-to-erasure must keep covering historic rows.
-        remaining_txns = db_session.execute(
-            text("SELECT count(*) FROM credit_transactions WHERE id = 'txn_gdpr01'")
-        ).scalar()
-        assert remaining_txns == 0
 
 
 class TestDeleteCascadesAtTheDatabase:
@@ -412,15 +395,6 @@ class TestDeleteCascadesAtTheDatabase:
                 zone="studio",
             )
         )
-        # Legacy ORM-less tables whose FKs also blocked the delete.
-        db.execute(
-            text(
-                "INSERT INTO usage_records (id, organization_id, user_id, problem_type, "
-                "credits_used, execution_time_ms, status, timestamp) "
-                "VALUES (:id, :org, :usr, 'lp', 1, 1.0, 'completed', now())"
-            ),
-            {"id": f"ur_fk{suffix}", "org": org.id, "usr": user.id},
-        )
         db.flush()
         return org, user
 
@@ -442,11 +416,6 @@ class TestDeleteCascadesAtTheDatabase:
                 f"{model.__name__} rows survived their organization"
             )
         assert db_session.query(RefreshToken).filter_by(user_id=user_id).count() == 0
-        remaining = db_session.execute(
-            text("SELECT count(*) FROM usage_records WHERE organization_id = :org"),
-            {"org": org_id},
-        ).scalar()
-        assert remaining == 0, "legacy usage_records rows survived their organization"
 
     def test_delete_user_keeps_org_work_and_drops_attribution(self, db_session: Session):
         """Deleting one person must not delete the organization's work.

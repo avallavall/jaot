@@ -35,6 +35,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 ### Added
 - **A solver comparison shows how much searching each solver did, not only how long it took.** One small panel per solver: the nodes it explored, or the simplex iterations on a model with no tree, against the clock. The time chart says who was slower, and there are only two reasons — the loser explored far more of the tree, or each node cost it more. On a 220-item knapsack GLPK covered thirty-seven times more tree than SCIP, at twenty-eight times the rate; nothing on the page said so before. Every panel keeps its own vertical scale, because a node in one solver is not a node in another; the clock is the part they share, and a solver that reported only its final count gets a single dot rather than a curve.
 
+### Removed
+- **The last billing data is deleted from the database:** 9 tables (credit transactions, invoices, withdrawals and others) and 13 columns on organizations, runs and trigger runs. Billing left the product in v3.0.0. The deploy keeps a backup taken just before.
+
 ### Fixed
 - **The author link on a marketplace card dropped the page language**, so a Spanish reader landed on the English author page after a redirect.
 - **HiGHS left the constant out of the objective.** For `3*x + 2*y + 100` it reported 2 where the other solvers reported 102. Automatic selection sends every linear model to HiGHS, so this was the default path.

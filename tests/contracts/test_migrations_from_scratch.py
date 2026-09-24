@@ -31,9 +31,22 @@ pytestmark = pytest.mark.contract
 
 _SCRATCH_DB = "jaot_migration_scratch"
 
-# Tables D-26 removed. If one of these comes back, some migration is recreating
-# schema the contract release deleted.
-_RETIRED_TABLES = {"model_catalog", "organization_models"}
+# Tables D-26 removed, and the billing tables ADR-008 left behind
+# (20260924_drop_billing_tables). If one of these comes back, some migration is
+# recreating schema that was deleted on purpose.
+_RETIRED_TABLES = {
+    "model_catalog",
+    "organization_models",
+    "credit_transactions",
+    "exchange_rates",
+    "featured_placements",
+    "invoices",
+    "seller_tos_acceptances",
+    "usage_records",
+    "withdrawal_schedules",
+    "withdrawals",
+    "workspace_credit_pools",
+}
 
 # A representative slice of what a usable install needs on disk.
 _REQUIRED_TABLES = {
@@ -140,6 +153,46 @@ def test_fresh_install_schema_matches_the_orm(fresh_install):
         assert not missing, (
             f"{model.__name__} maps columns a fresh install does not have: {sorted(missing)}"
         )
+
+
+# CONTRACT-TEST: a fresh install holds exactly what the models map, both ways.
+#
+# The billing layer lost its models in ADR-008 and kept 9 tables and 13 columns
+# in every database for months. Nothing flagged them: every check looked only
+# from the models to the database.
+def test_a_fresh_install_holds_nothing_the_models_do_not_map(fresh_install):
+    import app.models  # noqa: F401 -- registers every model on the metadata
+    from app.shared.db.base import Base
+
+    tables = set(fresh_install.get_table_names()) - {"alembic_version"}
+    mapped = set(Base.metadata.tables)
+    assert tables - mapped == set(), "tables no model maps"
+    assert mapped - tables == set(), "models with no table"
+    for name in sorted(tables & mapped):
+        actual = {c["name"] for c in fresh_install.get_columns(name)}
+        declared = set(Base.metadata.tables[name].columns.keys())
+        assert actual - declared == set(), f"{name}: columns no model maps"
+        assert declared - actual == set(), f"{name}: mapped columns missing"
+
+
+# CONTRACT-TEST: the billing drop goes back and forth on a fresh install.
+def test_the_billing_drop_can_be_undone_and_redone(fresh_install, db_engine):
+    dsn = db_engine.url.set(database=_SCRATCH_DB).render_as_string(hide_password=False)
+    with _database_url(dsn):
+        cfg = AlembicConfig("infra/alembic.ini")
+        cfg.set_main_option("sqlalchemy.url", dsn)
+        command.downgrade(cfg, "20260924_drop_billing_beat")
+        engine = create_engine(dsn)
+        try:
+            back = inspect(engine)
+            assert _RETIRED_TABLES - {"model_catalog", "organization_models"} <= set(
+                back.get_table_names()
+            )
+            org_columns = {c["name"] for c in back.get_columns("organizations")}
+            assert {"stripe_customer_id", "is_frozen"} <= org_columns
+        finally:
+            engine.dispose()
+        command.upgrade(cfg, "head")
 
 
 def test_access_count_is_an_integer_on_a_fresh_install(fresh_install):
