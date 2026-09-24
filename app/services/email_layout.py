@@ -22,7 +22,9 @@ does not do flexbox.
 
 from __future__ import annotations
 
+import re
 from html import escape as _html_escape
+from typing import Any
 
 from app.services.email_translations import get_email_string
 
@@ -288,6 +290,57 @@ def _transactional(
 def verify_email(verify_url: str, locale: str | None = None) -> tuple[str, str]:
     """(subject, html) for "confirm your address" -- the first email an account gets."""
     return _transactional("verify_email", verify_url, locale)
+
+
+def _notification_args(notification_type: str, data: Any) -> dict[str, str] | None:
+    """The placeholders of a translated notification, or None to use the stored text."""
+    if not isinstance(data, dict):
+        return None
+    model = data.get("model_name")
+    if not isinstance(model, str) or not model:
+        return None
+    if notification_type == "model_activated":
+        return {"model": model}
+    if notification_type == "new_review":
+        rating = data.get("rating")
+        if not isinstance(rating, int) or isinstance(rating, bool) or not 1 <= rating <= 5:
+            return None
+        return {"model": model, "stars": "★" * rating}
+    return None
+
+
+_PLACEHOLDER = re.compile(r"\{(model|stars)\}")
+
+
+def notification(
+    notification_type: str,
+    data: Any,
+    title: str,
+    message: str,
+    link: str | None,
+    locale: str | None = None,
+) -> tuple[str, str]:
+    """(subject, html) for a notification, written in the reader's language.
+
+    The row stores an English title and message. The email used them as they
+    were, so an author who had chosen Spanish read the web page in Spanish and
+    the email about the same event in English. The text is now built from the
+    type and the payload, as the in-app list does. A type or a payload this
+    does not know keeps the stored English.
+    """
+    args = _notification_args(notification_type, data)
+    group = f"notification_{notification_type}"
+    if args is not None:
+        title = get_email_string(group, "title", locale) or title
+        template = get_email_string(group, "message", locale)
+        if template:
+            # One pass, so a model named "{stars}" stays as it was written.
+            message = _PLACEHOLDER.sub(lambda m: args.get(m.group(1), m.group(0)), template)
+
+    body = heading(title) + paragraph(message)
+    if link:
+        body += button(link, title)
+    return title, wrap(body, locale)
 
 
 def workspace_invite(

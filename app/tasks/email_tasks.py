@@ -123,16 +123,16 @@ def send_notification_email(self: Any, notification_id: str) -> dict[str, Any]:
         # The title and the message carry user-supplied text: a notification
         # about an execution names the model, and a model is named by whoever
         # made it. The layout escapes what it is given.
-        body = layout.heading(notification.title) + layout.paragraph(notification.message)
-        if notification.link:
-            body += layout.button(notification.link, notification.title)
-
-        sent = EmailService.send(
-            to=user.email,
-            subject=notification.title,
-            html=layout.wrap(body, getattr(user, "locale", None)),
-            db=db,
+        subject, html = layout.notification(
+            notification.type,
+            notification.data,
+            notification.title,
+            notification.message,
+            notification.link,
+            getattr(user, "locale", None),
         )
+
+        sent = EmailService.send(to=user.email, subject=subject, html=html, db=db)
         if not sent:
             raise EmailDeliveryError(f"EmailService.send returned False for {notification_id}")
 

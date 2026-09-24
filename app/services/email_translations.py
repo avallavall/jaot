@@ -1126,6 +1126,42 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, dict[str, str]]] = {
             "de": "Wenn Sie das nicht angefordert haben, ignorieren Sie diese E-Mail bitte.",
         },
     },
+    # The two notifications that can be emailed, in the words the in-app list
+    # uses (frontend/messages/*.json, common.notifications.types). They were
+    # sent with the English title and message stored on the row, whatever
+    # language the author had chosen.
+    "notification_new_review": {
+        "title": {
+            "en": "New review",
+            "es": "Nueva reseña",
+            "ca": "Ressenya nova",
+            "fr": "Nouvel avis",
+            "de": "Neue Bewertung",
+        },
+        "message": {
+            "en": "Your model “{model}” got a review: {stars}",
+            "es": "Tu modelo «{model}» ha recibido una reseña: {stars}",
+            "ca": "El teu model «{model}» ha rebut una ressenya: {stars}",
+            "fr": "Votre modèle « {model} » a reçu un avis : {stars}",
+            "de": "Ihr Modell „{model}“ hat eine Bewertung erhalten: {stars}",
+        },
+    },
+    "notification_model_activated": {
+        "title": {
+            "en": "Model adopted",
+            "es": "Modelo adoptado",
+            "ca": "Model adoptat",
+            "fr": "Modèle adopté",
+            "de": "Modell übernommen",
+        },
+        "message": {
+            "en": "Your model “{model}” was added to another team's studio.",
+            "es": "Tu modelo «{model}» se ha añadido al estudio de otro equipo.",
+            "ca": "El teu model «{model}» s’ha afegit a l’estudi d’un altre equip.",
+            "fr": "Votre modèle « {model} » a été ajouté au studio d’une autre équipe.",
+            "de": "Ihr Modell „{model}“ wurde dem Studio eines anderen Teams hinzugefügt.",
+        },
+    },
     "footer": {
         "brand": {
             "en": "JAOT — Optimization as a Service",
