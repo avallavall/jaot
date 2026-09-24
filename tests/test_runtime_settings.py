@@ -77,7 +77,7 @@ class TestSolverIntegration:
             )
 
     def test_solve_plan_config_uses_db_max_solve_time(self, authenticated_client, db_session):
-        """Plan config max_solve_time_seconds from DB is used by _enforce_tier_caps
+        """Plan config max_solve_time_seconds from DB is used by enforce_tier_caps
         to clamp the requested time limit."""
         # Set the free plan max_solve_time_seconds to 5 (very low)
         PSS.set(db_session, "instance_max_solve_time_seconds", "5")

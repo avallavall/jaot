@@ -94,7 +94,7 @@ def cancel_comparison_rows(db: Session, comparison: SolverComparison) -> bool:
 def enforce_instance_caps(db: Session, problem: OptimizationProblem) -> OptimizationProblem:
     """Apply the instance variable cap and time-limit ceiling.
 
-    Mirrors what ``_enforce_tier_caps`` does for a single solve, minus the quota
+    Mirrors what ``enforce_tier_caps`` does for a single solve, minus the quota
     (charged per solver below). A clamped time limit is applied to the shared
     problem, so all solvers stay on equal terms after the clamp too.
     """
