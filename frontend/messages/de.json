@@ -4672,7 +4672,8 @@
         "revoked": "Diese Einladung wurde widerrufen.",
         "expired": "Diese Einladung ist abgelaufen. Bitten Sie um eine neue.",
         "already_accepted": "Diese Einladung wurde bereits verwendet.",
-        "other_organization": "Diese Einladung gehört zum Arbeitsbereich einer anderen Organisation. Melde dich mit einem Konto dieser Organisation an, oder bitte sie, das Konto einzuladen, das du benutzt."
+        "other_organization": "Diese Einladung gehört zum Arbeitsbereich einer anderen Organisation. Melde dich mit einem Konto dieser Organisation an, oder bitte sie, das Konto einzuladen, das du benutzt.",
+        "other_email": "Diese Einladung wurde an eine andere E-Mail-Adresse gesendet. Melde dich mit dieser Adresse an, um sie anzunehmen."
       },
       "projects": {
         "publish_needs_commit": "Beim Veröffentlichen wird deine zuletzt committete Version festgeschrieben. Den Arbeitsentwurf sieht der Marktplatz nie. Committe dein Modell im Arbeitsbereich und komm zurück.",

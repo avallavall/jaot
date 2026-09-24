@@ -87,15 +87,14 @@ def create_email_invite(
     org: CurrentOrg,
     _admin: RequireAdmin,
 ) -> InviteResponse:
-    """Create a single-use email invite for the specified address.
+    """Create a single-use email invite for the specified address and send it.
 
     A 7-day expiry is set. The token is hashed and stored; the plaintext
-    is (conceptually) sent via email. For now email delivery is best-effort
-    and logged — configure EMAIL_BACKEND to send real emails.
+    travels only in the email, as the link to the join page.
     """
     # Tenancy guard (cross-tenant IDOR): RequireAdmin's owner-shortcut does
     # not check the workspace's org — resolve it against org.id first.
-    get_workspace_or_404(db, workspace_id, org.id)
+    workspace = get_workspace_or_404(db, workspace_id, org.id)
 
     plaintext = secrets.token_urlsafe(32)
     token_hash = _hash_token(plaintext)
@@ -134,16 +133,36 @@ def create_email_invite(
     db.commit()
     db.refresh(invite)
 
-    # Best-effort email send — log plaintext token for now
+    # The invite used to go nowhere: nothing sent it, the response does not
+    # carry the token, and the only copy of it was this log line, readable by
+    # anyone with access to the logs. The link is emailed now and never logged.
+    _send_invite_email(db, str(body.email), plaintext, workspace.name, user.locale)
     logger.info(
-        "Email invite created: workspace=%s email=%s role=%s token=%s",
+        "Email invite created: workspace=%s role=%s invite_id=%s",
         workspace_id,
-        body.email,
         body.role,
-        plaintext,
+        invite.id,
     )
 
     return _invite_to_response(invite)
+
+
+def _send_invite_email(
+    db: DBSession, to: str, token: str, workspace_name: str, locale: str | None
+) -> None:
+    """Email the join link. Best effort: the invite exists either way."""
+    from app.config import settings  # noqa: PLC0415
+    from app.services import email_layout  # noqa: PLC0415
+    from app.services.email_service import EmailService  # noqa: PLC0415
+
+    try:
+        subject, html = email_layout.workspace_invite(
+            f"{settings.FRONTEND_URL}/join/{token}", workspace_name, locale
+        )
+        if not EmailService.send(to=to, subject=subject, html=html, db=db):
+            logger.warning("The workspace invite email could not be sent")
+    except Exception:
+        logger.warning("The workspace invite email could not be sent", exc_info=True)
 
 
 # POST /{workspace_id}/invites/link — Create shareable link invite
@@ -288,6 +307,21 @@ def accept_invite(
                 detail="This email invite has already been accepted",
                 code="invite.already_accepted",
             )
+
+    # An email invite is for the address it was sent to. Otherwise anyone in the
+    # organization who got hold of the token joined with the invite's role.
+    if (
+        invite.method == InviteMethod.EMAIL.value
+        and (invite.invitee_email or "").strip().lower() != (user.email or "").strip().lower()
+    ):
+        raise CodedHTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "This invite was sent to another email address. Sign in with that "
+                "address to accept it."
+            ),
+            code="invite.other_email",
+        )
 
     # A workspace lives inside one organization and an account belongs to one
     # organization, so an invite can only be accepted from inside the same one.

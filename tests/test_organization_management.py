@@ -633,3 +633,54 @@ class TestRemoveMemberCascade:
     to the workspace rather than the member, so both should survive the
     removal with consistent values.
     """
+
+
+class TestAnEmailInviteReachesItsAddressAndOnlyThat:
+    """# CONTRACT-TEST: an email invite is emailed, never logged, and accepted only by its address.
+
+    Nothing sent it, the response did not carry the token, and the only copy of
+    the token was an INFO log line. Anyone in the organization who could read
+    the logs could accept it with the invite's role: accept never compared the
+    signed-in address with the invited one.
+    """
+
+    def _invite(self, client, mock_auth, org_with_members, caplog, to="newcomer@example.com"):
+        from unittest.mock import patch
+
+        mock_auth(org_with_members["admin"])
+        ws = org_with_members["ws"]
+        with (
+            patch("app.services.email_service.EmailService.send", return_value=True) as send,
+            caplog.at_level("INFO"),
+        ):
+            resp = client.post(
+                f"/api/v2/workspaces/{ws.id}/invites/email", json={"email": to, "role": "editor"}
+            )
+        assert resp.status_code == 201, resp.text
+        assert send.call_count == 1
+        html = send.call_args.kwargs["html"]
+        token = html.split("/join/")[1].split('"')[0]
+        return send.call_args.kwargs, token
+
+    def test_the_link_is_emailed_and_not_logged(self, client, mock_auth, org_with_members, caplog):
+        sent, token = self._invite(client, mock_auth, org_with_members, caplog)
+        assert sent["to"] == "newcomer@example.com"
+        assert len(token) > 20
+        assert token not in caplog.text
+
+    def test_only_the_invited_address_can_accept(
+        self, client, mock_auth, org_with_members, db_session, caplog
+    ):
+        _, token = self._invite(client, mock_auth, org_with_members, caplog)
+
+        mock_auth(org_with_members["viewer"])  # same organization, other address
+        refused = client.post("/api/v2/workspaces/invites/accept", json={"token": token})
+        assert refused.status_code == 403
+        assert refused.json()["code"] == "invite.other_email"
+
+        newcomer = _create_user(
+            db_session, org_with_members["org"], "usr_mgmt_new", "newcomer@example.com", "New"
+        )
+        mock_auth(newcomer)
+        accepted = client.post("/api/v2/workspaces/invites/accept", json={"token": token})
+        assert accepted.status_code == 200, accepted.text

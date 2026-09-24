@@ -4672,7 +4672,8 @@
         "revoked": "Esta invitación se ha revocado.",
         "expired": "Esta invitación ha caducado. Pide una nueva.",
         "already_accepted": "Esta invitación ya se ha usado.",
-        "other_organization": "Esta invitación es para el espacio de trabajo de otra organización. Inicia sesión con una cuenta de esa organización, o pídeles que inviten a la cuenta que usas."
+        "other_organization": "Esta invitación es para el espacio de trabajo de otra organización. Inicia sesión con una cuenta de esa organización, o pídeles que inviten a la cuenta que usas.",
+        "other_email": "Esta invitación se envió a otra dirección de correo. Inicia sesión con esa dirección para aceptarla."
       },
       "projects": {
         "publish_needs_commit": "Al publicar se fija tu última versión commiteada: el marketplace nunca ve tu borrador de trabajo. Commitea el modelo en el espacio de trabajo y vuelve.",

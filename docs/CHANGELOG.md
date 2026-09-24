@@ -74,6 +74,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **Workspace invites by email were never sent, and their secret link was written to the server log.** Anyone in the organization who could read the log could join with the invite's role. The link is now emailed and never logged, and only the invited address can accept it.
 - **Forum sign-in trusted an email address JAOT had not verified**, so someone who signed up with another person's address could claim that person's forum account. The forum now checks such an address itself.
 - **The monthly AI budget could be bypassed by deleting conversations.** The budget added up the cost stored on each message, so deleting a chat (or an account) took its cost off the month. Chatting and deleting could spend without limit. Deleted spend now keeps counting, with no link to the person.
 - **Running a model through `/models/{id}/execute` (and the MCP tool built on it) skipped every solve limit.** The variable cap, the time ceiling, the daily quota and the rate limit now apply there too, and the time ceiling reaches the solver for models built from a card.

@@ -4672,7 +4672,8 @@
         "revoked": "This invitation has been revoked.",
         "expired": "This invitation has expired. Ask for a new one.",
         "already_accepted": "This invitation has already been used.",
-        "other_organization": "This invitation is for another organization's workspace. Sign in with an account of that organization, or ask them to invite the account you use."
+        "other_organization": "This invitation is for another organization's workspace. Sign in with an account of that organization, or ask them to invite the account you use.",
+        "other_email": "This invitation was sent to another email address. Sign in with that address to accept it."
       },
       "projects": {
         "publish_needs_commit": "Publishing pins your latest committed version. The marketplace never sees your working draft. Commit your model in the workspace, then come back.",

@@ -4672,7 +4672,8 @@
         "revoked": "Cette invitation a été révoquée.",
         "expired": "Cette invitation a expiré. Demandez-en une nouvelle.",
         "already_accepted": "Cette invitation a déjà été utilisée.",
-        "other_organization": "Cette invitation concerne l'espace de travail d'une autre organisation. Connectez-vous avec un compte de cette organisation, ou demandez-leur d'inviter le compte que vous utilisez."
+        "other_organization": "Cette invitation concerne l'espace de travail d'une autre organisation. Connectez-vous avec un compte de cette organisation, ou demandez-leur d'inviter le compte que vous utilisez.",
+        "other_email": "Cette invitation a été envoyée à une autre adresse e-mail. Connectez-vous avec cette adresse pour l'accepter."
       },
       "projects": {
         "publish_needs_commit": "La publication épingle votre dernière version validée : la place de marché ne voit jamais votre brouillon de travail. Validez votre modèle dans l'espace de travail, puis revenez.",

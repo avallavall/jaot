@@ -1038,6 +1038,50 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, dict[str, str]]] = {
             "de": "Dieser Link läuft in 24 Stunden ab.",
         },
     },
+    "workspace_invite": {
+        "subject": {
+            "en": "You have been invited to a workspace on JAOT",
+            "es": "Te han invitado a un espacio de trabajo en JAOT",
+            "ca": "T'han convidat a un espai de treball a JAOT",
+            "fr": "Vous êtes invité à un espace de travail sur JAOT",
+            "de": "Sie wurden zu einem Arbeitsbereich auf JAOT eingeladen",
+        },
+        "heading": {
+            "en": "Join your team",
+            "es": "Únete a tu equipo",
+            "ca": "Uneix-te al teu equip",
+            "fr": "Rejoignez votre équipe",
+            "de": "Treten Sie Ihrem Team bei",
+        },
+        "body": {
+            "en": "You have been invited to the workspace {workspace}. Sign in with this email address and accept the invite:",
+            "es": "Te han invitado al espacio de trabajo {workspace}. Inicia sesión con esta dirección de correo y acepta la invitación:",
+            "ca": "T'han convidat a l'espai de treball {workspace}. Inicia la sessió amb aquesta adreça de correu i accepta la invitació:",
+            "fr": "Vous êtes invité à l'espace de travail {workspace}. Connectez-vous avec cette adresse e-mail et acceptez l'invitation :",
+            "de": "Sie wurden in den Arbeitsbereich {workspace} eingeladen. Melden Sie sich mit dieser E-Mail-Adresse an und nehmen Sie die Einladung an:",
+        },
+        "cta": {
+            "en": "Accept the invite",
+            "es": "Aceptar la invitación",
+            "ca": "Acceptar la invitació",
+            "fr": "Accepter l'invitation",
+            "de": "Einladung annehmen",
+        },
+        "expiry": {
+            "en": "This invite expires in 7 days.",
+            "es": "Esta invitación caduca en 7 días.",
+            "ca": "Aquesta invitació caduca en 7 dies.",
+            "fr": "Cette invitation expire dans 7 jours.",
+            "de": "Diese Einladung läuft in 7 Tagen ab.",
+        },
+        "ignore": {
+            "en": "If you were not expecting this, you can ignore this email.",
+            "es": "Si no esperabas esta invitación, puedes ignorar este mensaje.",
+            "ca": "Si no esperaves aquesta invitació, pots ignorar aquest missatge.",
+            "fr": "Si vous ne vous attendiez pas à cette invitation, ignorez cet e-mail.",
+            "de": "Wenn Sie diese Einladung nicht erwartet haben, ignorieren Sie diese E-Mail.",
+        },
+    },
     "reset_password": {
         "subject": {
             "en": "Reset your JAOT password",

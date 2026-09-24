@@ -290,6 +290,24 @@ def verify_email(verify_url: str, locale: str | None = None) -> tuple[str, str]:
     return _transactional("verify_email", verify_url, locale)
 
 
+def workspace_invite(
+    join_url: str, workspace_name: str, locale: str | None = None
+) -> tuple[str, str]:
+    """(subject, html) for "you have been invited to a workspace"."""
+
+    def t(key: str) -> str:
+        return get_email_string("workspace_invite", key, locale)
+
+    body = (
+        heading(t("heading"))
+        + paragraph(t("body").replace("{workspace}", workspace_name or "JAOT"))
+        + button(join_url, t("cta"))
+        + paragraph(t("expiry"), muted=True)
+        + paragraph(t("ignore"), muted=True)
+    )
+    return t("subject"), wrap(body, locale, unsubscribe=False)
+
+
 def reset_password(reset_url: str, locale: str | None = None) -> tuple[str, str]:
     """(subject, html) for "reset your password".
 
