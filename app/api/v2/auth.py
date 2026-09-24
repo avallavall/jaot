@@ -12,6 +12,7 @@ from typing import Any, cast
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
+from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -287,10 +288,22 @@ def login_email(
 
     # Verify password
     if not PasswordService.verify_password(body.password, user.password_hash):
-        # Increment failed attempts
-        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
-        if user.failed_login_attempts >= MAX_FAILED_ATTEMPTS:
-            user.locked_until = utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+        # Increment in SQL. A read-add-write in Python let K guesses sent at once
+        # (each spending ~20 ms in argon2 on the same stale count) raise the
+        # counter by one, so a burst got about five guesses per failure the
+        # lockout counts instead of five in total.
+        attempts = db.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(failed_login_attempts=func.coalesce(User.failed_login_attempts, 0) + 1)
+            .returning(User.failed_login_attempts)
+        ).scalar_one()
+        if attempts >= MAX_FAILED_ATTEMPTS:
+            db.execute(
+                update(User)
+                .where(User.id == user.id)
+                .values(locked_until=utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES))
+            )
         db.commit()
         raise CodedHTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

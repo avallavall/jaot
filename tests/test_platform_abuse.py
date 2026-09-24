@@ -608,6 +608,7 @@ class TestRateLimiting:
             patch("app.shared.core.rate_limiter._fallback_mode", False),
         ):
             mock_client.pipeline.side_effect = ConnectionError("Redis down")
+            mock_client.eval.side_effect = ConnectionError("Redis down")
             # Also need to ensure the code path goes through _check_redis
             allowed, info = check_rate_limit("org_fail_open", 10, 100)
             # Known design choice: fail-open when Redis is unavailable

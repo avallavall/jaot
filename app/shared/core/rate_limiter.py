@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import time
+import uuid
 from collections import defaultdict
 from typing import Any
 
@@ -118,13 +119,66 @@ def _check_memory(
     }
 
 
+#: Prune, count, compare and record in one step on the Redis server. It was two
+#: round trips (count in one pipeline, add in another), so N requests arriving
+#: together all counted the same free slots and all passed: a daily quota of
+#: 100 with 60 used let two 40-solve launches through to 140, and the
+#: all-or-nothing promise of a comparison's quota did not hold.
+#:
+#: Returns ``{verdict, minute_count, day_count}``: verdict 0 = the minute window
+#: is full, 1 = the day window is full, 2 = recorded.
+_SLIDING_WINDOW_LUA = """
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[2])
+redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', ARGV[3])
+local minute_count = redis.call('ZCARD', KEYS[1])
+local day_count = redis.call('ZCARD', KEYS[2])
+local cost = tonumber(ARGV[6])
+if tonumber(ARGV[4]) > 0 and minute_count + cost > tonumber(ARGV[4]) then
+    return {0, minute_count, day_count}
+end
+if tonumber(ARGV[5]) > 0 and day_count + cost > tonumber(ARGV[5]) then
+    return {1, minute_count, day_count}
+end
+for i = 0, cost - 1 do
+    local member = ARGV[7] .. ':' .. i
+    redis.call('ZADD', KEYS[1], ARGV[1], member)
+    redis.call('ZADD', KEYS[2], ARGV[1], member)
+end
+redis.call('EXPIRE', KEYS[1], 120)
+redis.call('EXPIRE', KEYS[2], 90000)
+return {2, minute_count, day_count}
+"""
+
+#: The same, for one window of any length.
+_SINGLE_WINDOW_LUA = """
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[2])
+local count = redis.call('ZCARD', KEYS[1])
+if count >= tonumber(ARGV[3]) then
+    return {0, count}
+end
+redis.call('ZADD', KEYS[1], ARGV[1], ARGV[5])
+redis.call('EXPIRE', KEYS[1], tonumber(ARGV[4]))
+return {1, count}
+"""
+
+
+def _member_prefix(now_str: str) -> str:
+    """A sorted-set member no other request can share.
+
+    A sorted set keeps one entry per member. Two requests that read the clock
+    in the same microsecond, in two processes, wrote the same member and
+    counted as one.
+    """
+    return f"{now_str}:{os.getpid()}:{uuid.uuid4().hex[:12]}"
+
+
 def _check_redis(
     key: str,
     limit_per_minute: int,
     limit_per_day: int,
     cost: int = 1,
 ) -> tuple[bool, dict[str, Any] | None]:
-    """Redis sliding window rate limit check using sorted sets."""
+    """Redis sliding window rate limit check using sorted sets, atomically."""
     now = time.time()
     now_str = str(now)
     minute_ago = now - 60
@@ -135,21 +189,24 @@ def _check_redis(
 
     try:
         assert _redis_client is not None
-        pipe = _redis_client.pipeline()
+        verdict, minute_count, day_count = (
+            int(v)
+            for v in _redis_client.eval(
+                _SLIDING_WINDOW_LUA,
+                2,
+                minute_key,
+                day_key,
+                now_str,
+                minute_ago,
+                day_ago,
+                limit_per_minute,
+                limit_per_day,
+                cost,
+                _member_prefix(now_str),
+            )
+        )
 
-        # Clean old entries
-        pipe.zremrangebyscore(minute_key, "-inf", minute_ago)
-        pipe.zremrangebyscore(day_key, "-inf", day_ago)
-
-        # Count current entries
-        pipe.zcard(minute_key)
-        pipe.zcard(day_key)
-
-        results = pipe.execute()
-        minute_count = results[2]
-        day_count = results[3]
-
-        if limit_per_minute > 0 and minute_count + cost > limit_per_minute:
+        if verdict == 0:
             oldest = _redis_client.zrangebyscore(
                 minute_key, minute_ago, "+inf", start=0, num=1, withscores=True
             )
@@ -166,7 +223,7 @@ def _check_redis(
                 "retry_after": retry_after,
             }
 
-        if limit_per_day > 0 and day_count + cost > limit_per_day:
+        if verdict == 1:
             tomorrow_midnight = int((now // 86400 + 1) * 86400)
             retry_after = tomorrow_midnight - int(now)
             return False, {
@@ -177,20 +234,6 @@ def _check_redis(
                 "reset_at": tomorrow_midnight,
                 "retry_after": retry_after,
             }
-
-        # Record the request in both windows, once per unit of cost. The member
-        # carries the process id and a counter because a sorted set keeps one
-        # entry per member: `cost` entries written under the same timestamp
-        # would collapse into one, and so would two processes that read the
-        # clock in the same microsecond. Only the score is ever read back.
-        members = {f"{now_str}:{os.getpid()}:{i}": now for i in range(cost)}
-        assert _redis_client is not None
-        pipe2 = _redis_client.pipeline()
-        pipe2.zadd(minute_key, members)
-        pipe2.zadd(day_key, members)
-        pipe2.expire(minute_key, 120)  # TTL slightly > 1 minute
-        pipe2.expire(day_key, 90000)  # TTL slightly > 1 day
-        pipe2.execute()
 
         return True, {
             "minute_limit": limit_per_minute,
@@ -314,20 +357,27 @@ def _check_redis_window(
 
     try:
         assert _redis_client is not None
-        pipe = _redis_client.pipeline()
+        verdict, window_count = (
+            int(v)
+            for v in _redis_client.eval(
+                _SINGLE_WINDOW_LUA,
+                1,
+                window_key,
+                now_str,
+                window_ago,
+                limit,
+                window_seconds * 2,
+                _member_prefix(now_str),
+            )
+        )
 
-        # Clean old entries
-        pipe.zremrangebyscore(window_key, "-inf", window_ago)
-        # Count current entries
-        pipe.zcard(window_key)
-
-        results = pipe.execute()
-        window_count = results[1]
-
-        if window_count >= limit:
-            oldest = _redis_client.zrangebyscore(window_key, window_ago, "+inf", start=0, num=1)
+        if verdict == 0:
+            # The score, not the member: the member is unique now, not the time.
+            oldest = _redis_client.zrangebyscore(
+                window_key, window_ago, "+inf", start=0, num=1, withscores=True
+            )
             if oldest:
-                retry_after = max(1, int(window_seconds - (now - float(oldest[0]))))
+                retry_after = max(1, int(window_seconds - (now - float(oldest[0][1]))))
             else:
                 retry_after = window_seconds
             return False, {
@@ -338,13 +388,6 @@ def _check_redis_window(
                 "reset_at": int(now) + retry_after,
                 "retry_after": retry_after,
             }
-
-        # Record request
-        assert _redis_client is not None
-        pipe2 = _redis_client.pipeline()
-        pipe2.zadd(window_key, {now_str: now})
-        pipe2.expire(window_key, window_seconds * 2)  # TTL = 2x window
-        pipe2.execute()
 
         return True, {
             f"{label}_limit": limit,

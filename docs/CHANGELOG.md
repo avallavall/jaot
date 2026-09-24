@@ -54,6 +54,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A schedule whose model failed on every run never switched itself off.** Only a failure to queue the run was counted; a failed solve reset the count to zero.
 - **The minimum time between scheduled runs could be bypassed** depending on the minute the schedule was saved: `*/5 9 * * *` saved at 09:52 was accepted and then ran every five minutes each morning.
 - **Restoring an older version could throw away JModel text without asking**, and committing that text could report success without saving it, whenever the text did not change the compiled model (text that does not compile yet, or a comment). Both now treat the JModel source as part of the model.
+- **Requests that arrived at the same moment could all pass a limit that had room for only some of them**, so the daily solve quota could be overrun and a comparison's all-or-nothing quota check did not hold. The check and the count are now one step.
 - **The owner of an organization could not save its profile page**, which answered "Only admins can update organization profile" to everyone except the operator of the instance. Its "public profile" box also always loaded unchecked, so saving the page switched the listing off.
 - **In the visual builder, a change to a coefficient alone did not make a new checkpoint**, so restoring an older version afterwards lost that change with no copy of it.
 - **Two commits at the same moment could create a duplicate version** and count versions wrongly.
@@ -74,6 +75,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **Guessing a password in a fast burst got far more than five tries before the account locked**, because simultaneous failures overwrote each other's count. Every failed attempt now counts.
 - **Workspace invites by email were never sent, and their secret link was written to the server log.** Anyone in the organization who could read the log could join with the invite's role. The link is now emailed and never logged, and only the invited address can accept it.
 - **Forum sign-in trusted an email address JAOT had not verified**, so someone who signed up with another person's address could claim that person's forum account. The forum now checks such an address itself.
 - **The monthly AI budget could be bypassed by deleting conversations.** The budget added up the cost stored on each message, so deleting a chat (or an account) took its cost off the month. Chatting and deleting could spend without limit. Deleted spend now keeps counting, with no link to the person.

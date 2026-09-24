@@ -206,3 +206,31 @@ class TestAuthErrorsNameThemselves:
         resp = test_client.post("/api/v2/auth/verify-email", json={"token": "not-a-jwt"})
         assert resp.status_code == 400
         assert resp.json()["code"] == "auth.verification_link_invalid"
+
+
+class TestEveryFailedAttemptCounts:
+    """# CONTRACT-TEST: the failed-login counter is incremented in the database, not in Python.
+
+    Each wrong-password request read the counter, spent ~20 ms in argon2, and
+    wrote back its own value plus one, so guesses sent together overwrote each
+    other and a burst bought far more than five guesses.
+    """
+
+    def test_a_count_raised_elsewhere_is_not_overwritten(
+        self, test_client, lockout_user, db_session, db_engine
+    ):
+        from sqlalchemy import text
+
+        # Another request raised the count after this session loaded the user.
+        with db_engine.connect() as other:
+            other.execute(
+                text("UPDATE users SET failed_login_attempts = 3 WHERE id = :id"),
+                {"id": lockout_user.id},
+            )
+            other.commit()
+
+        response = _login(test_client, lockout_user.email, WRONG_PASSWORD)
+        assert response.status_code == 401
+
+        db_session.expire_all()
+        assert db_session.get(User, lockout_user.id).failed_login_attempts == 4

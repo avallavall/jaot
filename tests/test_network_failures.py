@@ -75,6 +75,8 @@ class TestRedisFailureFallback:
             mock_pipeline = MagicMock()
             mock_pipeline.zremrangebyscore.side_effect = ConnectionError("Redis down")
             mock_redis.pipeline.return_value = mock_pipeline
+            # The limiter checks and records in one server-side script now.
+            mock_redis.eval.side_effect = ConnectionError("Redis down")
             mock_redis.__bool__ = lambda self: True  # truthiness check
 
             rl._redis_client = mock_redis

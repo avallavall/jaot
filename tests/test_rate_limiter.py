@@ -199,42 +199,59 @@ def test_rate_limiter_fallback_mode():
 
 
 def test_rate_limiter_redis_backend_calls():
-    """Mock the Redis client and verify sorted-set commands are called."""
+    """The Redis path checks and records in ONE server-side script call.
+
+    It was two pipelines (count, then add), which let requests arriving
+    together all count the same free slots.
+    """
     mock_redis = MagicMock()
-    mock_pipe = MagicMock()
-    mock_pipe2 = MagicMock()
+    mock_redis.eval.return_value = [2, 0, 0]  # recorded; 0 in each window before
 
-    # Pipeline for the read phase
-    mock_pipe.execute.return_value = [
-        0,  # zremrangebyscore minute
-        0,  # zremrangebyscore day
-        0,  # zcard minute
-        0,  # zcard day
-    ]
-    # Pipeline for the write phase
-    mock_pipe2.execute.return_value = [True, True, True, True]
-
-    # First call returns read pipeline, second returns write pipeline
-    mock_redis.pipeline.side_effect = [mock_pipe, mock_pipe2]
-
-    # Temporarily inject mock Redis client
     rl_module._redis_client = mock_redis
     rl_module._fallback_mode = False
 
     try:
         allowed, info = check_rate_limit("org_redis", 10, 100)
         assert allowed is True
-
-        # Verify sorted-set commands were called on the read pipeline
-        mock_pipe.zremrangebyscore.assert_called()
-        mock_pipe.zcard.assert_called()
-        mock_pipe.execute.assert_called_once()
-
-        # Verify write pipeline recorded the request
-        mock_pipe2.zadd.assert_called()
-        mock_pipe2.expire.assert_called()
-        mock_pipe2.execute.assert_called_once()
+        assert mock_redis.eval.call_count == 1
+        script, numkeys, minute_key, day_key = mock_redis.eval.call_args.args[:4]
+        assert "ZCARD" in script and "ZADD" in script
+        assert numkeys == 2
+        assert (minute_key, day_key) == ("rl:org_redis:min", "rl:org_redis:day")
+        mock_redis.pipeline.assert_not_called()
     finally:
+        rl_module._redis_client = None
+        rl_module._fallback_mode = True
+
+
+def test_concurrent_requests_cannot_share_the_last_slots():
+    """# CONTRACT-TEST: the Redis limiter admits exactly `limit` of a simultaneous burst.
+
+    Runs against a real Redis when one is reachable (the dev stack has one; CI
+    does not, and there the in-memory limiter is what runs).
+    """
+    import concurrent.futures
+    import os
+
+    import redis
+
+    url = os.environ.get("RATE_LIMIT_TEST_REDIS_URL", "redis://jaot_redis:6379/15")
+    try:
+        client = redis.Redis.from_url(url, socket_connect_timeout=1)
+        client.ping()
+    except Exception:
+        pytest.skip("no Redis reachable for the concurrency check")
+
+    key = f"burst_{os.getpid()}"
+    client.delete(f"rl:{key}:min", f"rl:{key}:day")
+    rl_module._redis_client = client
+    rl_module._fallback_mode = False
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=30) as pool:
+            verdicts = list(pool.map(lambda _: check_rate_limit(key, 1000, 10)[0], range(30)))
+        assert verdicts.count(True) == 10
+    finally:
+        client.delete(f"rl:{key}:min", f"rl:{key}:day")
         rl_module._redis_client = None
         rl_module._fallback_mode = True
 
