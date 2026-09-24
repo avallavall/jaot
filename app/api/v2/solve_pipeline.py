@@ -23,6 +23,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.v2._solver_limits import compute_celery_time_limits, resolve_solver_time_limit
@@ -95,6 +96,20 @@ _sync_wait_slots = threading.BoundedSemaphore(_SYNC_WAIT_CAP)
 
 
 _NEAR_ZERO = 1e-9
+
+
+class IdempotentSolveRaced(Exception):
+    """Another request with the same Idempotency-Key created the execution first.
+
+    Both requests missed the replay lookup and both inserted the row the key
+    maps to. The loser rolled back and enqueued anyway: the solve ran twice,
+    and the second run's result was written to no row. The caller attaches to
+    the winner's solve instead.
+    """
+
+    def __init__(self, execution_id: str) -> None:
+        super().__init__(execution_id)
+        self.execution_id = execution_id
 
 
 class EnqueuedSolve:
@@ -439,6 +454,15 @@ def enqueue_async_solve(
     try:
         db.commit()
         pending_committed = True
+    except IntegrityError:
+        db.rollback()
+        if execution_id_override is not None:
+            raise IdempotentSolveRaced(execution_id) from None
+        logger.warning(
+            "Failed to commit pending ModelExecution %s before enqueue",
+            execution_id,
+            exc_info=True,
+        )
     except Exception:
         # Best-effort (mirrors the historic behavior): a duplicate id from a racing
         # idempotent retry, or a transient DB error, must not fail an otherwise-valid

@@ -80,6 +80,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Large problems always failed on the advanced assistant model.** The step that splits a big problem into parts read the model's thinking as its answer.
 - **AI spend on a reply that did not finish was not counted.** A failed retry, a reply that did not validate, or a user who pressed Stop or closed the tab was billed by Anthropic and missing from the budget.
 - **Changing the AI budget took up to a minute to apply.** It now applies at once on the server that received the change.
+- **Two `/solve` calls with the same `Idempotency-Key` at the same moment could solve the model twice.** The second one now waits for the first one's result.
 - **"Remember me" ended after 7 days without a visit instead of 30.** Each token refresh gave the short lifetime. A deactivated account could also keep refreshing its session.
 - **Asking for page 0 of the API keys, or a negative offset or limit on the builder and version lists, gave a server error.** It now gives a validation error that says what is wrong.
 - **The general worker restarted every 30 minutes while any new user's onboarding email was waiting**, and the tasks it was running at that moment ran a second time. The emails for days 1, 3 and 14 waited inside the worker, which RabbitMQ does not allow past 30 minutes. They are now sent by an hourly job, and an account deleted or deactivated before the email is due no longer gets it.

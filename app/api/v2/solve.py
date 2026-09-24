@@ -19,6 +19,7 @@ from app.api.deps import (
 from app.api.v2._access import execution_or_404
 from app.api.v2.deps.solve_maintenance_gate import solve_maintenance_gate
 from app.api.v2.solve_pipeline import (
+    IdempotentSolveRaced,
     _enqueue_multi_objective_async,
     apply_solution_filter,
     enqueue_async_solve,
@@ -151,46 +152,39 @@ def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
             .first()
         )
         if existing is not None:
-            # NEW under async-under-the-hood: the pending row exists from enqueue
-            # time, so an idempotent retry can race the original IN FLIGHT.
-            # Attach to its task instead of reporting a bogus incomplete result.
-            if existing.status in ("pending", "running") and existing.celery_task_id:
-                return apply_solution_filter(
-                    _attach_to_inflight_execution(db=db, org=org, existing=existing),
-                    solution_filter,
-                )
-            rd = existing.result_data or {}
-            # Default to ERROR on missing status: a cached execution with no
-            # solver_status in result_data is by definition incomplete (the
-            # task crashed before persisting), and returning a fake "optimal"
-            # would mask the failure on retry.
-            return apply_solution_filter(
-                OptimizationResult(
-                    status=SolverStatus(rd.get("solver_status", SolverStatus.ERROR.value)),
-                    objective_value=rd.get("objective_value"),
-                    solution=rd.get("model"),
-                    solve_time_seconds=rd.get("solve_time_seconds", 0.0),
-                    gap=rd.get("gap"),
-                    error_message=existing.error_message,
-                    execution_id=existing.id,
-                ),
-                solution_filter,
-            )
+            return _answer_idempotent_replay(db, org, existing, solution_filter)
 
-    enqueued = enqueue_async_solve(
-        db=db,
-        org=org,
-        user=getattr(request.state, "user", None),
-        problem=problem,
-        workspace_id=workspace_member.workspace_id if workspace_member else None,
-        solver_name_param=solver_name,
-        origin=origin,
-        source_kind=source_kind,
-        source_id=source_id,
-        dataset_id=None,
-        execution_id_override=idem_exe_id,
-        parser=solver.parser,
-    )
+    try:
+        enqueued = enqueue_async_solve(
+            db=db,
+            org=org,
+            user=getattr(request.state, "user", None),
+            problem=problem,
+            workspace_id=workspace_member.workspace_id if workspace_member else None,
+            solver_name_param=solver_name,
+            origin=origin,
+            source_kind=source_kind,
+            source_id=source_id,
+            dataset_id=None,
+            execution_id_override=idem_exe_id,
+            parser=solver.parser,
+        )
+    except IdempotentSolveRaced as raced:
+        # The request this one raced committed the row first: answer from it.
+        winner = (
+            db.query(ModelExecution)
+            .filter(
+                ModelExecution.id == raced.execution_id,
+                ModelExecution.organization_id == org.id,
+            )
+            .first()
+        )
+        if winner is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The solve could not be recorded. Please retry shortly.",
+            ) from None
+        return _answer_idempotent_replay(db, org, winner, solution_filter)
     payload = wait_for_task(enqueued.task)
     if payload is None:
         return JSONResponse(
@@ -212,6 +206,37 @@ def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
             solver_used=enqueued.effective_solver,
             auto_route_reason=enqueued.auto_route_reason,
             fallback_triggered=enqueued.fallback_triggered,
+        ),
+        solution_filter,
+    )
+
+
+def _answer_idempotent_replay(
+    db: Session, org: Organization, existing: ModelExecution, solution_filter: str | None
+) -> Any:
+    """Answer a request whose Idempotency-Key already has an execution."""
+    # NEW under async-under-the-hood: the pending row exists from enqueue
+    # time, so an idempotent retry can race the original IN FLIGHT.
+    # Attach to its task instead of reporting a bogus incomplete result.
+    if existing.status in ("pending", "running") and existing.celery_task_id:
+        return apply_solution_filter(
+            _attach_to_inflight_execution(db=db, org=org, existing=existing),
+            solution_filter,
+        )
+    rd = existing.result_data or {}
+    # Default to ERROR on missing status: a cached execution with no
+    # solver_status in result_data is by definition incomplete (the
+    # task crashed before persisting), and returning a fake "optimal"
+    # would mask the failure on retry.
+    return apply_solution_filter(
+        OptimizationResult(
+            status=SolverStatus(rd.get("solver_status", SolverStatus.ERROR.value)),
+            objective_value=rd.get("objective_value"),
+            solution=rd.get("model"),
+            solve_time_seconds=rd.get("solve_time_seconds", 0.0),
+            gap=rd.get("gap"),
+            error_message=existing.error_message,
+            execution_id=existing.id,
         ),
         solution_filter,
     )
