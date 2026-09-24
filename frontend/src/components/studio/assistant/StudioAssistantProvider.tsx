@@ -192,7 +192,14 @@ export function StudioAssistantProvider({ store, children }: StudioAssistantProv
   // never a raw upstream string). The request id is appended so users can cite it.
   useEffect(() => {
     const code = stream.errorCode;
-    if (!code || code === lastErrorRef.current) return;
+    // A new send clears the code. Forgetting the last one then is what lets the
+    // next failure show: kept, it hid every later error with the same code, and
+    // the user's message sat there with no answer and no error.
+    if (!code) {
+      lastErrorRef.current = null;
+      return;
+    }
+    if (code === lastErrorRef.current) return;
     lastErrorRef.current = code;
     const localizedError = tChat(resolveErrorKey(code));
     setMessages((prev) => [

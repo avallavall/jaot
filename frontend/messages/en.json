@@ -1699,7 +1699,8 @@
         "internalError": "Something went wrong on our side. Please try again.",
         "validationFailed": "Your formulation could not be validated. Please review it and try again.",
         "contentModeration": "Your message was rejected by content moderation. Please rephrase and try again.",
-        "parametricUnsupported": "Parametric formulations are not yet supported for this action."
+        "parametricUnsupported": "Parametric formulations are not yet supported for this action.",
+        "assistantPaused": "The AI assistant is taking a short break: this platform's monthly AI budget has been reached. It will be back at the start of next month."
       },
       "validation": {
         "errors": "{count, plural, one {# error} other {# errors}}"

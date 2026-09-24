@@ -1682,7 +1682,8 @@
         "internalError": "Es ist ein interner Fehler aufgetreten. Bitte versuchen Sie es erneut.",
         "validationFailed": "Ihre Formulierung konnte nicht validiert werden. Überprüfen Sie sie und versuchen Sie es erneut.",
         "contentModeration": "Ihre Nachricht wurde von der Inhaltsmoderation abgelehnt. Formulieren Sie sie um und versuchen Sie es erneut.",
-        "parametricUnsupported": "Parametrische Formulierungen werden für diese Aktion noch nicht unterstützt."
+        "parametricUnsupported": "Parametrische Formulierungen werden für diese Aktion noch nicht unterstützt.",
+        "assistantPaused": "Der KI-Assistent macht eine Pause: Das monatliche KI-Budget dieser Plattform ist erreicht. Er ist zu Beginn des nächsten Monats wieder da."
       },
       "validation": {
         "errors": "{count, plural, one {# Fehler} other {# Fehler}}"

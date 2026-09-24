@@ -5,6 +5,7 @@ import type { Formulation, ValidationError, SSEEvent } from "@/lib/llm-types";
 import {
   isLLMErrorCode,
   isLLMStatusCode,
+  preStreamErrorCode,
   type LLMErrorCode,
   type LLMStatusCode,
 } from "@/lib/llm-event-codes";
@@ -150,16 +151,11 @@ export function useFormulationStream(conversationId: string): FormulationStreamS
         );
 
         if (!response.ok) {
-          // Pre-stream failures (429, 5xx) emit no SSE events, so map status → stable code.
-          // Other statuses fall back to internal_error; never surface raw response body to avoid
-          // leaking upstream detail (Anthropic errors, DB errors, etc.).
+          // Pre-stream refusals emit no SSE events, so map status and reason to a stable
+          // code. The body's wording never reaches the page (it can carry upstream detail).
           const requestIdHeader = response.headers.get("x-request-id");
           setRequestId(requestIdHeader);
-          if (response.status === 429 || response.status >= 500) {
-            setErrorCode("service_unavailable");
-          } else {
-            setErrorCode("internal_error");
-          }
+          setErrorCode(await preStreamErrorCode(response));
           setStreaming(false);
           return;
         }

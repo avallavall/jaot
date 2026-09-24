@@ -1682,7 +1682,8 @@
         "internalError": "Une erreur interne s'est produite. Veuillez réessayer.",
         "validationFailed": "Votre formulation n'a pas pu être validée. Vérifiez-la et réessayez.",
         "contentModeration": "Votre message a été rejeté par la modération. Reformulez-le et réessayez.",
-        "parametricUnsupported": "Les formulations paramétriques ne sont pas encore prises en charge pour cette action."
+        "parametricUnsupported": "Les formulations paramétriques ne sont pas encore prises en charge pour cette action.",
+        "assistantPaused": "L'assistant IA fait une pause : le budget IA mensuel de cette plateforme est atteint. Il reviendra au début du mois prochain."
       },
       "validation": {
         "errors": "{count, plural, one {# erreur} other {# erreurs}}"

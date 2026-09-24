@@ -1682,7 +1682,8 @@
         "internalError": "Ha ocorregut un error intern. Torneu-ho a provar.",
         "validationFailed": "No s'ha pogut validar la vostra formulació. Reviseu-la i torneu-ho a provar.",
         "contentModeration": "El vostre missatge ha estat rebutjat pel filtre de contingut. Reformuleu-lo i torneu-ho a provar.",
-        "parametricUnsupported": "Les formulacions paramètriques encara no s'admeten per a aquesta acció."
+        "parametricUnsupported": "Les formulacions paramètriques encara no s'admeten per a aquesta acció.",
+        "assistantPaused": "L'assistent d'IA es pren un descans: s'ha arribat al pressupost mensual d'IA d'aquesta plataforma. Tornarà a principis del mes que ve."
       },
       "validation": {
         "errors": "{count, plural, one {# error} other {# errors}}"

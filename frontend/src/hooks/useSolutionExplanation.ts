@@ -6,6 +6,7 @@ import type { SSEEvent } from "@/lib/llm-types";
 import {
   isLLMErrorCode,
   isLLMStatusCode,
+  preStreamErrorCode,
   type LLMErrorCode,
   type LLMStatusCode,
 } from "@/lib/llm-event-codes";
@@ -147,11 +148,7 @@ export function useSolutionExplanation(): SolutionExplanationState {
 
         if (!response.ok) {
           setRequestId(response.headers.get("x-request-id"));
-          if (response.status === 429 || response.status >= 500) {
-            setErrorCode("service_unavailable");
-          } else {
-            setErrorCode("internal_error");
-          }
+          setErrorCode(await preStreamErrorCode(response));
           setStreaming(false);
           return;
         }

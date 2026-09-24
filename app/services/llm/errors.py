@@ -56,6 +56,10 @@ class LLMErrorCode(str, Enum):
     VALIDATION_FAILED = "validation_failed"
     CONTENT_MODERATION = "content_moderation"
     PARAMETRIC_UNSUPPORTED = "parametric_unsupported"
+    # The platform's monthly AI budget is spent. Sent as a 403 before any
+    # stream starts; the client names it instead of "something went wrong on
+    # our side", which sent users retrying for the rest of the month.
+    ASSISTANT_PAUSED = "assistant_paused"
 
     # --- Internal (generic message to user, detail in logs) ---
     SERVICE_UNAVAILABLE = "service_unavailable"
@@ -67,6 +71,7 @@ PUBLIC_CODES: frozenset[LLMErrorCode] = frozenset(
         LLMErrorCode.VALIDATION_FAILED,
         LLMErrorCode.CONTENT_MODERATION,
         LLMErrorCode.PARAMETRIC_UNSUPPORTED,
+        LLMErrorCode.ASSISTANT_PAUSED,
     }
 )
 
