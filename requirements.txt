@@ -17,9 +17,6 @@ psycopg2-binary>=2.9.12
 # Migrations
 alembic>=1.18.5
 
-# Payments
-stripe>=15.3.0                     # v13: stripe.error.X → stripe.X; v15: StripeObject not dict
-
 # Redis (rate limiting, Celery result backend)
 redis>=8.0.1                       # redis-py 8.x; compatible with Redis server 5+; server compat + patches
 
