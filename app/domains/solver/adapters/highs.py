@@ -25,6 +25,7 @@ from app.domains.solver.adapters.base import (
 )
 from app.domains.solver.constraint_activity import is_binding_within_bounds
 from app.domains.solver.sensitivity_values import publishable_value
+from app.domains.solver.services._naming import constraint_label
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -588,7 +589,7 @@ class HiGHSAdapter(CachedVersion):
                     logger.debug("No binding status for constraint %s: %s", constraint.name, exc)
             constraint_sens.append(
                 ConstraintSensitivity(
-                    name=constraint.name or f"c{i}",
+                    name=constraint_label(constraint.name, i),
                     shadow_price=shadow_price,
                     is_binding=is_binding,
                     is_approximate=False,

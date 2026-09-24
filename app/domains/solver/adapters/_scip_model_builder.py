@@ -20,6 +20,7 @@ from app.domains.solver.adapters._scip_expression import (
     set_scip_objective,
 )
 from app.domains.solver.adapters.base import binary_bounds
+from app.domains.solver.services._naming import constraint_label
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import (
     Constraint,
@@ -102,7 +103,7 @@ def add_constraints(
             constraint.expression,
             known_variables=variable_names,
         )
-        name = constraint.name or f"c{i}"
+        name = constraint_label(constraint.name, i)
         lhs_expr = anchor_constant_expr(
             build_scip_expression(parsed.lhs, scip_vars), scip_vars, label=name
         )

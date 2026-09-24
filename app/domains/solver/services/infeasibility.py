@@ -32,6 +32,7 @@ from __future__ import annotations
 import logging
 import time
 
+from app.domains.solver.services._naming import constraint_label
 from app.domains.solver.services.solver_service import SolverService
 from app.schemas.optimization import (
     InfeasibilityAnalysis,
@@ -57,9 +58,9 @@ _Item = tuple[str, object]
 
 
 def _constraint_name(problem: OptimizationProblem, index: int) -> str:
-    """Stable display name for a constraint, matching the adapter's ``c{i}`` fallback."""
+    """Stable display name for a constraint, the same one every adapter uses."""
     name = problem.constraints[index].name
-    return name if name else f"c{index}"
+    return constraint_label(name, index)
 
 
 def _bound_label(problem: OptimizationProblem, item: _BoundItem) -> str:

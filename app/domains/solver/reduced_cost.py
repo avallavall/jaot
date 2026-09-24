@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from app.domains.solver.services._naming import constraint_label
 from app.domains.solver.services.expression_parser import ExpressionParser
 from app.schemas.optimization import OptimizationProblem
 
@@ -69,8 +70,8 @@ def derive_reduced_costs(
         return {}
 
     reduced: dict[str, float] = {name: costs.get(name, 0.0) for name in names}
-    for constraint in problem.constraints:
-        dual = shadow_prices.get(constraint.name)
+    for index, constraint in enumerate(problem.constraints):
+        dual = shadow_prices.get(constraint_label(constraint.name, index))
         if dual is None:
             return {}
         if dual == 0.0:

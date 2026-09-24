@@ -220,3 +220,43 @@ def test_scientific_notation_is_a_number_not_a_variable() -> None:
     assert len(errors) == 1
     assert "ghost" in errors[0]
     assert "'e'" not in errors[0]
+
+
+def _rows(named: bool) -> list[Constraint]:
+    expressions = ["x + y <= 4", "x <= 100", "y <= 50"]
+    return [
+        Constraint(name=f"row{i}" if named else None, expression=expression)
+        for i, expression in enumerate(expressions)
+    ]
+
+
+@pytest.mark.parametrize("integer", [False, True])
+def test_an_unnamed_row_gets_its_own_binding_flag_and_price(integer) -> None:
+    """Unnamed rows were read one position off: c0 in one place, c1 in another.
+
+    SCIP's MIP binding flags then described the row before, and the reduced
+    costs found no price for any unnamed row.
+    """
+    kind = VariableType.INTEGER if integer else VariableType.CONTINUOUS
+
+    def solve(named: bool):
+        problem = OptimizationProblem(
+            variables=[
+                Variable(name="x", type=kind, lower_bound=0),
+                Variable(name="y", type=kind, lower_bound=0),
+            ],
+            objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="y - x"),
+            constraints=_rows(named),
+        )
+        return SCIPAdapter().solve(problem).sensitivity
+
+    named, unnamed = solve(True), solve(False)
+    assert [c.name for c in unnamed.constraints] == ["c1", "c2", "c3"]
+    assert [c.is_binding for c in unnamed.constraints] == [True, False, False]
+    assert [c.is_binding for c in unnamed.constraints] == [c.is_binding for c in named.constraints]
+    assert [c.shadow_price for c in unnamed.constraints] == [
+        c.shadow_price for c in named.constraints
+    ]
+    assert {v.name: v.reduced_cost for v in unnamed.variables} == {
+        v.name: v.reduced_cost for v in named.variables
+    }

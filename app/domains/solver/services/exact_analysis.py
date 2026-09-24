@@ -19,6 +19,7 @@ rather than a slow request.
 """
 
 from app.domains.solver.constraint_activity import BINDING_EPS, activity_of, constraint_slack
+from app.domains.solver.services._naming import constraint_label
 from app.domains.solver.services.expression_parser import ExpressionParser, ParseError
 from app.schemas.optimization import (
     Constraint,
@@ -100,7 +101,7 @@ def compute_exact_analysis(
         utilization = activity / rhs if op in ("<=", "<") and abs(rhs) > 1e-12 else None
         rows.append(
             ConstraintUtilization(
-                name=constraint.name or f"c{i + 1}",
+                name=constraint_label(constraint.name, i),
                 activity=activity,
                 rhs=rhs,
                 operator=op,

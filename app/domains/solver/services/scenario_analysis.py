@@ -32,6 +32,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from app.domains.solver.services._naming import constraint_label
 from app.domains.solver.services.exact_analysis import compute_exact_analysis
 from app.domains.solver.services.expression_parser import (
     ExpressionParser,
@@ -197,7 +198,7 @@ def _plan_rhs_scenarios(
     """
     by_name: dict[str, Constraint] = {}
     for i, constraint in enumerate(problem.constraints):
-        by_name.setdefault(constraint.name or f"c{i + 1}", constraint)
+        by_name.setdefault(constraint_label(constraint.name, i), constraint)
 
     relax: list[_RhsPlan] = []
     tighten: list[_RhsPlan] = []

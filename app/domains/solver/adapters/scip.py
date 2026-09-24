@@ -39,6 +39,7 @@ from app.domains.solver.constraint_activity import (
 )
 from app.domains.solver.reduced_cost import derive_reduced_costs
 from app.domains.solver.sensitivity_values import publishable_value
+from app.domains.solver.services._naming import constraint_label
 from app.domains.solver.services.expression_parser import ExpressionParser, ParsedExpression
 from app.schemas.optimization import (
     ConstraintSensitivity,
@@ -435,7 +436,7 @@ class SCIPAdapter(CachedVersion):
                 constraint.expression,
                 known_variables=variable_names,
             )
-            name = constraint.name or f"c{i}"
+            name = constraint_label(constraint.name, i)
             # Anchor a constant LHS (no variable terms) so addCons never gets a Python
             # bool — the "given constraint is not ExprCons but bool" crash. Shared with
             # the file-export/stats builder via _scip_expression.anchor_constant_expr.
@@ -531,7 +532,7 @@ class SCIPAdapter(CachedVersion):
         known = set(solution)
         out: dict[str, bool] = {}
         for i, constraint in enumerate(problem.constraints):
-            name = constraint.name or f"c{i + 1}"
+            name = constraint_label(constraint.name, i)
             try:
                 parsed = self._parser.parse_constraint(constraint.expression, known)
             except Exception:  # noqa: BLE001 — an unparseable row gets no claim
@@ -812,7 +813,7 @@ class SCIPAdapter(CachedVersion):
                 known_variables=variable_names,
             )
             lhs_expr = self._build_expression(parsed.lhs, lp_vars)
-            name = constraint.name or f"c{i}"
+            name = constraint_label(constraint.name, i)
 
             cons = self._add_cons_for_operator(
                 lp_model, parsed.operator, lhs_expr, parsed.rhs, name

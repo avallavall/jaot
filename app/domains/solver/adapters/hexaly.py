@@ -58,6 +58,7 @@ from app.domains.solver.adapters.base import (
     SolverError,
     binary_bounds,
 )
+from app.domains.solver.services._naming import constraint_label
 from app.domains.solver.services.expression_parser import (
     ExpressionParser,
     ParsedExpression,
@@ -317,7 +318,7 @@ class HexalyAdapter(CachedVersion):
                             hex_vars,
                             constraint,
                             known_variables,
-                            default_name=f"c{i}",
+                            default_name=constraint_label(None, i),
                         )
 
                     model.close()
