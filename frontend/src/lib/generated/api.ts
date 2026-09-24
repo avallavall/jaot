@@ -4490,11 +4490,10 @@ export interface paths {
         put?: never;
         /**
          * Create an email invite (admin only)
-         * @description Create a single-use email invite for the specified address.
+         * @description Create a single-use email invite for the specified address and send it.
          *
          *     A 7-day expiry is set. The token is hashed and stored; the plaintext
-         *     is (conceptually) sent via email. For now email delivery is best-effort
-         *     and logged — configure EMAIL_BACKEND to send real emails.
+         *     travels only in the email, as the link to the join page.
          */
         post: operations["create_email_invite_api_v2_workspaces__workspace_id__invites_email_post"];
         delete?: never;
