@@ -51,6 +51,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Importing a file could produce a different model and solve it without a warning.** Two variables whose names differ only in punctuation (`x.1` and `x_1`) became one; the objective's constant was dropped; and a file with one quadratic row lost that row, the lower side of every two-sided row, and turned a coefficient of 0.00001 into -5. The first two are fixed. A file with rows JAOT cannot read is now refused and the message says how many and of what kind.
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
+### Security
+- **Anyone could block every password reset and email verification on the instance for a day.** The limit on those links was shared by all users, so a hundred junk requests used it up for everyone. Each link now has its own limit.
+
 ---
 
 ## [3.9.0] - 2026-09-01

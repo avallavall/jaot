@@ -298,3 +298,39 @@ def test_init_redis_bad_url():
     result = init_redis("redis://localhost:19999/0")
     assert result is False
     assert rl_module._fallback_mode is True
+
+
+# Every token JAOT signs starts with the same base64 header. The reset and
+# verification limits were keyed on the first 16 characters, which is exactly
+# that header, so one bucket served every user: junk requests from anyone
+# blocked every password reset and email verification on the instance.
+_SHARED_JWT_PREFIX = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+
+
+@pytest.mark.parametrize(
+    ("path", "setting", "body"),
+    [
+        (
+            "/api/v2/auth/reset-password",
+            "AUTH_RESET_TOKEN_RATE_LIMIT_PER_MINUTE",
+            {"password": "a-long-enough-password-1"},
+        ),
+        ("/api/v2/auth/verify-email", "AUTH_VERIFY_EMAIL_RATE_LIMIT_PER_MINUTE", {}),
+    ],
+)
+def test_junk_tokens_do_not_spend_another_users_link(client, db_session, path, setting, body):
+    PSS.set(db_session, setting, "3")
+    db_session.commit()
+    clear()
+
+    junk = [
+        client.post(path, json={**body, "token": f"{_SHARED_JWT_PREFIX}junk{i}.sig"}).status_code
+        for i in range(6)
+    ]
+    assert 429 not in junk, f"distinct tokens shared one bucket: {junk}"
+
+    same = [
+        client.post(path, json={**body, "token": f"{_SHARED_JWT_PREFIX}again.sig"}).status_code
+        for _ in range(5)
+    ]
+    assert same[-1] == 429, f"one token must still be limited: {same}"

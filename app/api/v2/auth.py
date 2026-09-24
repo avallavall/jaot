@@ -3,6 +3,7 @@
 Supports both API key auth (existing) and email/password auth (new).
 """
 
+import hashlib
 import logging
 import math
 import secrets
@@ -43,6 +44,17 @@ from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.request_helpers import get_client_ip
 
 logger = logging.getLogger(__name__)
+
+
+def _token_bucket(token: str) -> str:
+    """A rate-limit key that belongs to one token.
+
+    It was ``token[:16]``. Every token this service signs starts with the same
+    base64 header (``eyJhbGciOiJIUzI1``), so all users shared one bucket, and
+    a hundred junk requests blocked every password reset and every email
+    verification on the instance until midnight.
+    """
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()[:32]
 
 
 def _rate_limit_or_raise(key: str, limit_per_minute: int, limit_per_day: int) -> None:
@@ -531,7 +543,7 @@ def signup_email(
 def verify_email(body: VerifyEmailRequest, db: DBSession) -> SuccessResponse:
     """Verify user email with a token."""
     _rate_limit_or_raise(
-        f"verify_email:{body.token[:16]}",
+        f"verify_email:{_token_bucket(body.token)}",
         PSS.get_int(db, "AUTH_VERIFY_EMAIL_RATE_LIMIT_PER_MINUTE"),
         PSS.get_int(db, "AUTH_VERIFY_EMAIL_RATE_LIMIT_PER_DAY"),
     )
@@ -618,7 +630,7 @@ def forgot_password(body: ForgotPasswordRequest, db: DBSession) -> SuccessRespon
 def reset_password(body: ResetPasswordRequest, db: DBSession) -> SuccessResponse:
     """Reset password using a token."""
     _rate_limit_or_raise(
-        f"reset_password:{body.token[:16]}",
+        f"reset_password:{_token_bucket(body.token)}",
         PSS.get_int(db, "AUTH_RESET_TOKEN_RATE_LIMIT_PER_MINUTE"),
         PSS.get_int(db, "AUTH_RESET_TOKEN_RATE_LIMIT_PER_DAY"),
     )
