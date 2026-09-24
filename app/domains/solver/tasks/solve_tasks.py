@@ -651,6 +651,10 @@ def solve_model_async(
         # raising (SolverService.solve swallows exceptions into an ERROR result).
         # Mirror the historic sync contract: mark the row failed — a solve that
         # delivered no result must never look completed.
+        # Locked re-read before the terminal write (S6b), as solve_async does and
+        # as the cancel endpoints do. The unlocked read here let a cancel that
+        # committed during the solve be overwritten by "completed".
+        execution = execution_writer.refresh_locked(db, execution)
         if result.status == SolverStatus.ERROR:
             error_message = result.error_message or "Solver returned an error"
             execution.input_data = problem.model_dump(mode="json")
@@ -658,11 +662,11 @@ def solve_model_async(
                 execution.result_data = result.to_result_data()
                 execution.execution_time_ms = execution_time_ms
                 execution.solver_status = result.status.value
-            # A failed run counts too — otherwise the listing's success rate has
-            # no denominator and every model looks flawless.
-            ports.solve_events().listing_executed(
-                db, _listing_id_for(model), succeeded=False, execution_time_ms=None
-            )
+                # A failed run counts too — otherwise the listing's success rate
+                # has no denominator and every model looks flawless.
+                ports.solve_events().listing_executed(
+                    db, _listing_id_for(model), succeeded=False, execution_time_ms=None
+                )
             db.commit()
             SOLVE_TOTAL.labels(status="error", generator="model_async").inc()
             update_task_progress(1.0, "failed", error_message)
@@ -698,11 +702,20 @@ def solve_model_async(
         # Store rendered problem so parse_problem() / file-export works, then let
         # the single writer own the terminal-success columns (ADR-007 S3).
         execution.input_data = problem.model_dump(mode="json")
-        execution_writer.apply_completed(
+        if not execution_writer.apply_completed(
             execution,
             result=result,
             execution_time_seconds=execution_time_seconds,
-        )
+        ):
+            # Cancelled (or failed by the reaper) while it was solving. The
+            # row keeps that verdict, and nothing below may report a success.
+            db.commit()
+            logger.info(
+                "Execution %s was settled (%s) during the solve; result not stored",
+                execution_id,
+                execution.status,
+            )
+            return {"status": execution.status, "execution_id": execution_id, "task_id": task_id}
         SOLVE_TOTAL.labels(
             status=result.status.value,
             generator="model_async",
@@ -776,9 +789,11 @@ def solve_model_async(
         # execution is already marked cancelled we preserve the cancellation
         # state — a user cancellation is not a solver failure.
         if execution:
-            # Re-read to pick up status changes the cancel endpoint committed
-            # on another session while this task was running.
-            db.refresh(execution)
+            # Re-read, locked, to pick up a cancel the endpoint committed on
+            # another session while this task was running. The rollback first
+            # clears a session that the error itself may have left failed.
+            db.rollback()
+            execution = execution_writer.refresh_locked(db, execution)
 
             # The single writer's terminal-wins guard: apply_failed is a no-op
             # (returns False) when the row is already CANCELLED.

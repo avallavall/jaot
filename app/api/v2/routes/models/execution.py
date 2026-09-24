@@ -584,7 +584,17 @@ def cancel_model_execution(
     # the user-triggered cancellation. Locked re-read first (S6b): an unlocked
     # stale RUNNING here would clobber a COMPLETED the worker just committed.
     execution = execution_writer.refresh_locked(db, execution)
-    execution_writer.apply_cancelled(execution)
+    if not execution_writer.apply_cancelled(execution):
+        # Finished, or failed by the reaper, before the cancel reached it.
+        # Answering "cancelled" put that word over a run that had ended.
+        verdict, execution_id = execution.status, execution.id
+        db.rollback()
+        return ExecutionCancelResponse(
+            task_id=task_id,
+            execution_id=execution_id,
+            cancelled=False,
+            message=f"Execution already {verdict}, cannot cancel",
+        )
     try:
         db.commit()
     except Exception:

@@ -739,7 +739,16 @@ def cancel_async_task(
     # a solver failure. Locked re-read first (S6b): an unlocked stale RUNNING
     # here would clobber a COMPLETED the worker just committed.
     execution = execution_writer.refresh_locked(db, execution)
-    execution_writer.apply_cancelled(execution)
+    if not execution_writer.apply_cancelled(execution):
+        # Finished, or failed by the reaper, before the cancel reached it.
+        # Answering "cancelled" put that word over a run that had ended.
+        verdict = execution.status
+        db.rollback()
+        return AsyncSolveCancelResponse(
+            task_id=task_id,
+            cancelled=False,
+            message=f"Task already {verdict}, cannot cancel",
+        )
     try:
         db.commit()
     except Exception:
