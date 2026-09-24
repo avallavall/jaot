@@ -90,6 +90,11 @@ _VERDICTS: tuple[tuple[str, SolverStatus], ...] = (
     ("PROBLEM HAS NO INTEGER FEASIBLE SOLUTION", SolverStatus.INFEASIBLE),
     ("PROBLEM HAS NO PRIMAL FEASIBLE SOLUTION", SolverStatus.INFEASIBLE),
     ("PROBLEM HAS NO FEASIBLE SOLUTION", SolverStatus.INFEASIBLE),
+    # What the simplex prints after the presolver proves a pure LP infeasible.
+    # glpsol then says "unable to recover undefined or non-optimal solution" and
+    # writes UNDEFINED, so without this line an infeasible LP was reported as an
+    # error while the other four solvers said infeasible.
+    ("LP HAS NO PRIMAL FEASIBLE SOLUTION", SolverStatus.INFEASIBLE),
     ("INTEGER INFEASIBLE", SolverStatus.INFEASIBLE),
     # GLPK reports an unbounded model as "no dual feasible solution": the dual
     # of an unbounded primal is infeasible. Its own solution file only says

@@ -272,7 +272,6 @@ export default function SignupPage() {
                 id="tos-accept"
                 checked={tosAccepted}
                 onCheckedChange={(checked) => setTosAccepted(checked === true)}
-                required
               />
               <Label htmlFor="tos-accept" className="text-sm leading-tight font-normal">
                 {t.rich("signup.tosAgree", {
@@ -296,7 +295,10 @@ export default function SignupPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={!tosAccepted || loading}>
+            {/* Enabled with the box unticked on purpose: a disabled button said
+                nothing about why, and the "agree to the Terms" message in
+                handleSubmit could never show. */}
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? t("signup.creating") : t("signup.submit")}
             </Button>
           </form>

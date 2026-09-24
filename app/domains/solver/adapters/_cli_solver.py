@@ -209,7 +209,30 @@ def write_problem_lp(problem: OptimizationProblem, path: Path, *, solver_label: 
         )
     model.writeProblem(str(path), verbose=False)
     first_variable = model.getVars()[0].name if model.getVars() else None
+    if not model.getConss() and first_variable is not None:
+        _give_an_empty_model_a_row(path, first_variable)
     return _lift_constant_out_of_objective(path, first_variable)
+
+
+#: The row added to a model with no constraints. Its only term has coefficient 0,
+#: so it holds for every point and changes nothing about the model.
+_PLACEHOLDER_ROW = "_jaot_no_rows"
+
+
+def _give_an_empty_model_a_row(path: Path, first_variable: str) -> None:
+    """Put one always-true row under an empty "Subject to".
+
+    A model with bounds and no constraints is valid, and SCIP writes it with an
+    empty "Subject to" section. glpsol refuses that file ("missing variable
+    name" on the "Bounds" line), so GLPK reported an error where the other four
+    solvers solved the model (found comparing solvers, 2026-09-24).
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(lines):
+        if line.strip().lower() in ("subject to", "such that", "st", "s.t."):
+            lines.insert(index + 1, f" {_PLACEHOLDER_ROW}: 0 {first_variable} >= 0")
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            return
 
 
 def _lp_number(token: str) -> float | None:
@@ -337,8 +360,17 @@ def relative_gap(objective_value: float | None, dual_bound: float | None) -> flo
         return None
     if not math.isfinite(objective_value) or not math.isfinite(dual_bound):
         return None
-    denominator = max(abs(objective_value), 1e-10)
-    return abs(objective_value - dual_bound) / denominator
+    if abs(objective_value) < _ZERO:
+        # A gap relative to an answer of 0 has no value; SCIP's own reading is
+        # infinity. Dividing by a 1e-10 floor instead turned SCIP's first answer
+        # on a maximisation (take nothing, bound 37,325) into 3.7e14, and the
+        # comparer's gap chart drew its axis up to that (2026-09-25).
+        return 0.0 if abs(dual_bound) < _ZERO else None
+    return abs(objective_value - dual_bound) / abs(objective_value)
+
+
+#: Below this an objective or a bound counts as zero for the gap.
+_ZERO = 1e-10
 
 
 def parse_float(token: str) -> float | None:

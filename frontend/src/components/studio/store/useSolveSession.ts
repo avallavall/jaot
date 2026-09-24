@@ -223,11 +223,13 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
           const result = unwrapSolveResult(res);
           if (result) {
             stop();
-            const live = s.solveSession.points;
+            // The result's history is the complete one: it ends on the answer the
+            // run returned. The live stream stops at the last event the solver
+            // sent, so keeping it showed SCIP's 450 at a 7.78% gap under "Solved"
+            // for a run that proved 485 optimal (driving the studio, 2026-09-24).
+            const history = extractProgressHistory(result as unknown as Record<string, unknown>);
             const points: ProgressPoint[] =
-              live.length > 0
-                ? live
-                : extractProgressHistory(result as unknown as Record<string, unknown>);
+              history.length > 0 ? history : s.solveSession.points;
             s.finishSolveSession(result, points);
           } else if (++emptyCompleted >= 10) {
             // "completed" with no result payload is a transient server-side

@@ -78,3 +78,42 @@ describe("computeMetrics", () => {
     expect(computeMetrics(points, { objective: 5 }).nodes).toBeNull();
   });
 });
+
+// Found driving the studio on 2026-09-24: SCIP proved 485 optimal and the panel
+// kept its last live figures, 450 at a 7.78% gap, under "Solved".
+describe("computeMetrics once the run is over", () => {
+  const live = [
+    { iteration: 1, objective: 440, gap: 0.2, timestamp: 400 },
+    { iteration: 2, objective: 450, gap: 0.0778, timestamp: 900 },
+  ];
+
+  it("takes the objective, gap, nodes and time from the result", () => {
+    const m = computeMetrics(live, { node: 1 }, {
+      objective_value: 485,
+      gap: 0,
+      nodes: 12,
+      solve_time_seconds: 2.4,
+    });
+    expect(m).toMatchObject({ bestObjective: 485, gap: 0, nodes: 12, elapsedSeconds: 2.4 });
+  });
+
+  it("keeps the live figures for a field the result leaves out", () => {
+    const m = computeMetrics(live, { node: 7 }, { objective_value: 485 });
+    expect(m).toMatchObject({ bestObjective: 485, gap: 0.0778, nodes: 7 });
+  });
+
+  it("counts an incumbent only when the best objective changed", () => {
+    // JAOS also sends a point when only the bound moved.
+    const points = [
+      { iteration: 1, objective: 450, gap: 0.2, timestamp: 100 },
+      { iteration: 2, objective: 450, gap: 0.15, timestamp: 400 },
+      { iteration: 3, objective: 450, gap: 0.14, timestamp: 700 },
+      { iteration: 4, objective: 470, gap: 0.1, timestamp: 900 },
+    ];
+    expect(computeMetrics(points, null).incumbents).toBe(2);
+  });
+
+  it("uses the page clock while the run is live", () => {
+    expect(computeMetrics(live, null, null, 30.8).elapsedSeconds).toBe(30.8);
+  });
+});

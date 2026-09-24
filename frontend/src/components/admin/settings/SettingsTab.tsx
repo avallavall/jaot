@@ -36,7 +36,6 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
     SMTP_HOST: "SMTP Server",
     SMTP_PORT: "SMTP Server",
     SMTP_USER: "SMTP Server",
-    SMTP_PASSWORD: "SMTP Server",
     SMTP_TIMEOUT: "SMTP Server",
     SMTP_USE_TLS: "SMTP Server",
   },
@@ -46,6 +45,20 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: "JWT Tokens",
     JWT_REFRESH_TOKEN_REMEMBER_DAYS: "JWT Tokens",
     JWT_ALGORITHM: "JWT Tokens",
+    AUTH_MAX_ACTIVE_API_KEYS_PER_USER: "API Keys",
+    AUTH_LOGIN_RATE_LIMIT_PER_MINUTE: "Account Rate Limits",
+    AUTH_LOGIN_RATE_LIMIT_PER_DAY: "Account Rate Limits",
+    AUTH_SIGNUP_RATE_LIMIT_PER_MINUTE: "Account Rate Limits",
+    AUTH_SIGNUP_RATE_LIMIT_PER_DAY: "Account Rate Limits",
+    AUTH_VERIFY_EMAIL_RATE_LIMIT_PER_MINUTE: "Account Rate Limits",
+    AUTH_VERIFY_EMAIL_RATE_LIMIT_PER_DAY: "Account Rate Limits",
+    AUTH_PASSWORD_RESET_RATE_LIMIT_PER_HOUR: "Account Rate Limits",
+    AUTH_RESET_TOKEN_RATE_LIMIT_PER_MINUTE: "Account Rate Limits",
+    AUTH_RESET_TOKEN_RATE_LIMIT_PER_DAY: "Account Rate Limits",
+  },
+  app: {
+    APP_NAME: "Instance",
+    APP_VERSION: "Instance",
   },
   // Without these the prefix fallback below produces "Instance Rate",
   // "Instance Max", "Home Announcement" — the key's spelling, not a heading.
@@ -62,7 +75,6 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
   system: {
     MAINTENANCE_MODE: "Maintenance",
     SOLVE_MAINTENANCE_MODE: "Maintenance",
-    JAOT_DSL: "Feature Flags",
     HOME_ANNOUNCEMENT_ENABLED: "Announcement Banner",
     HOME_ANNOUNCEMENT_ROTATION_SECONDS: "Announcement Banner",
     HOME_ANNOUNCEMENT_TEXT_EN: "Announcement Banner",
@@ -77,7 +89,6 @@ const SETTING_GROUPS: Record<string, Record<string, string>> = {
   },
   solver: {
     SOLVER_DEFAULT_TIMEOUT: "Solving",
-    SOLVER_POOL_SIZE: "Solving",
     hexaly_default_time_limit_seconds: "Solving",
     dsl_max_grounded_elements: "Solving",
     EXECUTION_REAPER_PENDING_MAX_SECONDS: "Stuck Executions",
@@ -119,10 +130,15 @@ function getGroupName(entry: RegistryEntry): string {
     return categoryMap[entry.key];
   }
 
-  // Fallback: derive group from key prefix (first segment before _)
+  // Fallback for a key with no entry above: its first two words, in title case.
+  // Keys are UPPER_SNAKE, so capitalising alone printed "AUTH MAX" as a heading.
+  // tests/test_admin_settings_groups.py fails when a key reaches this line.
   const parts = entry.key.split("_");
   if (parts.length >= 2) {
-    return parts.slice(0, 2).join(" ").replace(/\b\w/g, (c) => c.toUpperCase());
+    return parts
+      .slice(0, 2)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   }
   return entry.key;
 }

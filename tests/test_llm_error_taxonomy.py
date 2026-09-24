@@ -62,6 +62,34 @@ class TestClassifyAnthropicError:
         assert code is LLMErrorCode.SERVICE_UNAVAILABLE
         assert kind == "quota_exhausted"
 
+    # CONTRACT-TEST: the reply Anthropic actually sends for an empty account.
+    # The test above invented a snake_case token the real reply does not carry,
+    # so it passed while every real exhaustion was filed as `api_error` and the
+    # quota alert never fired (captured from a local run, 2026-09-25).
+    def test_quota_exhausted_detected_from_the_real_reply(self):
+        import anthropic
+        import httpx
+
+        from app.services.llm.errors import LLMErrorCode, classify_anthropic_error
+
+        body = {
+            "type": "error",
+            "error": {
+                "type": "invalid_request_error",
+                "message": "Your credit balance is too low to access the Anthropic API. "
+                "Please go to Plans & Billing to upgrade or purchase credits.",
+            },
+            "request_id": "req_011CfP3y2225L3qkjwdRdhuy",
+        }
+        request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+        response = httpx.Response(400, request=request, json=body)
+        exc = anthropic.BadRequestError(
+            "Error code: 400 - " + str(body), response=response, body=body
+        )
+        code, kind = classify_anthropic_error(exc)
+        assert code is LLMErrorCode.SERVICE_UNAVAILABLE
+        assert kind == "quota_exhausted"
+
     def test_rate_limit_error_maps_to_service_unavailable(self):
         import anthropic
 

@@ -21,8 +21,8 @@
  *  - CBC prints the same thing in its log, with the clock. It is drawn.
  *  - JAOS reports through a callback, with the clock. The adapter records a
  *    point at each new incumbent. Between incumbents it records a point when
- *    the bound moves, at most one every 0.25 s. A last point at the final
- *    answer closes the trace. It is drawn.
+ *    the bound moves, at most one every 0.25 s, and one every 2 s when nothing
+ *    moves. A last point at the final answer closes the trace. It is drawn.
  *  - GLPK prints a trace with no clock in it, only an iteration number. There is
  *    no honest way to put that on an axis of seconds beside the others.
  *  - HiGHS says nothing at all while it searches.
@@ -70,6 +70,10 @@ function ran(result: ComparisonSolverResult): boolean {
  * claim the solver knew something it did not.
  */
 export function gapOf(point: ProgressTracePoint): number | null {
+  // The rule above holds whoever computed the number. Traces stored before
+  // 2026-09-25 carry a finite gap for an answer of zero (the backend divided
+  // by 1e-10), and one such point stretched the axis to 3,000,000,000,000%.
+  if (point.objective === 0 && point.gap !== 0) return null;
   if (point.gap != null && Number.isFinite(point.gap) && point.gap >= 0) return point.gap;
   const bound = point.dual_bound;
   if (bound == null || !Number.isFinite(bound)) return null;

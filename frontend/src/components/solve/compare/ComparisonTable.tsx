@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { solverDisplayName } from "@/lib/solver-display";
 import { cn } from "@/lib/utils";
 import type { ComparisonDetail, ComparisonSolverResult } from "@/lib/types";
 import { ComparisonCharts } from "./ComparisonCharts";
@@ -339,13 +340,21 @@ function ClockDisagreementNotice({ comparison }: { comparison: ComparisonDetail 
  */
 function AgreementNotice({ comparison }: { comparison: ComparisonDetail }) {
   const t = useTranslations("solverCompare");
+  const format = useFormatter();
   const agreement = comparison.agreement;
   if (!agreement || agreement.compared_solvers.length < 2) return null;
+  // Only the solvers that finished with an answer are compared. The sentence
+  // said "the solvers" and "both are correct" under a table where three other
+  // rows ran out of time on different values, so it names the ones it means.
+  const solvers = format.list(agreement.compared_solvers.map(solverDisplayName), {
+    type: "conjunction",
+  });
 
   if (agreement.objectives_agree === false) {
     return (
       <p className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
         {t("agreement.objectivesDiffer", {
+          solvers,
           delta: formatNumber(agreement.max_objective_delta),
         })}
       </p>
@@ -355,7 +364,7 @@ function AgreementNotice({ comparison }: { comparison: ComparisonDetail }) {
   if (agreement.alternative_optima) {
     return (
       <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
-        {t("agreement.alternativeOptima")}
+        {t("agreement.alternativeOptima", { solvers })}
       </p>
     );
   }
@@ -363,7 +372,7 @@ function AgreementNotice({ comparison }: { comparison: ComparisonDetail }) {
   if (agreement.solutions_identical) {
     return (
       <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
-        {t("agreement.identical", { count: agreement.compared_solvers.length })}
+        {t("agreement.identical", { solvers })}
       </p>
     );
   }

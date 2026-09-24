@@ -35,6 +35,9 @@ export default function ExecutionDetailPage() {
   const locale = useLocale();
   const t = useTranslations("solve.execution");
   const tError = useTranslations("errors.codes");
+  // The comparer's words for a solver verdict. This card printed the raw code,
+  // so a run stopped by its time limit read "time_limit".
+  const tVerdict = useTranslations("solverCompare.status");
   const { dayTime } = useDateFormat();
   const { statusLabel } = useCommonLabels();
   const params = useParams();
@@ -220,7 +223,13 @@ export default function ExecutionDetailPage() {
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">{t("solverStatus")}</div>
-          <div className="font-medium">{execution.solver_status || "-"}</div>
+          <div className="font-medium">
+            {execution.solver_status
+              ? tVerdict.has(execution.solver_status)
+                ? tVerdict(execution.solver_status)
+                : execution.solver_status
+              : "-"}
+          </div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">{t("solver")}</div>

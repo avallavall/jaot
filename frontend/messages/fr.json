@@ -123,6 +123,7 @@
     "liveRunning": "Résolution…",
     "liveDone": "Résolu",
     "liveNoAnswer": "Terminé sans solution",
+    "liveStoppedWithAnswer": "Arrêté par la limite de temps, avec un plan",
     "liveFailed": "Échec de la résolution",
     "liveCancelled": "Annulé",
     "liveWaiting": "En attente de la première solution…",
@@ -1459,6 +1460,7 @@
       "title": "Résultats de la résolution",
       "closeDrawer": "Fermer le panneau de résultats",
       "objectiveValue": "Valeur de l'objectif",
+      "bestValueFound": "Meilleure valeur trouvée",
       "variableAssignments": "Affectation des variables",
       "viewFullResults": "Voir les résultats complets",
       "variablesAssignedSummary": "{count, plural, one {# variable affectée} other {# variables affectées}}",
@@ -2994,7 +2996,7 @@
         "error": "Impossible de calculer l'analyse.",
         "noSolution": "Aucune solution à analyser.",
         "notAProblem": "Cette exécution n'a pas de modèle à plat analysable.",
-        "bindingSummary": "{binding} des {total} contraintes sont saturées à l'optimum (sans marge).",
+        "bindingSummary": "{binding} des {total} contraintes sont saturées dans cette solution (sans marge).",
         "objectiveContributions": "Ce qui pilote l'objectif",
         "contribution": "Contribution",
         "utilization": "Utilisation des contraintes",
@@ -3387,7 +3389,7 @@
     },
     "explainer": {
       "title": "Expliquer cette solution",
-      "description": "Obtenez une explication en langage clair de pourquoi cette solution est optimale, quelles contraintes sont actives et quoi changer pour l'améliorer.",
+      "description": "Obtenez une explication en langage clair de cette solution : quelles contraintes sont actives, ce qui détermine l'objectif et quoi changer pour l'améliorer.",
       "button": "Expliquer cette solution",
       "regenerate": "Régénérer",
       "thinking": "Analyse de votre solution…",
@@ -3518,7 +3520,7 @@
           "type_mix": "Composition des variables : {mix}."
         },
         "constraints": {
-          "binding": "{count} contraintes sur {total} ({share, number, percent}) sont actives (saturées à l’optimum).",
+          "binding": "{count} contraintes sur {total} ({share, number, percent}) sont actives (saturées dans cette solution).",
           "most_impactful": "Contrainte la plus influente : « {name} » (prix dual : {shadowPrice}). La relâcher améliorerait le plus l’objectif."
         }
       }
@@ -4696,7 +4698,11 @@
         "image_storage_off": "Cette instance ne peut pas encore stocker d'images, donc les logos et les captures ne sont pas disponibles. Tout le reste de votre fiche fonctionne. Demandez à la personne qui l'administre de configurer le stockage d'images."
       },
       "review": {
-        "own_model": "Vous ne pouvez pas évaluer un modèle publié par votre propre organisation."
+        "own_model": "Vous ne pouvez pas évaluer un modèle publié par votre propre organisation.",
+        "already_reviewed": "Vous avez déjà évalué ce modèle.",
+        "requires_use": "Utilisez ce modèle dans le studio avant de l'évaluer.",
+        "requires_run": "Exécutez ce modèle avec succès dans le studio avant de l'évaluer.",
+        "report_own": "Vous ne pouvez pas signaler votre propre avis. Supprimez-le plutôt."
       }
     }
   },
@@ -5014,9 +5020,9 @@
       "notice": "{solver} a continué à chercher {overrun} au-delà de la limite de temps commune. Ses temps ne sont pas aux mêmes conditions que les autres lignes."
     },
     "agreement": {
-      "identical": "Les {count} solveurs ont trouvé la même solution.",
-      "alternativeOptima": "Les solveurs ont atteint la même valeur d'objectif avec des valeurs de variables différentes. Les deux ont raison : ce problème a plus d'une solution optimale.",
-      "objectivesDiffer": "Les solveurs n'ont pas atteint la même valeur d'objectif. Le plus grand écart est de {delta}."
+      "identical": "{solvers} ont trouvé la même solution.",
+      "alternativeOptima": "{solvers} ont atteint la même valeur d'objectif avec des valeurs de variables différentes. Chaque réponse est correcte : ce problème a plus d'une solution optimale.",
+      "objectivesDiffer": "{solvers} n'ont pas atteint la même valeur d'objectif. La plus grande différence est {delta}."
     },
     "charts": {
       "boundTitle": "Ce qu'il restait à démontrer à chaque solveur",

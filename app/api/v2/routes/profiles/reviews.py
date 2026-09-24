@@ -171,7 +171,11 @@ def create_review(
     )
 
     if existing:
-        raise HTTPException(status_code=400, detail="You have already reviewed this model")
+        raise CodedHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You have already reviewed this model",
+            code="review.already_reviewed",
+        )
 
     # "Used it" = the org seeded a fork ModelProject from this listing and ran it.
     fork_ids = [
@@ -184,8 +188,12 @@ def create_review(
         .all()
     ]
     if not fork_ids:
-        raise HTTPException(
-            status_code=403, detail="You must use this model in the studio before reviewing"
+        # Coded, so the page can say it in the reader's language; the detail is
+        # English by contract and reached every locale as it was.
+        raise CodedHTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must use this model in the studio before reviewing",
+            code="review.requires_use",
         )
 
     executed = (
@@ -205,8 +213,10 @@ def create_review(
     )
 
     if not executed:
-        raise HTTPException(
-            status_code=403, detail="You must successfully run this model before reviewing"
+        raise CodedHTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must successfully run this model before reviewing",
+            code="review.requires_run",
         )
 
     review = ModelReview(

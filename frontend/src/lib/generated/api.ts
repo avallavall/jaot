@@ -8550,7 +8550,7 @@ export interface components {
             options?: components["schemas"]["SolverOptions"];
             /**
              * Solver Name
-             * @description Solver name override (e.g. 'highs', 'scip'). Defaults to platform default.
+             * @description Solver to run: 'auto', 'scip', 'highs', 'cbc', 'glpk' or 'jaos' ('hexaly' where installed; GET /api/v2/solvers/available lists what this server has). Defaults to the platform default.
              */
             solver_name?: string | null;
             /**
@@ -8597,7 +8597,7 @@ export interface components {
             options?: components["schemas"]["SolverOptions"];
             /**
              * Solver Name
-             * @description Solver name override (e.g. 'highs', 'scip'). Defaults to platform default.
+             * @description Solver to run: 'auto', 'scip', 'highs', 'cbc', 'glpk' or 'jaos' ('hexaly' where installed; GET /api/v2/solvers/available lists what this server has). Defaults to the platform default.
              */
             solver_name?: string | null;
             /**

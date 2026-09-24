@@ -642,15 +642,18 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
                         value={reportReason}
                         onChange={(e) => setReportReason(e.target.value)}
                         placeholder={t("reportPlaceholder")}
+                        aria-label={t("reportReview")}
                         className="flex-1 px-2 py-1 text-sm border rounded bg-background"
                         maxLength={500}
                       />
+                      {/* This sends a report. It was labelled "Submit Review". */}
                       <Button
                         size="sm"
                         variant="destructive"
                         onClick={() => handleReportReview(review.id)}
+                        data-testid="marketplace-report-submit"
                       >
-                        {t("submitReview")}
+                        {t("report")}
                       </Button>
                       <Button
                         size="sm"

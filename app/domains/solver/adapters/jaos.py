@@ -56,6 +56,12 @@ _MAX_PROGRESS_POINTS = 500
 #: each point is also a websocket message while Live Solve is open.
 _BOUND_POINT_INTERVAL_SECONDS = 0.25
 
+#: With neither the incumbent nor the bound moving, a point still goes out this
+#: often. Without it the node count on the Live Solve panel froze: 217 nodes for
+#: 16 seconds on a search that had reached 21,527 (driving the studio,
+#: 2026-09-24), which reads as a stuck solve.
+_HEARTBEAT_SECONDS = 2.0
+
 # JAOS's ``SolveStatus`` by name. Every stop on a budget maps to TIME_LIMIT, as
 # in the other adapters: the run kept whatever incumbent it had.
 _STATUS_MAP: dict[str, SolverStatus] = {
@@ -140,9 +146,10 @@ class _ProgressRecorder:
         now = time.monotonic() - self._t0
         last = self.history[-1] if self.history else None
         if last is not None and last.objective == incumbent:
-            if last.dual_bound == bound:
-                return None
-            if now - self._last_emit < _BOUND_POINT_INTERVAL_SECONDS:
+            since = now - self._last_emit
+            if since < _HEARTBEAT_SECONDS and (
+                last.dual_bound == bound or since < _BOUND_POINT_INTERVAL_SECONDS
+            ):
                 return None
         point = ProgressPoint(
             iteration=len(self.history) + 1,

@@ -123,6 +123,7 @@
     "liveRunning": "Solving…",
     "liveDone": "Solved",
     "liveNoAnswer": "Finished without a solution",
+    "liveStoppedWithAnswer": "Stopped at the time limit with a plan",
     "liveFailed": "Solve failed",
     "liveCancelled": "Cancelled",
     "liveWaiting": "Waiting for the first incumbent…",
@@ -1459,6 +1460,7 @@
       "title": "Solve Results",
       "closeDrawer": "Close results drawer",
       "objectiveValue": "Objective Value",
+      "bestValueFound": "Best value found",
       "variableAssignments": "Variable Assignments",
       "viewFullResults": "View full results",
       "variablesAssignedSummary": "{count, plural, one {# variable assigned} other {# variables assigned}}",
@@ -2774,9 +2776,9 @@
         "changelog": "Changelog"
       },
       "signInToUse": "Sign in to use this model",
-      "addToFavorites": "Add to favourites",
-      "removeFromFavorites": "Remove from favourites",
-      "failedToUpdateFavorite": "Could not update your favourites.",
+      "addToFavorites": "Add to favorites",
+      "removeFromFavorites": "Remove from favorites",
+      "failedToUpdateFavorite": "Could not update your favorites.",
       "signInToReview": "Sign in to review"
     },
     "catalog": {
@@ -3022,7 +3024,7 @@
         "error": "Could not compute the analysis.",
         "noSolution": "No solution to analyze.",
         "notAProblem": "This execution has no analyzable flat model.",
-        "bindingSummary": "{binding} of {total} constraints are binding at the optimum (no slack).",
+        "bindingSummary": "{binding} of {total} constraints are binding in this solution (no slack).",
         "objectiveContributions": "What drives the objective",
         "contribution": "Contribution",
         "utilization": "Constraint utilization",
@@ -3424,7 +3426,7 @@
     },
     "explainer": {
       "title": "Explain this solution",
-      "description": "Get a plain-language explanation of why this is optimal, which constraints are binding, and what to change to improve it.",
+      "description": "Get a plain-language explanation of this solution: which constraints are binding, what drives the objective, and what to change to improve it.",
       "button": "Explain this solution",
       "regenerate": "Regenerate",
       "thinking": "Analyzing your solution…",
@@ -3518,7 +3520,7 @@
           "type_mix": "Variable mix: {mix}."
         },
         "constraints": {
-          "binding": "{count} of {total} constraints ({share, number, percent}) are binding (active at optimality).",
+          "binding": "{count} of {total} constraints ({share, number, percent}) are binding (active in this solution).",
           "most_impactful": "Most impactful constraint: “{name}” (shadow price: {shadowPrice}). Relaxing this constraint would most improve the objective."
         }
       }
@@ -4696,7 +4698,11 @@
         "image_storage_off": "This instance cannot store images yet, so logos and screenshots are unavailable. Everything else about your listing works. Ask whoever runs it to set up image storage."
       },
       "review": {
-        "own_model": "You cannot review a model your own organization published."
+        "own_model": "You cannot review a model your own organization published.",
+        "already_reviewed": "You have already reviewed this model.",
+        "requires_use": "Use this model in the studio before you review it.",
+        "requires_run": "Run this model successfully in the studio before you review it.",
+        "report_own": "You cannot report your own review. Delete it instead."
       }
     }
   },
@@ -5014,9 +5020,9 @@
       "notice": "{solver} kept searching {overrun} past the shared time limit. Its times are not on the same terms as the other rows."
     },
     "agreement": {
-      "identical": "All {count} solvers found the same solution.",
-      "alternativeOptima": "The solvers reached the same objective value with different variable values. Both are correct: this problem has more than one optimal solution.",
-      "objectivesDiffer": "The solvers did not reach the same objective value. The largest difference is {delta}."
+      "identical": "{solvers} found the same solution.",
+      "alternativeOptima": "{solvers} reached the same objective value with different variable values. Each answer is correct: this problem has more than one optimal solution.",
+      "objectivesDiffer": "{solvers} did not reach the same objective value. The largest difference is {delta}."
     },
     "charts": {
       "boundTitle": "How much each solver had left to close",

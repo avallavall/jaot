@@ -610,7 +610,11 @@ class OptimizationProblem(BaseModel):
     solver_name: str | None = Field(
         default=None,
         max_length=32,
-        description="Solver name override (e.g. 'highs', 'scip'). Defaults to platform default.",
+        description=(
+            "Solver to run: 'auto', 'scip', 'highs', 'cbc', 'glpk' or 'jaos' ('hexaly' where "
+            "installed; GET /api/v2/solvers/available lists what this server has). Defaults "
+            "to the platform default."
+        ),
     )
 
     @field_validator("variables")

@@ -123,6 +123,7 @@
     "liveRunning": "Resolviendo…",
     "liveDone": "Resuelto",
     "liveNoAnswer": "Terminado sin solución",
+    "liveStoppedWithAnswer": "Detenido por el límite de tiempo, con un plan",
     "liveFailed": "Error al resolver",
     "liveCancelled": "Cancelado",
     "liveWaiting": "Esperando la primera solución…",
@@ -1459,6 +1460,7 @@
       "title": "Resultados de resolución",
       "closeDrawer": "Cerrar panel de resultados",
       "objectiveValue": "Valor del objetivo",
+      "bestValueFound": "Mejor valor encontrado",
       "variableAssignments": "Asignaciones de variables",
       "viewFullResults": "Ver resultados completos",
       "variablesAssignedSummary": "{count, plural, one {# variable asignada} other {# variables asignadas}}",
@@ -2994,7 +2996,7 @@
         "error": "No se pudo calcular el análisis.",
         "noSolution": "No hay solución que analizar.",
         "notAProblem": "Esta ejecución no tiene un modelo plano analizable.",
-        "bindingSummary": "{binding} de {total} restricciones son activas en el óptimo (sin holgura).",
+        "bindingSummary": "{binding} de {total} restricciones son activas en esta solución (sin holgura).",
         "objectiveContributions": "Qué impulsa el objetivo",
         "contribution": "Contribución",
         "utilization": "Utilización de restricciones",
@@ -3387,7 +3389,7 @@
     },
     "explainer": {
       "title": "Explicar esta solución",
-      "description": "Obtén una explicación en lenguaje claro de por qué esta es la solución óptima, qué restricciones son activas y qué cambiar para mejorarla.",
+      "description": "Obtén una explicación en lenguaje claro de esta solución: qué restricciones son activas, qué impulsa el objetivo y qué cambiar para mejorarla.",
       "button": "Explicar esta solución",
       "regenerate": "Regenerar",
       "thinking": "Analizando tu solución…",
@@ -3518,7 +3520,7 @@
           "type_mix": "Composición de variables: {mix}."
         },
         "constraints": {
-          "binding": "{count} de {total} restricciones ({share, number, percent}) son activas (saturadas en el óptimo).",
+          "binding": "{count} de {total} restricciones ({share, number, percent}) son activas (saturadas en esta solución).",
           "most_impactful": "Restricción más influyente: «{name}» (precio sombra: {shadowPrice}). Relajarla es lo que más mejoraría el objetivo."
         }
       }
@@ -4696,7 +4698,11 @@
         "image_storage_off": "Esta instalación todavía no puede guardar imágenes, así que los logotipos y las capturas no están disponibles. Todo lo demás de tu ficha funciona. Pídele a quien la administra que configure el almacenamiento de imágenes."
       },
       "review": {
-        "own_model": "No puedes reseñar un modelo que ha publicado tu propia organización."
+        "own_model": "No puedes reseñar un modelo que ha publicado tu propia organización.",
+        "already_reviewed": "Ya has valorado este modelo.",
+        "requires_use": "Usa este modelo en el estudio antes de valorarlo.",
+        "requires_run": "Ejecuta este modelo con éxito en el estudio antes de valorarlo.",
+        "report_own": "No puedes denunciar tu propia valoración. Bórrala."
       }
     }
   },
@@ -5014,9 +5020,9 @@
       "notice": "{solver} siguió buscando {overrun} más allá del límite de tiempo común. Sus tiempos no están en las mismas condiciones que el resto de filas."
     },
     "agreement": {
-      "identical": "Los {count} solvers encontraron la misma solución.",
-      "alternativeOptima": "Los solvers llegaron al mismo valor del objetivo con valores distintos en las variables. Los dos aciertan: este problema tiene más de una solución óptima.",
-      "objectivesDiffer": "Los solvers no llegaron al mismo valor del objetivo. La diferencia mayor es {delta}."
+      "identical": "{solvers} encontraron la misma solución.",
+      "alternativeOptima": "{solvers} llegaron al mismo valor objetivo con valores de variables distintos. Cada respuesta es correcta: este problema tiene más de una solución óptima.",
+      "objectivesDiffer": "{solvers} no llegaron al mismo valor objetivo. La mayor diferencia es {delta}."
     },
     "charts": {
       "boundTitle": "Cuánto le quedaba por cerrar a cada solver",

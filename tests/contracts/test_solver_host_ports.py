@@ -430,3 +430,135 @@ class TestEveryTerminalRunNotifies:
         execution_writer._notify_completed(db_session, execution)
 
         assert db_session.query(Notification).count() == 0
+
+
+class TestStudioRunsCountOnTheirListing:
+    """A fork solved in the studio counts toward the listing it came from.
+
+    Only ``solve_model_async`` reported runs to the listing. A studio solve goes
+    through ``solve_async``, so the marketplace showed "0 executions" and no
+    success rate for a model whose forks had run, while the review gate counted
+    exactly those runs as "used it" (driving the marketplace, 2026-09-25).
+    """
+
+    def _listing_and_fork(self, db, author_org, forker_org):
+        listing_id = generate_id("mp_")
+        db.add(
+            ModelProject(
+                id=listing_id, organization_id=author_org.id, name="Listed", status="active"
+            )
+        )
+        db.flush()
+        db.add(
+            ModelProjectListing(
+                model_project_id=listing_id,
+                name=listing_id,
+                display_name="Listed",
+                description="counts runs",
+                category="general",
+                generator_type="generic",
+                input_schema={},
+                input_fields=[],
+                example_input={},
+                version="1.0.0",
+                status="published",
+                is_public=True,
+                author_organization_id=author_org.id,
+            )
+        )
+        fork_id = generate_id("mp_")
+        db.add(
+            ModelProject(
+                id=fork_id,
+                organization_id=forker_org.id,
+                name="Fork",
+                status="active",
+                source_type="marketplace",
+                source_ref=listing_id,
+            )
+        )
+        db.commit()
+        return listing_id, fork_id
+
+    def _tally(self, db):
+        from sqlalchemy import func
+
+        return db.query(func.coalesce(func.sum(ModelProjectListing.total_executions), 0)).scalar()
+
+    def _run(self, db, org, user, fork_id):
+        from app.domains.solver import execution_writer
+
+        task_id = generate_id("task_")
+        execution_writer.insert_pending(
+            db,
+            execution_id=generate_id("exe_"),
+            organization_id=org.id,
+            celery_task_id=task_id,
+            input_data={},
+            solver_name="jaos",
+            executed_by_user_id=user.id,
+            origin="visual_builder",
+            model_project_id=fork_id,
+        )
+        db.commit()
+        return task_id
+
+    # CONTRACT-TEST: the solve_async worker path counts a fork's run on its listing.
+    def test_a_completed_and_a_failed_studio_run_both_count(
+        self, db_session, test_user, test_organization, test_organization_2
+    ):
+        from app.domains.solver import execution_writer
+        from app.schemas.optimization import OptimizationResult, SolverStatus
+
+        listing_id, fork_id = self._listing_and_fork(
+            db_session, test_organization_2, test_organization
+        )
+        register_solver_ports()
+
+        done = self._run(db_session, test_organization, test_user, fork_id)
+        execution_writer.mark_completed_by_task(
+            done,
+            test_organization.id,
+            result=OptimizationResult(
+                status=SolverStatus.OPTIMAL, objective_value=1.0, solve_time_seconds=0.1
+            ),
+            execution_time_seconds=0.1,
+            solver_name="jaos",
+        )
+        failed = self._run(db_session, test_organization, test_user, fork_id)
+        execution_writer.mark_failed_by_task(failed, test_organization.id, "boom")
+
+        db_session.expire_all()
+        listing = db_session.get(ModelProjectListing, listing_id)
+        assert listing.total_executions == 2
+        assert listing.successful_executions == 1
+        assert listing.success_rate == pytest.approx(0.5)
+
+    def test_a_run_of_a_model_with_no_listing_changes_nothing(
+        self, db_session, test_user, test_organization
+    ):
+        from app.domains.solver import execution_writer
+        from app.schemas.optimization import OptimizationResult, SolverStatus
+
+        plain = generate_id("mp_")
+        db_session.add(
+            ModelProject(
+                id=plain, organization_id=test_organization.id, name="Plain", status="active"
+            )
+        )
+        db_session.commit()
+        register_solver_ports()
+        before = self._tally(db_session)
+        task_id = self._run(db_session, test_organization, test_user, plain)
+        execution_writer.mark_completed_by_task(
+            task_id,
+            test_organization.id,
+            result=OptimizationResult(
+                status=SolverStatus.OPTIMAL, objective_value=1.0, solve_time_seconds=0.1
+            ),
+            execution_time_seconds=0.1,
+            solver_name="jaos",
+        )
+        db_session.expire_all()
+        # The template listings are seeded; none of them may move.
+        assert self._tally(db_session) == before

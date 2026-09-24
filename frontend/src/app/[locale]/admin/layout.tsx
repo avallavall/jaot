@@ -59,7 +59,7 @@ export default function AdminLayout({
           title="JAOT"
           subtitle={t("subtitle")}
         />
-        <main id="main-content" className="flex-1">
+        <main id="main-content" className="min-w-0 flex-1">
           {maintenanceActive && (
             <div className="bg-amber-100 dark:bg-amber-900/40 border-b border-amber-300 dark:border-amber-700 px-8 py-3">
               <div className="max-w-[96rem] mx-auto w-full flex items-center justify-between">

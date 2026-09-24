@@ -50,7 +50,7 @@ export default function StudioLayout({
     <ProtectedRoute>
       <div className="flex min-h-screen bg-background">
         <Sidebar items={navItems} title="JAOT" />
-        <main id="main-content" className="flex-1 p-8">
+        <main id="main-content" className="min-w-0 flex-1 p-8">
           <div className="max-w-[96rem] mx-auto w-full">
             <Breadcrumbs />
             {children}

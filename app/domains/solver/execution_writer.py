@@ -312,6 +312,56 @@ def _model_name_for(db: Any, execution: ModelExecution) -> str:
     return "Your model"
 
 
+def _listing_of(db: Any, execution: ModelExecution) -> str | None:
+    """The marketplace listing a run counts toward, or None.
+
+    A fork counts toward the listing it came from; a published project counts
+    toward its own listing (whose id is the project id). A project with no
+    listing gets an id that matches no listing row, and the update then changes
+    nothing.
+    """
+    project_id = execution.model_project_id or (
+        execution.source_id if execution.source_kind == "model_project" else None
+    )
+    if not project_id:
+        return None
+    row = (
+        db.query(ModelProject.id, ModelProject.source_type, ModelProject.source_ref)
+        .filter(ModelProject.id == project_id)
+        .first()
+    )
+    if row is None:
+        return None
+    if row.source_type == "marketplace" and row.source_ref:
+        return str(row.source_ref)
+    return str(row.id)
+
+
+def _report_listing_run(db: Any, execution: ModelExecution, *, succeeded: bool) -> None:
+    """Roll a studio run onto its listing's public statistics.
+
+    Only ``solve_model_async`` reported runs to the listing, and a studio solve
+    goes through ``solve_async``. A fork solved in the studio therefore left the
+    listing at "0 executions" and no success rate, while the review gate counts
+    exactly that run as "used it" (found driving the marketplace, 2026-09-25).
+    Best-effort, like the notification: it must never cost the committed row.
+    """
+    try:
+        listing_id = _listing_of(db, execution)
+        if listing_id is None:
+            return
+        ports.solve_events().listing_executed(
+            db,
+            listing_id,
+            succeeded=succeeded,
+            execution_time_ms=execution.execution_time_ms if succeeded else None,
+        )
+        db.commit()
+    except Exception as exc:  # noqa: BLE001
+        db.rollback()
+        logger.warning("Failed to count execution %s on its listing: %s", execution.id, exc)
+
+
 def _notify_completed(db: Any, execution: ModelExecution) -> None:
     """Tell the platform a run finished, so the bell hears about it.
 
@@ -394,6 +444,7 @@ def mark_completed_by_task(
                 solver_name=solver_name,
             ):
                 db.commit()
+                _report_listing_run(db, execution, succeeded=True)
                 _notify_completed(db, execution)
         finally:
             db.close()
@@ -447,6 +498,8 @@ def mark_failed_by_task(task_id: str, organization_id: str, error: str) -> None:
                 return
             if apply_failed(execution, error=error):
                 db.commit()
+                # A failed run counts too, or the success rate has no denominator.
+                _report_listing_run(db, execution, succeeded=False)
         finally:
             db.close()
     except Exception as exc:  # noqa: BLE001 — bookkeeping must not disturb the task

@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { solverDisplayName } from "@/lib/solver-display";
 import type { ComparisonSolverResult } from "@/lib/types";
 
 import { convergenceData, convergenceSeries } from "./convergence";
@@ -124,7 +125,7 @@ export function ConvergenceChart({ results }: { results: ComparisonSolverResult[
               key={line.solver}
               type="stepAfter"
               dataKey={line.solver}
-              name={line.solver}
+              name={solverDisplayName(line.solver)}
               stroke={colorOf(line.solver)}
               strokeWidth={2}
               dot={false}
@@ -138,7 +139,7 @@ export function ConvergenceChart({ results }: { results: ComparisonSolverResult[
       <div className="space-y-1 text-xs text-muted-foreground">
         {data.anyProved ? <p>{t("charts.convergenceFloor")}</p> : null}
         {data.silent.length > 0 ? (
-          <p>{t("charts.convergenceSilent", { solvers: data.silent.join(", ") })}</p>
+          <p>{t("charts.convergenceSilent", { solvers: data.silent.map(solverDisplayName).join(", ") })}</p>
         ) : null}
       </div>
     </div>

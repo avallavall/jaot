@@ -41,3 +41,28 @@ describe("SolveResultsDrawer — A5 studio slim view vs full view", () => {
     expect(screen.getByTestId("drawer-nonzero-toggle")).toBeInTheDocument();
   });
 });
+
+describe("SolveResultsDrawer — a run stopped by its time limit", () => {
+  const stopped = {
+    status: "time_limit",
+    objective_value: 450,
+    solve_time_seconds: 60.1,
+    variables: [{ name: "a_1", value: 1, type: "binary" }],
+  } as unknown as SolveResult;
+
+  // The explanation says "the result shown is the best solution found so far",
+  // and the drawer then showed no objective and no link to it.
+  it("shows the plan it holds, labelled as the best value found", () => {
+    render(<SolveResultsDrawer result={stopped} isOpen onClose={() => {}} executionId="exe_tl" />);
+    expect(screen.getByText("builder.results.bestValueFound")).toBeInTheDocument();
+    expect(screen.getByText("450.0000")).toBeInTheDocument();
+    expect(screen.getByTestId("drawer-view-full-results")).toBeInTheDocument();
+  });
+
+  it("shows nothing to act on when the time limit came before any plan", () => {
+    const empty = { ...stopped, objective_value: null, variables: [] } as unknown as SolveResult;
+    render(<SolveResultsDrawer result={empty} isOpen onClose={() => {}} executionId="exe_tl" />);
+    expect(screen.queryByText("builder.results.bestValueFound")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("drawer-view-full-results")).not.toBeInTheDocument();
+  });
+});

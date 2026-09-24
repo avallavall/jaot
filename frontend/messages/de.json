@@ -123,6 +123,7 @@
     "liveRunning": "Wird gelöst…",
     "liveDone": "Gelöst",
     "liveNoAnswer": "Beendet ohne Lösung",
+    "liveStoppedWithAnswer": "Am Zeitlimit gestoppt, mit einem Plan",
     "liveFailed": "Lösung fehlgeschlagen",
     "liveCancelled": "Abgebrochen",
     "liveWaiting": "Warten auf die erste Lösung…",
@@ -1459,6 +1460,7 @@
       "title": "Lösungsergebnisse",
       "closeDrawer": "Ergebnispanel schließen",
       "objectiveValue": "Zielwert",
+      "bestValueFound": "Bester gefundener Wert",
       "variableAssignments": "Variablenzuweisungen",
       "viewFullResults": "Vollständige Ergebnisse anzeigen",
       "variablesAssignedSummary": "{count, plural, one {# Variable zugewiesen} other {# Variablen zugewiesen}}",
@@ -2994,7 +2996,7 @@
         "error": "Analyse konnte nicht berechnet werden.",
         "noSolution": "Keine Lösung zum Analysieren.",
         "notAProblem": "Diese Ausführung hat kein analysierbares flaches Modell.",
-        "bindingSummary": "{binding} von {total} Nebenbedingungen sind im Optimum bindend (kein Spielraum).",
+        "bindingSummary": "{binding} von {total} Nebenbedingungen sind in dieser Lösung bindend (kein Spielraum).",
         "objectiveContributions": "Was den Zielwert treibt",
         "contribution": "Beitrag",
         "utilization": "Auslastung der Nebenbedingungen",
@@ -3387,7 +3389,7 @@
     },
     "explainer": {
       "title": "Diese Lösung erklären",
-      "description": "Erhalte eine verständliche Erklärung, warum dies die optimale Lösung ist, welche Nebenbedingungen bindend sind und was zu ändern ist, um sie zu verbessern.",
+      "description": "Erhalte eine verständliche Erklärung dieser Lösung: welche Nebenbedingungen bindend sind, was das Ziel bestimmt und was zu ändern ist, um sie zu verbessern.",
       "button": "Diese Lösung erklären",
       "regenerate": "Neu generieren",
       "thinking": "Deine Lösung wird analysiert…",
@@ -3518,7 +3520,7 @@
           "type_mix": "Variablenzusammensetzung: {mix}."
         },
         "constraints": {
-          "binding": "{count} von {total} Nebenbedingungen ({share, number, percent}) sind aktiv (im Optimum bindend).",
+          "binding": "{count} von {total} Nebenbedingungen ({share, number, percent}) sind aktiv (in dieser Lösung bindend).",
           "most_impactful": "Einflussreichste Nebenbedingung: „{name}“ (Schattenpreis: {shadowPrice}). Sie zu lockern würde die Zielfunktion am stärksten verbessern."
         }
       }
@@ -4696,7 +4698,11 @@
         "image_storage_off": "Diese Instanz kann noch keine Bilder speichern, deshalb sind Logos und Screenshots nicht verfügbar. Alles andere an deinem Eintrag funktioniert. Bitte die Person, die sie betreibt, den Bildspeicher einzurichten."
       },
       "review": {
-        "own_model": "Du kannst kein Modell bewerten, das deine eigene Organisation veröffentlicht hat."
+        "own_model": "Du kannst kein Modell bewerten, das deine eigene Organisation veröffentlicht hat.",
+        "already_reviewed": "Sie haben dieses Modell bereits bewertet.",
+        "requires_use": "Nutzen Sie dieses Modell im Studio, bevor Sie es bewerten.",
+        "requires_run": "Führen Sie dieses Modell im Studio erfolgreich aus, bevor Sie es bewerten.",
+        "report_own": "Sie können Ihre eigene Bewertung nicht melden. Löschen Sie sie stattdessen."
       }
     }
   },
@@ -5014,9 +5020,9 @@
       "notice": "{solver} hat {overrun} über das gemeinsame Zeitlimit hinaus weitergesucht. Seine Zeiten gelten nicht unter denselben Bedingungen wie die übrigen Zeilen."
     },
     "agreement": {
-      "identical": "Alle {count} Solver fanden dieselbe Lösung.",
-      "alternativeOptima": "Die Solver erreichten denselben Zielwert mit unterschiedlichen Variablenwerten. Beide haben recht: Dieses Problem hat mehr als eine optimale Lösung.",
-      "objectivesDiffer": "Die Solver erreichten nicht denselben Zielwert. Der größte Unterschied beträgt {delta}."
+      "identical": "{solvers} fanden dieselbe Lösung.",
+      "alternativeOptima": "{solvers} erreichten denselben Zielwert mit unterschiedlichen Variablenwerten. Jede Antwort ist richtig: Dieses Problem hat mehr als eine optimale Lösung.",
+      "objectivesDiffer": "{solvers} erreichten nicht denselben Zielwert. Der größte Unterschied beträgt {delta}."
     },
     "charts": {
       "boundTitle": "Wie viel jedem Solver noch zu schließen blieb",

@@ -43,27 +43,63 @@ export interface LiveSolveMetrics {
   gap: number | null;
   /** Branch-and-bound nodes explored at the last event. */
   nodes: number | null;
-  /** Number of incumbents found so far (chart points). */
+  /** How many times the best objective improved. */
   incumbents: number;
-  /** Wall time of the last incumbent, in seconds. */
+  /** Seconds since the solve started, or the run's own time once it is over. */
   elapsedSeconds: number | null;
+}
+
+/** The figures a finished run reports, which replace the live ones. */
+export interface FinalFigures {
+  objective_value?: number | null;
+  gap?: number | null;
+  nodes?: number | null;
+  solve_time_seconds?: number | null;
+}
+
+/**
+ * How many times the best objective changed. A point is not always an incumbent:
+ * JAOS also sends a point when only the bound moved, and counting points put
+ * "7 incumbents" under a best objective that never left 450.
+ */
+function countIncumbents(points: ProgressPoint[]): number {
+  let count = 0;
+  let previous: number | null = null;
+  for (const point of points) {
+    if (previous === null || point.objective !== previous) count += 1;
+    previous = point.objective;
+  }
+  return count;
+}
+
+function finite(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 /**
  * Derive the headline metrics from the accumulated chart points + the last raw event
  * (the raw event carries `node`, which is not part of the chart `ProgressPoint`).
+ *
+ * While the run is live, `liveElapsedSeconds` is the page's own clock since the
+ * start: the last point's time froze between events (30.8 s on a 60 s run). Once
+ * the run is over, `final` holds what it returned, and those figures win.
  */
 export function computeMetrics(
   points: ProgressPoint[],
   lastEvent: SolveProgressEvent | null,
+  final: FinalFigures | null = null,
+  liveElapsedSeconds: number | null = null,
 ): LiveSolveMetrics {
   const last = points.length > 0 ? points[points.length - 1] : null;
+  const eventNodes = lastEvent && typeof lastEvent.node === "number" ? lastEvent.node : null;
   return {
-    bestObjective: last ? last.objective : null,
-    gap: last ? last.gap : null,
-    nodes:
-      lastEvent && typeof lastEvent.node === "number" ? lastEvent.node : null,
-    incumbents: points.length,
-    elapsedSeconds: last ? last.timestamp / 1000 : null,
+    bestObjective: finite(final?.objective_value) ?? (last ? last.objective : null),
+    gap: finite(final?.gap) ?? (last ? last.gap : null),
+    nodes: finite(final?.nodes) ?? eventNodes,
+    incumbents: countIncumbents(points),
+    elapsedSeconds:
+      finite(final?.solve_time_seconds) ??
+      liveElapsedSeconds ??
+      (last ? last.timestamp / 1000 : null),
   };
 }

@@ -94,3 +94,29 @@ describe("signing up", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith("/studio"));
   });
 });
+
+describe("the terms box", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // The button used to be disabled until the box was ticked. It said nothing
+  // about why, and this message could never appear (found driving the page,
+  // 2026-09-24).
+  it("says why the account was not created when the box is left unticked", async () => {
+    const user = userEvent.setup();
+    render(<SignupPage />);
+
+    await user.type(await screen.findByLabelText("signup.emailLabel"), "new@example.com");
+    await user.type(screen.getByLabelText("signup.nameLabel"), "New Person");
+    await user.type(screen.getByLabelText("signup.orgLabel"), "New Org");
+    await user.type(screen.getByLabelText("signup.passwordLabel"), "AveryStr0ng!Pass");
+    await user.type(screen.getByLabelText("signup.confirmPasswordLabel"), "AveryStr0ng!Pass");
+    const submit = screen.getByRole("button", { name: /signup/i });
+    expect(submit).toBeEnabled();
+    await user.click(submit);
+
+    expect(await screen.findByText("signup.tosRequired")).toBeInTheDocument();
+    expect(signupWithEmail).not.toHaveBeenCalled();
+  });
+});

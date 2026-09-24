@@ -62,6 +62,14 @@ describe("gapOf", () => {
     expect(gapOf(point(0.003, 0, 11328358))).toBeNull();
   });
 
+  // Stored traces carry the gap the backend computed by dividing by 1e-10: SCIP's
+  // "take nothing" answer against a bound of 37,325 was 3.7e14, and that one
+  // point drew the axis up to 3,000,000,000,000% (driving the comparer, 2026-09-25).
+  it("ignores a reported gap for an objective of exactly zero", () => {
+    expect(gapOf(point(0.119, 0, 37325, 373250000000000))).toBeNull();
+    expect(gapOf(point(0.119, 0, 0, 0))).toBe(0);
+  });
+
   it("has no answer without a bound", () => {
     expect(gapOf(point(1, 100))).toBeNull();
     expect(gapOf(point(1, 100, Number.POSITIVE_INFINITY))).toBeNull();

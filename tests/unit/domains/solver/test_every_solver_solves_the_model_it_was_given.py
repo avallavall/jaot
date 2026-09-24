@@ -16,6 +16,8 @@ same small model (2026-09-24):
 - HiGHS called an unbounded model "infeasible".
 - SCIP reported a gap of 1e20 where the others reported 1.0.
 - GLPK called an unbounded integer model an error.
+- GLPK called an infeasible LP an error, and refused a model with bounds and no
+  constraints (both found comparing JAOS with the others, 2026-09-24).
 """
 
 from __future__ import annotations
@@ -188,6 +190,37 @@ def test_an_unbounded_model_is_called_unbounded(adapter) -> None:
         )
     )
     assert result.status is SolverStatus.UNBOUNDED
+
+
+def test_an_infeasible_lp_is_called_infeasible(adapter) -> None:
+    # glpsol proves it in presolve, prints "LP HAS NO PRIMAL FEASIBLE SOLUTION"
+    # and writes UNDEFINED; the adapter did not know that line.
+    result = adapter.solve(
+        _problem(
+            [_continuous("x"), _continuous("y")],
+            ObjectiveSense.MINIMIZE,
+            "x + y",
+            ["x + y >= 10", "x + y <= 5"],
+        )
+    )
+    assert result.status is SolverStatus.INFEASIBLE
+
+
+def test_a_model_with_bounds_and_no_constraints_is_solved(adapter) -> None:
+    # SCIP writes an empty "Subject to" for it, and glpsol refused the file.
+    problem = OptimizationProblem(
+        variables=[
+            Variable(name="x", lower_bound=-3, upper_bound=5),
+            Variable(name="y", type=VariableType.INTEGER, lower_bound=2, upper_bound=9),
+            Variable(name="z", type=VariableType.BINARY),
+        ],
+        objective=Objective(sense=ObjectiveSense.MAXIMIZE, expression="x - y + 4*z"),
+        constraints=[],
+    )
+    result = adapter.solve(problem)
+    assert result.status is SolverStatus.OPTIMAL
+    assert result.objective_value == pytest.approx(7.0)
+    assert result.solution == pytest.approx({"x": 5.0, "y": 2.0, "z": 1.0})
 
 
 def test_highs_refuses_an_input_it_rejected_instead_of_skipping_it() -> None:

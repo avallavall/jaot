@@ -42,6 +42,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ### Fixed
 - **The Hexaly runbooks named a container that does not exist**, so their `docker logs` and `docker exec` commands failed. They now use `jaot_prod_celery_hexaly`.
+- **The Solve panel kept its last live figures after the run ended.** SCIP proved 485 optimal and the panel still said 450 with a 7.78% gap. It now shows what the run returned.
+- **A run stopped by its time limit with a plan said "Finished without a solution"**, and its results drawer showed no objective, no variables and no link. It now says "Stopped at the time limit with a plan" and shows the best value found. This affected every solver.
+- **The Solve panel counted every progress point as an incumbent, and its "Elapsed" stopped at the last point.** It now counts changes of the best objective, and the clock keeps running.
+- **"Runs of this model" stayed one run behind** until the page was reloaded.
+- **The execution page assumed an optimal answer.** It said "why this is optimal" and "binding at the optimum" on a run stopped by its time limit, and printed the raw code `time_limit`.
+- **The comparer's gap chart could stretch its axis to 3,000,000,000,000%.** A solver whose first answer is 0 has no relative gap, and one such point flattened every line.
+- **The comparer's agreement note said "the solvers reached the same objective"** under rows that ran out of time on other values. It now names the solvers it compared. The gap chart's legend shows brand names.
+- **GLPK called an infeasible linear model an error, and refused a model with bounds and no constraints.**
+- **Marketplace "Executions" and "Success Rate" never counted runs from the studio**, so a model its users had run still showed 0 and a dash.
+- **Four review messages were English in every language**, among them "use this model in the studio before reviewing". The review report button said "Submit Review"; it now says "Report".
+- **On a phone, the solver comparer and the execution page scrolled sideways**: the page grew to the width of their tables.
+- **Signing up showed a disabled button and no reason** until the terms box was ticked. The button now works, and the form says what is missing.
+- **Admin settings showed raw key names as group headings**, such as "AUTH MAX" and "APP VERSION".
+- **An empty AI provider account never triggered the admin alert** that says to top it up: Anthropic's real reply was not recognised.
 
 ## [3.10.0] - 2026-09-24
 

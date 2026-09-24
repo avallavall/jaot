@@ -565,6 +565,16 @@ def test_relative_gap_is_computed_and_not_read_from_the_solver() -> None:
     assert relative_gap(3.0, float("inf")) is None
 
 
+def test_a_gap_relative_to_an_answer_of_zero_is_unknown() -> None:
+    # SCIP's first answer on a maximisation was "take nothing" with a bound of
+    # 37,325. The 1e-10 floor made that a gap of 3.7e14, and the comparer's gap
+    # chart stretched its axis to it.
+    assert relative_gap(0.0, 37325.0) is None
+    assert relative_gap(-0.0, -5.0) is None
+    assert relative_gap(0.0, 0.0) == 0.0
+    assert relative_gap(0.0, 1e-12) == 0.0
+
+
 def test_parse_float_refuses_the_words_solvers_print_where_numbers_go() -> None:
     assert parse_float("3.5") == 3.5
     assert parse_float("+inf") is None

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { AlertCircle, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,12 +27,23 @@ interface LiveSolvePanelProps {
 export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePanelProps) {
   const locale = useLocale();
   const t = useTranslations("studio");
-  const { status, points, lastEvent, result, solverName } = session;
-  const metrics = computeMetrics(points, lastEvent);
+  const { status, points, lastEvent, result, solverName, startedAt } = session;
+  const running = status === "running";
+
+  // The page's own clock while the run is live, so "Elapsed" keeps moving
+  // between events instead of stopping at the last point's time.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!running) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [running]);
+  const started = startedAt ? Date.parse(startedAt) : Number.NaN;
+  const liveElapsed = running && Number.isFinite(started) ? Math.max(0, (now - started) / 1000) : null;
+  const metrics = computeMetrics(points, lastEvent, status === "done" ? result : null, liveElapsed);
   const fmt = (v: number | null, digits = 4): string =>
     v === null ? "—" : v.toLocaleString(locale, { maximumFractionDigits: digits });
 
-  const running = status === "running";
   // The session status says whether the RUN finished, not whether the model was
   // solved. An infeasible or unbounded model runs to completion and correctly
   // reports that no answer exists, and this box announced that with a green tick
@@ -41,7 +53,11 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
   const verdict = result?.status ?? null;
   const solved = verdict === null || verdict === "optimal" || verdict === "feasible";
   const done = status === "done" && solved;
-  const noAnswer = status === "done" && !solved;
+  // A run stopped by its time limit can hold a plan. It said "Finished without
+  // a solution" above the plan's own objective.
+  const stopped =
+    status === "done" && verdict === "time_limit" && result?.objective_value != null;
+  const noAnswer = status === "done" && !solved && !stopped;
   const hasPoints = points.length > 0;
 
   return (
@@ -49,7 +65,9 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
       <div className="flex items-center gap-2">
         {running && <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />}
         {done && <CheckCircle2 className="size-4 text-green-600" aria-hidden="true" />}
-        {noAnswer && <AlertCircle className="size-4 text-amber-600" aria-hidden="true" />}
+        {(noAnswer || stopped) && (
+          <AlertCircle className="size-4 text-amber-600" aria-hidden="true" />
+        )}
         {(status === "failed" || status === "cancelled") && (
           <XCircle className="size-4 text-destructive" aria-hidden="true" />
         )}
@@ -58,7 +76,9 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
             ? t("liveRunning")
             : done
               ? t("liveDone")
-              : noAnswer
+              : stopped
+                ? t("liveStoppedWithAnswer")
+                : noAnswer
                 ? t("liveNoAnswer")
                 : status === "cancelled"
                   ? t("liveCancelled")
@@ -100,7 +120,7 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
       )}
 
       {/* Solved, but the solver didn't stream per-incumbent (HiGHS/Hexaly): final summary. */}
-      {(done || noAnswer) && !hasPoints && result && (
+      {(done || stopped || noAnswer) && !hasPoints && result && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Metric
@@ -133,7 +153,7 @@ export function LiveSolvePanel({ session, onCancel, capabilities }: LiveSolvePan
 
       {/* Which solver actually ran (resolves "Auto" -> the chosen solver) + any
           auto-route reason / fallback warning. Shown once solved. */}
-      {done && result && (result.solver_used || result.auto_route_reason || result.warning) && (
+      {(done || stopped) && result && (result.solver_used || result.auto_route_reason || result.warning) && (
         <div className="rounded-md bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           <span>
             {t("solveSolverLabel")}:{" "}

@@ -1,5 +1,18 @@
 # E2E override — prod frontend (runner stage) for Playwright tests.
 services:
+  # The tests drive http://localhost:3000. A .env written for a real domain
+  # (ALLOWED_ORIGINS=["https://jaot.io"]) made the API refuse the Live Solve
+  # socket from that origin with a bare 403, so every E2E solve fell back to
+  # polling and nothing tested the live progress panel. FRONTEND_URL is the
+  # origin the API also trusts, and the base of every link it emails.
+  api:
+    environment:
+      - ALLOWED_ORIGINS=["http://localhost:3000"]
+      - FRONTEND_URL=http://localhost:3000
+  celery_worker:
+    environment:
+      - FRONTEND_URL=http://localhost:3000
+
   frontend:
     build:
       context: ./frontend

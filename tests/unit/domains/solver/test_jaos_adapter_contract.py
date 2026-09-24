@@ -250,6 +250,22 @@ class TestProgress:
         assert len(result.progress_history) == 1
         assert result.progress_history[0].objective == result.objective_value
 
+    def test_a_long_search_keeps_reporting(self) -> None:
+        """A point at least every 2 s, so the node count on the page keeps moving.
+
+        On a search where neither the incumbent nor the bound moved, the panel
+        showed 217 nodes for 16 seconds while JAOS had reached 21,527.
+        """
+        problem = _market_split(time_limit_seconds=6, with_slack=True)
+        streamed: list[ProgressPoint] = []
+        result = JAOSAdapter().solve(problem, on_progress=streamed.append)
+        assert result.status is SolverStatus.TIME_LIMIT
+        assert len(streamed) >= 3
+        times = [p.elapsed_seconds for p in streamed]
+        gaps = [b - a for a, b in zip(times, times[1:], strict=False)]
+        assert max(gaps) <= 2.6, f"a {max(gaps)} s silence between points"
+        assert streamed[-1].node > streamed[0].node
+
     def test_no_answer_means_no_trace(self) -> None:
         problem = OptimizationProblem(
             variables=[Variable(name="x", lower_bound=0, upper_bound=1)],
@@ -271,20 +287,31 @@ def test_silent_unless_verbose(caplog: pytest.LogCaptureFixture) -> None:
     assert not any(record.getMessage().startswith("JAOS: ") for record in caplog.records)
 
 
-def _market_split() -> OptimizationProblem:
-    """Equality rows over binaries with no feasible point: JAOS searches until stopped."""
+def _market_split(time_limit_seconds: float = 30, with_slack: bool = False) -> OptimizationProblem:
+    """Equality rows over binaries. Without slack there is no feasible point and JAOS
+    searches until stopped; with slack it finds a point at once and cannot prove it."""
     generator = random.Random(7)
     width = 40
+    variables = [Variable(name=f"b{j}", type=VariableType.BINARY) for j in range(width)]
     constraints = []
+    objective = "b0"
     for i in range(5):
         row = [generator.randint(0, 99) for _ in range(width)]
         lhs = " + ".join(f"{row[j]}*b{j}" for j in range(width))
+        if with_slack:
+            lhs += f" + sp{i} - sm{i}"
+            variables += [
+                Variable(name=f"sp{i}", lower_bound=0),
+                Variable(name=f"sm{i}", lower_bound=0),
+            ]
         constraints.append(Constraint(name=f"r{i}", expression=f"{lhs} == {sum(row) // 2}"))
+    if with_slack:
+        objective = " + ".join(f"sp{i} + sm{i}" for i in range(5))
     return OptimizationProblem(
-        variables=[Variable(name=f"b{j}", type=VariableType.BINARY) for j in range(width)],
-        objective=Objective(sense=ObjectiveSense.MINIMIZE, expression="b0"),
+        variables=variables,
+        objective=Objective(sense=ObjectiveSense.MINIMIZE, expression=objective),
         constraints=constraints,
-        options=SolverOptions(time_limit_seconds=30, gap_tolerance=0.0),
+        options=SolverOptions(time_limit_seconds=time_limit_seconds, gap_tolerance=0.0),
     )
 
 

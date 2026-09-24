@@ -175,3 +175,32 @@ describe("a run that finished without a solution", () => {
     expect(screen.getByText("studio.liveDone")).toBeInTheDocument();
   });
 });
+
+describe("LiveSolvePanel — a run stopped by its time limit", () => {
+  const points = [
+    { iteration: 1, objective: 450, gap: 0.2, timestamp: 1000 },
+    { iteration: 2, objective: 450, gap: 0.137, timestamp: 30800 },
+  ];
+
+  it("says it stopped with a plan, and shows the plan's figures", () => {
+    const result = {
+      status: "time_limit",
+      objective_value: 450,
+      gap: 0.137,
+      nodes: 37087,
+      solve_time_seconds: 60.1,
+      solver_used: "jaos",
+    } as unknown as SolveSession["result"];
+    render(<LiveSolvePanel session={session({ status: "done", points, result })} />);
+    expect(screen.getByText("studio.liveStoppedWithAnswer")).toBeInTheDocument();
+    expect(screen.queryByText("studio.liveNoAnswer")).not.toBeInTheDocument();
+    expect(screen.getByText("60.1s")).toBeInTheDocument();
+    expect(screen.getByText((37087).toLocaleString("en"))).toBeInTheDocument();
+  });
+
+  it("still says no solution when the time limit came before any plan", () => {
+    const result = { status: "time_limit", objective_value: null } as unknown as SolveSession["result"];
+    render(<LiveSolvePanel session={session({ status: "done", points: [], result })} />);
+    expect(screen.getByText("studio.liveNoAnswer")).toBeInTheDocument();
+  });
+});

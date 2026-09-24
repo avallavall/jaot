@@ -46,9 +46,14 @@ export function ProjectRunsCard() {
       });
   }, [modelId, isPersisted]);
 
+  // A solve started or finished in this tab. The list was loaded before that run
+  // existed, and the poll below only runs while a run it already shows is live,
+  // so the new run never appeared: the card stayed one run behind.
+  const sessionStatus = useModelProjectStore((s) => s.solveSession.status);
+  const sessionExecution = useModelProjectStore((s) => s.solveSession.executionId);
   useEffect(() => {
     refresh();
-  }, [refresh]);
+  }, [refresh, sessionStatus, sessionExecution]);
 
   const hasLive = useMemo(
     () => runs.some((r) => r.status === "pending" || r.status === "running"),

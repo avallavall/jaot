@@ -47,6 +47,7 @@ vi.mock("next-intl", () => ({
     number: (val: number) => String(val),
     dateTime: (val: Date) => val.toISOString(),
     relativeTime: (val: Date) => val.toISOString(),
+    list: (values: Iterable<string>) => Array.from(values).join(", "),
   }),
   useLocale: () => "en",
   NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => children,

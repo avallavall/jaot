@@ -91,7 +91,13 @@ export function SolveResultsDrawer({ result, isOpen, onClose, executionId }: Sol
   const hasVariables = allVariables.length > 0;
   const zerosHidden = allVariables.length - shownVariables.length;
   const nonZeroCount = allVariables.filter((v) => Math.abs(Number(v.value)) > 1e-9).length;
-  const isSuccess = result.status === "optimal" || result.status === "feasible";
+  // A run stopped by its time limit can hold a plan, and the explanation above
+  // says "the result shown is the best solution found so far". Gating on
+  // optimal/feasible alone then showed no objective, no variables and no link.
+  const isSuccess =
+    result.status === "optimal" ||
+    result.status === "feasible" ||
+    (result.status === "time_limit" && result.objective_value != null);
 
   return (
     <>
@@ -137,7 +143,9 @@ export function SolveResultsDrawer({ result, isOpen, onClose, executionId }: Sol
           {isSuccess && result.objective_value !== undefined && result.objective_value !== null && (
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">
-                {t("results.objectiveValue")}
+                {result.status === "optimal"
+                  ? t("results.objectiveValue")
+                  : t("results.bestValueFound")}
               </p>
               <p className="text-2xl font-bold tabular-nums">
                 {result.objective_value.toFixed(4)}

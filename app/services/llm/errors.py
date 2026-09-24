@@ -160,6 +160,18 @@ def _extract_error_body_message(exc: Exception) -> str:
     return ""
 
 
+#: How an exhausted provider account reads, lower-cased. The snake_case tokens
+#: were the only markers, and Anthropic's real reply carries neither: it says
+#: "Your credit balance is too low to access the Anthropic API" (seen on
+#: 2026-09-25). Classified as ``api_error``, it never reached the
+#: ``quota_exhausted`` alert that tells the admin to top up the account.
+_QUOTA_MARKERS: tuple[str, ...] = (
+    "credit_balance_too_low",
+    "insufficient_quota",
+    "credit balance is too low",
+)
+
+
 def classify_anthropic_error(exc: Exception) -> tuple[LLMErrorCode, str]:
     """Map an Anthropic SDK exception to (client code, metric kind).
 
@@ -190,12 +202,7 @@ def classify_anthropic_error(exc: Exception) -> tuple[LLMErrorCode, str]:
     # ``Exception("... credit_balance_too_low ...")`` in tests still work.
     body_message = _extract_error_body_message(exc)
     fallback_str = str(exc).lower()
-    if (
-        "credit_balance_too_low" in body_message
-        or "insufficient_quota" in body_message
-        or "credit_balance_too_low" in fallback_str
-        or "insufficient_quota" in fallback_str
-    ):
+    if any(marker in body_message or marker in fallback_str for marker in _QUOTA_MARKERS):
         return LLMErrorCode.SERVICE_UNAVAILABLE, "quota_exhausted"
 
     # APITimeoutError is a subclass of APIConnectionError in the SDK, so

@@ -88,6 +88,8 @@ class TestCreateReviewGate:
         db_session.commit()
         res = authenticated_client.post("/api/v2/models/catalog/rev_no_fork/reviews", json=_REVIEW)
         assert res.status_code == 403, res.text
+        # Coded, so the page says it in the reader's language (it was English in all five).
+        assert res.json()["code"] == "review.requires_use"
 
     def test_review_forked_but_not_executed_403(
         self, authenticated_client, db_session, test_organization, test_organization_2, test_user
@@ -105,6 +107,7 @@ class TestCreateReviewGate:
             "/api/v2/models/catalog/rev_fork_only/reviews", json=_REVIEW
         )
         assert res.status_code == 403, res.text
+        assert res.json()["code"] == "review.requires_run"
 
     def test_review_after_using_model_200(
         self, authenticated_client, db_session, test_organization, test_organization_2, test_user
@@ -159,6 +162,7 @@ class TestCreateReviewGate:
         res = authenticated_client.post("/api/v2/models/catalog/rev_dup/reviews", json=_REVIEW)
         assert res.status_code == 400, res.text
         assert "already reviewed" in res.json()["detail"].lower()
+        assert res.json()["code"] == "review.already_reviewed"
 
 
 class TestAnAuthorCannotRateTheirOwnModel:
