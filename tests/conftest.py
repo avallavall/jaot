@@ -26,6 +26,10 @@ from datetime import timedelta
 # The literal address behaves identically everywhere else.
 DEFAULT_TEST_DB_URL = "postgresql://jaot:jaot@127.0.0.1:5432/jaot_test"
 _TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", DEFAULT_TEST_DB_URL)
+# The database is the one the URL names. It used to be the literal "jaot_test"
+# in three places below, so a second run pointed at another database still
+# terminated every connection of the first run and truncated its tables.
+_TEST_DB_NAME = _TEST_DB_URL.rsplit("/", 1)[1].split("?", 1)[0]
 
 os.environ["TESTING"] = "1"
 os.environ["DATABASE_URL"] = _TEST_DB_URL
@@ -194,15 +198,15 @@ def db_engine():
     admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
     with admin_engine.connect() as conn:
         exists = conn.execute(
-            text("SELECT 1 FROM pg_database WHERE datname = 'jaot_test'")
+            text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": _TEST_DB_NAME}
         ).fetchone()
         if not exists:
-            conn.execute(text("CREATE DATABASE jaot_test"))
+            conn.execute(text(f'CREATE DATABASE "{_TEST_DB_NAME}"'))
     admin_engine.dispose()
 
     # Kill zombie connections from previous crashed runs BEFORE creating engine.
     _admin = create_engine(admin_url, isolation_level="AUTOCOMMIT")
-    terminate_backends(_admin, "jaot_test")
+    terminate_backends(_admin, _TEST_DB_NAME)
     _admin.dispose()
 
     # Dispose the app-level engine to drop stale pool references.
