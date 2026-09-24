@@ -124,13 +124,17 @@ class JWTService:
         now = datetime.now(timezone.utc)
         jti = secrets.token_hex(16)
         days = remember_days if remember_me else expire_days
-        payload = {
+        payload: dict[str, Any] = {
             "sub": user_id,
             "type": "refresh",
             "exp": now + timedelta(days=days),
             "iat": now,
             "jti": jti,
         }
+        if remember_me:
+            # Read back by /auth/refresh, so a rotated token keeps the lifetime
+            # the user chose at sign-in.
+            payload["remember"] = True
         return JWTService._encode(payload, db), jti
 
     @staticmethod

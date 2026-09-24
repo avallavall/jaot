@@ -743,29 +743,34 @@ def refresh_token(request: Request, db: DBSession) -> Response:
             detail="Invalid refresh token",
         )
 
-    rt_record = db.query(RefreshToken).filter(RefreshToken.jti == payload["jti"]).first()
-    if not rt_record or rt_record.revoked:
+    # Rotation in one statement. It read the row and then marked it, so two
+    # requests with the same token both found it unrevoked and both got a new
+    # pair: a stolen token could be replayed alongside the real one.
+    rotated = db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.jti == payload["jti"], RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+    if rotated.rowcount != 1:
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token revoked",
         )
 
     user = db.query(User).filter(User.id == payload["sub"]).first()
-    if not user:
+    if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
 
     org = db.query(Organization).filter(Organization.id == user.organization_id).first()
-    if not org:
+    if not org or not org.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Organization not found",
         )
-
-    # Token rotation: revoke old, create new
-    rt_record.revoked = True
 
     new_access_token = JWTService.create_access_token(
         user_id=user.id,
@@ -773,18 +778,27 @@ def refresh_token(request: Request, db: DBSession) -> Response:
         is_admin=user.is_admin,
         db=db,
     )
-    new_refresh_str, new_jti = JWTService.create_refresh_token(user_id=user.id, db=db)
+    # "Remember me" is carried in the token. Every rotation used to issue the
+    # short lifetime, so a 30-day sign-in ended after 7 days without a visit.
+    remember_me = payload.get("remember") is True
+    new_refresh_str, new_jti = JWTService.create_refresh_token(
+        user_id=user.id, remember_me=remember_me, db=db
+    )
+    days = PSS.get_int(
+        db,
+        "JWT_REFRESH_TOKEN_REMEMBER_DAYS" if remember_me else "JWT_REFRESH_TOKEN_EXPIRE_DAYS",
+    )
 
     new_rt_record = RefreshToken(
         user_id=user.id,
         jti=new_jti,
-        expires_at=utcnow() + timedelta(days=PSS.get_int(db, "JWT_REFRESH_TOKEN_EXPIRE_DAYS")),
+        expires_at=utcnow() + timedelta(days=days),
     )
     db.add(new_rt_record)
     db.commit()
 
     response = JSONResponse(content={"success": True, "message": "Token refreshed"})
-    _set_auth_cookies(response, new_access_token, new_refresh_str, db=db)
+    _set_auth_cookies(response, new_access_token, new_refresh_str, remember_me, db=db)
     return response
 
 

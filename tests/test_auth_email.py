@@ -7,6 +7,7 @@ middleware, rate limiting (AUTH-01 through AUTH-08).
 import queue
 import threading
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import jwt as pyjwt
 import pytest
@@ -691,6 +692,50 @@ class TestTokenRefresh:
         response = client.post("/api/v2/auth/refresh")
         assert response.status_code == 401
 
+    def test_remember_me_survives_rotation(self, client, db_session):
+        """A 30-day sign-in stays 30 days after a refresh.
+
+        Every rotation issued the 7-day token and cookie, so "remember me"
+        ended after a week without a visit.
+        """
+        user, _org, _token, _jti = self._setup_refresh(db_session)
+        token_str, _ = JWTService.create_refresh_token(user.id, remember_me=True, db=db_session)
+        payload = JWTService.decode_token(token_str, db=db_session)
+        db_session.add(
+            RefreshToken(
+                user_id=user.id, jti=payload["jti"], expires_at=utcnow() + timedelta(days=30)
+            )
+        )
+        db_session.commit()
+        remember_days = PSS.get_int(db_session, "JWT_REFRESH_TOKEN_REMEMBER_DAYS")
+
+        client.cookies.set("jaot_refresh_token", token_str)
+        response = client.post("/api/v2/auth/refresh")
+
+        assert response.status_code == 200
+        cookie = next(
+            h
+            for h in response.headers.get_list("set-cookie")
+            if h.startswith("jaot_refresh_token=")
+        )
+        assert f"max-age={remember_days * 86400}" in cookie.lower()
+        new_token = cookie.split(";", 1)[0].split("=", 1)[1]
+        new_payload = JWTService.decode_token(new_token, db=db_session)
+        assert new_payload.get("remember") is True
+        row = db_session.query(RefreshToken).filter(RefreshToken.jti == new_payload["jti"]).one()
+        assert row.expires_at > utcnow() + timedelta(days=remember_days - 1)
+
+    @pytest.mark.parametrize("who", ["user", "org"])
+    def test_a_deactivated_account_cannot_refresh(self, client, db_session, who):
+        user, org, token_str, _jti = self._setup_refresh(db_session)
+        (user if who == "user" else org).is_active = False
+        db_session.commit()
+
+        client.cookies.set("jaot_refresh_token", token_str)
+        response = client.post("/api/v2/auth/refresh")
+
+        assert response.status_code == 401
+
 
 class TestLogout:
     """Tests for POST /api/v2/auth/logout."""
@@ -945,113 +990,78 @@ class TestMeEndpoint:
 # Concurrency & Idempotency Tests (missing-coverage backfill per audit)
 
 
-class TestRefreshTokenRotationRace:
-    """Concurrent /auth/refresh with the same refresh token must rotate
-    exactly once — exactly one new token issued, old one revoked exactly once.
+class TestRefreshEndpointRotatesOnce:
+    """Two refreshes with one token through the real endpoint give one new pair.
 
-    Rather than replaying the HTTP endpoint (which shares a test DB session
-    across threads because of the autouse override in conftest), we emulate
-    the rotation flow at the DB level with two independent sessions and a
-    Barrier. If the refresh flow has a race, both threads would see the same
-    non-revoked row, both set revoked=True, both create new RefreshTokens —
-    which is exactly the replay-attack scenario we want to detect.
+    The endpoint read the row, then marked it revoked. Two requests in between
+    both found it unrevoked and both left with a fresh token pair.
     """
 
-    def test_concurrent_rotate_revokes_only_once(self, db_session, db_engine, test_user):
-        # Create a single refresh token record that both threads will try
-        # to rotate.
-        _, jti = JWTService.create_refresh_token(test_user.id)
-        rt = RefreshToken(
-            id="rt_race001",
-            user_id=test_user.id,
-            jti=jti,
-            expires_at=utcnow() + timedelta(days=7),
-            revoked=False,
+    def test_two_concurrent_refreshes_with_one_token(self, db_session, db_engine, test_user):
+        from fastapi import HTTPException
+        from starlette.requests import Request
+
+        from app.api.v2.auth import refresh_token
+
+        token_str, jti = JWTService.create_refresh_token(test_user.id, db=db_session)
+        db_session.add(
+            RefreshToken(user_id=test_user.id, jti=jti, expires_at=utcnow() + timedelta(days=7))
         )
-        db_session.add(rt)
         db_session.commit()
 
-        results: queue.Queue = queue.Queue()
-        barrier = threading.Barrier(2, timeout=15)
-        Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+        # Both requests stop just after their token check, so the old
+        # read-then-write lets both through. The one-statement rotation holds
+        # the second request at the row lock instead; the barrier then times
+        # out and the first one finishes alone.
+        barrier = threading.Barrier(2, timeout=3)
+        real_create_access = JWTService.create_access_token
 
-        def rotate_worker(thread_id: int) -> None:
-            session = Session()
+        def held_create_access(*args, **kwargs):
             try:
                 barrier.wait()
-                # Atomic-ish rotate: UPDATE ... WHERE revoked=False, then
-                # check if any row was actually updated. This mirrors what
-                # a correct concurrent-safe rotation should look like.
-                updated = session.execute(
-                    RefreshToken.__table__.update()
-                    .where(
-                        RefreshToken.jti == jti,
-                        RefreshToken.revoked == False,  # noqa: E712
-                    )
-                    .values(revoked=True)
-                )
-                session.commit()
-                if updated.rowcount == 1:
-                    # This thread "won" the rotation — issue a new token
-                    _, new_jti = JWTService.create_refresh_token(test_user.id)
-                    new_rt = RefreshToken(
-                        id=f"rt_race_new_{thread_id}",
-                        user_id=test_user.id,
-                        jti=new_jti,
-                        expires_at=utcnow() + timedelta(days=7),
-                        revoked=False,
-                    )
-                    session.add(new_rt)
-                    session.commit()
-                    results.put(("winner", thread_id, new_jti))
-                else:
-                    results.put(("loser", thread_id))
-            except Exception as exc:
+            except threading.BrokenBarrierError:
+                pass
+            return real_create_access(*args, **kwargs)
+
+        Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+        outcomes: queue.Queue = queue.Queue()
+
+        def call(i: int) -> None:
+            session = Session()
+            scope = {
+                "type": "http",
+                "method": "POST",
+                "path": "/api/v2/auth/refresh",
+                "headers": [(b"cookie", f"jaot_refresh_token={token_str}".encode())],
+            }
+            try:
+                refresh_token(Request(scope), session)
+                outcomes.put(200)
+            except HTTPException as exc:
                 session.rollback()
-                results.put(("error", thread_id, str(exc)))
+                outcomes.put(exc.status_code)
+            except Exception as exc:  # noqa: BLE001
+                session.rollback()
+                outcomes.put(repr(exc))
             finally:
                 session.close()
 
-        threads = [
-            threading.Thread(target=rotate_worker, args=(i,), name=f"rt-rotate-{i}")
-            for i in range(2)
-        ]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=30)
-        for t in threads:
-            assert not t.is_alive(), f"thread {t.name} did not finish"
+        with patch.object(JWTService, "create_access_token", side_effect=held_create_access):
+            threads = [threading.Thread(target=call, args=(i,)) for i in range(2)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=30)
 
-        outcomes = []
-        while not results.empty():
-            outcomes.append(results.get())
-
-        winners = [o for o in outcomes if o[0] == "winner"]
-        losers = [o for o in outcomes if o[0] == "loser"]
-        errors = [o for o in outcomes if o[0] == "error"]
-
-        assert errors == [], f"errors: {errors}"
-        # Exactly one winner, exactly one loser — no replay
-        assert len(winners) == 1, f"expected 1 winner, got {len(winners)}: {outcomes}"
-        assert len(losers) == 1, f"expected 1 loser, got {len(losers)}: {outcomes}"
-
-        # The original token is revoked
+        results = sorted(outcomes.get() for _ in range(2))
+        assert results == [200, 401]
         db_session.expire_all()
-        original = db_session.query(RefreshToken).filter(RefreshToken.jti == jti).one()
-        assert original.revoked is True
-
-        # Exactly one new non-revoked refresh token exists for this user
-        new_tokens = (
+        live = (
             db_session.query(RefreshToken)
-            .filter(
-                RefreshToken.user_id == test_user.id,
-                RefreshToken.jti != jti,
-                RefreshToken.revoked == False,  # noqa: E712
-            )
-            .all()
+            .filter(RefreshToken.user_id == test_user.id, RefreshToken.revoked.is_(False))
+            .count()
         )
-        assert len(new_tokens) == 1, f"expected 1 new token, got {len(new_tokens)}"
+        assert live == 1
 
 
 class TestLockoutRaceOnFailedLogin:

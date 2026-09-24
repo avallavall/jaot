@@ -80,12 +80,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Large problems always failed on the advanced assistant model.** The step that splits a big problem into parts read the model's thinking as its answer.
 - **AI spend on a reply that did not finish was not counted.** A failed retry, a reply that did not validate, or a user who pressed Stop or closed the tab was billed by Anthropic and missing from the budget.
 - **Changing the AI budget took up to a minute to apply.** It now applies at once on the server that received the change.
+- **"Remember me" ended after 7 days without a visit instead of 30.** Each token refresh gave the short lifetime. A deactivated account could also keep refreshing its session.
 - **Asking for page 0 of the API keys, or a negative offset or limit on the builder and version lists, gave a server error.** It now gives a validation error that says what is wrong.
 - **The general worker restarted every 30 minutes while any new user's onboarding email was waiting**, and the tasks it was running at that moment ran a second time. The emails for days 1, 3 and 14 waited inside the worker, which RabbitMQ does not allow past 30 minutes. They are now sent by an hourly job, and an account deleted or deactivated before the email is due no longer gets it.
 - **Emails about a new review or an adopted model were always in English.** They now use the language the author chose, like the same notice on the web page.
 - **Setting the JWT secret in the admin panel signed everyone out for good.** Sessions were signed with the new secret and checked against the old one, so even a fresh sign-in failed.
 
 ### Security
+- **One refresh token could be used twice at the same moment**, giving two valid sessions. A copied token could then be used next to the real one. Refresh now rotates in one database statement.
 - **Anonymous calls through the MCP server skipped the per-address limit** that every other public request has. Each tool call now counts against the caller's own address.
 - **Guessing a password in a fast burst got far more than five tries before the account locked**, because simultaneous failures overwrote each other's count. Every failed attempt now counts.
 - **Workspace invites by email were never sent, and their secret link was written to the server log.** Anyone in the organization who could read the log could join with the invite's role. The link is now emailed and never logged, and only the invited address can accept it.
