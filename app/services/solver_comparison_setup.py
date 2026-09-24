@@ -199,7 +199,7 @@ def insert_comparison_child(
     # No Celery task of its own: the comparison task solves every column, so the
     # column has no task id to reconcile against. NULL says that; an empty string
     # would look like an id nobody can find. The reaper judges these rows by their
-    # parent instead (see _comparison_still_alive).
+    # parent instead (see _fail_columns_of_dead_comparisons).
     execution.celery_task_id = None
     if not entry.will_run:
         reason = entry.unsupported_reason or "not_available"

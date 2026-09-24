@@ -29,7 +29,7 @@ column can sit 'pending' for as long as the columns ahead of it take, plus
 however long other comparisons are queued in front. Judged by its own age it
 looks exactly like the lost task this reaper exists to clean up. It is judged by
 its PARENT's age and its parent's own time budget instead — see
-``_comparison_still_alive``.
+``_fail_columns_of_dead_comparisons``.
 
 The same sweep also settles stale ``TriggerRun`` rows (D-36). There the stakes
 are higher than a wrong-looking history row: ``cron_fire_task`` refuses to fire
@@ -212,18 +212,10 @@ def _mark_completed(db: Session, execution: ModelExecution, result: Any) -> None
     )
 
 
-def _comparison_still_alive(
-    db: Session,
-    execution: ModelExecution,
-    now: datetime,
-    running_max: int,
-) -> bool:
-    """Whether this row is a column of a comparison that is still legitimately running.
+def _fail_columns_of_dead_comparisons(db: Session, now: datetime, running_max: int) -> int:
+    """Fail the open columns of every live comparison that is past its time budget.
 
-    Returns False for every ordinary solve, so the sweep is unchanged for them.
-
-    A row of a MATRIX waits longer still: its siblings were launched with it and
-    run before it on the same worker, so its bound is the whole matrix.
+    Returns how many columns were failed. Commits per comparison.
 
     For a comparison column, the row's own age says nothing: the comparison task
     solves its solvers one at a time on a worker that runs one comparison at a
@@ -231,23 +223,65 @@ def _comparison_still_alive(
     every comparison queued in front. The parent's budget is the honest bound —
     every solver it plans to run, each capped at the shared time limit, plus
     ``running_max`` of slack for queueing and startup. Past that the parent is
-    genuinely stuck and its columns are reaped like anything else.
+    genuinely stuck and its columns are failed here.
+
+    The columns of a comparison still inside its budget are left out of the
+    main sweep's query. They were in it, oldest first, 500 at a time: a few
+    large matrices waiting their turn filled the window, newer lost solves
+    behind them were never looked at, and each column cost one or two lookups
+    of its parent on every tick.
     """
-    if not execution.comparison_id:
-        return False
-
-    comparison = (
-        db.query(SolverComparison).filter(SolverComparison.id == execution.comparison_id).first()
+    failed = 0
+    live = (
+        db.query(SolverComparison)
+        .filter(
+            SolverComparison.status.in_(
+                [ComparisonStatus.PENDING.value, ComparisonStatus.RUNNING.value]
+            ),
+            SolverComparison.created_at < now - timedelta(seconds=running_max),
+        )
+        .order_by(SolverComparison.created_at)
+        .limit(_MAX_ROWS_PER_SWEEP)
+        .all()
     )
-    if comparison is None:
-        return False
-    if comparison.status not in (
-        ComparisonStatus.PENDING.value,
-        ComparisonStatus.RUNNING.value,
-    ):
-        return False
-
-    return not _comparison_budget_spent(db, comparison, now, running_max)
+    for comparison in live:
+        try:
+            if not _comparison_budget_spent(db, comparison, now, running_max):
+                continue
+            open_columns = (
+                db.query(ModelExecution)
+                .options(
+                    defer(ModelExecution.input_data),
+                    defer(ModelExecution.result_data),
+                    defer(ModelExecution.progress_data),
+                    defer(ModelExecution.scenario_analysis),
+                )
+                .filter(
+                    ModelExecution.comparison_id == comparison.id,
+                    ModelExecution.status.in_(
+                        [ExecutionStatus.PENDING.value, ExecutionStatus.RUNNING.value]
+                    ),
+                )
+                .all()
+            )
+            for column in open_columns:
+                _mark_failed(
+                    db,
+                    column,
+                    "Reaped: the comparison ran past its time budget without solving "
+                    "this column (its worker was probably restarted or killed).",
+                )
+                failed += 1
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            logger.error(
+                "Reaper failed on the columns of comparison %s: %s",
+                comparison.id,
+                exc,
+                exc_info=True,
+            )
+    return failed
 
 
 def _comparison_budget_spent(
@@ -350,9 +384,6 @@ def _reap_one(
     age_base = execution.started_at or execution.created_at
     age_seconds = (now - age_base).total_seconds()
 
-    if _comparison_still_alive(db, execution, now, running_max):
-        return "skipped"
-
     state: str | None = None
     result: Any = None
     if execution.celery_task_id:
@@ -421,7 +452,21 @@ def reap_stale_executions(db: Session) -> dict[str, Any]:
     running_max = PSS.get_int(db, "EXECUTION_REAPER_RUNNING_MAX_SECONDS")
     now = utcnow()
     min_age = min(pending_max, running_max)
+    columns_failed = _fail_columns_of_dead_comparisons(db, now, running_max)
 
+    # A column of a comparison that is still pending or running waits for its
+    # parent's task; _fail_columns_of_dead_comparisons judges those by the
+    # parent's budget. A column whose parent has a verdict is swept below.
+    parent_is_live = (
+        select(SolverComparison.id)
+        .where(
+            SolverComparison.id == ModelExecution.comparison_id,
+            SolverComparison.status.in_(
+                [ComparisonStatus.PENDING.value, ComparisonStatus.RUNNING.value]
+            ),
+        )
+        .exists()
+    )
     candidates = (
         db.query(ModelExecution)
         # The sweep reads four fields per row and writes a handful more. Without
@@ -440,6 +485,7 @@ def reap_stale_executions(db: Session) -> dict[str, Any]:
                 [ExecutionStatus.PENDING.value, ExecutionStatus.RUNNING.value]
             ),
             ModelExecution.created_at < now - timedelta(seconds=min_age),
+            ~parent_is_live,
         )
         .order_by(ModelExecution.created_at)
         .limit(_MAX_ROWS_PER_SWEEP)
@@ -449,7 +495,7 @@ def reap_stale_executions(db: Session) -> dict[str, Any]:
     summary: dict[str, Any] = {
         "scanned": len(candidates),
         "completed": 0,
-        "failed": 0,
+        "failed": columns_failed,
         "skipped": 0,
         "errors": 0,
     }

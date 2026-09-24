@@ -9,6 +9,7 @@ exactly like the lost task the reaper exists to clean up.
 from __future__ import annotations
 
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 
@@ -210,3 +211,31 @@ def test_a_column_of_a_matrix_past_the_whole_budget_is_reaped(db_session, compar
     db_session.refresh(execution)
     assert execution.status == ExecutionStatus.FAILED.value
     assert execution.error_message
+
+
+# CONTRACT-TEST: columns waiting inside live comparisons never use up the sweep.
+#
+# The sweep reads the 500 oldest open rows. The columns of a few large matrices
+# waiting their turn filled that window on every tick, so a lost solve newer
+# than them was never looked at and stayed "pending" in the history for good.
+def test_waiting_columns_do_not_hide_a_lost_solve(db_session, comparison_org) -> None:
+    for _ in range(3):
+        _seed(db_session, comparison_org, parent_age_seconds=PENDING_MAX + 900)
+    lost = ModelExecution(
+        id=generate_id("exe_"),
+        organization_id=comparison_org.id,
+        celery_task_id=f"task_{generate_id('exe_')}",
+        is_async=True,
+        status=ExecutionStatus.PENDING.value,
+        input_data={"name": "lost"},
+        created_at=utcnow() - timedelta(seconds=PENDING_MAX + 600),
+        solver_name="scip",
+    )
+    db_session.add(lost)
+    db_session.commit()
+
+    with patch("app.tasks.execution_reaper._MAX_ROWS_PER_SWEEP", 3):
+        reap_stale_executions(db_session)
+
+    db_session.refresh(lost)
+    assert lost.status == ExecutionStatus.FAILED.value
