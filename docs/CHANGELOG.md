@@ -54,6 +54,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A schedule whose model failed on every run never switched itself off.** Only a failure to queue the run was counted; a failed solve reset the count to zero.
 - **The minimum time between scheduled runs could be bypassed** depending on the minute the schedule was saved: `*/5 9 * * *` saved at 09:52 was accepted and then ran every five minutes each morning.
 - **Restoring an older version could throw away JModel text without asking**, and committing that text could report success without saving it, whenever the text did not change the compiled model (text that does not compile yet, or a comment). Both now treat the JModel source as part of the model.
+- **In the visual builder, a change to a coefficient alone did not make a new checkpoint**, so restoring an older version afterwards lost that change with no copy of it.
 - **Two commits at the same moment could create a duplicate version** and count versions wrongly.
 - **Copying a JModel-written model from the marketplace dropped its JModel source**, so the copy could not be run on your own data.
 - **Copying a marketplace model by its short name (`knapsack`) made a copy that lost its link to the listing.** It could not take new input, did not count as an adoption, and could not be reviewed.

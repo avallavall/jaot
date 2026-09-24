@@ -208,6 +208,26 @@ class TestCreateCheckpoint:
         # Both responses return the same version ID — no duplicate row
         assert resp1.json()["id"] == resp2.json()["id"]
 
+    def test_a_coefficient_edit_is_a_new_checkpoint(
+        self,
+        authenticated_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        """Edges carry the coefficients; a checkpoint that compared nodes only
+        handed back the old version after a coefficient edit."""
+        doc = _create_doc(db_session, test_organization, test_user)
+        nodes = [{"id": "x", "data": {"label": "x"}}, {"id": "c1", "data": {"label": "c1"}}]
+        before = {"nodes": nodes, "edges": [{"id": "e1", "data": {"coefficient": 3}}]}
+        after = {"nodes": nodes, "edges": [{"id": "e1", "data": {"coefficient": 5}}]}
+
+        first = authenticated_client.post(_versions_url(doc.id), json={"canvas_json": before})
+        second = authenticated_client.post(_versions_url(doc.id), json={"canvas_json": after})
+        assert second.status_code == 201
+        assert second.json()["id"] != first.json()["id"]
+        assert "coefficients" in second.json()["change_summary"]
+
 
 class TestListVersions:
     def test_list_returns_200(

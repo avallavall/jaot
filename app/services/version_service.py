@@ -46,7 +46,9 @@ def compute_change_summary(prev_canvas: dict[str, Any] | None, new_canvas: dict[
     removed = [nid for nid in prev_nodes if nid not in new_nodes]
     modified = [nid for nid in new_nodes if nid in prev_nodes and new_nodes[nid] != prev_nodes[nid]]
 
-    if not added and not removed and not modified:
+    edges_changed = _by_id(prev_canvas, "edges") != _by_id(new_canvas, "edges")
+
+    if not added and not removed and not modified and not edges_changed:
         return "No changes"
 
     parts: list[str] = []
@@ -59,12 +61,19 @@ def compute_change_summary(prev_canvas: dict[str, Any] | None, new_canvas: dict[
     if modified:
         labels = [new_nodes[nid].get("data", {}).get("label", nid) for nid in modified]
         parts.append(f"Modified {', '.join(labels)}")
+    if edges_changed:
+        parts.append("Changed coefficients or connections")
 
     summary = "; ".join(parts)
     # Truncate to 500 chars (column limit) with ellipsis
     if len(summary) > 497:
         summary = summary[:497] + "..."
     return summary
+
+
+def _by_id(canvas: dict[str, Any] | None, key: str) -> dict[str, Any]:
+    """The canvas's nodes or edges, keyed by id."""
+    return {item["id"]: item for item in ((canvas or {}).get(key) or []) if "id" in item}
 
 
 def _prune_unnamed(db: Session, document_id: str) -> None:
@@ -130,11 +139,16 @@ def create_checkpoint(
         The newly created ModelVersion, or the latest existing version if
         the canvas was unchanged.
     """
-    # Skip if canvas is identical to the previous snapshot
+    # Skip if canvas is identical to the previous snapshot. Edges count: they
+    # carry the coefficients (the serializer builds every objective and row
+    # from them), and a check on the nodes alone returned the old checkpoint
+    # after a coefficient edit, so a restore then overwrote that edit with no
+    # copy of it anywhere.
     if prev_canvas_json is not None:
-        prev_nodes = {n["id"]: n for n in (prev_canvas_json.get("nodes") or []) if "id" in n}
-        new_nodes = {n["id"]: n for n in (canvas_json.get("nodes") or []) if "id" in n}
-        if prev_nodes == new_nodes:
+        unchanged = _by_id(prev_canvas_json, "nodes") == _by_id(canvas_json, "nodes") and (
+            _by_id(prev_canvas_json, "edges") == _by_id(canvas_json, "edges")
+        )
+        if unchanged:
             existing = (
                 db.query(ModelVersion)
                 .filter(ModelVersion.document_id == document.id)
