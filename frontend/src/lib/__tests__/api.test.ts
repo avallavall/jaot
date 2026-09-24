@@ -359,6 +359,36 @@ describe("a request whose session has ended", () => {
     window.removeEventListener("jaot:session-expired", expired);
   });
 
+  // A refresh token is used once. When two tabs refresh together, one of them
+  // is refused, although the other one has already put new cookies in the
+  // browser. That tab must carry on instead of sending the user to /login.
+  it("carries on when another tab refreshed the session first", async () => {
+    const expired = vi.fn();
+    window.addEventListener("jaot:session-expired", expired);
+
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValueOnce(reply(401)) // the PUT
+      .mockResolvedValueOnce(reply(401)) // the refresh, lost to the other tab
+      .mockResolvedValueOnce(reply(200)) // /auth/me with the other tab's cookies
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ draft_lock_version: 4 }),
+        clone() {
+          return this;
+        },
+      } as unknown as Response);
+
+    await expect(
+      api.updateProjectDraft("mp_1", { model_json: {}, canvas_json: {} }, 3)
+    ).resolves.toMatchObject({ draft_lock_version: 4 });
+
+    expect(String(fetchSpy.mock.calls[2][0])).toContain("/api/v2/auth/me");
+    expect(expired).not.toHaveBeenCalled();
+    window.removeEventListener("jaot:session-expired", expired);
+  });
+
   // CONTRACT-TEST: a probe for a session never reports one as ended
   //
   // AuthProvider asks /auth/me on every page load, including the home page, the

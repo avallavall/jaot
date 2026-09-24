@@ -396,8 +396,18 @@ async function refreshAccessToken(): Promise<void> {
     method: "POST",
     credentials: "include",
   })
-    .then((res) => {
-      if (!res.ok) throw new Error("Refresh failed");
+    .then(async (res) => {
+      if (res.ok) return;
+      // Another tab can rotate the same refresh token a moment earlier. The
+      // server then refuses this one, but that tab's new cookies are already
+      // in the browser. A session that still answers /auth/me is alive.
+      if (res.status === 401) {
+        const probe = await fetch(`${BASE_URL}/api/v2/auth/me`, {
+          credentials: "include",
+        });
+        if (probe.ok) return;
+      }
+      throw new Error("Refresh failed");
     })
     .finally(() => {
       refreshPromise = null;
