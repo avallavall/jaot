@@ -119,6 +119,12 @@ celery_app.conf.beat_schedule = {
     # The onboarding emails after day 0. They used to be queued at signup with
     # a countdown of up to 14 days, and RabbitMQ closes a channel that holds a
     # message unacknowledged past consumer_timeout (30 minutes).
+    # Contact messages the API saved while the broker was unreachable.
+    "requeue-unqueued-contact-messages": {
+        "task": "requeue_unqueued_contact_messages",
+        "schedule": _REAPER_INTERVAL_SECONDS,
+        "options": {"queue": _GENERIC_QUEUE},
+    },
     "send-due-onboarding-emails": {
         "task": "send_due_onboarding_emails",
         "schedule": _HOURLY_SECONDS,

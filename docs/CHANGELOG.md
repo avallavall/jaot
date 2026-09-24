@@ -80,6 +80,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Large problems always failed on the advanced assistant model.** The step that splits a big problem into parts read the model's thinking as its answer.
 - **AI spend on a reply that did not finish was not counted.** A failed retry, a reply that did not validate, or a user who pressed Stop or closed the tab was billed by Anthropic and missing from the budget.
 - **Changing the AI budget took up to a minute to apply.** It now applies at once on the server that received the change.
+- **A contact-form message sent while the task queue was down was never delivered**, and the visitor saw an error although the message was saved. It is now kept and sent when the queue is back.
 - **The assistant said "Something went wrong on our side" on every message about a very large model.** The model did not fit in the request. The assistant now says the model is too large for it, before anything is billed.
 - **Two screenshots uploaded at the same moment could lose one of them.** Both uploads succeeded, but the listing kept only one, and the other file stayed in storage. Now one of them is refused when only one slot is left.
 - **A lost solve could stay "pending" in the history for good while large solver-comparison matrices were waiting to run.** The clean-up job only looked at the 500 oldest open runs, and the waiting comparison columns filled that list.

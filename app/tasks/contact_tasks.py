@@ -22,6 +22,9 @@ from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
 
+#: ``last_error`` of a message the API saved but could not queue.
+NOT_QUEUED = "Not queued: the task broker was unreachable when the message was sent."
+
 
 class ContactEmailDeliveryError(RuntimeError):
     """EmailService.send returned False — surfaced so retry logic is uniform."""
@@ -92,6 +95,11 @@ def send_contact_email(self: Any, message_id: str) -> dict[str, Any]:
                 max_retries=self.max_retries,
             )
             return {"status": "missing", "message_id": message_id}
+
+        if msg.status == "sent":
+            # A second job for a message that already went out (re-queued by
+            # the sweep while the first job was still waiting). Nothing to do.
+            return {"status": "already_sent", "message_id": message_id}
 
         msg.attempts += 1
         db.commit()
@@ -200,3 +208,41 @@ def _send_failure_notification(msg: ContactMessage, recipient: str, last_error: 
             "Failed to send contact-form failure notice for message_id=%s — accepting silent drop",
             msg.id,
         )
+
+
+@celery_app.task(name="requeue_unqueued_contact_messages")  # type: ignore[misc]
+def requeue_unqueued_contact_messages() -> dict[str, Any]:
+    """Queue the contact messages the API saved but could not queue. Run by beat.
+
+    Only rows marked ``NOT_QUEUED`` and never attempted are taken. A row whose
+    job is still waiting in the queue is not touched, so a message is not sent
+    twice. Stops at the first refusal: the broker is still down.
+    """
+    db = SessionLocal()
+    queued = 0
+    try:
+        waiting = (
+            db.query(ContactMessage)
+            .filter(
+                ContactMessage.status == "pending",
+                ContactMessage.attempts == 0,
+                ContactMessage.last_error == NOT_QUEUED,
+            )
+            .order_by(ContactMessage.created_at)
+            .limit(100)
+            .all()
+        )
+        for msg in waiting:
+            try:
+                send_contact_email.delay(message_id=msg.id)
+            except Exception as exc:  # noqa: BLE001 — try again on the next tick
+                logger.warning("Contact messages still cannot be queued: %s", exc)
+                break
+            msg.last_error = None
+            db.commit()
+            queued += 1
+    finally:
+        db.close()
+    if queued:
+        logger.info("Queued %d contact message(s) that the API could not queue", queued)
+    return {"queued": queued}

@@ -29,7 +29,7 @@ from app.schemas.contact import ContactCreate, ContactResponse
 from app.shared.core.prometheus_metrics import CONTACT_SPAM_BLOCKED
 from app.shared.core.rate_limiter import check_rate_limit, check_rate_limit_15min
 from app.shared.utils.request_helpers import get_client_ip
-from app.tasks.contact_tasks import send_contact_email
+from app.tasks.contact_tasks import NOT_QUEUED, send_contact_email
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,16 @@ def submit_contact(
     _log_submission("accepted", client_ip=client_ip, signed_in=signed_in, message_id=msg.id)
 
     # 6. Enqueue delivery with message_id ONLY (T-09-10 — no PII through broker).
-    send_contact_email.delay(message_id=msg.id)
+    # The message is already saved. When the broker is down it used to raise
+    # here: the visitor got a 500 for a message that was stored, and the row
+    # stayed 'pending' with nothing that would ever send it. It is marked
+    # instead, and requeue_unqueued_contact_messages sends it later.
+    try:
+        send_contact_email.delay(message_id=msg.id)
+    except Exception:
+        logger.error("Contact message %s could not be queued", msg.id, exc_info=True)
+        msg.last_error = NOT_QUEUED
+        db.commit()
 
     return ContactResponse.model_validate(msg)
 

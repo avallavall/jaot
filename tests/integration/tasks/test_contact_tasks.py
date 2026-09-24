@@ -216,3 +216,14 @@ def test_the_smtp_backend_answers_false_for_an_address_smtp_cannot_carry():
     with patch("app.services.email_service.smtplib.SMTP", return_value=server):
         assert backend.send(to="josé@ejemplo.es", subject="Hi", html="<p>x</p>") is False
     server.close.assert_called_once()
+
+
+def test_a_message_already_sent_is_not_sent_again(db_session):
+    """A second job for the same message does nothing once the first one sent it."""
+    msg = _seed_message(db_session, status="sent", attempts=1)
+
+    with patch.object(EmailService, "send", return_value=True) as mock_send:
+        result = send_contact_email.apply(args=(msg.id,)).get()
+
+    assert result["status"] == "already_sent"
+    assert mock_send.call_count == 0

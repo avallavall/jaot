@@ -253,3 +253,35 @@ def test_post_contact_email_invalid_format_rejected(client):
         json=_valid_payload(email="<script>alert(1)</script>@evil.com"),
     )
     assert resp.status_code == 422
+
+
+# A message saved while the broker was down is sent later, not lost.
+#
+# The route queued the delivery job after saving the row. When RabbitMQ was
+# unreachable the call raised: the visitor got a 500 for a message that had
+# been stored, and the row stayed 'pending' with nothing that would ever send it.
+def test_a_message_saved_while_the_broker_is_down_is_queued_later(client, db_session):
+    from app.tasks.contact_tasks import NOT_QUEUED, requeue_unqueued_contact_messages
+
+    with patch(
+        "app.tasks.contact_tasks.send_contact_email.delay",
+        side_effect=ConnectionError("broker down"),
+    ):
+        resp = client.post("/api/v2/contact", json=_valid_payload())
+
+    assert resp.status_code == 200, resp.text
+    message_id = resp.json()["id"]
+    row = db_session.get(ContactMessage, message_id)
+    assert row.last_error == NOT_QUEUED
+
+    with (
+        patch("app.tasks.contact_tasks.SessionLocal", return_value=db_session),
+        patch.object(db_session, "close"),
+        patch("app.tasks.contact_tasks.send_contact_email.delay") as delay,
+    ):
+        assert requeue_unqueued_contact_messages() == {"queued": 1}
+        assert requeue_unqueued_contact_messages() == {"queued": 0}
+
+    assert [c.kwargs["message_id"] for c in delay.call_args_list] == [message_id]
+    db_session.refresh(row)
+    assert row.last_error is None
