@@ -276,6 +276,8 @@ class TestInsightsEndpoint:
 INSIGHT_CODES = {
     "objective.optimal_value.maximize",
     "objective.optimal_value.minimize",
+    "objective.best_found_value.maximize",
+    "objective.best_found_value.minimize",
     "objective.globally_optimal",
     "objective.feasible_not_proven",
     "objective.infeasible",
@@ -350,3 +352,19 @@ class TestInsightCodes:
         assert all(i["code"] in INSIGHT_CODES for i in insights)
         value = next(i for i in insights if i["code"].startswith("objective.optimal_value"))
         assert value["params"]["value"] == 2.0
+
+
+class TestANonOptimalAnswerIsNotCalledOptimal:
+    """A run stopped by its time limit said "Optimal minimized value"."""
+
+    def test_a_time_limited_run_is_the_best_value_found(self):
+        result = dict(_optimal_result(), solver_status="time_limit", gap=0.25)
+        codes = [i.code for i in generate_insights(_simple_problem(), result)]
+        assert not any(code.startswith("objective.optimal_value") for code in codes)
+        assert any(code.startswith("objective.best_found_value") for code in codes)
+        assert "objective.feasible_not_proven" in codes
+
+    def test_a_proven_optimum_is_still_optimal(self):
+        codes = [i.code for i in generate_insights(_simple_problem(), _optimal_result())]
+        assert any(code.startswith("objective.optimal_value") for code in codes)
+        assert not any(code.startswith("objective.best_found_value") for code in codes)

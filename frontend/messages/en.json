@@ -3493,6 +3493,10 @@
             "maximize": "Optimal maximized value: {value}",
             "minimize": "Optimal minimized value: {value}"
           },
+          "best_found_value": {
+            "maximize": "Best maximized value found: {value}",
+            "minimize": "Best minimized value found: {value}"
+          },
           "globally_optimal": "Solution is globally optimal. No better feasible solution exists.",
           "feasible_not_proven": "Solution is feasible but may not be globally optimal. Consider increasing the time limit.",
           "infeasible": "Problem is infeasible. No solution satisfies all constraints. Review constraint definitions for contradictions.",

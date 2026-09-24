@@ -44,6 +44,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **HiGHS called an unbounded model infeasible.** It now checks once more and reports which one it is.
 - **SCIP reported a gap of 10^20 on some runs**, and measured its gap differently from the other solvers. All four now use the same formula.
 - **A coefficient written like `5e-05` made validation refuse the model**, so imported files with very small or very large numbers could not be solved.
+- **Warm start ignored a run that stopped at its time limit**, which is the main reason to warm start. It now carries on from the answer that run held.
+- **A run stopped by its time limit was labelled "Optimal value".** It now says "Best value found" and adds that the answer may not be optimal.
 - **A two-objective solve could return an empty trade-off curve.** When the second objective had no worst value (for example emissions with no cap) and its best value was zero or negative, every point asked for better than the best, so none was found.
 - **A constraint without a name could show the figures of the row before it.** Unnamed rows were numbered from 0 in some places and from 1 in others, so SCIP's "binding" marks and the reduced costs were read one row off. Every screen now calls them `c1`, `c2`, and so on.
 - **Importing a file could produce a different model and solve it without a warning.** Two variables whose names differ only in punctuation (`x.1` and `x_1`) became one; the objective's constant was dropped; and a file with one quadratic row lost that row, the lower side of every two-sided row, and turned a coefficient of 0.00001 into -5. The first two are fixed. A file with rows JAOT cannot read is now refused and the message says how many and of what kind.

@@ -60,12 +60,19 @@ def generate_insights(
     # --- Objective insights ---
     if objective_value is not None:
         sense = problem.objective.sense.value
+        # "Optimal" only for a proven optimum. A run stopped by its time limit
+        # was labelled "Optimal minimized value" above a note saying it may not
+        # be optimal.
+        if solver_status == "optimal":
+            message, code = f"Optimal {sense}d value", f"objective.optimal_value.{sense}"
+        else:
+            message, code = f"Best {sense}d value found", f"objective.best_found_value.{sense}"
         insights.append(
             Insight(
                 category="objective",
-                message=f"Optimal {sense}d value: {objective_value:,.6g}",
+                message=f"{message}: {objective_value:,.6g}",
                 severity="success" if solver_status == "optimal" else "info",
-                code=f"objective.optimal_value.{sense}",
+                code=code,
                 params={"value": objective_value},
             )
         )
@@ -79,7 +86,7 @@ def generate_insights(
                 code="objective.globally_optimal",
             )
         )
-    elif solver_status == "feasible":
+    elif solver_status in ("feasible", "time_limit") and objective_value is not None:
         insights.append(
             Insight(
                 category="objective",

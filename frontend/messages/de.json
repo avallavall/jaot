@@ -3493,6 +3493,10 @@
             "maximize": "Optimaler maximierter Wert: {value}",
             "minimize": "Optimaler minimierter Wert: {value}"
           },
+          "best_found_value": {
+            "maximize": "Bester gefundener maximierter Wert: {value}",
+            "minimize": "Bester gefundener minimierter Wert: {value}"
+          },
           "globally_optimal": "Die Lösung ist global optimal. Es gibt keine bessere zulässige Lösung.",
           "feasible_not_proven": "Die Lösung ist zulässig, aber möglicherweise nicht global optimal. Erhöhen Sie das Zeitlimit.",
           "infeasible": "Das Problem ist unzulässig. Keine Lösung erfüllt alle Nebenbedingungen. Prüfen Sie sie auf Widersprüche.",

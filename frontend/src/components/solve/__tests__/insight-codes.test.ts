@@ -11,6 +11,8 @@ import { join } from "node:path";
 const INSIGHT_CODES = [
   "objective.optimal_value.maximize",
   "objective.optimal_value.minimize",
+  "objective.best_found_value.maximize",
+  "objective.best_found_value.minimize",
   "objective.globally_optimal",
   "objective.feasible_not_proven",
   "objective.infeasible",

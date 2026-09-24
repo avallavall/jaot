@@ -3493,6 +3493,10 @@
             "maximize": "Valor òptim maximitzat: {value}",
             "minimize": "Valor òptim minimitzat: {value}"
           },
+          "best_found_value": {
+            "maximize": "Millor valor maximitzat trobat: {value}",
+            "minimize": "Millor valor minimitzat trobat: {value}"
+          },
           "globally_optimal": "La solució és òptima global. No existeix cap solució factible millor.",
           "feasible_not_proven": "La solució és factible, però pot no ser òptima global. Prova d’ampliar el límit de temps.",
           "infeasible": "El problema és infactible. Cap solució satisfà totes les restriccions. Revisa si hi ha contradiccions entre elles.",

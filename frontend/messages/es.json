@@ -3493,6 +3493,10 @@
             "maximize": "Valor óptimo maximizado: {value}",
             "minimize": "Valor óptimo minimizado: {value}"
           },
+          "best_found_value": {
+            "maximize": "Mejor valor maximizado encontrado: {value}",
+            "minimize": "Mejor valor minimizado encontrado: {value}"
+          },
           "globally_optimal": "La solución es óptima global. No existe ninguna solución factible mejor.",
           "feasible_not_proven": "La solución es factible, pero puede no ser óptima global. Prueba a ampliar el límite de tiempo.",
           "infeasible": "El problema es infactible. Ninguna solución satisface todas las restricciones. Revisa si hay contradicciones entre ellas.",
