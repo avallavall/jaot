@@ -80,6 +80,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Large problems always failed on the advanced assistant model.** The step that splits a big problem into parts read the model's thinking as its answer.
 - **AI spend on a reply that did not finish was not counted.** A failed retry, a reply that did not validate, or a user who pressed Stop or closed the tab was billed by Anthropic and missing from the budget.
 - **Changing the AI budget took up to a minute to apply.** It now applies at once on the server that received the change.
+- **During a short server outage a running solve could be given up too early**, because the page sent several status checks at once and counted each failure. It now waits for one check to answer before it sends the next. The comparison and matrix pages do the same.
 - **An upload, import or export after a long pause failed with the English words "Refresh failed"** and left the page signed in. It now ends the session and asks you to sign in again, like every other request. These requests also tell the server the page language now.
 - **The admin AI dashboard counted hidden bookkeeping records as conversations, left out the cost of deleted conversations, and called every studio chat "accepted".** A conversation now counts as accepted when the model's draft was saved after the assistant proposed a formulation.
 - **A contact-form message sent while the task queue was down was never delivered**, and the visitor saw an error although the message was saved. It is now kept and sent when the queue is back.

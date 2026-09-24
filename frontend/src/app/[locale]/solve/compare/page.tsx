@@ -33,6 +33,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { ACCEPTED_EXTENSIONS, isAcceptedFile } from "@/lib/file-import";
 import type { ComparisonDetail, ProjectListItem } from "@/lib/types";
+import { pollEvery } from "@/lib/poll";
 
 /** How often the table refreshes while the comparison is still running. The
  * solves are sequential, so nothing changes faster than one solver at a time. */
@@ -128,10 +129,7 @@ export default function SolverComparePage() {
 
   useEffect(() => {
     if (!comparisonId || !polling) return;
-    const timer = setInterval(() => {
-      void refreshRef.current(comparisonId);
-    }, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
+    return pollEvery(() => refreshRef.current(comparisonId), POLL_INTERVAL_MS);
   }, [comparisonId, polling]);
 
   async function handleFile(file: File | undefined) {

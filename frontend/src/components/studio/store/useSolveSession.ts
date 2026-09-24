@@ -8,6 +8,7 @@ import { extractProgressHistory, type ProgressPoint } from "@/lib/result-utils";
 import type { AsyncSolveResultEnvelope, ProjectExecutionItem, SolveResult } from "@/lib/types";
 import type { LastRunStatus, ModelProjectStore } from "./createModelProjectStore";
 import { toProgressPoint, type SolveProgressEvent } from "../panels/solve/live-solve-metrics";
+import { pollEvery } from "@/lib/poll";
 
 /**
  * The completed async-solve status nests the Celery task envelope under `result`,
@@ -143,9 +144,9 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
     if (!modelId || modelId === "new") return;
     if (status !== "idle") return;
     let cancelled = false;
-    // A box rather than a bare `let`: `check` is defined before the interval
-    // exists and has to be able to clear it.
-    const timer: { id?: ReturnType<typeof setInterval> } = {};
+    // A box rather than a bare `let`: `check` is defined before the poll
+    // exists and has to be able to stop it.
+    const timer: { stop?: () => void } = {};
     const check = async () => {
       if (cancelled) return;
       if (typeof document !== "undefined" && document.hidden) return;
@@ -163,15 +164,14 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
         // type. The provider swaps in the "no longer yours" page on it.
         if ((err as { status?: number })?.status === 403) {
           cancelled = true;
-          if (timer.id) clearInterval(timer.id);
+          timer.stop?.();
           store.getState().setAccessLost(true);
           return;
         }
         /* anything else is best-effort: the next tick may well succeed */
       }
     };
-    check();
-    timer.id = setInterval(check, 7000);
+    timer.stop = pollEvery(check, 7000, { immediately: true });
     const onVisible = () => {
       if (typeof document !== "undefined" && !document.hidden) check();
     };
@@ -180,7 +180,7 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
     }
     return () => {
       cancelled = true;
-      if (timer.id) clearInterval(timer.id);
+      timer.stop?.();
       if (typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", onVisible);
       }
@@ -204,13 +204,10 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
     let done = false;
     let emptyCompleted = 0;
     let consecutiveErrors = 0;
-    let timer: ReturnType<typeof setInterval> | null = null;
+    let stopPolling: (() => void) | null = null;
     const stop = () => {
       done = true;
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
+      stopPolling?.();
     };
     const poll = async () => {
       if (done) return;
@@ -264,11 +261,13 @@ export function useSolveSession(store: ModelProjectStore, workspaceId?: string):
       }
       consecutiveErrors = 0;
     };
-    poll();
-    timer = setInterval(poll, 1000);
+    // One request at a time (pollEvery): with a 1 s interval and the client's
+    // own retries, a backend blip stacked requests and each failure counted
+    // toward the ~1 minute give-up below.
+    stopPolling = pollEvery(poll, 1000, { immediately: true });
     return () => {
       done = true;
-      if (timer) clearInterval(timer);
+      stopPolling?.();
     };
   }, [taskId, isRunning, store]);
 }

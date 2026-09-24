@@ -51,6 +51,7 @@ import {
   shouldKeepPollingMatrix,
   winnerCount,
 } from "./matrix-metrics";
+import { pollEvery } from "@/lib/poll";
 
 /** How often the grid refreshes while any cell is still being solved. The runs
  * are sequential, so nothing changes faster than one solver at a time. */
@@ -200,8 +201,7 @@ export function SolverMatrixSection() {
 
   useEffect(() => {
     if (!batchId || !polling) return;
-    const timer = setInterval(() => void refreshRef.current(batchId), POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
+    return pollEvery(() => refreshRef.current(batchId), POLL_INTERVAL_MS);
   }, [batchId, polling]);
 
   // Recomputed only when the grid or the metric changes, not on every render:
