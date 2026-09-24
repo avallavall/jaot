@@ -243,6 +243,43 @@ def test_the_trigger_run_sweep_does_not_read_the_payloads(
     sql.assert_never_selected("trigger_runs", ("result_data", "override_data"))
 
 
+# CONTRACT-TEST: the author checklist reads no card payloads.
+# It needs to know whether a published listing has an image, and which one does
+# not. It loaded every published listing of the organization whole to find out.
+def test_the_author_checklist_does_not_read_the_card_payloads(
+    authenticated_client, db_session: Session, test_organization: Organization
+) -> None:
+    from app.models.model_project import ModelProjectListing
+
+    project = _project(db_session, test_organization, "mp_payload_checklist")
+    db_session.add(
+        ModelProjectListing(
+            model_project_id=project.id,
+            name="payload-checklist",
+            display_name="Payload Checklist",
+            description="A published card with a fat schema.",
+            status="published",
+            is_public=True,
+            author_organization_id=test_organization.id,
+            generator_type="knapsack",
+            generator_params={"weight_field": "cost"},
+            input_schema={"type": "object"},
+            input_fields=[{"name": "items", "type": "array"}],
+            example_input={"items": []},
+        )
+    )
+    db_session.commit()
+
+    with _Statements(db_session) as sql:
+        resp = authenticated_client.get("/api/v2/author/onboarding/status")
+
+    assert resp.status_code == 200, resp.text
+    steps = {s["key"]: s for s in resp.json()["steps"]}
+    assert steps["publish_model"]["completed"] is True
+    assert steps["add_rich_media"]["link"] == f"/studio/{project.id}/publish"
+    sql.assert_never_selected("model_project_listings", _LISTING_PAYLOADS)
+
+
 # CONTRACT-TEST: the marketplace catalog list reads no card payloads.
 # A catalog row is a name, a description, tags and counters. The listing also
 # carries the whole input schema, the form field list, the worked example and

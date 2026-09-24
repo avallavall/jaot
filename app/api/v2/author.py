@@ -284,9 +284,16 @@ def get_onboarding_status(
     # Step 1: Complete profile - org has name and bio filled
     profile_complete = bool(org and org.name and org.bio and org.bio.strip())
 
-    # Step 2: Publish a model (a published marketplace listing)
+    # Step 2: Publish a model (a published marketplace listing). Three columns,
+    # not the entity: a listing also carries the input schema, the form fields,
+    # the worked example and the generator params, and none of them is read here.
     published_models = (
         db.query(ModelProjectListing)
+        .with_entities(
+            ModelProjectListing.model_project_id,
+            ModelProjectListing.logo_url,
+            ModelProjectListing.screenshot_urls,
+        )
         .filter(
             ModelProjectListing.author_organization_id == org_id,
             ModelProjectListing.status == STATUS_PUBLISHED,
