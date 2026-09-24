@@ -32,6 +32,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-09-24
+
 ### Added
 - **A solver comparison shows how much searching each solver did, not only how long it took.** One small panel per solver: the nodes it explored, or the simplex iterations on a model with no tree, against the clock. The time chart says who was slower, and there are only two reasons — the loser explored far more of the tree, or each node cost it more. On a 220-item knapsack GLPK covered thirty-seven times more tree than SCIP, at twenty-eight times the rate; nothing on the page said so before. Every panel keeps its own vertical scale, because a node in one solver is not a node in another; the clock is the part they share, and a solver that reported only its final count gets a single dot rather than a curve.
 
@@ -960,7 +962,8 @@ Full rewrite of the platform. The plugin-based system was replaced by a universa
 - Only 3.0.0 onwards is tagged in this repository — it is the first release published
   here — so the comparison links below start there.
 
-[Unreleased]: https://github.com/avallavall/jaot/compare/v3.9.0...HEAD
+[Unreleased]: https://github.com/avallavall/jaot/compare/v3.10.0...HEAD
+[3.10.0]: https://github.com/avallavall/jaot/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/avallavall/jaot/compare/v3.8.0...v3.9.0
 [3.8.0]: https://github.com/avallavall/jaot/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/avallavall/jaot/compare/v3.6.0...v3.7.0
