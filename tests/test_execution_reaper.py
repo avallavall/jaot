@@ -422,6 +422,8 @@ class TestAQueuedSolveIsNotALostSolve:
         monkeypatch.setattr("app.tasks.execution_reaper._queue_backlog", lambda: {"solve_scip": 0})
 
         assert reap_stale_executions(db_session)["failed"] == 1
+        db_session.refresh(execution)
+        assert execution.status == ExecutionStatus.FAILED.value
 
     def test_a_worker_does_not_solve_a_row_that_was_already_settled(
         self, db_session, reaper_org, monkeypatch
