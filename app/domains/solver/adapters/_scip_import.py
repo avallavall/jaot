@@ -27,7 +27,10 @@ from pydantic import ValidationError
 from pyscipopt import Model
 
 from app.domains.solver.services._naming import sanitize_var_name
-from app.domains.solver.services.cip_parser import parse_cip_constraints
+from app.domains.solver.services.cip_parser import (
+    UnreadCipRowsError,
+    parse_cip_constraints,
+)
 from app.schemas.file_io import (
     ALL_EXTENSIONS,
     GZIP_EXTENSIONS,
@@ -306,12 +309,12 @@ class FileImportService:
         Returns:
             OptimizationProblem populated from the SCIP model.
         """
-        variables = self._extract_variables(model)
+        variables, var_names = self._extract_variables(model)
         if not variables:
             raise FileImportError("No variables found in model file")
 
-        objective = self._extract_objective(model, sense_override)
-        constraints = self._extract_constraints(model)
+        objective = self._extract_objective(model, sense_override, var_names)
+        constraints = _unique_constraint_names(self._extract_constraints(model, var_names))
 
         problem_name = model.getProbName() or "imported_problem"
         sanitized_name = _sanitize_var_name(problem_name)
@@ -325,13 +328,19 @@ class FileImportService:
             constraints=constraints,
         )
 
-    def _extract_variables(self, model: Model) -> list[Variable]:
+    def _extract_variables(self, model: Model) -> tuple[list[Variable], dict[str, str]]:
         """Extract variables from SCIP model.
 
         Maps SCIP variable types (BINARY, INTEGER, CONTINUOUS, IMPLINT)
         to JAOT VariableType. Sanitizes names for compatibility.
+
+        Also returns the name each SCIP variable got. The objective and the rows
+        must use it: sanitizing again on their own turned ``x.1`` and ``x_1``
+        into one variable in every expression, while the second one sat in no
+        row at all.
         """
         variables: list[Variable] = []
+        var_names: dict[str, str] = {}
         seen_names: set[str] = set()
 
         for scip_var in model.getVars():
@@ -345,6 +354,7 @@ class FileImportService:
                     counter += 1
                 name = f"{name}_{counter}"
             seen_names.add(name)
+            var_names[raw_name] = name
 
             vtype_str = scip_var.vtype()
             var_type = _SCIP_VTYPE_MAP.get(vtype_str, VariableType.CONTINUOUS)
@@ -365,12 +375,13 @@ class FileImportService:
                 )
             )
 
-        return variables
+        return variables, var_names
 
     def _extract_objective(
         self,
         model: Model,
         sense_override: ObjectiveSense | None,
+        var_names: dict[str, str],
     ) -> Objective:
         """Extract the objective function from SCIP model.
 
@@ -388,7 +399,7 @@ class FileImportService:
             if abs(coeff) < 1e-12:
                 continue
 
-            name = _sanitize_var_name(scip_var.name)
+            name = var_names[scip_var.name]
 
             if coeff == 1.0:
                 terms.append(name)
@@ -397,26 +408,35 @@ class FileImportService:
             else:
                 terms.append(f"{coeff}*{name}")
 
+        # The objective's constant: an LP file's `+ 5`, an MPS objective RHS.
+        # SCIP keeps it as the offset, and the import used to drop it, so every
+        # objective value came back short by that amount.
+        offset = model.getObjoffset()
+        if abs(offset) >= 1e-12:
+            terms.append(f"{offset}")
+
         expression = " + ".join(terms) if terms else "0"
         # Clean up "+ -" to "- "
         expression = expression.replace("+ -", "- ")
 
         return Objective(sense=sense, expression=expression)
 
-    def _extract_constraints(self, model: Model) -> list[Constraint]:
+    def _extract_constraints(self, model: Model, var_names: dict[str, str]) -> list[Constraint]:
         """Extract constraints, trying linear extraction first, CIP fallback."""
-        constraints = self._extract_constraints_linear(model)
-        if constraints:
+        constraints = self._extract_constraints_linear(model, var_names)
+        if constraints is not None:
             return constraints
 
-        logger.info("Linear extraction yielded no constraints, trying CIP fallback")
-        return self._extract_constraints_via_cip(model)
+        logger.info("A constraint is not linear, trying CIP fallback")
+        return self._extract_constraints_via_cip(model, var_names)
 
-    def _extract_constraints_linear(self, model: Model) -> list[Constraint]:
+    def _extract_constraints_linear(
+        self, model: Model, var_names: dict[str, str]
+    ) -> list[Constraint] | None:
         """Extract constraints via SCIP's getValsLinear (fast path).
 
-        Works for linear constraints. Returns empty list if any constraint
-        fails, signaling the caller to try the CIP fallback.
+        Works for linear constraints. Returns None if any constraint fails,
+        signaling the caller to try the CIP fallback.
         """
         constraints: list[Constraint] = []
 
@@ -428,7 +448,7 @@ class FileImportService:
                     "getValsLinear failed for constraint %s, will use CIP fallback",
                     scip_cons.name,
                 )
-                return []
+                return None
 
             if not vals:
                 continue
@@ -438,7 +458,7 @@ class FileImportService:
                 if abs(coeff) < 1e-12:
                     continue
                 var_name = var_ref.name if hasattr(var_ref, "name") else str(var_ref)
-                name = _sanitize_var_name(var_name)
+                name = var_names.get(var_name) or _sanitize_var_name(var_name)
                 if coeff == 1.0:
                     terms.append(name)
                 elif coeff == -1.0:
@@ -488,20 +508,36 @@ class FileImportService:
 
         return constraints
 
-    def _extract_constraints_via_cip(self, model: Model) -> list[Constraint]:
+    def _extract_constraints_via_cip(
+        self, model: Model, var_names: dict[str, str]
+    ) -> list[Constraint]:
         """Extract constraints by writing model to CIP and parsing.
 
         Fallback when getValsLinear fails (non-linear constraints, etc.).
+
+        Refuses the file when a row cannot be read. It used to leave such rows
+        out, or return no constraints at all when the fallback itself failed,
+        and the reduced model was then solved as if it were the file.
         """
         fd, cip_path = tempfile.mkstemp(suffix=".cip")
         os.close(fd)
 
         try:
-            model.writeProblem(cip_path)
-            return parse_cip_constraints(cip_path)
+            model.writeProblem(cip_path, verbose=False)
+            return parse_cip_constraints(cip_path, var_names, strict=True)
+        except UnreadCipRowsError as exc:
+            raise FileImportError(
+                f"{exc} JAOT imports linear constraints only, so this file "
+                "cannot be imported without changing the model.",
+                code="import.unsupported_constraints",
+                params={"kinds": dict(exc.kinds)},
+            ) from exc
         except Exception as exc:
             logger.warning("CIP fallback failed: %s", exc)
-            return []
+            raise FileImportError(
+                "The constraints of this file could not be read.",
+                code="import.unreadable_constraints",
+            ) from exc
         finally:
             try:
                 os.unlink(cip_path)
@@ -596,3 +632,26 @@ def get_file_import_service() -> FileImportService:
     if _file_import_service is None:
         _file_import_service = FileImportService()
     return _file_import_service
+
+
+def _unique_constraint_names(constraints: list[Constraint]) -> list[Constraint]:
+    """Give every named row its own name.
+
+    Sanitizing makes ``c.1`` and ``c_1`` both ``c_1``. Sensitivity, binding
+    flags and the analysis tables are keyed by name, so two rows under one
+    name reported the figures of only one of them.
+    """
+    seen: set[str] = set()
+    result: list[Constraint] = []
+    for constraint in constraints:
+        name = constraint.name
+        if name is not None:
+            candidate, counter = name, 1
+            while candidate in seen:
+                candidate = f"{name}_{counter}"
+                counter += 1
+            seen.add(candidate)
+            if candidate != name:
+                constraint = constraint.model_copy(update={"name": candidate})
+        result.append(constraint)
+    return result
