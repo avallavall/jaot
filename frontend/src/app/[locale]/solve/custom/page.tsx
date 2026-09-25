@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { solverErrorText } from "@/lib/solver-error";
-import type { SolveResult, AsyncTask } from "@/lib/types";
+import type { SolveResult, AsyncTask, ProblemValidationIssue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { CustomSolutionList } from "@/components/solve/CustomSolutionList";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Loader2,
@@ -53,6 +54,9 @@ export default function CustomSolvePage() {
   const locale = useLocale();
   const t = useTranslations("solve.custom");
   const tError = useTranslations("errors.codes");
+  // The comparer's words for a solver verdict, already in all five languages.
+  // This page printed the raw English code: "Optimal" on a Spanish page.
+  const tVerdict = useTranslations("solverCompare.status");
   const router = useRouter();
   const { solverName, setSolverName, availableSolvers, solversLoading } = useSolvers();
   const [solving, setSolving] = useState(false);
@@ -63,7 +67,34 @@ export default function CustomSolvePage() {
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
     errors?: string[];
+    issues?: ProblemValidationIssue[];
   } | null>(null);
+
+  // A verdict belongs to the text it was given for. After an edit, "Valid
+  // Problem" and the previous answer stayed on screen next to a different
+  // problem, and read as a verdict about it.
+  const handleInputChange = (value: string) => {
+    setInputJson(value);
+    setValidationResult(null);
+    setResult(null);
+    setAsyncTask(null);
+    setError(null);
+  };
+
+  // One sentence per error, in the page's language. The API's English prints
+  // Python sets ("{'q'}") and parser diagnostics ("EXPR_PARSE_ERROR").
+  const validationMessages = (): string[] => {
+    if (!validationResult) return [];
+    const issues = validationResult.issues ?? [];
+    if (issues.length > 0) {
+      return issues.map((issue) =>
+        tError.has(issue.code)
+          ? tError(issue.code, (issue.params ?? {}) as Record<string, string | number>)
+          : issue.message,
+      );
+    }
+    return validationResult.errors ?? [];
+  };
 
   // What the solver that ACTUALLY ran can deliver, not what was asked for:
   // under "Auto" those are different names, and the sensitivity panel explains
@@ -121,7 +152,12 @@ export default function CustomSolvePage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Button variant="ghost" onClick={() => router.push("/studio")} className="mb-4">
+      {/* The label says Templates, and it went to My Models. */}
+      <Button
+        variant="ghost"
+        onClick={() => router.push("/studio/templates")}
+        className="mb-4"
+      >
         <ArrowLeft className="h-4 w-4 mr-2" />
         {t("backToTemplates")}
       </Button>
@@ -157,7 +193,9 @@ export default function CustomSolvePage() {
           <CardContent className="space-y-4">
             <Textarea
               value={inputJson}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputJson(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                handleInputChange(e.target.value)
+              }
               className="font-mono text-sm min-h-[400px]"
               placeholder={t("enterProblemDefinition")}
             />
@@ -216,9 +254,12 @@ export default function CustomSolvePage() {
                     {validationResult.valid ? t("validProblem") : t("invalidProblem")}
                   </span>
                 </div>
-                {validationResult.errors && validationResult.errors.length > 0 && (
-                  <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
-                    {validationResult.errors.map((err, i) => (
+                {validationMessages().length > 0 && (
+                  <ul
+                    className="mt-2 text-sm text-red-700 list-disc list-inside"
+                    data-testid="custom-validation-errors"
+                  >
+                    {validationMessages().map((err, i) => (
                       <li key={i}>{err}</li>
                     ))}
                   </ul>
@@ -255,7 +296,9 @@ export default function CustomSolvePage() {
                     <XCircle className="h-8 w-8 text-destructive" />
                   )}
                   <div>
-                    <p className="font-semibold text-lg capitalize">{result.status}</p>
+                    <p className="font-semibold text-lg" data-testid="custom-status">
+                      {tVerdict.has(result.status) ? tVerdict(result.status) : result.status}
+                    </p>
                     {result.objective_value != null && (
                       <p className="text-2xl font-bold text-primary">
                         {result.objective_value.toLocaleString(locale, {
@@ -272,8 +315,12 @@ export default function CustomSolvePage() {
                       <Clock className="h-4 w-4" />
                       {t("solveTime")}
                     </div>
-                    <p className="font-semibold mt-1">
-                      {(result.solve_time_seconds * 1000).toFixed(2)} ms
+                    <p className="font-semibold mt-1" data-testid="custom-solve-time">
+                      {t("milliseconds", {
+                        ms: (result.solve_time_seconds * 1000).toLocaleString(locale, {
+                          maximumFractionDigits: 2,
+                        }),
+                      })}
                     </p>
                   </div>
                   {/* Which solver actually ran. Under "Auto" the answer is the
@@ -309,21 +356,7 @@ export default function CustomSolvePage() {
                     : (result.variables ?? []).map((v) => [v.name, v.value]);
                   if (entries.length === 0) return null;
                   return (
-                    <div>
-                      <Label className="text-sm text-muted-foreground">{t("solutionLabel")}</Label>
-                      <div className="mt-2 p-4 bg-muted rounded-lg">
-                        <div className="grid grid-cols-2 gap-2">
-                          {entries.map(([name, value]) => (
-                            <div key={name} className="flex justify-between">
-                              <span className="font-mono text-sm">{name}</span>
-                              <span className="font-semibold">
-                                {value.toLocaleString(locale, { maximumFractionDigits: 4 })}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    <CustomSolutionList entries={entries} executionId={result.execution_id} />
                   );
                 })()}
 

@@ -406,6 +406,10 @@ Notes:
   express a **particular** model is decided per comparison, against that problem's class.
 - Multi-objective is not listed: it is available for every solver. Solvers without
   native support get it through scalarization, so a per-solver flag would be misleading.
+  `POST /solve/multi-objective` runs on the solver named in `problem.solver_name` (or the
+  `solver_name` query parameter), SCIP when none is named, and `auto` picks one. A solver
+  that cannot take a quadratic objective is refused with a 422 before anything runs. The
+  response carries `execution_id` and `solver_used`.
 - `solver_name: "auto"` is always accepted and is not listed here; the server picks the
   effective solver per problem and reports it back as `solver_used`, with `auto_route_reason`
   saying why.

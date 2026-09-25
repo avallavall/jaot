@@ -13,6 +13,8 @@ const mockSolveMultiObjective = vi.fn();
 vi.mock("@/lib/api", () => ({
   api: {
     solveMultiObjective: (...args: unknown[]) => mockSolveMultiObjective(...args),
+    // The page lists the solvers for its picker.
+    getSolvers: () => Promise.resolve({ solvers: [] }),
   },
   ApiError: class ApiError extends Error {
     status: number;
@@ -26,6 +28,13 @@ vi.mock("@/lib/api", () => ({
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+}));
+
+// The result links to the saved run through the localized Link.
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 // Mock sonner

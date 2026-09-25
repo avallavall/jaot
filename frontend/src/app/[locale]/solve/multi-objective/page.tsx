@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { downloadCSV } from "@/lib/csv-utils";
 import type {
   Variable,
@@ -14,6 +14,10 @@ import type {
 import { MultiObjectiveConfigForm, PairSelector, DEFAULT_OBJECTIVE } from "@/components/solve/MultiObjectiveConfig";
 import { ParetoChart } from "@/components/solve/ParetoChart";
 import { ImportSourcePanel } from "@/components/solve/ImportSourcePanel";
+import { SolverSelect } from "@/components/solve/SolverSelect";
+import { useSolvers } from "@/hooks/useSolvers";
+import { solverDisplayName } from "@/lib/solver-display";
+import { Link } from "@/i18n/navigation";
 import { ConceptTooltip } from "@/components/ui/concept-tooltip";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Button } from "@/components/ui/button";
@@ -47,7 +51,11 @@ function uid(): string {
 export default function MultiObjectivePage() {
   const t = useTranslations("solve.multiObjective");
   const tHelp = useTranslations("solve.helpTooltips");
+  const tError = useTranslations("errors.codes");
   const { activeWorkspaceId } = useAuth();
+  // The same picker as the studio and the custom solve. The page had none, and
+  // the server ran SCIP whatever the request named.
+  const { solverName, setSolverName, availableSolvers, solversLoading } = useSolvers();
 
   // Import state
   const [importedFrom, setImportedFrom] = useState<string | null>(null);
@@ -98,12 +106,6 @@ export default function MultiObjectivePage() {
     if (hasEmptyExpr) {
       return t("allExpressionsRequired");
     }
-    if (config.mode === "weighted") {
-      const weightSum = config.objectives.reduce((sum, o) => sum + (o.weight ?? 0), 0);
-      if (Math.abs(weightSum - 1.0) > 0.05) {
-        return t("weightsMustSumToOne", { sum: weightSum.toFixed(2) });
-      }
-    }
     return null;
   }
 
@@ -133,6 +135,7 @@ export default function MultiObjectivePage() {
         },
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         constraints: constraints.map(({ id, ...c }) => c),
+        solver_name: solverName,
       };
 
       const res = await api.solveMultiObjective(problem, config, activeWorkspaceId ?? undefined);
@@ -140,7 +143,10 @@ export default function MultiObjectivePage() {
       toast.success(t("paretoComputed", { count: res.n_solved }));
 
     } catch (err) {
-      const msg = getErrorMessage(err, t("solveFailed"));
+      // A refusal the server names with a code (an undeclared variable in an
+      // objective, a solver that cannot take a quadratic term) reads in the
+      // page's language; anything else keeps the server's own words.
+      const msg = translateApiError(err, tError, getErrorMessage(err, t("solveFailed")));
       setError(msg);
       toast.error(msg);
     } finally {
@@ -403,8 +409,18 @@ export default function MultiObjectivePage() {
         />
       </div>
 
-      <div className="bg-card border border-border rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex flex-col items-end gap-1">
+      <div className="bg-card border border-border rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+        <div className="w-full sm:max-w-sm">
+          <SolverSelect
+            id="multi-objective-solver"
+            solverName={solverName}
+            onSolverChange={setSolverName}
+            availableSolvers={availableSolvers}
+            loading={solversLoading}
+            help={t("solverHelp")}
+          />
+        </div>
+        <div className="flex flex-col items-end gap-1 mb-4">
           <Button
             onClick={handleSolve}
             disabled={!canSolve}
@@ -466,6 +482,26 @@ export default function MultiObjectivePage() {
               </Button>
             </div>
           </div>
+          <p className="text-sm text-muted-foreground mb-4" data-testid="pareto-run-summary">
+            {result.solver_used
+              ? t("runSummary", {
+                  count: result.n_solved,
+                  solver: solverDisplayName(result.solver_used),
+                })
+              : t("runSummaryNoSolver", { count: result.n_solved })}
+            {result.execution_id && (
+              <>
+                {" "}
+                <Link
+                  href={`/solve/executions/${result.execution_id}`}
+                  className="text-primary hover:underline"
+                  data-testid="pareto-run-link"
+                >
+                  {t("openSavedRun")}
+                </Link>
+              </>
+            )}
+          </p>
           <ParetoChart result={result} axisPair={axisPair} />
         </div>
       )}

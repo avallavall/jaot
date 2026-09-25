@@ -4,9 +4,11 @@ import { useState } from "react";
 import type { ModelExecution, OptimizationResult, VariableType } from "@/lib/types";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { extractVariables } from "@/lib/result-utils";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useDateFormat } from "@/hooks/useDateFormat";
 import { pageLocale } from "@/lib/page-locale";
+import { solverDisplayName } from "@/lib/solver-display";
+import { MULTI_OBJECTIVE_STATUS } from "@/lib/multi-objective-run";
 
 interface ComparedVariable {
   name: string;
@@ -41,7 +43,19 @@ function formatMs(ms: number): string {
   return `${sign}${ms.toLocaleString(pageLocale())} ms`;
 }
 
-function formatObjDelta(delta: number, sense: string | undefined): { text: string; color: string } {
+/**
+ * The objective change from run A to run B, and the colour that says whether it
+ * is better. No change is neither: "+0" came out red on a maximize model,
+ * because only a positive change counted as an improvement.
+ */
+export function formatObjDelta(
+  delta: number,
+  sense: string | undefined,
+  scale = 1,
+): { text: string; color: string } {
+  if (Math.abs(delta) <= 1e-9 * Math.max(1, Math.abs(scale))) {
+    return { text: (0).toLocaleString(pageLocale()), color: "text-muted-foreground" };
+  }
   const sign = delta >= 0 ? "+" : "";
   const text = `${sign}${delta.toLocaleString(pageLocale(), { maximumFractionDigits: 4 })}`;
   // For minimize: negative delta = improved (green). For maximize: positive delta = improved (green).
@@ -161,6 +175,51 @@ export function comparisonMismatch(
 // ──────────────────────────────────────────────────────────────
 // ──────────────────────────────────────────────────────────────
 
+interface RunFactsProps {
+  label: string;
+  execution: ModelExecution;
+  objective: number | null | undefined;
+}
+
+/**
+ * Which solver ran, what it concluded and the objective it reached. The page
+ * compared two runs without saying any of the three, so a delta of 0 between
+ * an optimal run and a timed-out one looked like agreement.
+ */
+function RunFacts({ label, execution, objective }: RunFactsProps) {
+  const t = useTranslations("solve.comparison");
+  const tVerdict = useTranslations("solverCompare.status");
+  const locale = useLocale();
+  const result = execution.result_data as { solver_used?: string | null } | undefined;
+  const solver = result?.solver_used ?? execution.solver_name;
+  const status = execution.solver_status;
+  const statusText =
+    status === MULTI_OBJECTIVE_STATUS
+      ? t("paretoFront")
+      : status
+        ? tVerdict.has(status)
+          ? tVerdict(status)
+          : status
+        : "—";
+  return (
+    <div data-testid="comparison-run-facts">
+      <div className="text-xs text-muted-foreground mb-1">{label}</div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm">
+        <dt className="text-muted-foreground">{t("solver")}</dt>
+        <dd className="font-medium">{solver ? solverDisplayName(solver) : "—"}</dd>
+        <dt className="text-muted-foreground">{t("status")}</dt>
+        <dd className="font-medium">{statusText}</dd>
+        <dt className="text-muted-foreground">{t("objective")}</dt>
+        <dd className="font-medium tabular-nums">
+          {objective != null
+            ? objective.toLocaleString(locale, { maximumFractionDigits: 4 })
+            : "—"}
+        </dd>
+      </dl>
+    </div>
+  );
+}
+
 export function ExecutionComparisonView({ executionA, executionB }: ExecutionComparisonViewProps) {
   const t = useTranslations("solve.comparison");
   const { day } = useDateFormat();
@@ -195,7 +254,9 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
       : null;
 
   const objDeltaFormatted =
-    objDelta != null ? formatObjDelta(objDelta, objectiveSense) : null;
+    objDelta != null
+      ? formatObjDelta(objDelta, objectiveSense, Math.max(Math.abs(objA ?? 0), Math.abs(objB ?? 0)))
+      : null;
 
   return (
     <div className="space-y-6">
@@ -218,6 +279,10 @@ export function ExecutionComparisonView({ executionA, executionB }: ExecutionCom
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
           {t("summary")}
         </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 pb-5 border-b border-border">
+          <RunFacts label={t("runA")} execution={executionA} objective={objA} />
+          <RunFacts label={t("runB")} execution={executionB} objective={objB} />
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <div className="text-xs text-muted-foreground mb-1">{t("originRunA")}</div>

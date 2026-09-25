@@ -71,6 +71,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Every trigger page with no schedule logged an error in the browser.** No schedule is now a normal answer.
 - **The enable and disable messages on the trigger pages were English in every language.** The "Required" column of the override schema also said "No" in English.
 - **The refusal of a quadratic model by JAOS, HiGHS, CBC or GLPK was English in every language**, on the execution page and in Custom Solve. It is now translated. API clients still get the English message, and a new code beside it.
+- **Weighted multi-objective mode asked for weights and then ignored them.** It refused to solve unless they summed to 1, and the server tried every weight anyway. The page no longer asks. The mode tries n weights spread from one objective to the other, with each objective scaled to its range.
+- **A multi-objective front could hold a point that another point beat.** With max 3x+5y against min 2x+4y, weighted mode returned (10, 8) where (12, 8) was feasible. Each end of the front is now the best point for one objective and, among those, the best for the other.
+- **Epsilon mode never reached the best value of the second objective.** The chart stopped at 10.6 where 8 was reachable. The front now includes it.
+- **Multi-objective ran SCIP whatever solver was asked, and its page had no solver picker.** It now runs the chosen solver, or lets Auto pick one. A solver that cannot take a quadratic objective is refused before the run, with the reason.
+- **A saved multi-objective run said "Optimal solution proven" over a row of dashes.** Its page now shows the front and says it is a multi-objective run. The history names it and says "Pareto front", and the multi-objective page links to it.
+- **An objective that named an undeclared variable came back as an empty front.** It is now refused with a message that names the objective and the variable.
+- **Custom Solve printed the API's English for a bad model**, such as `{'q'}` and `EXPR_PARSE_ERROR`. It now says what is wrong in the page's language, and so do the verdict and the solve time.
+- **Custom Solve put a value next to the wrong variable's name**, and kept "Valid Problem" and the old answer on screen after the JSON changed.
+- **Custom Solve drew every variable of a large model**: 2,897 zeros for a 3,000-variable model. It now lists the non-zero values, up to 200, and links to the saved run.
+- **The execution history printed numbers in English format**, such as "6412.00" on a Spanish page.
+- **Comparing two runs did not say which solver ran each one, its verdict or its objective**, and an unchanged objective was shown in red.
+- **Breadcrumbs capitalised ids**, as in "Exe_1848fe…". "Back to Templates" on Custom Solve went to My Models.
 
 ## [3.10.0] - 2026-09-24
 

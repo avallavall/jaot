@@ -15,11 +15,17 @@ interface MultiObjectiveConfigProps {
 // no add/remove. Supporting N>2 objectives would need a new n-dimensional
 // multi-objective backend, tracked as a follow-up.
 
-/** Default objective spec shared by page.tsx and this component. */
+/**
+ * Default objective spec shared by page.tsx and this component.
+ *
+ * No `weight`: weighted mode sweeps the weights on the server (n_points solves,
+ * from all weight on objective 2 to all on objective 1). This form used to ask
+ * for a weight per objective and refuse to solve unless they summed to 1, and
+ * the server never read them.
+ */
 export const DEFAULT_OBJECTIVE: ObjectiveSpec = {
   expression: "",
   sense: "minimize",
-  weight: 0.5,
   label: "",
 };
 
@@ -43,16 +49,12 @@ function keyOf(obj: ObjectiveSpec, fallbackIndex: number): string {
 
 function ObjectiveSection({
   index,
-  total,
   objective,
-  mode,
   onChange,
   onRemove,
 }: {
   index: number;
-  total: number;
   objective: ObjectiveSpec;
-  mode: "epsilon" | "weighted";
   onChange: (obj: ObjectiveSpec) => void;
   onRemove: (() => void) | null;
 }) {
@@ -117,30 +119,6 @@ function ObjectiveSection({
           </select>
         </div>
 
-        {/* Weight (weighted mode only) */}
-        {mode === "weighted" && (
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">
-              {t("weight")}
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={objective.weight ?? (1 / total)}
-                onChange={(e) =>
-                  onChange({ ...objective, weight: parseFloat(e.target.value) })
-                }
-                className="flex-1 accent-primary"
-              />
-              <span className="text-sm font-mono w-10 text-right tabular-nums">
-                {(objective.weight ?? (1 / total)).toFixed(2)}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -216,9 +194,6 @@ export function MultiObjectiveConfigForm({
     onChange({ ...value, n_points: n });
   }
 
-  // Weight sum calculation
-  const weightSum = objectives.reduce((sum, o) => sum + (o.weight ?? (1 / total)), 0);
-
   return (
     <div className="space-y-4">
       <div>
@@ -256,27 +231,12 @@ export function MultiObjectiveConfigForm({
         </p>
       </div>
 
-      {/* Weight sum note (weighted mode only) */}
-      {value.mode === "weighted" && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border border-border rounded text-xs text-muted-foreground">
-          <span>{t("weightsMustSum")}</span>
-          <span className="ml-auto font-mono">
-            {objectives.map((o) => (o.weight ?? (1 / total)).toFixed(2)).join(" + ")} ={" "}
-            <span className={Math.abs(weightSum - 1) < 0.05 ? "text-green-600" : "text-destructive"}>
-              {weightSum.toFixed(2)}
-            </span>
-          </span>
-        </div>
-      )}
-
       <div className={`grid grid-cols-1 ${total <= 2 ? "lg:grid-cols-2" : ""} gap-4`}>
         {objectives.map((obj, idx) => (
           <ObjectiveSection
             key={keyOf(obj, idx)}
             index={idx}
-            total={total}
             objective={obj}
-            mode={value.mode}
             onChange={(o) => setObjective(idx, o)}
             onRemove={null}
           />

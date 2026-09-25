@@ -2963,7 +2963,12 @@
       "asyncTaskId": "Task ID: {id}",
       "solverUsed": "Solver",
       "autoRouted": "auto-routed",
-      "sensitivityLabel": "Sensitivity"
+      "sensitivityLabel": "Sensitivity",
+      "milliseconds": "{ms} ms",
+      "nonZeroOnly": "Only non-zero values ({zeros, plural, one {# is zero} other {# are zero}})",
+      "allZero": "{count, plural, one {The only variable is zero.} other {All # variables are zero.}}",
+      "solutionCapped": "Showing {shown} of {total}.",
+      "openSavedRun": "Open the saved run to explore every value."
     },
     "executions": {
       "title": "Execution History",
@@ -2997,7 +3002,10 @@
       "clearSelection": "Clear",
       "compareSelected": "Compare",
       "selectTwoHint": "Select exactly two runs to compare.",
-      "noSavedModel": "No saved model"
+      "noSavedModel": "No saved model",
+      "multiObjectiveRun": "Multi-objective",
+      "paretoFront": "Pareto front",
+      "milliseconds": "{ms} ms"
     },
     "execution": {
       "title": "Execution Details",
@@ -3101,7 +3109,16 @@
       "mcpExecution": "This run was sent by an AI assistant over MCP. It is not linked to a saved model, so it cannot be opened in the studio and it has no history.",
       "comparisonExecution": "This run is one column of a solver comparison on a problem that was not saved as a model, so it cannot be opened in the studio.",
       "directExecution": "This run was solved from a problem entered directly, for example in Custom Solve. It was not saved as a model, so it cannot be opened in the studio and it has no history.",
-      "noSavedModelExecution": "This run is not linked to a saved model, so it cannot be opened in the studio and it has no history."
+      "noSavedModelExecution": "This run is not linked to a saved model, so it cannot be opened in the studio and it has no history.",
+      "multiObjective": {
+        "badge": "Multi-objective",
+        "status": "Pareto front · {count, plural, one {# point} other {# points}}",
+        "title": "Pareto front",
+        "summary": "A multi-objective run: {count, plural, one {# point} other {# points}}, computed with the {mode} method.",
+        "modeEpsilon": "epsilon-constraint",
+        "modeWeighted": "weighted-sum",
+        "empty": "No point was found. The solver status above says why."
+      }
     },
     "compare": {
       "title": "Execution Comparison",
@@ -3164,7 +3181,6 @@
       "atLeastOneVariable": "At least 1 variable is required.",
       "variablesMustHaveName": "All variables must have a name.",
       "bothExpressionsRequired": "Both objective expressions are required.",
-      "weightsMustSumToOne": "Weights must sum to 1.0 (current: {sum}).",
       "noConstraintsWarning": "No constraints defined. The problem may be unbounded.",
       "paretoComputed": "Pareto front computed: {count} solutions found.",
       "solveFailed": "Solve failed",
@@ -3201,7 +3217,11 @@
       "clearImport": "Clear import",
       "importSuccess": "Problem imported successfully from \"{name}\".",
       "importFailed": "Failed to import model.",
-      "needsInputData": "This model requires input data to preview. Using example input."
+      "needsInputData": "This model requires input data to preview. Using example input.",
+      "solverHelp": "Every solver can compute the front: it solves one subproblem per point. Auto picks HiGHS for a linear model and SCIP for one with integer variables. A quadratic objective needs SCIP.",
+      "runSummary": "{count, plural, one {# point} other {# points}} on the front, solved with {solver}.",
+      "runSummaryNoSolver": "{count, plural, one {# point} other {# points}} on the front.",
+      "openSavedRun": "Open the saved run"
     },
     "comparison": {
       "differentModels": "These two runs are of different models: {a} and {b}.",
@@ -3227,7 +3247,11 @@
         "removedInA": "Present only in Run A (removed)"
       },
       "changesOnly": "Changes only ({shown}/{total})",
-      "noChanges": "The two runs assign identical values to every variable."
+      "noChanges": "The two runs assign identical values to every variable.",
+      "solver": "Solver",
+      "status": "Status",
+      "objective": "Objective",
+      "paretoFront": "Pareto front"
     },
     "export": {
       "csv": "Export CSV",
@@ -3363,8 +3387,7 @@
       "epsilonConstraint": "Epsilon Constraint",
       "weightedCombination": "Weighted Combination",
       "epsilonDescription": "Epsilon-constraint method: constrains objective 2 and sweeps bounds.",
-      "weightedDescription": "Weighted scalarization: combines objectives with weights summing to 1.0.",
-      "weightsMustSum": "Weights must sum to 1.0",
+      "weightedDescription": "Weighted sum: tries n evenly spaced weights, from all on objective 2 to all on objective 1. Each objective is first scaled by its range on the front.",
       "objectiveN": "Objective {n}",
       "label": "Label",
       "labelOptional": "(optional)",
@@ -3372,8 +3395,6 @@
       "direction": "Direction",
       "minimize": "Minimize",
       "maximize": "Maximize",
-      "weight": "Weight",
-      "autoCalculated": "(auto-calculated)",
       "paretoPoints": "Pareto Points (n_points)",
       "morePointsNote": "More points = finer Pareto front, but more solves (higher cost).",
       "labelPlaceholder1": "e.g., Profit",
@@ -4742,6 +4763,21 @@
         "linear_only": "{solver} solves linear models only, and this model has quadratic terms. Use SCIP (or automatic selection) for quadratic models.",
         "quadratic_in_objective": "{solver} solves linear models only. The objective has the quadratic term {term}. Use SCIP (or automatic selection) for quadratic models.",
         "quadratic_in_constraint": "{solver} solves linear models only. Constraint {constraint} has the quadratic term {term}. Use SCIP (or automatic selection) for quadratic models."
+    },
+      "problem": {
+        "objective_undefined_variables": "The objective uses variables that are not declared: {names}.",
+        "objective_unreadable": "The objective cannot be read. Check its operators and parentheses.",
+        "constraint_undefined_variables": "Constraint {constraint} uses variables that are not declared: {names}.",
+        "constraint_unreadable": "Constraint {constraint} cannot be read. Check its operators and parentheses.",
+        "bounds_cross": "Variable {variable} has a lower bound ({lower}) above its upper bound ({upper}).",
+        "binary_bounds": "Binary variable {variable} must stay between 0 and 1.",
+        "mo_objective_undefined_variables": "Objective {n} uses variables that are not declared: {names}.",
+        "mo_objective_unreadable": "Objective {n} cannot be read. Check its operators and parentheses.",
+        "unreadable": "The problem cannot be read. Check its expressions."
+      },
+      "multi_objective": {
+        "solver_no_quadratic": "{solver} cannot solve a model with quadratic terms. Choose SCIP or Auto.",
+        "solver_no_integer": "{solver} cannot solve a model with integer variables. Choose another solver."
       }
     }
   },

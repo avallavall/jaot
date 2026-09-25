@@ -31,7 +31,7 @@ from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
 )
 from app.domains.solver.services import SolverService, get_solver_service
-from app.domains.solver.services.problem_validation import iter_problem_errors
+from app.domains.solver.services.problem_validation import ProblemIssue, iter_problem_issues
 from app.models import ExecutionStatus, ModelExecution, Organization
 from app.models.workspace import WorkspaceRole
 from app.schemas.optimization import (
@@ -43,6 +43,7 @@ from app.schemas.optimization import (
     MultiObjectiveResult,
     OptimizationProblem,
     OptimizationResult,
+    ProblemValidationIssue,
     ProblemValidationResponse,
     SolverStatus,
 )
@@ -309,15 +310,24 @@ def validate_problem_endpoint(  # sync ON PURPOSE -> threadpool (CPU-bound, no a
     hand-written problem a round trip per mistake.
     """
     try:
-        errors = iter_problem_errors(problem)
+        found = iter_problem_issues(problem)
     except Exception as e:  # a malformed expression must not 500 a validity check
-        errors = [str(e)]
+        found = [ProblemIssue(message=str(e), code="problem.unreadable")]
+    errors = [issue.message for issue in found]
 
     # Honor the ValidationResult contract the frontend types declare: `errors` and
     # `warnings` are ALWAYS present arrays. Omitting `warnings` here crashed the JSON
     # editor lens, which reads `validation.warnings.length` on every validated edit.
     if errors:
-        return ProblemValidationResponse(valid=False, errors=errors, warnings=[])
+        return ProblemValidationResponse(
+            valid=False,
+            errors=errors,
+            warnings=[],
+            issues=[
+                ProblemValidationIssue(code=i.code, params=i.params, message=i.message)
+                for i in found
+            ],
+        )
 
     return ProblemValidationResponse(
         valid=True,
@@ -431,17 +441,23 @@ def solve_multi_objective_endpoint(  # def: blocks on the queued result in the t
     request: Request,
     db: DBSession,
     workspace_member: OptionalRequireSolver = None,
+    solver_name: str | None = Query(default=None, max_length=32),
     origin: str | None = Query(default=None, max_length=32),
     source_kind: str | None = Query(default=None, max_length=32),
     source_id: str | None = Query(default=None, max_length=64),
 ) -> Any:
     """Solve a multi-objective problem. Returns a Pareto front.
 
-    ADR-007 S4b — async-under-the-hood: the SCIP scalarization loop runs in the
+    ADR-007 S4b — async-under-the-hood: the scalarization loop runs in the
     dedicated ``solve_multi_objective_async`` worker (a durable execution record);
     the handler waits in the threadpool and returns the classic
     ``MultiObjectiveResult``, degrading to 202 + the task envelope past the wait
     budget.
+
+    The solver is ``problem.solver_name``, else the ``solver_name`` query
+    parameter, else SCIP. ``auto`` picks one for the problem with both
+    objectives in it. The response names the saved run (``execution_id``) and
+    the solver that ran (``solver_used``).
     """
     org: Organization | None = getattr(request.state, "organization", None)
     if not org:
@@ -461,6 +477,7 @@ def solve_multi_objective_endpoint(  # def: blocks on the queued result in the t
         origin=_origin_or_channel(request, origin),
         source_kind=source_kind,
         source_id=source_id,
+        solver_name_param=solver_name,
     )
     payload = wait_for_task(enqueued.task)
     if payload is None:
@@ -474,7 +491,12 @@ def solve_multi_objective_endpoint(  # def: blocks on the queued result in the t
                 ),
             },
         )
-    return _shape_multi_objective_result(payload)
+    return _shape_multi_objective_result(
+        payload,
+        execution_id=enqueued.execution_id,
+        solver_used=enqueued.effective_solver,
+        auto_route_reason=enqueued.auto_route_reason,
+    )
 
 
 @router.post(
@@ -560,12 +582,19 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
 
 def _shape_multi_objective_result(
     payload: dict[str, Any] | BaseException,
+    *,
+    execution_id: str | None = None,
+    solver_used: str | None = None,
+    auto_route_reason: str | None = None,
 ) -> dict[str, Any]:
     """Map the worker envelope to the sync ``MultiObjectiveResult`` contract (S4b).
 
     Multi-objective has no error result shape (a Pareto front, not a status), so a
     worker error / crash surfaces as HTTP 422. An empty front (infeasible) rides
     the success envelope unchanged, matching the synchronous contract.
+
+    The saved run's id is added here: the page had no way to link to the run it
+    had just made.
     """
     if isinstance(payload, BaseException):
         raise HTTPException(
@@ -578,6 +607,9 @@ def _shape_multi_objective_result(
             detail=str(payload.get("error") or "Multi-objective solve failed"),
         )
     result = MultiObjectiveResult(**payload["result"])
+    result.execution_id = execution_id
+    result.solver_used = payload.get("solver_used") or result.solver_used or solver_used
+    result.auto_route_reason = auto_route_reason
     return result.model_dump(mode="json")
 
 

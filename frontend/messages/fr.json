@@ -2938,7 +2938,12 @@
       "asyncTaskId": "ID de tâche : {id}",
       "solverUsed": "Solveur",
       "autoRouted": "choisi automatiquement",
-      "sensitivityLabel": "Sensibilité"
+      "sensitivityLabel": "Sensibilité",
+      "milliseconds": "{ms} ms",
+      "nonZeroOnly": "Valeurs non nulles seulement ({zeros, plural, one {# est nulle} other {# sont nulles}})",
+      "allZero": "{count, plural, one {La seule variable est nulle.} other {Les # variables sont nulles.}}",
+      "solutionCapped": "{shown} affichées sur {total}.",
+      "openSavedRun": "Ouvrez l’exécution enregistrée pour explorer toutes les valeurs."
     },
     "executions": {
       "title": "Historique des exécutions",
@@ -2972,7 +2977,10 @@
       "clearSelection": "Effacer",
       "compareSelected": "Comparer",
       "selectTwoHint": "Sélectionnez exactement deux exécutions à comparer.",
-      "noSavedModel": "Aucun modèle enregistré"
+      "noSavedModel": "Aucun modèle enregistré",
+      "multiObjectiveRun": "Multi-objectif",
+      "paretoFront": "Front de Pareto",
+      "milliseconds": "{ms} ms"
     },
     "execution": {
       "title": "Détails de l'exécution",
@@ -3076,7 +3084,16 @@
       "mcpExecution": "Cette exécution a été envoyée par un assistant IA via MCP. Elle n'est liée à aucun modèle enregistré, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique.",
       "comparisonExecution": "Cette exécution est une colonne d'une comparaison de solveurs sur un problème qui n'a pas été enregistré comme modèle, elle ne peut donc pas être ouverte dans l'atelier.",
       "directExecution": "Cette exécution a résolu un problème saisi directement, par exemple dans « Résoudre JSON ». Il n'a pas été enregistré comme modèle, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique.",
-      "noSavedModelExecution": "Cette exécution n'est liée à aucun modèle enregistré, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique."
+      "noSavedModelExecution": "Cette exécution n'est liée à aucun modèle enregistré, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique.",
+      "multiObjective": {
+        "badge": "Multi-objectif",
+        "status": "Front de Pareto · {count, plural, one {# point} other {# points}}",
+        "title": "Front de Pareto",
+        "summary": "Une exécution multi-objectif : {count, plural, one {# point} other {# points}}, calculés avec la méthode {mode}.",
+        "modeEpsilon": "epsilon-contrainte",
+        "modeWeighted": "de la somme pondérée",
+        "empty": "Aucun point n’a été trouvé. Le statut du solveur ci-dessus indique pourquoi."
+      }
     },
     "compare": {
       "title": "Comparaison d'exécutions",
@@ -3139,7 +3156,6 @@
       "atLeastOneVariable": "Au moins 1 variable est requise.",
       "variablesMustHaveName": "Toutes les variables doivent avoir un nom.",
       "bothExpressionsRequired": "Les deux expressions d'objectif sont requises.",
-      "weightsMustSumToOne": "Les poids doivent totaliser 1,0 (actuel : {sum}).",
       "noConstraintsWarning": "Aucune contrainte définie. Le problème peut être non borné.",
       "paretoComputed": "Front de Pareto calculé : {count} solutions trouvées.",
       "solveFailed": "Échec de la résolution",
@@ -3176,7 +3192,11 @@
       "clearImport": "Effacer l'importation",
       "importSuccess": "Problème importé avec succès depuis \"{name}\".",
       "importFailed": "Échec de l'importation du modèle.",
-      "needsInputData": "Ce modèle nécessite des données d'entrée pour la prévisualisation. Utilisation de l'exemple."
+      "needsInputData": "Ce modèle nécessite des données d'entrée pour la prévisualisation. Utilisation de l'exemple.",
+      "solverHelp": "Tous les solveurs peuvent calculer le front : un sous-problème est résolu par point. Auto choisit HiGHS pour un modèle linéaire et SCIP s’il y a des variables entières. Un objectif quadratique demande SCIP.",
+      "runSummary": "{count, plural, one {# point} other {# points}} sur le front, résolu avec {solver}.",
+      "runSummaryNoSolver": "{count, plural, one {# point} other {# points}} sur le front.",
+      "openSavedRun": "Ouvrir l’exécution enregistrée"
     },
     "comparison": {
       "differentModels": "Ces deux exécutions portent sur des modèles différents : {a} et {b}.",
@@ -3202,7 +3222,11 @@
         "removedInA": "Présent uniquement dans l'exécution A (supprimé)"
       },
       "changesOnly": "Changements uniquement ({shown}/{total})",
-      "noChanges": "Les deux exécutions assignent des valeurs identiques à toutes les variables."
+      "noChanges": "Les deux exécutions assignent des valeurs identiques à toutes les variables.",
+      "solver": "Solveur",
+      "status": "Statut",
+      "objective": "Objectif",
+      "paretoFront": "Front de Pareto"
     },
     "export": {
       "csv": "Exporter en CSV",
@@ -3326,8 +3350,7 @@
       "epsilonConstraint": "Contrainte epsilon",
       "weightedCombination": "Combinaison pondérée",
       "epsilonDescription": "Méthode de contrainte epsilon : contraint l'objectif 2 et balaye les bornes.",
-      "weightedDescription": "Scalarisation pondérée : combine les objectifs avec des poids totalisant 1,0.",
-      "weightsMustSum": "Les poids doivent totaliser 1,0",
+      "weightedDescription": "Somme pondérée : essaie n poids répartis régulièrement, de tout sur l’objectif 2 à tout sur l’objectif 1. Chaque objectif est d’abord ramené à son écart sur le front.",
       "objectiveN": "Objectif {n}",
       "label": "Libellé",
       "labelOptional": "(facultatif)",
@@ -3335,8 +3358,6 @@
       "direction": "Direction",
       "minimize": "Minimiser",
       "maximize": "Maximiser",
-      "weight": "Poids",
-      "autoCalculated": "(calculé automatiquement)",
       "paretoPoints": "Points de Pareto (n_points)",
       "morePointsNote": "Plus de points = front de Pareto plus fin, mais plus de résolutions (coût plus élevé).",
       "labelPlaceholder1": "ex., Profit",
@@ -4742,6 +4763,21 @@
         "linear_only": "{solver} ne résout que des modèles linéaires, et ce modèle contient des termes quadratiques. Utilisez SCIP (ou la sélection automatique) pour les modèles quadratiques.",
         "quadratic_in_objective": "{solver} ne résout que des modèles linéaires. L'objectif contient le terme quadratique {term}. Utilisez SCIP (ou la sélection automatique) pour les modèles quadratiques.",
         "quadratic_in_constraint": "{solver} ne résout que des modèles linéaires. La contrainte {constraint} contient le terme quadratique {term}. Utilisez SCIP (ou la sélection automatique) pour les modèles quadratiques."
+    },
+      "problem": {
+        "objective_undefined_variables": "L’objectif utilise des variables non déclarées : {names}.",
+        "objective_unreadable": "L’objectif est illisible. Vérifiez ses opérateurs et ses parenthèses.",
+        "constraint_undefined_variables": "La contrainte {constraint} utilise des variables non déclarées : {names}.",
+        "constraint_unreadable": "La contrainte {constraint} est illisible. Vérifiez ses opérateurs et ses parenthèses.",
+        "bounds_cross": "La variable {variable} a une borne inférieure ({lower}) plus grande que sa borne supérieure ({upper}).",
+        "binary_bounds": "La variable binaire {variable} doit rester entre 0 et 1.",
+        "mo_objective_undefined_variables": "L’objectif {n} utilise des variables non déclarées : {names}.",
+        "mo_objective_unreadable": "L’objectif {n} est illisible. Vérifiez ses opérateurs et ses parenthèses.",
+        "unreadable": "Le problème est illisible. Vérifiez ses expressions."
+      },
+      "multi_objective": {
+        "solver_no_quadratic": "{solver} ne peut pas résoudre un modèle avec des termes quadratiques. Choisissez SCIP ou Auto.",
+        "solver_no_integer": "{solver} ne peut pas résoudre un modèle avec des variables entières. Choisissez un autre solveur."
       }
     }
   },

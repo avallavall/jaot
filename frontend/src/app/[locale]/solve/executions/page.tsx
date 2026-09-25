@@ -6,13 +6,14 @@ import { api, ExecutionSummary } from "@/lib/api";
 import { translateApiError } from "@/lib/errors";
 import { Database, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { ORIGIN_KEYS, executionOriginHref } from "@/lib/execution-origin";
 import { EmptyState } from "@/components/guidance/EmptyState";
 import { useDateFormat } from "@/hooks/useDateFormat";
+import { MULTI_OBJECTIVE_STATUS } from "@/lib/multi-objective-run";
 
 // The filter goes to `?origin=`, which the backend matches against the origin
 // column — so `model_project` is left out: it is a source_kind, and offering it
@@ -32,6 +33,7 @@ const STATUS_FILTER_KEYS = [
 ] as const;
 
 export default function ExecutionsPage() {
+  const locale = useLocale();
   const t = useTranslations("solve.executions");
   const tError = useTranslations("errors.codes");
   const { dayTime } = useDateFormat();
@@ -233,7 +235,15 @@ export default function ExecutionsPage() {
                       // "External" was printed for every run with no saved model,
                       // Custom Solve included. That is all the row knows, so it
                       // says that; the origin badge beside it says where it came from.
-                      const label = exec.model_name ?? (href ? t("openSource") : t("noSavedModel"));
+                      // A multi-objective run says what kind of run it was.
+                      const isFront = exec.solver_status === MULTI_OBJECTIVE_STATUS;
+                      const label =
+                        exec.model_name ??
+                        (href
+                          ? t("openSource")
+                          : isFront
+                            ? t("multiObjectiveRun")
+                            : t("noSavedModel"));
                       const content = (
                         <>
                           <span className="text-sm">{label}</span>
@@ -267,7 +277,16 @@ export default function ExecutionsPage() {
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {exec.status === "completed" && exec.objective_value != null ? (
-                      <span className="font-mono">{exec.objective_value.toFixed(2)}</span>
+                      // In the page's language: a Spanish page printed "6412.00".
+                      <span className="font-mono tabular-nums" data-testid="execution-objective">
+                        {exec.objective_value.toLocaleString(locale, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    ) : exec.status === "completed" &&
+                      exec.solver_status === MULTI_OBJECTIVE_STATUS ? (
+                      <span data-testid="execution-result-front">{t("paretoFront")}</span>
                     ) : exec.error_message ? (
                       <span className="text-destructive text-xs truncate max-w-[200px] block">
                         {exec.error_message}
@@ -277,7 +296,9 @@ export default function ExecutionsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                    {exec.execution_time_ms ? `${exec.execution_time_ms}ms` : "-"}
+                    {exec.execution_time_ms
+                      ? t("milliseconds", { ms: exec.execution_time_ms.toLocaleString(locale) })
+                      : "-"}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-muted-foreground">
                     {dayTime(exec.created_at)}

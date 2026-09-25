@@ -8,7 +8,7 @@ import { routing } from "@/i18n/routing";
 
 /**
  * Segment-to-translation-key mapping for human-readable breadcrumb names.
- * Falls back to capitalized raw segment if not found.
+ * Falls back to the raw segment if not found (see {@link breadcrumbLabel}).
  */
 const SEGMENT_KEYS: Record<string, string> = {
   solve: "breadcrumbs.solve",
@@ -52,6 +52,32 @@ const SEGMENT_KEYS: Record<string, string> = {
 };
 
 /**
+ * An id or a code, not a word: it has a digit or an underscore in it.
+ * `exe_1848fe…`, `trg_e91c…`, `mpr_…` and every uuid match.
+ */
+function looksLikeId(segment: string): boolean {
+  return /[0-9_]/.test(segment);
+}
+
+/**
+ * The label for a path segment that has no translation.
+ *
+ * Capitalising it turned the ids in the path into "Exe_1848fe…" and
+ * "Trg_e91c…", which are not ids anyone can search for. An id is shown as it
+ * is; a plain word still gets a capital letter.
+ */
+export function breadcrumbLabel(segment: string): string {
+  let decoded = segment;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    // A malformed escape: show the segment as it came.
+  }
+  if (looksLikeId(decoded)) return decoded;
+  return decoded.charAt(0).toUpperCase() + decoded.slice(1);
+}
+
+/**
  * Auto-generating breadcrumb navigation from URL pathname.
  *
  * Returns null on root path ("/") and top-level pages (single segment like "/solve").
@@ -79,7 +105,7 @@ export function Breadcrumbs() {
     if (key) {
       return t(key);
     }
-    return segment.charAt(0).toUpperCase() + segment.slice(1);
+    return breadcrumbLabel(segment);
   };
 
   return (

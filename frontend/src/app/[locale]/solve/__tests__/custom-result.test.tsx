@@ -49,6 +49,13 @@ vi.mock("@/components/solve/SolverSelect", () => ({
   SolverSelect: () => null,
 }));
 
+// The solution list links to the saved run through the localized Link.
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
 // recharts needs a non-zero layout in jsdom; the sensitivity panel draws a chart.
 vi.mock("recharts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("recharts")>();

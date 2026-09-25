@@ -29,12 +29,25 @@ from sqlalchemy.orm import Session
 from app.api.v2._solver_limits import compute_celery_time_limits, resolve_solver_time_limit
 from app.api.v2.solver_errors import solver_unavailable
 from app.domains.solver import execution_writer
+from app.domains.solver.adapters import registry
 from app.domains.solver.adapters.base import (
     DEFAULT_SOLVER_NAME,
+    HEXALY_SOLVER_NAME,
     SolverNotFoundError,
+    SolverUnavailableError,
 )
 from app.domains.solver.queue_routing import resolve_queue
 from app.domains.solver.services.availability_gate import ensure_hexaly_worker_or_503
+from app.domains.solver.services.classify import classify
+from app.domains.solver.services.comparison_service import (
+    REASON_QUADRATIC_TERMS,
+    capability_gap,
+)
+from app.domains.solver.services.problem_validation import (
+    InvalidProblemError,
+    iter_objective_issues,
+    raise_first,
+)
 from app.models import ModelExecution, ModelProject, Organization
 from app.models.audit_log import AuditAction
 from app.schemas.optimization import (
@@ -47,8 +60,9 @@ from app.schemas.solution_structure import annotate_variable_structure
 from app.schemas.tier import tier_cap_detail
 from app.services.audit_service import log_action
 from app.services.platform_settings_service import PlatformSettingsService as PSS
-from app.services.solve_orchestrator import validate_problem
+from app.services.solve_orchestrator import invalid_problem_http, validate_problem
 from app.shared.constants.execution_provenance import ExecutionSource
+from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.prometheus_metrics import SOLVER_AUTO_ROUTE_DECISIONS
 from app.shared.core.rate_limiter import check_rate_limit
 
@@ -626,14 +640,23 @@ def _enqueue_multi_objective_async(
     origin: str | None,
     source_kind: str | None,
     source_id: str | None,
+    solver_name_param: str | None = None,
 ) -> EnqueuedSolve:
     """Enqueue a multi-objective solve (ADR-007 S4b).
 
     Multi-objective can't ride ``enqueue_async_solve`` (that hardcodes the
-    single-solve task + auto-routing). It always runs SCIP scalarization (no
-    routing) and dispatches the dedicated ``solve_multi_objective_async`` task.
-    Same pending-row + queue time-limit discipline as the single-solve path.
+    single-solve task). It dispatches the dedicated ``solve_multi_objective_async``
+    task on the queue of the solver the caller asked for, SCIP when none. Same
+    pending-row + queue time-limit discipline as the single-solve path.
+
+    The solver used to be SCIP whatever was asked: a request naming JAOS ran on
+    SCIP and was stored as SCIP, without a word.
     """
+    from app.domains.solver.services.auto_router import select_solver  # noqa: PLC0415
+    from app.domains.solver.services.solver_service import (  # noqa: PLC0415
+        get_solver_service,
+        multi_objective_view,
+    )
     from app.domains.solver.tasks.solve_tasks import solve_multi_objective_async
     from app.shared.utils.id_generator import generate_id
 
@@ -657,14 +680,47 @@ def _enqueue_multi_objective_async(
         if owns_project:
             typed_model_project_id = mo_source.source_id
 
-    # Validate BEFORE enqueuing (parity with the single-solve enqueue).
+    # Validate BEFORE enqueuing (parity with the single-solve enqueue). The two
+    # objectives are not part of the problem, so they are checked on their own:
+    # a bad one used to fail every subproblem and come back as an empty front.
     validate_problem(problem)
+    try:
+        raise_first(
+            iter_objective_issues(
+                [spec.expression for spec in config.objectives],
+                {v.name for v in problem.variables},
+            )
+        )
+    except InvalidProblemError as exc:
+        raise invalid_problem_http(exc) from exc
 
+    view = multi_objective_view(problem, config)
+    requested = problem.solver_name or solver_name_param or DEFAULT_SOLVER_NAME
+    auto_reason: str | None = None
+    fallback_triggered = False
+    if requested == "auto":
+        effective, auto_reason, fallback_triggered = select_solver(
+            view, get_solver_service().parser
+        )
+        SOLVER_AUTO_ROUTE_DECISIONS.labels(solver_used=effective, reason=auto_reason).inc()
+    else:
+        effective = requested
+    if not fallback_triggered:
+        ensure_hexaly_worker_or_503(effective)
+    try:
+        target_queue = resolve_queue(effective)
+    except SolverNotFoundError as exc:
+        raise solver_unavailable(exc, effective) from exc
+    _refuse_a_solver_that_cannot_run_the_front(effective, view)
+
+    # Only Hexaly needs a time limit filled in; see enqueue_async_solve.
+    problem.options.time_limit_seconds = resolve_solver_time_limit(
+        db, effective, problem.options.time_limit_seconds
+    )
     problem_data = problem.model_dump(mode="json")
     config_data = config.model_dump(mode="json")
 
     soft_limit, hard_limit = compute_celery_time_limits(db, problem.options.time_limit_seconds)
-    target_queue = resolve_queue("scip")
 
     # P1.5 F0 (ADR-007 debt): insert-before-enqueue with a pre-generated task id — same
     # rationale as the single-solve enqueue (the worker keys off ``celery_task_id``).
@@ -676,8 +732,9 @@ def _enqueue_multi_objective_async(
         organization_id=org.id,
         celery_task_id=celery_task_id,
         input_data=problem_data,
-        solver_name="scip",
+        solver_name=effective,
         executed_by_user_id=user.id if user else None,
+        auto_route_reason=auto_reason,
         origin=mo_source.origin,
         source_kind=mo_source.source_kind,
         source_id=mo_source.source_id,
@@ -693,7 +750,7 @@ def _enqueue_multi_objective_async(
         target_type="execution",
         target_id=execution_id,
         target_name=str(problem_data.get("name") or "multi_objective"),
-        metadata={"solver": "scip", "multi_objective": True},
+        metadata={"solver": effective, "multi_objective": True},
     )
     pending_committed = False
     try:
@@ -715,6 +772,7 @@ def _enqueue_multi_objective_async(
                 "organization_id": org.id,
                 "user_id": user.id if user else None,
                 "workspace_id": workspace_id,
+                "solver_name": effective,
             },
             task_id=celery_task_id,
             queue=target_queue,
@@ -748,10 +806,59 @@ def _enqueue_multi_objective_async(
     return EnqueuedSolve(
         task=task,
         execution_id=execution_id,
-        effective_solver="scip",
-        auto_route_reason=None,
-        fallback_triggered=False,
+        effective_solver=effective,
+        auto_route_reason=auto_reason,
+        fallback_triggered=fallback_triggered,
         envelope=task_envelope,
+    )
+
+
+#: Brand casing for the solver named in a refusal a user reads.
+_SOLVER_DISPLAY = {
+    "scip": "SCIP",
+    "highs": "HiGHS",
+    "cbc": "CBC",
+    "glpk": "GLPK",
+    "jaos": "JAOS",
+    "hexaly": "Hexaly",
+}
+
+
+def _refuse_a_solver_that_cannot_run_the_front(solver_name: str, view: OptimizationProblem) -> None:
+    """422 before anything is queued when the solver cannot express the model.
+
+    The question is the comparer's ``capability_gap``, asked of the problem as
+    the subproblems carry it. Without it, HiGHS on a quadratic objective failed
+    every subproblem in the worker.
+
+    Hexaly takes every class JAOT can represent, and its adapter only exists on
+    its own worker, so it is not looked up here.
+    """
+    if solver_name == HEXALY_SOLVER_NAME:
+        return
+    try:
+        capabilities = registry.get(solver_name).capabilities
+    except (SolverNotFoundError, SolverUnavailableError) as exc:
+        raise solver_unavailable(exc, solver_name) from exc
+    gap = capability_gap(capabilities, classify(view))
+    if gap is None:
+        return
+    display = _SOLVER_DISPLAY.get(solver_name, solver_name)
+    if gap == REASON_QUADRATIC_TERMS:
+        raise CodedHTTPException(
+            status_code=422,
+            detail=(
+                f"{display} cannot solve a model with quadratic terms. "
+                "Choose SCIP or automatic selection."
+            ),
+            code="multi_objective.solver_no_quadratic",
+            params={"solver": display},
+        )
+    raise CodedHTTPException(
+        status_code=422,
+        detail=f"{display} cannot solve a model with integer variables.",
+        code="multi_objective.solver_no_integer",
+        params={"solver": display},
     )
 
 
