@@ -104,6 +104,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A member outside one workspace lost every run and comparison with no saved model from the history lists** as soon as any model was filed in that workspace. Custom Solve runs are back in their list.
 - **A deactivated account could still sign in.** The login answered with a session and a refresh token, and every page after it sent the person back to the login page with no reason. An admin's "Delete" deactivates too. Signing in now says the account is disabled, and no session is created.
 - **"What I Publish" cut off the model name and the actions at desktop width**, when a listing had a long description.
+- **The language button's name was only "EN" for screen readers, and "Sign In" in the public header was a button inside a link.** The button is now named "Language: English", and each header action is one link.
+- **The switches on the admin settings page had no name for screen readers.** Each control is now named after its setting.
+- **The maintenance notice was on the page twice, and `/maintenance` said "Under Maintenance" while the site was up.** The notice now shows once, and a visitor who opens `/maintenance` on a working site goes to the home page.
+- **The author of a listing was invited to "Be the first to review this model!"**, under a line saying they cannot review it. The author now reads "No reviews yet."
+- **An infeasible run had a green "Completed" badge on its page and in the run history.** The badge still says "Completed", and it is grey when the solver found no plan.
+- **Long formulas in the JModel math view were cut off at the right edge.** They now wrap after a plus sign or a relation.
+- **Admin → Users → "Delete" said "This action cannot be undone", but it only deactivates the account.** The action is now "Deactivate", and its dialog says an admin can turn the account back on with Edit.
+- **The "Get set up as an author" checklist did not change after Withdraw or "Publish again"** on the same page. It now loads its steps again.
+- **Restoring a version over unsaved changes sent a request that failed before the studio asked.** The studio now asks first.
+- **With registration closed, the sign-up page named `support@jaot.io`**, which is wrong on a self-hosted instance. It now links to the site's contact page.
 
 ## [3.10.0] - 2026-09-24
 
