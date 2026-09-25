@@ -351,13 +351,33 @@ def test_an_lp_with_neither_highs_nor_scip_falls_to_cbc():
     assert reason == AUTO_REASON_SUBSTITUTED
 
 
-# CONTRACT-TEST: auto never picks JAOS. Its own README reports 0 of 30 MIPLIB
-# 2017 instances in 20 s, where HiGHS solves 8. A user picks it by name.
+# CONTRACT-TEST: JAOS is a substitute like CBC and GLPK (owner, 2026-09-25), and
+# like them never a first choice while the preferred solver is installed.
 @pytest.mark.parametrize("problem", [_lp_problem(), _mip_problem()])
-def test_jaos_is_never_a_substitute(problem):
+def test_jaos_substitutes_when_it_is_what_the_server_has(problem):
     with _installed("jaos"):
-        name, _reason, _ = select_solver(problem)
-    assert name != "jaos"
+        name, reason, fallback = select_solver(problem)
+    assert name == "jaos"
+    assert reason == AUTO_REASON_SUBSTITUTED
+    assert fallback is False
+
+
+def test_jaos_comes_after_cbc_and_before_glpk():
+    """CBC was the stronger of the two on hard MIPs; JAOS returns an LP's duals
+    and GLPK does not, so GLPK stays the last resort."""
+    with _installed("cbc", "jaos", "glpk"):
+        after_cbc, _, _ = select_solver(_mip_problem())
+    with _installed("jaos", "glpk"):
+        before_glpk, _, _ = select_solver(_mip_problem())
+    assert (after_cbc, before_glpk) == ("cbc", "jaos")
+
+
+def test_jaos_is_never_the_first_choice():
+    with _installed("scip", "highs", "jaos"):
+        lp, lp_reason, _ = select_solver(_lp_problem())
+        mip, mip_reason, _ = select_solver(_mip_problem())
+    assert (lp, lp_reason) == ("highs", AUTO_REASON_LP)
+    assert (mip, mip_reason) == ("scip", AUTO_REASON_MIP)
 
 
 def test_glpk_is_the_last_resort():
@@ -375,10 +395,10 @@ def test_glpk_is_the_last_resort():
 def test_a_quadratic_is_never_substituted_to_cbc_or_glpk():
     with (
         patch(_PROBE_TARGET, return_value=(False, "worker down")),
-        _installed("highs", "cbc", "glpk"),
+        _installed("highs", "cbc", "jaos", "glpk"),
     ):
         name, reason, fallback = select_solver(_quadratic_problem())
-    assert name not in ("cbc", "glpk")
+    assert name not in ("cbc", "jaos", "glpk")
     # Nothing installed can express it, so the preferred name comes back and the
     # caller raises its usual "solver unavailable" — the failure is reported
     # where it always was, rather than moved somewhere new.

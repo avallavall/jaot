@@ -51,9 +51,12 @@ Three reasons they are not promoted to first-class candidates:
   measured instances is an anecdote, and the winner changed between them. A
   routing rule invented from that would be a guess wearing a slug.
 
-**JAOS is not a substitute either (2026-09-24).** Its own README reports 0 of 30
-MIPLIB 2017 instances solved in 20 s, where HiGHS solves 8. A user picks it by
-name or sees it as a comparer column. It is never in ``_SUBSTITUTES``.
+**JAOS is a substitute like CBC and GLPK (owner, 2026-09-25: "JAOS has to be
+everywhere in JAOT, like every solver").** It is never a first choice either.
+It sits after CBC and before GLPK. On an LP it returns exact shadow prices,
+which CBC and GLPK do not. On hard MIPs it was behind CBC in the full-site E2E
+benchmark (satellite scheduling 450 against CBC's 485 at 60 s), and like GLPK
+it found no plan for the burn-in plan in 60 s.
 
 The comparer is how a user answers "which solver for THIS model", with numbers,
 and then names it explicitly. That is the honest division of labour, and it is
@@ -89,10 +92,11 @@ AUTO_REASON_SUBSTITUTED = "preferred_solver_not_installed"
 #: Who auto falls back to, in order, when the preferred solver is missing.
 #: Ordered by what the caller gets back, not by speed: SCIP and HiGHS compute
 #: shadow prices and reduced costs, CBC and GLPK do not, and GLPK is
-#: single-threaded. A solver that cannot express the problem's class is dropped
-#: from this list before any of it is consulted, so quadratics never reach CBC
-#: or GLPK whatever the order says.
-_SUBSTITUTES: tuple[str, ...] = ("scip", "highs", "cbc", "glpk")
+#: single-threaded. JAOS returns shadow prices for an LP, and is behind CBC on
+#: hard MIPs, so it sits between CBC and GLPK. A solver that cannot express the
+#: problem's class is dropped from this list before any of it is consulted, so
+#: quadratics never reach CBC, JAOS or GLPK whatever the order says.
+_SUBSTITUTES: tuple[str, ...] = ("scip", "highs", "cbc", "jaos", "glpk")
 
 
 def select_solver(
