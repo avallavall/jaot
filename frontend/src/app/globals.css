@@ -503,3 +503,14 @@ html {
   font-size: 1em;
   text-align: left;
 }
+
+/* JModel math view in the studio. KaTeX's display mode sets `nowrap`, so a
+   long objective or constraint ran past the pane's right edge and was cut.
+   KaTeX already splits a formula after each relation and binary operator
+   (+, -, <=, =), so allowing wraps breaks the line at those places. Three
+   classes outrank KaTeX's two, whatever order the stylesheets load in. A
+   single term wider than the pane still scrolls in its line's
+   overflow-x-auto box. */
+.jmodel-math-lines .katex-display > .katex {
+  white-space: normal;
+}
