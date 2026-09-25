@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { WorkspaceMember, WorkspaceRole } from "@/lib/types";
 import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/contexts/AuthContext";
+import { translateApiError } from "@/lib/errors";
+import { useRoleLabel } from "@/components/workspaces/PermissionTooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,14 +52,21 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-
-
 export function MemberTable({ workspaceId, members, onMembersChange }: MemberTableProps) {
   const dialog = useDialog();
   const isAdmin = usePermission("admin");
+  const { user } = useAuth();
   const t = useTranslations("workspace.memberTable");
+  const tError = useTranslations("errors.codes");
+  const roleLabel = useRoleLabel();
   const { day } = useDateFormat();
   const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
+
+  // The server refuses both a role change and a removal for your own row and
+  // for the organization owner's. The select and the X used to be offered there
+  // anyway, and every use ended in an error.
+  const canManage = (member: WorkspaceMember) =>
+    isAdmin && member.user_id !== user?.id && !member.is_org_owner;
 
   const handleRoleChange = async (member: WorkspaceMember, newRole: WorkspaceRole) => {
     if (newRole === member.role) return;
@@ -66,9 +76,9 @@ export function MemberTable({ workspaceId, members, onMembersChange }: MemberTab
       onMembersChange(
         members.map((m) => (m.user_id === member.user_id ? { ...m, role: newRole } : m))
       );
-      toast.success(t("roleUpdated", { name: member.user_name, role: newRole }));
+      toast.success(t("roleUpdated", { name: member.user_name, role: roleLabel(newRole) }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("roleError"));
+      toast.error(translateApiError(err, tError, t("roleError")));
     } finally {
       setUpdatingRole((prev) => ({ ...prev, [member.user_id]: false }));
     }
@@ -83,7 +93,7 @@ export function MemberTable({ workspaceId, members, onMembersChange }: MemberTab
           onMembersChange(members.filter((m) => m.user_id !== member.user_id));
           toast.success(t("removed", { name: member.user_name }));
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : t("removeError"));
+          toast.error(translateApiError(err, tError, t("removeError")));
         }
       },
       t("removeTitle")
@@ -126,47 +136,51 @@ export function MemberTable({ workspaceId, members, onMembersChange }: MemberTab
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{member.user_email}</td>
                 <td className="px-4 py-3">
-                  {isAdmin ? (
+                  {canManage(member) ? (
                     <Select
                       value={member.role}
                       onValueChange={(val) => handleRoleChange(member, val as WorkspaceRole)}
                       disabled={updatingRole[member.user_id]}
                     >
-                      <SelectTrigger className="w-28 h-7 text-xs">
+                      <SelectTrigger
+                        className="w-28 h-7 text-xs"
+                        aria-label={t("roleOf", { name: member.user_name })}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {ROLES.map((role) => (
                           <SelectItem key={role} value={role} className="text-xs">
-                            {role.charAt(0).toUpperCase() + role.slice(1)}
+                            {roleLabel(role)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Badge
-                      className={`${ROLE_COLORS[member.role]} border-0 font-medium capitalize`}
-                    >
-                      {member.role}
+                    <Badge className={`${ROLE_COLORS[member.role]} border-0 font-medium`}>
+                      {roleLabel(member.role)}
                     </Badge>
                   )}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{day(member.joined_at)}</td>
                 {isAdmin && (
                   <td className="px-4 py-3 text-right">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member)}
-                          className="text-muted-foreground hover:text-destructive h-7 w-7 p-0"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t("removeMember")}</TooltipContent>
-                    </Tooltip>
+                    {canManage(member) && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveMember(member)}
+                            className="text-muted-foreground hover:text-destructive h-7 w-7 p-0"
+                            aria-label={t("removeMemberNamed", { name: member.user_name })}
+                          >
+                            <X className="w-4 h-4" aria-hidden="true" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t("removeMember")}</TooltipContent>
+                      </Tooltip>
+                    )}
                   </td>
                 )}
               </tr>

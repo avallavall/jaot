@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, Trash2, AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
+import { translateApiError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDialog } from "@/components/ui/dialog-custom";
@@ -16,6 +17,7 @@ import { useDialog } from "@/components/ui/dialog-custom";
 export function AccountDataSection() {
   const t = useTranslations("workspace.accountData");
   const tc = useTranslations("common");
+  const tError = useTranslations("errors.codes");
   const dialog = useDialog();
 
   const [exporting, setExporting] = useState(false);
@@ -23,6 +25,9 @@ export function AccountDataSection() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [showDeleteSection, setShowDeleteSection] = useState(false);
+  // Shown under the password field. The refusal went to a dialog this section
+  // never rendered, so a wrong password showed nothing at all.
+  const [deleteError, setDeleteError] = useState("");
 
   const handleExport = async () => {
     setExporting(true);
@@ -38,13 +43,14 @@ export function AccountDataSection() {
 
   const handleDeleteAccount = async () => {
     setDeleting(true);
+    setDeleteError("");
     try {
       await api.deleteUserAccount(deletePassword);
       // A full page load, not a client navigation: the account is gone, and
       // nothing the app holds in memory about it may survive.
       window.location.assign(new URL("/", window.location.origin).href);
     } catch (err) {
-      dialog.showError(err instanceof Error ? err.message : t("deleteError"));
+      setDeleteError(translateApiError(err, tError, t("deleteError")));
     } finally {
       setDeleting(false);
     }
@@ -108,9 +114,19 @@ export function AccountDataSection() {
               <Input
                 type="password"
                 placeholder={t("deletePasswordPlaceholder")}
+                aria-label={t("deletePasswordPlaceholder")}
                 value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
+                aria-invalid={deleteError ? true : undefined}
+                onChange={(e) => {
+                  setDeletePassword(e.target.value);
+                  setDeleteError("");
+                }}
               />
+              {deleteError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {deleteError}
+                </p>
+              )}
               <div className="flex gap-2">
                 <Button
                   variant="destructive"
@@ -127,6 +143,7 @@ export function AccountDataSection() {
                     setShowDeleteSection(false);
                     setDeleteConfirm("");
                     setDeletePassword("");
+                    setDeleteError("");
                   }}
                 >
                   {tc("cancel")}
@@ -136,6 +153,9 @@ export function AccountDataSection() {
           )}
         </div>
       </div>
+      {/* The export's success and failure messages go through this dialog. It
+          was never rendered, so neither message ever showed. */}
+      <dialog.DialogComponent />
     </div>
   );
 }

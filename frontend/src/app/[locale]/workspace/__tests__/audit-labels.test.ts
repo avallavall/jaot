@@ -1,81 +1,95 @@
 import { describe, it, expect } from "vitest";
-import { ACTION_LABELS, getActionMeta } from "@/lib/audit-labels";
+import { AUDIT_ACTIONS, AUDIT_ACTION_COLORS, getActionMeta } from "@/lib/audit-labels";
+import en from "../../../../../messages/en.json";
+import es from "../../../../../messages/es.json";
+import ca from "../../../../../messages/ca.json";
+import fr from "../../../../../messages/fr.json";
+import de from "../../../../../messages/de.json";
 
 /**
- * All 13 backend AuditAction enum values from app/models/audit_log.py
+ * Backend AuditAction values (app/models/audit_log.py) that a WORKSPACE log can
+ * hold. API key actions are organization-level and never carry a workspace.
  */
-const BACKEND_AUDIT_ACTIONS = [
+const WORKSPACE_AUDIT_ACTIONS = [
   "solve",
   "model_edit",
   "model_delete",
+  "model_publish",
+  "model_unpublish",
   "member_invite",
+  "member_join",
   "member_remove",
   "role_change",
-  "pool_allocate",
+  "invite_revoke",
   "workspace_create",
   "workspace_update",
   "trigger_create",
   "trigger_update",
   "trigger_delete",
   "trigger_fire",
+  "trigger_schedule_create",
+  "trigger_schedule_update",
+  "trigger_schedule_delete",
 ] as const;
 
-/**
- * Stale/wrong keys that existed in the old ACTION_LABELS and must NOT be present
- */
+/** Keys that must NOT come back. `pool_allocate` went with the credit pools (ADR-008). */
 const STALE_KEYS = [
+  "pool_allocate",
   "workspace_created",
-  "workspace_updated",
-  "workspace_deleted",
   "member_added",
-  "member_removed",
-  "member_role_updated",
-  "invite_created",
   "invite_accepted",
-  "invite_revoked",
   "credits_allocated",
   "solve_executed",
 ];
 
-describe("Audit ACTION_LABELS", () => {
-  it("has exactly 13 entries matching all backend AuditAction values", () => {
-    expect(Object.keys(ACTION_LABELS)).toHaveLength(13);
+const LOCALES = { en, es, ca, fr, de } as const;
+
+function translator(actions: Record<string, string>) {
+  const t = (key: string) => actions[key];
+  t.has = (key: string) => key in actions;
+  return t;
+}
+
+describe("Audit actions", () => {
+  it("lists exactly the actions a workspace log can hold", () => {
+    expect([...AUDIT_ACTIONS].sort()).toEqual([...WORKSPACE_AUDIT_ACTIONS].sort());
   });
 
-  it.each(BACKEND_AUDIT_ACTIONS)(
-    "has an explicit entry for backend action '%s'",
-    (action) => {
-      expect(ACTION_LABELS[action]).toBeDefined();
-      expect(ACTION_LABELS[action].label).toBeTruthy();
-      expect(ACTION_LABELS[action].color).toBeTruthy();
-    }
-  );
-
-  it("trigger_update displays as 'Trigger Updated'", () => {
-    expect(ACTION_LABELS["trigger_update"].label).toBe("Trigger Updated");
+  // CONTRACT-TEST: the audit filter no longer offers "Credits Allocated".
+  it.each(STALE_KEYS)("does not offer the stale action '%s'", (key) => {
+    expect(AUDIT_ACTION_COLORS[key]).toBeUndefined();
   });
 
-  it.each(STALE_KEYS)(
-    "does NOT contain stale key '%s'",
-    (key) => {
-      expect(ACTION_LABELS[key]).toBeUndefined();
-    }
+  it.each(Object.keys(LOCALES) as (keyof typeof LOCALES)[])(
+    "has a label for every action in %s",
+    (locale) => {
+      const actions = LOCALES[locale].workspace.audit.actions as Record<string, string>;
+      for (const action of AUDIT_ACTIONS) {
+        expect(actions[action], `${locale}: ${action}`).toBeTruthy();
+      }
+    },
   );
+
+  it("labels a join as a join, in the reader's language", () => {
+    const actions = es.workspace.audit.actions as Record<string, string>;
+    const meta = getActionMeta("member_join", translator(actions));
+    expect(meta.label).toBe(actions.member_join);
+    expect(meta.label).not.toBe(actions.member_invite);
+  });
 });
 
 describe("getActionMeta fallback", () => {
-  it("returns explicit label for known actions", () => {
-    const meta = getActionMeta("solve");
-    expect(meta.label).toBe("Solve Executed");
+  const t = translator(en.workspace.audit.actions as Record<string, string>);
+
+  it("returns the translated label for a known action", () => {
+    expect(getActionMeta("trigger_update", t).label).toBe("Trigger Updated");
   });
 
-  it("returns capitalized fallback for unknown actions", () => {
-    const meta = getActionMeta("some_new_action");
-    expect(meta.label).toBe("Some New Action");
+  it("returns a capitalized fallback for an unknown action", () => {
+    expect(getActionMeta("some_new_action", t).label).toBe("Some New Action");
   });
 
-  it("returns gray color for unknown actions", () => {
-    const meta = getActionMeta("unknown_future_action");
-    expect(meta.color).toContain("bg-gray");
+  it("returns gray for an unknown action", () => {
+    expect(getActionMeta("pool_allocate", t).color).toContain("bg-gray");
   });
 });

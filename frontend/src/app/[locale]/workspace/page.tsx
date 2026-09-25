@@ -82,7 +82,7 @@ export default function DashboardPage() {
             {organization?.name}
           </p>
         </div>
-        <Button variant="outline" onClick={logout}>
+        <Button variant="outline" onClick={() => logout()}>
           {t("dashboard.logOut")}
         </Button>
       </div>

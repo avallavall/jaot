@@ -18,6 +18,7 @@ const { push, pathname, auth } = vi.hoisted(() => ({
       isLoading: false,
       user: null as { is_admin: boolean } | null,
       sessionEnded: false,
+      signedOut: false,
     },
   },
 }));
@@ -54,7 +55,20 @@ describe("ProtectedRoute", () => {
       isLoading: false,
       user: null,
       sessionEnded: false,
+      signedOut: false,
     };
+    push.mockReset();
+  });
+
+  // Signing out navigates on its own, to a plain /login. Adding `next` here put
+  // the last user's page into the login URL of a shared browser.
+  it("leaves the navigation to sign-out when the user signed out", () => {
+    auth.current = { ...auth.current, signedOut: true };
+
+    renderProtected();
+
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("page")).toBeNull();
   });
 
   it("sends an anonymous visitor to login with the page they asked for", () => {
@@ -91,6 +105,7 @@ describe("ProtectedRoute", () => {
       isLoading: false,
       user: { is_admin: false },
       sessionEnded: false,
+      signedOut: false,
     };
 
     renderProtected();

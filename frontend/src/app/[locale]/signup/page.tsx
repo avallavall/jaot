@@ -15,16 +15,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPasswordStrength, isPasswordTooSimple } from "@/lib/password-strength";
-import { RETURN_PARAM, defaultLandingPath, safeReturnPath } from "@/lib/return-path";
+import {
+  RETURN_PARAM,
+  defaultLandingPath,
+  inviteTokenFrom,
+  loginPathReturningTo,
+  safeReturnPath,
+} from "@/lib/return-path";
 
 export default function SignupPage() {
   const router = useRouter();
   const { loginWithEmail, isAuthenticated, isLoading, user } = useAuth();
   const t = useTranslations("auth");
+  const tError = useTranslations("errors.codes");
   const locale = useLocale();
 
   const [email, setEmail] = useState("");
@@ -36,8 +44,15 @@ export default function SignupPage() {
   const [registrationDisabled, setRegistrationDisabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tosAccepted, setTosAccepted] = useState(false);
+  // Set when the person came from a workspace invite. The account is then made
+  // inside the organization that sent it, so the form asks for no organization.
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
 
   const strength = password ? getPasswordStrength(password) : null;
+
+  useEffect(() => {
+    setInviteToken(inviteTokenFrom(window.location.search));
+  }, []);
 
   // /login sends a signed-in visitor on; /signup used to render the form under
   // the welcome wizard, and going through with it would create a second
@@ -97,10 +112,12 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await api.signupWithEmail({
+      const result = await api.signupWithEmail({
         email,
         name,
-        organization_name: organizationName,
+        ...(inviteToken
+          ? { invite_token: inviteToken }
+          : { organization_name: organizationName }),
         password,
         confirm_password: confirmPassword,
         tos_accepted: tosAccepted,
@@ -122,14 +139,24 @@ export default function SignupPage() {
       // AuthContext state (this will use the cookies already set)
       await loginWithEmail(email, password);
 
-      // Back to where they were heading — an invite link, usually. Landing on
-      // the studio instead left the invite unaccepted and nothing said.
+      // The signup redeemed the invite: open the workspace it joined.
+      if (result?.joined_workspace_id) {
+        toast.success(t("signup.joinedWorkspace"));
+        router.push(`/workspace/workspaces/${result.joined_workspace_id}`);
+        return;
+      }
+
+      // Back to where they were heading. Landing on the studio instead left
+      // an invite unaccepted and nothing said.
       const next = new URLSearchParams(window.location.search).get(RETURN_PARAM);
       router.push(safeReturnPath(next, "/studio"));
     } catch (err) {
       if (err instanceof ApiError && err.status === 503) {
         setRegistrationDisabled(true);
         setError(t("signup.registrationDisabled"));
+      } else if (err instanceof ApiError && err.code) {
+        // A refused invite names its reason in the reader's language.
+        setError(translateApiError(err, tError, getErrorMessage(err, t("signup.signupFailed"))));
       } else {
         setError(getErrorMessage(err, t("signup.signupFailed")));
       }
@@ -208,17 +235,26 @@ export default function SignupPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="signup-org">{t("signup.orgLabel")}</Label>
-              <Input
-                id="signup-org"
-                type="text"
-                placeholder={t("signup.orgPlaceholder")}
-                value={organizationName}
-                onChange={(e) => setOrganizationName(e.target.value)}
-                required
-              />
-            </div>
+            {inviteToken ? (
+              <p
+                className="p-3 text-sm bg-muted rounded-md text-muted-foreground"
+                data-testid="signup-invite-notice"
+              >
+                {t("signup.inviteNotice")}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="signup-org">{t("signup.orgLabel")}</Label>
+                <Input
+                  id="signup-org"
+                  type="text"
+                  placeholder={t("signup.orgPlaceholder")}
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="signup-password">{t("signup.passwordLabel")}</Label>
@@ -306,7 +342,10 @@ export default function SignupPage() {
           <p className="mt-4 text-center text-sm text-muted-foreground">
             {t.rich("signup.hasAccount", {
               link: (chunks) => (
-                <Link href="/login" className="text-primary underline">
+                <Link
+                  href={inviteToken ? loginPathReturningTo(`/join/${inviteToken}`) : "/login"}
+                  className="text-primary underline"
+                >
                   {chunks}
                 </Link>
               ),

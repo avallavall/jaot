@@ -292,6 +292,8 @@ export interface EmailSignupResponse {
   plan: string;
   message: string;
   email_verified: boolean;
+  /** Set when the signup redeemed an invite: the workspace the account joined. */
+  joined_workspace_id?: string | null;
 }
 
 const BASE_URL =
@@ -763,7 +765,10 @@ export const api = {
   async signupWithEmail(data: {
     email: string;
     name: string;
-    organization_name: string;
+    /** Required without an invite; with one the account joins the inviting organization. */
+    organization_name?: string;
+    /** The invite the person followed to sign up. */
+    invite_token?: string;
     password: string;
     confirm_password: string;
     tos_accepted?: boolean;

@@ -73,13 +73,20 @@ interface AuthState {
   isOwner: boolean;
   /** True once a session ran out under the user, so the login page can say so. */
   sessionEnded: boolean;
+  /**
+   * True once the user signed out on purpose. ProtectedRoute then sends them to
+   * a plain /login: carrying the page they were on (`?next=/workspace`) landed
+   * the next person who signed in on that browser on the last user's page.
+   */
+  signedOut: boolean;
   login: (apiKey: string) => Promise<void>;
   loginWithEmail: (
     email: string,
     password: string,
     rememberMe?: boolean,
   ) => Promise<void>;
-  logout: () => void;
+  /** Sign out, then go to `redirectTo` (a locale-free path), or to /login. */
+  logout: (redirectTo?: string) => void;
   setActiveWorkspace: (id: string | null) => void;
 }
 
@@ -101,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     null,
   );
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
 
   const isAuthenticated = !!user;
 
@@ -122,17 +130,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("jaot_active_workspace");
   }, []);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (redirectTo?: string) => {
     try {
       await api.logoutSession();
     } catch { /* best-effort: clear local state regardless */ }
+    setSignedOut(true);
     clearAuth();
-    router.push("/login");
+    // `onClick={logout}` hands over the click event: only a string is a path.
+    router.push(typeof redirectTo === "string" ? redirectTo : "/login");
   }, [clearAuth, router]);
 
   const login = useCallback(async (apiKey: string) => {
     const result = await api.login(apiKey);
     if (result.success) {
+      setSignedOut(false);
       setUser({
         id: result.user.id,
         name: result.user.name,
@@ -160,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string, rememberMe: boolean = false) => {
       const result = await api.loginWithEmail(email, password, rememberMe);
       if (result.success) {
+        setSignedOut(false);
         setUser({
           id: result.user.id,
           name: result.user.name,
@@ -397,6 +409,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         workspaceRole,
         isOwner,
         sessionEnded,
+        signedOut,
         login,
         loginWithEmail,
         logout,

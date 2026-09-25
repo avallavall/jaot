@@ -59,7 +59,7 @@ export default function TeamPage() {
           <p className="text-muted-foreground mb-6">
             {/* "Select a workspace first" implies there is one to select. A
                 member who belongs to none, and who cannot create one — the
-                server answers 403, only the organisation owner may — learned
+                server answers 403, only the organization owner may — learned
                 that only after a second click. Say it here. */}
             {isOwner ? t("noWorkspaceDescription") : t("noWorkspaceForMember")}
           </p>

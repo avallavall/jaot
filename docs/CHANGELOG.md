@@ -56,6 +56,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Signing up showed a disabled button and no reason** until the terms box was ticked. The button now works, and the form says what is missing.
 - **Admin settings showed raw key names as group headings**, such as "AUTH MAX" and "APP VERSION".
 - **An empty AI provider account never triggered the admin alert** that says to top it up: Anthropic's real reply was not recognised.
+- **An invited person with no account could never join the team.** Signing up opened a new organization, and the invite then refused it. The invite page now offers "Create an account", and that account joins the organization that sent the invite. An account of another organization is told to sign out and create one from the link.
+- **Removing a member did not end their access.** They opened the same invite link again and were back in. An invite created before the removal no longer works for them. The remove dialog says so.
+- **The shareable invite link was only a path**, on screen and on the clipboard. It is now a full address.
+- **The workspace breadcrumb showed the workspace id** instead of its name.
+- **Role names, the role-change message and two member refusals were English in every language.** The audit log's action names too.
+- **Your own row in the member list offered a role menu and a remove button** that always failed. They are gone from your row and from the organization owner's.
+- **"Display Name" changed only the profile page.** The member list, the public profile, the audit log and the data export kept the old name. There is now one name, and every page shows it.
+- **Deleting your account with a wrong password showed nothing**, and the browser sent the request twice. The page now says the password is wrong.
+- **The data export left out** your profile (bio, links), your workspaces, the invites you sent and the audit entries about you.
+- **Joining a workspace was logged as "Member Invited".** It is now "Member Joined". API key creation and revocation, and invite revocation, are now in the audit log. The audit filter no longer offers "Credits Allocated".
+- **A link invite you had just generated was missing from "Pending Invites"** until the dialog was reopened.
+- **The copy-link, remove-member and revoke-invite buttons had no name** for screen readers.
+- **Signing out put the page you were on into the login address**, so the next person to sign in on that browser landed on it.
+- **"Create Key" with an empty name did nothing.** It now asks for a name.
 
 ## [3.10.0] - 2026-09-24
 

@@ -14,7 +14,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, user, sessionEnded } = useAuth();
+  const { isAuthenticated, isLoading, user, sessionEnded, signedOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname(); // locale-free — the router re-applies the prefix
   const t = useTranslations("auth");
@@ -23,6 +23,10 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     if (isLoading) return;
 
     if (!isAuthenticated) {
+      // Signing out navigates on its own (to /login, or where the caller asked).
+      // Adding `next` here put the page the last user was on into the login URL,
+      // and the next person to sign in on that browser landed on it.
+      if (signedOut) return;
       // Hand the page they asked for to the login screen, so signing in finishes
       // the navigation they started instead of dumping them on /studio.
       // The query string is read off `window` rather than through
@@ -42,7 +46,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     if (requireAdmin && !user?.is_admin) {
       router.push("/studio");
     }
-  }, [isAuthenticated, isLoading, requireAdmin, user, router, pathname, sessionEnded]);
+  }, [isAuthenticated, isLoading, requireAdmin, user, router, pathname, sessionEnded, signedOut]);
 
   if (isLoading) {
     return (
