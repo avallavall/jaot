@@ -26,6 +26,18 @@ export function solverDisplayName(name: string): string {
   return SOLVER_DISPLAY_NAMES[name.toLowerCase()] ?? name.toUpperCase();
 }
 
+/**
+ * The colour a chart draws a solver in: the same in every chart, readable in
+ * both themes (`--solver-*` in globals.css). Charts used to take the chart
+ * palette by position, which left the fifth solver, JAOS, nearly invisible on
+ * the dark theme. An unknown solver still gets a palette colour by position.
+ */
+export function solverColor(name: string, fallbackIndex = 0): string {
+  const key = name.toLowerCase();
+  if (key in SOLVER_DISPLAY_NAMES) return `var(--solver-${key})`;
+  return `var(--chart-${(Math.max(0, fallbackIndex) % 5) + 1})`;
+}
+
 /** The subset of next-intl's translator this module needs. */
 interface Translator {
   (key: string): string;

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AdminStats, SolverInfo } from "@/lib/types";
 import { useTranslations } from "next-intl";
+import { solverDisplayName } from "@/lib/solver-display";
 
 export interface HealthData {
   status: string;
@@ -121,7 +122,7 @@ export function SystemTab({ health, stats, loading, solvers }: SystemTabProps) {
                         : (solver.reason ?? t("solverUnavailable"))
                     }
                   >
-                    {solver.name}
+                    {solverDisplayName(solver.name)}
                     {solver.version ? ` ${solver.version}` : ""}
                   </Badge>
                 ))}

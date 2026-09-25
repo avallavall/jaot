@@ -17,16 +17,9 @@ import type { ComparisonMatrixRow } from "@/lib/types";
 
 import { performanceProfile, profileSeries } from "./performance-profile";
 import { pageLocale } from "@/lib/page-locale";
-import { solverDisplayName } from "@/lib/solver-display";
+import { solverDisplayName, solverColor } from "@/lib/solver-display";
 
 /** Five tokens, five solvers. The order follows the columns of the matrix. */
-const CHART_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
 
 const AXIS_TICK = { fontSize: 11, fill: "var(--muted-foreground)" };
 
@@ -71,8 +64,7 @@ export function PerformanceProfileChart({
 
   if (!profile) return null;
 
-  const colorOf = (solver: string) =>
-    CHART_COLORS[solverNames.indexOf(solver) % CHART_COLORS.length];
+  const colorOf = (solver: string) => solverColor(solver, solverNames.indexOf(solver));
 
   const best = [...profile.curves].sort((a, b) => b.wins - a.wins)[0];
 

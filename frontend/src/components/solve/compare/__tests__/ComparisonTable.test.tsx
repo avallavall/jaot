@@ -99,8 +99,9 @@ describe("ComparisonTable", () => {
   it("shows one row per solver, in the order they were asked for", async () => {
     const { rows } = await renderTable(comparison());
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toContain("scip");
-    expect(rows[1]).toContain("highs");
+    // Rows print the brand name, not the API key.
+    expect(rows[0]).toContain("SCIP");
+    expect(rows[1]).toContain("HiGHS");
   });
 
   // A solver that could not run must say so. A blank cell in a comparison is
@@ -322,7 +323,7 @@ describe("ComparisonTable", () => {
 
     // The decimal separator follows whatever locale the test environment picks,
     // so match on the digits rather than on one spelling of the number.
-    const glpk = rows.find((line) => line.includes("glpk")) ?? "";
+    const glpk = rows.find((line) => line.includes("GLPK")) ?? "";
     expect(glpk).toMatch(/3[.,]39 s/);
     expect(glpk).not.toMatch(/5[.,]26 s/);
     // Capped, and said so: a corrected measurement that says nothing is worse

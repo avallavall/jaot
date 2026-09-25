@@ -13,20 +13,13 @@ import {
   YAxis,
 } from "recharts";
 
-import { solverDisplayName } from "@/lib/solver-display";
+import { solverDisplayName, solverColor } from "@/lib/solver-display";
 import type { ComparisonSolverResult } from "@/lib/types";
 
 import { convergenceData, convergenceSeries } from "./convergence";
 import { pageLocale } from "@/lib/page-locale";
 
 /** Five tokens, five solvers, in the order the comparison ran them. */
-const CHART_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
 
 const AXIS_TICK = { fontSize: 11, fill: "var(--muted-foreground)" };
 
@@ -77,7 +70,7 @@ export function ConvergenceChart({ results }: { results: ComparisonSolverResult[
   if (!data) return null;
 
   const order = results.map((r) => r.solver_name);
-  const colorOf = (solver: string) => CHART_COLORS[order.indexOf(solver) % CHART_COLORS.length];
+  const colorOf = (solver: string) => solverColor(solver, order.indexOf(solver));
 
   return (
     <div className="space-y-2" data-testid="convergence-chart">

@@ -34,6 +34,7 @@ import { getErrorMessage, translateApiError } from "@/lib/errors";
 import { ACCEPTED_EXTENSIONS, isAcceptedFile } from "@/lib/file-import";
 import type { ComparisonDetail, ProjectListItem } from "@/lib/types";
 import { pollEvery } from "@/lib/poll";
+import { solverDisplayName } from "@/lib/solver-display";
 
 /** How often the table refreshes while the comparison is still running. The
  * solves are sequential, so nothing changes faster than one solver at a time. */
@@ -293,7 +294,7 @@ export default function SolverComparePage() {
                             )
                           }
                         />
-                        <span className="uppercase">{solver.name}</span>
+                        <span>{solverDisplayName(solver.name)}</span>
                         {!comparable && (
                           <span className="text-xs normal-case text-muted-foreground">
                             {t("setup.notComparable")}

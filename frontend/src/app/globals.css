@@ -125,6 +125,17 @@
   --chart-3: #E8A088;
   --chart-4: #E8D9C5;
   --chart-5: #9B8E88;
+
+  /* One colour per solver, the same in every chart (solverColor). Charts took
+     the five-colour palette by position, so the fifth solver, JAOS, was drawn
+     dark brown on the dark theme and the fourth, GLPK, pale beige on the light
+     one: both nearly invisible. Each of these is at least 4:1 on its background. */
+  --solver-scip: #5D4E47;
+  --solver-highs: #3F7A64;
+  --solver-cbc: #C0603F;
+  --solver-glpk: #6E62A8;
+  --solver-jaos: #1F7A8C;
+  --solver-hexaly: #9A6B1F;
   
   /* Sidebar */
   --sidebar: #FFFDF8;
@@ -227,6 +238,12 @@ html {
   --chart-3: #E8D9C5;
   --chart-4: #9B8E88;
   --chart-5: #5D4E47;
+  --solver-scip: #E8D9C5;
+  --solver-highs: #8AC4A9;
+  --solver-cbc: #E8A088;
+  --solver-glpk: #B3A8E6;
+  --solver-jaos: #6CC6D6;
+  --solver-hexaly: #E0B96A;
   --sidebar: #2A2421;
   --sidebar-foreground: #E8D9C5;
   --sidebar-primary: #E8D9C5;

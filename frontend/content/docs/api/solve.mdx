@@ -423,24 +423,26 @@ Notes:
 | Quadratic, Hexaly worker down | SCIP | `hexaly_unavailable_fallback` (plus a `warning`) |
 | Anything else (MIP, mixed) | SCIP | `milp_routed_to_scip` |
 
-**CBC and GLPK are substitutes, not candidates.** `auto` never picks them while the solver
-its rule prefers is installed. It reaches them only on a server built without that solver,
+**CBC, JAOS and GLPK are substitutes, not candidates.** `auto` never picks them while the
+solver its rule prefers is installed. It reaches them only on a server built without that solver,
 and then it says so: `auto_route_reason` comes back `preferred_solver_not_installed` and the
 response carries a `warning` naming the solver that actually ran.
 
-They sit behind SCIP and HiGHS for two reasons that have nothing to do with speed. Neither
-computes shadow prices or reduced costs, so a caller who chose no solver would silently lose
-the sensitivity analysis. And GLPK is single-threaded: on a 60-lot burn-in plan (1,342
-binaries) HiGHS and CBC finished in 1.5 seconds, SCIP in 12, and GLPK ran a full 60-second
-limit without finding any feasible answer.
+The order is SCIP, HiGHS, CBC, JAOS, GLPK. They sit behind SCIP and HiGHS for reasons that
+have nothing to do with speed. CBC and GLPK compute no shadow prices or reduced costs, and JAOS
+computes them for an LP only, so a caller who chose no solver could lose the sensitivity
+analysis. On a 60-lot burn-in plan (1,342 binaries) HiGHS and CBC finished in 1.5 seconds,
+SCIP in 12, and JAOS and GLPK both ran the full 60-second limit without finding a feasible
+answer. JAOS comes before GLPK because it returns an LP's shadow prices; GLPK is also
+single-threaded.
 
-A substitute is never given a model it cannot express, so a quadratic never reaches CBC or
-GLPK whatever else is missing.
+A substitute is never given a model it cannot express, so a quadratic never reaches CBC,
+JAOS or GLPK whatever else is missing.
 
-**JAOS is never picked by `auto`, not even as a substitute.** JAOS is an open-source LP/MIP
-solver written in C. It is deterministic: the same model gives the same answer and the same
-work count on any machine and any thread count. In JAOT it solves linear and mixed-integer
-models only. It returns exact shadow prices and reduced costs for an LP, and none for a MIP.
+JAOS is an open-source LP/MIP solver written in C. It is deterministic: the same model gives
+the same answer and the same work count on any machine and any thread count. In JAOT it
+solves linear and mixed-integer models only. It returns exact shadow prices and reduced costs
+for an LP, and none for a MIP.
 
 To pick CBC, GLPK or JAOS, name one — and use the [solver comparer](/docs/api/solver-comparison)
 to find out which one is right for your model, with numbers, instead of guessing.

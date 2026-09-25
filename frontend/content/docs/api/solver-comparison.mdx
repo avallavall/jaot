@@ -21,7 +21,7 @@ Two shapes exist:
 
 ## Quota
 
-Each solver counts as one execution against the instance's daily solve limit. A comparison of 4 solvers costs 4. A matrix of 3 datasets and 4 solvers costs 12. A request that cannot afford all of its runs is rejected whole — half a table invites a conclusion the missing half might have contradicted.
+Each solver counts as one execution against the instance's daily solve limit. A comparison of 5 solvers costs 5. A matrix of 3 datasets and 5 solvers costs 15. A request that cannot afford all of its runs is rejected whole — half a table invites a conclusion the missing half might have contradicted.
 
 ## Which solvers can compare
 
@@ -67,7 +67,7 @@ launch = httpx.post(
     headers=headers,
     json={
         "project_id": "prj_a1b2c3d4",
-        "solver_names": ["scip", "highs", "cbc", "glpk"],
+        "solver_names": ["scip", "highs", "cbc", "glpk", "jaos"],
         "settings": {"time_limit_seconds": 120},
     },
 )
@@ -88,7 +88,7 @@ curl -X POST https://jaot.io/api/v2/solvers/compare \
   -H "Content-Type: application/json" \
   -d '{
     "project_id": "prj_a1b2c3d4",
-    "solver_names": ["scip", "highs", "cbc", "glpk"],
+    "solver_names": ["scip", "highs", "cbc", "glpk", "jaos"],
     "settings": {"time_limit_seconds": 120}
   }'
 ```
@@ -102,7 +102,7 @@ const launch = await fetch("https://jaot.io/api/v2/solvers/compare", {
   },
   body: JSON.stringify({
     project_id: "prj_a1b2c3d4",
-    solver_names: ["scip", "highs", "cbc", "glpk"],
+    solver_names: ["scip", "highs", "cbc", "glpk", "jaos"],
     settings: { time_limit_seconds: 120 },
   }),
 });
@@ -135,7 +135,8 @@ const { id } = await launch.json();
     {"solver_name": "scip", "status": "pending", "solver_status": null},
     {"solver_name": "highs", "status": "pending", "solver_status": null},
     {"solver_name": "cbc", "status": "pending", "solver_status": null},
-    {"solver_name": "glpk", "status": "pending", "solver_status": null}
+    {"solver_name": "glpk", "status": "pending", "solver_status": null},
+    {"solver_name": "jaos", "status": "pending", "solver_status": null}
   ],
   "agreement": null,
   "created_at": "2026-08-17T09:12:00Z",
@@ -207,7 +208,7 @@ List this organization's comparisons, newest first.
       "id": "cmp_9f2a7c31",
       "status": "completed",
       "problem_name": "Line balancing",
-      "solver_names": ["scip", "highs", "cbc", "glpk"],
+      "solver_names": ["scip", "highs", "cbc", "glpk", "jaos"],
       "created_at": "2026-08-17T09:12:00Z",
       "completed_at": "2026-08-17T09:14:31Z"
     }
@@ -277,7 +278,7 @@ launch = httpx.post(
     json={
         "project_id": "prj_a1b2c3d4",
         "dataset_ids": ["dst_january", "dst_february", "dst_march"],
-        "solver_names": ["scip", "highs", "cbc", "glpk"],
+        "solver_names": ["scip", "highs", "cbc", "glpk", "jaos"],
         "settings": {"time_limit_seconds": 120},
     },
 )
@@ -300,7 +301,7 @@ curl -X POST https://jaot.io/api/v2/solvers/compare/batches \
   -d '{
     "project_id": "prj_a1b2c3d4",
     "dataset_ids": ["dst_january", "dst_february", "dst_march"],
-    "solver_names": ["scip", "highs", "cbc", "glpk"]
+    "solver_names": ["scip", "highs", "cbc", "glpk", "jaos"]
   }'
 ```
 
@@ -314,7 +315,7 @@ const launch = await fetch("https://jaot.io/api/v2/solvers/compare/batches", {
   body: JSON.stringify({
     project_id: "prj_a1b2c3d4",
     dataset_ids: ["dst_january", "dst_february", "dst_march"],
-    solver_names: ["scip", "highs", "cbc", "glpk"],
+    solver_names: ["scip", "highs", "cbc", "glpk", "jaos"],
   }),
 });
 
@@ -332,7 +333,7 @@ const { batch_id } = await launch.json();
   "project_name": "Line balancing",
   "model_project_version_id": null,
   "settings": {"time_limit_seconds": 120, "gap_tolerance": 0.0001, "threads": 4},
-  "solver_names": ["scip", "highs", "cbc", "glpk"],
+  "solver_names": ["scip", "highs", "cbc", "glpk", "jaos"],
   "machine_note": null,
   "rows": [
     {
@@ -348,7 +349,8 @@ const { batch_id } = await launch.json();
         {"solver_name": "scip", "status": "pending", "solver_status": null},
         {"solver_name": "highs", "status": "pending", "solver_status": null},
         {"solver_name": "cbc", "status": "pending", "solver_status": null},
-        {"solver_name": "glpk", "status": "pending", "solver_status": null}
+        {"solver_name": "glpk", "status": "pending", "solver_status": null},
+    {"solver_name": "jaos", "status": "pending", "solver_status": null}
       ]
     }
   ],
@@ -390,7 +392,7 @@ List this organization's matrices, newest first.
       "project_id": "prj_a1b2c3d4",
       "project_name": "Line balancing",
       "dataset_count": 3,
-      "solver_names": ["scip", "highs", "cbc", "glpk"],
+      "solver_names": ["scip", "highs", "cbc", "glpk", "jaos"],
       "created_at": "2026-08-17T09:20:00Z",
       "completed_at": "2026-08-17T09:31:12Z"
     }

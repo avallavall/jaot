@@ -65,8 +65,8 @@ export async function SolverRaceShowcase() {
           return (
             <li key={row.solver}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <span className="font-mono text-sm uppercase tracking-wide text-foreground">
-                  {row.solver}
+                <span className="font-mono text-sm tracking-wide text-foreground">
+                  {solverDisplayName(row.solver)}
                 </span>
                 <span
                   className={cn(

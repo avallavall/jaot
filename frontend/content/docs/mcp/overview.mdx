@@ -226,7 +226,7 @@ These answer "which solver should I use for this model", not "what is the answer
 | `compare_solvers_on_datasets` | Yes | Queue a matrix: a model project's JModel source compiled against several datasets, each row run by every solver |
 | `get_solver_comparison_matrix` | Yes | Poll or read the grid, one row per dataset and one column per solver |
 
-Both shapes are asynchronous: the launch returns `202` with a table of pending rows, and you poll until the status leaves `pending` and `running`. Each solver counts as one execution against the daily quota, so a matrix of 3 datasets and 4 solvers costs 12. A comparison that cannot afford all of its runs is rejected whole.
+Both shapes are asynchronous: the launch returns `202` with a table of pending rows, and you poll until the status leaves `pending` and `running`. Each solver counts as one execution against the daily quota, so a matrix of 3 datasets and 5 solvers costs 15. A comparison that cannot afford all of its runs is rejected whole.
 
 A solver that cannot express the model gets a row saying so with its reason — never an empty cell, and never a missing row. Read the `machine_note` field before quoting any timing: it records the machine the runs happened on, and times from two different comparisons cannot be put side by side.
 

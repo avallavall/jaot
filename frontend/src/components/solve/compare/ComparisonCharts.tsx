@@ -120,7 +120,7 @@ function BoundChart({ bars, omitted }: { bars: BoundBar[]; omitted: BoundOmissio
               dataKey="solver"
               width={SOLVER_AXIS_WIDTH}
               tick={AXIS_TICK}
-              tickFormatter={(name: string) => name.toUpperCase()}
+              tickFormatter={(name: string) => solverDisplayName(name)}
             />
             <Tooltip
               cursor={{ fill: "var(--muted)", fillOpacity: 0.3 }}
@@ -136,7 +136,7 @@ function BoundChart({ bars, omitted }: { bars: BoundBar[]; omitted: BoundOmissio
                   "",
                 ];
               }}
-              labelFormatter={(label) => String(label).toUpperCase()}
+              labelFormatter={(label) => solverDisplayName(String(label))}
             />
             <Bar dataKey="low" stackId="bound" fill="transparent" isAnimationActive={false} />
             <Bar
@@ -204,7 +204,7 @@ function TimeChart({ bars }: { bars: TimeBar[] }) {
               dataKey="solver"
               width={SOLVER_AXIS_WIDTH}
               tick={AXIS_TICK}
-              tickFormatter={(name: string) => name.toUpperCase()}
+              tickFormatter={(name: string) => solverDisplayName(name)}
             />
             <Tooltip
               cursor={{ fill: "var(--muted)", fillOpacity: 0.3 }}
@@ -219,7 +219,7 @@ function TimeChart({ bars }: { bars: TimeBar[] }) {
                   "",
                 ];
               }}
-              labelFormatter={(label) => String(label).toUpperCase()}
+              labelFormatter={(label) => solverDisplayName(String(label))}
             />
             <Bar dataKey="seconds" radius={2} fill="var(--primary)" isAnimationActive={false}>
               {/* The number on the bar, because on a log axis the length alone
@@ -264,7 +264,7 @@ function SplitChart({ bars }: { bars: SplitBar[] }) {
               dataKey="solver"
               width={SOLVER_AXIS_WIDTH}
               tick={AXIS_TICK}
-              tickFormatter={(name: string) => name.toUpperCase()}
+              tickFormatter={(name: string) => solverDisplayName(name)}
             />
             <Tooltip
               cursor={{ fill: "var(--muted)", fillOpacity: 0.3 }}
@@ -273,7 +273,7 @@ function SplitChart({ bars }: { bars: SplitBar[] }) {
                 seconds(Number(value)),
                 name === "search" ? t("charts.splitSearch") : t("charts.splitBuild"),
               ]}
-              labelFormatter={(label) => String(label).toUpperCase()}
+              labelFormatter={(label) => solverDisplayName(String(label))}
             />
             <Bar
               dataKey="search"

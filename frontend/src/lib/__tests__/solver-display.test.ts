@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 
 import {
+  solverColor,
   solverDescription,
   solverDisplayName,
 } from "@/lib/solver-display";
@@ -46,5 +49,34 @@ describe("solverDescription", () => {
 
   it("returns nothing when neither side has anything to say", () => {
     expect(solverDescription("xpress", undefined, translator({}))).toBeUndefined();
+  });
+});
+
+/**
+ * Charts took the five-colour palette by position, so JAOS, the fifth solver,
+ * was dark brown on the dark theme and GLPK pale beige on the light one. Every
+ * solver has its own colour now, defined for both themes.
+ */
+describe("solverColor", () => {
+  const SOLVERS = ["scip", "highs", "cbc", "glpk", "jaos"];
+
+  it("gives every solver its own colour, whatever its position", () => {
+    const colours = SOLVERS.map((s, i) => solverColor(s, i));
+    expect(new Set(colours).size).toBe(SOLVERS.length);
+    expect(solverColor("jaos", 4)).toBe(solverColor("JAOS", 0));
+  });
+
+  it("has a colour for each solver in the light and the dark theme", () => {
+    const css = fs.readFileSync(path.resolve(__dirname, "../../app/globals.css"), "utf8");
+    const root = css.slice(css.indexOf(":root {"), css.indexOf("}", css.indexOf(":root {")));
+    const dark = css.slice(css.indexOf(".dark {"), css.indexOf("}", css.indexOf(".dark {")));
+    for (const s of [...SOLVERS, "hexaly"]) {
+      expect(root).toContain(`--solver-${s}:`);
+      expect(dark).toContain(`--solver-${s}:`);
+    }
+  });
+
+  it("falls back to the chart palette for a solver it does not know", () => {
+    expect(solverColor("gurobi", 6)).toBe("var(--chart-2)");
   });
 });

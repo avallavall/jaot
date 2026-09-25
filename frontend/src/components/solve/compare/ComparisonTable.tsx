@@ -154,7 +154,7 @@ function ResultRow({
   return (
     <TableRow className={cn(unsupported && "text-muted-foreground")}>
       <TableCell className="font-medium">
-        <span className="uppercase">{row.solver_name}</span>
+        <span>{solverDisplayName(row.solver_name)}</span>
         {/* The version the row was measured against. Without it a table stored
             today cannot be explained once the images have been rebuilt: seconds
             from CBC 2.10.12 say nothing about 2.11. Absent on a row recorded
