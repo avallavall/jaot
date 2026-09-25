@@ -211,12 +211,33 @@ describe("executionOriginHref", () => {
 describe("noModelMessageKey", () => {
   // CONTRACT-TEST: a run says where it came from, not the opposite
   it("names an import as an import", () => {
-    expect(noModelMessageKey("imported_file")).toBe("importedExecution");
+    expect(noModelMessageKey("import", "imported_file")).toBe("importedExecution");
   });
 
-  it("keeps the external wording for a run that really came from outside", () => {
-    expect(noModelMessageKey("trigger")).toBe("externalExecution");
-    expect(noModelMessageKey(null)).toBe("externalExecution");
-    expect(noModelMessageKey(undefined)).toBe("externalExecution");
+  /**
+   * The same sentence, "triggered externally", was also said about a problem
+   * typed into Custom Solve and about a trigger run (QA, 2026-09-25).
+   */
+  it("names a trigger run as a trigger run", () => {
+    expect(noModelMessageKey("triggered", "trigger")).toBe("triggeredExecution");
+    expect(noModelMessageKey("triggered", null)).toBe("triggeredExecution");
+  });
+
+  it("names a Custom Solve run as a problem entered directly", () => {
+    expect(noModelMessageKey("manual", null)).toBe("directExecution");
+    expect(noModelMessageKey(undefined, undefined)).toBe("directExecution");
+  });
+
+  it("names the API, MCP and a comparison column for what they are", () => {
+    expect(noModelMessageKey("api", null)).toBe("apiExecution");
+    expect(noModelMessageKey("mcp", null)).toBe("mcpExecution");
+    expect(noModelMessageKey("comparison", null)).toBe("comparisonExecution");
+  });
+
+  it("says only what is known for any other origin", () => {
+    expect(noModelMessageKey("visual_builder", "builder_document")).toBe(
+      "noSavedModelExecution",
+    );
+    expect(noModelMessageKey("cron", null)).toBe("noSavedModelExecution");
   });
 });

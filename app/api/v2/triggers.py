@@ -124,6 +124,37 @@ def _extract_fire_secret(request: Request, body: TriggerFireRequest) -> str | No
     return body.trigger_secret
 
 
+def _refused(refusal: str, run_id: str | None) -> HTTPException:
+    """The 422 for a refused fire, with its code when the refusal carries one.
+
+    The body API clients read is unchanged: ``detail`` stays ``{"error",
+    "run_id"}``. The code and its params ride beside it, so the trigger page can
+    say the refusal in the reader's language. ``run_id`` is None when nothing
+    was recorded (a rerun or a Run now refused before creating a run).
+    """
+    detail = {"error": str(refusal), "run_id": run_id}
+    if isinstance(refusal, trigger_service.FireRefusal):
+        return CodedHTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=detail,
+            code=refusal.code,
+            params=refusal.params,
+        )
+    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
+
+
+def _reject_unknown_solver(name: str | None) -> None:
+    """Refuse a trigger solver this server cannot run, before it is saved."""
+    refusal = trigger_service.unknown_solver_refusal(name)
+    if refusal is not None:
+        raise CodedHTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(refusal),
+            code=refusal.code,
+            params=refusal.params,
+        )
+
+
 def _mask_secret(value: str | None, length: int = 8) -> str | None:
     """Return a masked prefix of a secret, or None if absent."""
     if not value:
@@ -273,6 +304,7 @@ def _trigger_to_response(
         "has_active_schedule": has_active_schedule,
         "trigger_secret_prefix": _mask_secret(trigger.trigger_secret),
         "override_schema": trigger.override_schema,
+        "solver_name": trigger.solver_name,
         "webhook_url": trigger.webhook_url,
         "webhook_secret_prefix": _mask_secret(trigger.webhook_secret),
         "workspace_id": trigger.workspace_id,
@@ -346,6 +378,7 @@ def create_trigger(
     # Convert HttpUrl to string for storage
     webhook_url_str = str(body.webhook_url)
     _reject_undeliverable_webhook(webhook_url_str)
+    _reject_unknown_solver(body.solver_name)
 
     now = utcnow()
     override_schema_data = (
@@ -364,6 +397,7 @@ def create_trigger(
         model_project_version_id=body.model_project_version_id,
         trigger_secret=secret_hash,
         override_schema=override_schema_data,
+        solver_name=body.solver_name,
         webhook_url=webhook_url_str,
         webhook_secret=body.webhook_secret,
         workspace_id=body.workspace_id,
@@ -475,6 +509,9 @@ def update_trigger(
         if field == "webhook_url" and value is not None:
             value = str(value)
             _reject_undeliverable_webhook(value)
+        if field == "solver_name":
+            # None is allowed: it goes back to the pinned version's own solver.
+            _reject_unknown_solver(value)
         if field == "override_schema" and value is not None:
             value = [f.model_dump() if hasattr(f, "model_dump") else f for f in value]
         setattr(trigger, field, value)
@@ -583,7 +620,9 @@ def fire_trigger(
     - 401: Missing or invalid trigger secret
     - 404: Trigger not found
     - 409: Trigger is disabled
-    - 422: Override validation failed (run still created with validation_failed status)
+    - 422: Override validation failed, or the model names a solver this server
+      does not have (run still created with validation_failed status). The body
+      carries a ``code`` beside ``detail``.
     """
     # A per-address limit before any lookup, so guessing costs the guesser. The
     # trigger's own budget is charged only after the secret matches: charged
@@ -659,11 +698,77 @@ def fire_trigger(
 
     if error:
         # Validation failure — run was created with status=validation_failed
+        raise _refused(error, run.id)
+
+    return {"run_id": run.id, "status": run.status}
+
+
+@router.post(
+    "/{trigger_id}/run",
+    response_model=TriggerFireResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Run a trigger once, as the signed-in user",
+)
+def run_now(
+    trigger_id: str,
+    db: DBSession,
+    user: CurrentUser,
+    org: CurrentOrg,
+) -> dict[str, Any]:
+    """Queue one run with the trigger's own settings and override defaults.
+
+    The "Run now" button on the trigger page. It authenticates like the rest of
+    the page, never with the trigger secret: the page does not hold the secret,
+    and asking a person to paste it to test their own trigger would put it in
+    the browser.
+
+    A refused input answers 422 and records nothing. ``/fire`` records a refused
+    call as a run because its caller is a remote system and the owner needs to
+    see it. Here the person is looking at the answer.
+
+    It counts against the same per-trigger budget as ``/fire``.
+    """
+    trigger = _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.SOLVER)
+
+    if not trigger.is_enabled:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Trigger is disabled")
+    if not trigger_service.owner_is_active(db, trigger):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"error": error, "run_id": run.id},
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The organization or user that owns this trigger is deactivated.",
         )
 
+    refusal = trigger_service.check_fire(db, trigger, None)
+    if refusal is not None:
+        raise _refused(refusal, None)
+
+    allowed, rate_info = check_rate_limit(
+        f"trigger_fire:{trigger_id}",
+        limit_per_minute=10,
+        limit_per_day=500,
+    )
+    if not allowed:
+        raise HTTPException(status_code=429, detail=rate_info)
+
+    log_action(
+        db=db,
+        organization_id=org.id,
+        actor=user,
+        action=AuditAction.TRIGGER_FIRE,
+        target_type="trigger",
+        target_id=trigger.id,
+        target_name=trigger.name,
+    )
+    run, error = trigger_service.fire_trigger(db, trigger, None)
+    run.source = "app"
+    db.commit()
+
+    if error:
+        # check_fire passed a moment ago, so this is not expected. If it
+        # happens, the refused run is committed like any other.
+        raise _refused(error, run.id)
+
+    logger.info("Run now queued for trigger %s by user %s", trigger_id, user.id)
     return {"run_id": run.id, "status": run.status}
 
 
@@ -769,6 +874,13 @@ def rerun(
             detail="Trigger is disabled",
         )
 
+    # A run whose input was refused is refused again, and each click used to
+    # record one more refused run. Checked first, so a refusal records nothing.
+    # The same input can pass later, after an edit to the schema or the solver.
+    refusal = trigger_service.check_fire(db, trigger, original_run.override_data)
+    if refusal is not None:
+        raise _refused(refusal, None)
+
     # Reuse original override_data (skip trigger_secret validation)
     run, error = trigger_service.fire_trigger(db, trigger, original_run.override_data)
     # The model documents "rerun" as the value this endpoint writes, and nothing
@@ -784,10 +896,7 @@ def rerun(
     db.commit()
 
     if error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"error": error, "run_id": run.id},
-        )
+        raise _refused(error, run.id)
 
     logger.info(
         "Rerun queued for trigger %s by user %s (original run: %s)",

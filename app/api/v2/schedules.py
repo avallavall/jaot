@@ -150,7 +150,7 @@ def create_schedule(
 
 @router.get(
     "/triggers/{trigger_id}/schedule",
-    response_model=ScheduleResponse,
+    response_model=ScheduleResponse | None,
     summary="Get the cron schedule for a trigger",
 )
 def get_schedule(
@@ -158,16 +158,18 @@ def get_schedule(
     db: DBSession,
     user: CurrentUser,
     org: CurrentOrg,
-) -> ScheduleResponse:
-    """Return the schedule attached to a trigger, or 404 if none exists."""
+) -> ScheduleResponse | None:
+    """Return the schedule attached to a trigger, or null when it has none.
+
+    Most triggers have no schedule, and that is a normal answer. It used to be a
+    404, which the page handled, and the browser still logged it as an error on
+    every trigger page. A 404 now means only that the trigger is not there.
+    """
     _get_trigger_or_404(db, trigger_id, org, user, WorkspaceRole.VIEWER)
 
     schedule = schedule_service.get_schedule_by_trigger(db, trigger_id)
     if not schedule:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No schedule found for this trigger",
-        )
+        return None
 
     return ScheduleResponse.model_validate(schedule)
 

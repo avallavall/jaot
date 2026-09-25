@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, translateApiError } from "@/lib/errors";
+import { solverErrorText } from "@/lib/solver-error";
 import type { SolveResult, AsyncTask } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -346,7 +347,9 @@ export default function CustomSolvePage() {
 
                 {result.error_message && (
                   <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <p className="text-sm text-destructive">{result.error_message}</p>
+                    <p className="text-sm text-destructive">
+                      {solverErrorText(result, result.error_message, tError)}
+                    </p>
                   </div>
                 )}
               </div>

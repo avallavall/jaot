@@ -44,6 +44,7 @@ from app.domains.solver.adapters.base import (
     CachedVersion,
     SolverCapabilities,
     SolverError,
+    refusal_fields,
 )
 from app.schemas.optimization import (
     OptimizationProblem,
@@ -222,6 +223,7 @@ class GLPKAdapter(CachedVersion):
                 # Same reason as the CBC adapter: a stringified exception
                 # carries the argv and the temp paths with it.
                 error_message=scrub_paths(f"GLPK could not finish this run: {exc}"),
+                **refusal_fields(exc),
             )
 
     # ── running ──────────────────────────────────────────────────────────────

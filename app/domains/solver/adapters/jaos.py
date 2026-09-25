@@ -28,6 +28,8 @@ from app.domains.solver.adapters.base import (
     CachedVersion,
     SolverCapabilities,
     binary_bounds,
+    quadratic_term_refusal,
+    refusal_fields,
 )
 from app.domains.solver.constraint_activity import is_binding_within_bounds
 from app.domains.solver.sensitivity_values import publishable_value
@@ -99,13 +101,20 @@ def _row_bounds(operator: str, rhs: float) -> tuple[float, float]:
     raise ValueError(f"Unknown constraint operator {operator!r}.")
 
 
-def _linear_only(term_variables: list[str], where: str) -> None:
-    """Refuse a quadratic term instead of solving without it."""
+def _linear_only(term_variables: list[str], constraint: str | None) -> None:
+    """Refuse a quadratic term instead of solving without it.
+
+    ``constraint`` is the row's label, or None for a term in the objective.
+    """
     if len(term_variables) >= 2:
-        raise ValueError(
+        where = "the objective" if constraint is None else f"constraint {constraint!r}"
+        raise quadratic_term_refusal(
             f"JAOS in JAOT takes linear models only — quadratic term "
             f"'{'*'.join(term_variables)}' in {where}. Use SCIP (or automatic "
-            "selection) for quadratic models."
+            "selection) for quadratic models.",
+            solver="JAOS",
+            variables=term_variables,
+            constraint=constraint,
         )
 
 
@@ -311,6 +320,7 @@ class JAOSAdapter(CachedVersion):
                 status=SolverStatus.ERROR,
                 solve_time_seconds=time.monotonic() - start_time,
                 error_message=str(exc),
+                **refusal_fields(exc),
             )
         finally:
             if model is not None:
@@ -335,7 +345,7 @@ class JAOSAdapter(CachedVersion):
         objective = self._parser.parse_expression(problem.objective.expression)
         cost = [0.0] * n
         for term in objective.terms:
-            _linear_only(term.variables, "the objective")
+            _linear_only(term.variables, None)
             idx = built.col_map.get(term.variables[0]) if term.variables else None
             if idx is not None:
                 cost[idx] += float(term.coefficient)
@@ -366,9 +376,9 @@ class JAOSAdapter(CachedVersion):
         value: list[float] = []
         for constraint in problem.constraints:
             parsed = self._parser.parse_constraint(constraint.expression)
-            where = f"constraint {constraint.name or constraint.expression!r}"
+            label = constraint.name or constraint.expression
             for term in parsed.lhs.terms:
-                _linear_only(term.variables, where)
+                _linear_only(term.variables, label)
                 col = built.col_map.get(term.variables[0]) if term.variables else None
                 if col is not None:
                     index.append(col)

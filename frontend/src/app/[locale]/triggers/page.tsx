@@ -91,7 +91,9 @@ export default function TriggersPage() {
     try {
       const updated = await api.triggers.toggle(trigger.id, !trigger.is_enabled, activeWorkspaceId ?? undefined);
       setTriggers((prev) => prev.map((tr) => (tr.id === trigger.id ? updated : tr)));
-      toast.success(t("toggleEnabled", { state: updated.is_enabled ? "enabled" : "disabled" }));
+      // A whole sentence per state. The English word "enabled" used to be passed
+      // into the sentence, so the Spanish toast read "Trigger enabled".
+      toast.success(updated.is_enabled ? t("toggledOn") : t("toggledOff"));
     } catch (err) {
       // Revert on failure
       setTriggers(previousTriggers);

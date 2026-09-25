@@ -103,20 +103,15 @@ def trigger_solve_task(
         db.commit()
         logger.info("TriggerRun %s started (trigger=%s)", run_id, trigger_id)
 
-        base_model_json = trigger_service.pinned_model_json(db, trigger)
-        if base_model_json is None:
+        # The pinned version, the trigger's solver and the overrides with their
+        # schema defaults, assembled the same way the fire-time checks and the
+        # queue routing assembled them.
+        merged_model = trigger_service.merged_model_json(db, trigger, override_data)
+        if merged_model is None:
             _fail_run(db, run, "Pinned model version not found")
             _settle_schedule(db, trigger, run)
             _deliver_webhook(trigger, run, "trigger.execution.failed")
             return {"status": "failed"}
-
-        from app.services.trigger_service import apply_overrides  # noqa: PLC0415
-
-        merged_model = apply_overrides(
-            base_model_json,
-            override_data or {},
-            trigger.override_schema,  # type: ignore[arg-type]
-        )
 
         # 5. Parse merged model into OptimizationProblem before solving
         from app.schemas.optimization import OptimizationProblem  # noqa: PLC0415
@@ -160,6 +155,7 @@ def trigger_solve_task(
         solver = SolverService()
         _solve_start = time.monotonic()
         ACTIVE_SOLVES.inc()
+        result = None
         try:
             result = solver.solve(problem, solver_name=effective)
             _solve_elapsed = time.monotonic() - _solve_start
@@ -228,6 +224,12 @@ def trigger_solve_task(
             # Provenance: navigates back to the trigger that fired this run.
             source_kind="trigger",
             source_id=trigger.id,
+            # The model and the version the trigger pins. Left empty, the
+            # executions list called the model "External" and the execution
+            # page said no model was behind the run. A builder-document trigger
+            # has no project, and these stay None for it.
+            model_project_id=trigger.model_project_id,
+            model_project_version_id=trigger.model_project_version_id,
             started_at=start_datetime,
             solver_name=effective,
         )
@@ -244,8 +246,10 @@ def trigger_solve_task(
                 execution_time_seconds=elapsed_ms / 1000.0,
             )
         else:
+            # ``result`` is the solver's error result when it returned one (None
+            # when it raised). Stored, its error_code lets the page translate it.
             execution_writer.apply_failed(
-                model_execution, error=error_msg or "Solver returned an error"
+                model_execution, error=error_msg or "Solver returned an error", result=result
             )
 
         # Link execution back to the TriggerRun. TriggerRun keeps its own result_data

@@ -218,15 +218,22 @@ def apply_failed(
     *,
     error: str,
     preserve_completed_at: bool = False,
+    result: Any = None,
 ) -> bool:
     """Move a loaded row to FAILED (terminal-wins). No commit.
 
     ``preserve_completed_at`` keeps a pre-set ``completed_at`` (the reaper stamps
     it before the mutation).
+
+    ``result`` is the solver's error result, when there is one. Its
+    ``to_result_data()`` is stored, because that is where the execution page
+    finds the ``error_code`` it translates. ``error_message`` alone is English.
     """
     if is_terminal(execution):
         return False
     execution.status = ExecutionStatus.FAILED.value
+    if result is not None and hasattr(result, "to_result_data"):
+        execution.result_data = result.to_result_data()
     execution.error_message = str(error)[:2000]
     if preserve_completed_at:
         execution.completed_at = execution.completed_at or utcnow()
@@ -483,12 +490,15 @@ def mark_multi_objective_completed_by_task(
         )
 
 
-def mark_failed_by_task(task_id: str, organization_id: str, error: str) -> None:
+def mark_failed_by_task(
+    task_id: str, organization_id: str, error: str, *, result: Any = None
+) -> None:
     """Own-session, best-effort FAILED write keyed by ``celery_task_id``.
 
     Used by the ``solve_async`` worker (solver-level error branch + except
     branch). Preserves terminal states (a user CANCELLED row is not a failure);
-    never raises.
+    never raises. ``result`` is the solver's error result, when there is one
+    (see ``apply_failed``).
     """
     try:
         db = _own_session()
@@ -496,7 +506,7 @@ def mark_failed_by_task(task_id: str, organization_id: str, error: str) -> None:
             execution = _lookup_by_task(db, task_id, organization_id, lock=True)
             if execution is None:
                 return
-            if apply_failed(execution, error=error):
+            if apply_failed(execution, error=error, result=result):
                 db.commit()
                 # A failed run counts too, or the success rate has no denominator.
                 _report_listing_run(db, execution, succeeded=False)

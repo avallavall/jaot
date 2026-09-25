@@ -36,10 +36,13 @@ export function ScheduleTab({ triggerId }: ScheduleTabProps) {
     setLoading(true);
     setNotFound(false);
     try {
+      // null is the normal answer for a trigger with no schedule. It used to be
+      // a 404, which the browser logged as an error on every trigger page.
       const data = await api.schedules.get(triggerId);
       setSchedule(data);
+      setNotFound(data === null);
     } catch (err) {
-      // 404 means no schedule exists -- that's a valid state
+      // A backend older than that change still answers 404 for "no schedule".
       if (err instanceof ApiError && err.status === 404) {
         setNotFound(true);
         setSchedule(null);

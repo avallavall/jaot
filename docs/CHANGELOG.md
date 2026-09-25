@@ -36,6 +36,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **JAOS is a fifth solver.** JAOS is an open-source LP/MIP solver (Apache-2.0). It gives the same answer and does the same work on any machine and thread count. Pick it by name, or add it as a column in a solver comparison. Automatic selection never picks it.
 - **JAOS shows its progress while it solves**, as SCIP does: the best plan, the bound and the gap, live. A comparison draws its trace next to the other solvers'.
 - **JAOS reports shadow prices and reduced costs for a linear model**, and takes a warm start from an earlier run. A partial start is completed. The run says whether JAOS used it.
+- **"Run now" on the trigger page** runs a trigger once with its own settings. It uses your session, not the trigger secret.
+- **An Edit form on the trigger page** changes the name, the solver the trigger runs on, and the defaults of its override fields.
 
 ### Changed
 - **The solver race on the home page runs all five solvers.** JAOS ran out of time on the burn-in plan, like GLPK. It found no plan in 60 seconds. Its bound says no plan uses fewer than 17 chambers. When two solvers run out of time, the note under the chart now names both and no longer shows only the first one's bound.
@@ -58,6 +60,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **An empty AI provider account never triggered the admin alert** that says to top it up: Anthropic's real reply was not recognised.
 - **Twelve industry guides in the docs showed a broken image.** They linked builder screenshots that were never added.
 - **The studio's solver matrix printed "HIGHS"** in its columns, checkboxes and summary lines. It now prints the brand names.
+- **A trigger ignored the defaults of its override fields.** A field `solver` with the default `jaos` still ran on SCIP when a call left it out. Defaults now apply, and a required field with a default no longer has to be sent.
+- **Trigger runs lost the model they ran.** The executions list called the model "External" and the execution page said no model was behind the run. Trigger runs now link to the pinned model and version.
+- **The execution page said "triggered externally" for every run with no saved model**, Custom Solve included. It now says where the run came from: a trigger, Custom Solve, the API, MCP or a solver comparison. The executions list says "No saved model" instead of "External".
+- **Solves sent with an API key and no origin were recorded as "Manual"**, like Custom Solve in the app. They are now recorded as "API".
+- **A trigger fired with an unknown solver answered 202** and failed later, leaving a run on a solver that does not exist. It now answers 422 at once, and records the refused call.
+- **Trigger refusals were English in every language.** Unknown or missing override fields and an unknown solver now come with a code the page translates.
+- **Run History offered Rerun on a run whose input was refused**, and each click added another refused run. It is no longer offered, and the server refuses such a rerun without recording a new run.
+- **Run History showed "—" for a webhook that had already failed three times.** It now says how many attempts failed, whether another one is coming, and when the address was never called.
+- **Every trigger page with no schedule logged an error in the browser.** No schedule is now a normal answer.
+- **The enable and disable messages on the trigger pages were English in every language.** The "Required" column of the override schema also said "No" in English.
+- **The refusal of a quadratic model by JAOS, HiGHS, CBC or GLPK was English in every language**, on the execution page and in Custom Solve. It is now translated. API clients still get the English message, and a new code beside it.
 
 ## [3.10.0] - 2026-09-24
 

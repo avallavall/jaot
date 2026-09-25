@@ -22,6 +22,8 @@ from app.domains.solver.adapters.base import (
     CachedVersion,
     SolverCapabilities,
     binary_bounds,
+    quadratic_term_refusal,
+    refusal_fields,
 )
 from app.domains.solver.constraint_activity import is_binding_within_bounds
 from app.domains.solver.sensitivity_values import publishable_value
@@ -225,6 +227,7 @@ class HiGHSAdapter(CachedVersion):
                 status=SolverStatus.ERROR,
                 solve_time_seconds=time.monotonic() - start_time,
                 error_message=str(exc),
+                **refusal_fields(exc),
             )
 
     def _configure_solver(self, h: object, problem: OptimizationProblem) -> None:
@@ -295,11 +298,14 @@ class HiGHSAdapter(CachedVersion):
                         coeffs.append(float(term.coefficient))
                 elif len(term.variables) >= 2:
                     # never solve a silent linear relaxation of a quadratic model
-                    raise ValueError(
+                    raise quadratic_term_refusal(
                         "HiGHS supports linear problems only — quadratic term "
                         f"'{'*'.join(term.variables)}' in constraint "
                         f"'{constraint.expression}'. Use SCIP (or automatic selection) "
-                        "for quadratic models."
+                        "for quadratic models.",
+                        solver="HiGHS",
+                        variables=term.variables,
+                        constraint=constraint.name or constraint.expression,
                     )
                 # constant terms are already folded into the RHS by parse_constraint()
 
@@ -366,10 +372,13 @@ class HiGHSAdapter(CachedVersion):
                     )
             elif len(term.variables) >= 2:
                 # never solve a silent linear relaxation of a quadratic model
-                raise ValueError(
+                raise quadratic_term_refusal(
                     "HiGHS supports linear problems only — quadratic term "
                     f"'{'*'.join(term.variables)}' in the objective. Use SCIP "
-                    "(or automatic selection) for quadratic models."
+                    "(or automatic selection) for quadratic models.",
+                    solver="HiGHS",
+                    variables=term.variables,
+                    constraint=None,
                 )
 
     def _map_status(self, h: object) -> SolverStatus:

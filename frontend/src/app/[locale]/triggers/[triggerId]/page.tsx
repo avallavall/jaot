@@ -6,6 +6,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
+import { translateApiError } from "@/lib/errors";
+import { solverDisplayName } from "@/lib/solver-display";
 import type { SolveTrigger, OverrideField } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
@@ -28,12 +30,15 @@ import { useDialog } from "@/components/ui/dialog-custom";
 import { CodeSnippets } from "@/components/triggers/CodeSnippets";
 import { RunHistoryTable } from "@/components/triggers/RunHistoryTable";
 import { ScheduleTab } from "@/components/triggers/ScheduleTab";
+import { TriggerEditForm } from "@/components/triggers/TriggerEditForm";
 import { useDateFormat } from "@/hooks/useDateFormat";
 import {
   ChevronLeft,
   Clock,
   Copy,
   Check,
+  Pencil,
+  Play,
   ToggleLeft,
   ToggleRight,
   Trash2,
@@ -74,10 +79,14 @@ function TriggerDetailPageInner() {
   const dialog = useDialog();
   const triggerId = params.triggerId as string;
   const t = useTranslations("triggers.detail");
+  const tError = useTranslations("errors.codes");
+  const tAuto = useTranslations("solvers.auto");
 
   const { activeWorkspaceId } = useAuth();
   const { dayTime } = useDateFormat();
   const canEdit = useWorkspacePermission("editor");
+  // Run now spends a solve, which the solver role may do; editing needs editor.
+  const canRun = useWorkspacePermission("solver");
   const roleName = useRoleDisplayName();
 
   // Workspace scope guard -- prompts if URL workspace differs from active
@@ -87,6 +96,10 @@ function TriggerDetailPageInner() {
   const [trigger, setTrigger] = useState<SolveTrigger | null>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [editing, setEditing] = useState(false);
+  // Bumped after Run now so an open Run History loads the new run.
+  const [runsVersion, setRunsVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const loadTrigger = useCallback(async () => {
@@ -112,11 +125,30 @@ function TriggerDetailPageInner() {
     try {
       const updated = await api.triggers.toggle(trigger.id, !trigger.is_enabled, activeWorkspaceId ?? undefined);
       setTrigger(updated);
-      toast.success(t("toggleEnabled", { state: updated.is_enabled ? "enabled" : "disabled" }));
+      // A whole sentence per state. The English word "enabled" used to be passed
+      // into the sentence, so the Spanish toast read "Trigger enabled".
+      toast.success(updated.is_enabled ? t("toggledOn") : t("toggledOff"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("toggleError"));
     } finally {
       setToggling(false);
+    }
+  };
+
+  // Runs the trigger once through the signed-in session. The page never holds
+  // the trigger secret, so /fire is not an option here and should not be.
+  const handleRunNow = async () => {
+    if (!trigger) return;
+    setRunning(true);
+    try {
+      await api.triggers.runNow(trigger.id, activeWorkspaceId ?? undefined);
+      toast.success(t("runNowQueued"));
+      setRunsVersion((v) => v + 1);
+      setTrigger((prev) => (prev ? { ...prev, total_runs: prev.total_runs + 1 } : prev));
+    } catch (err) {
+      toast.error(translateApiError(err, tError, t("runNowError")));
+    } finally {
+      setRunning(false);
     }
   };
 
@@ -193,7 +225,48 @@ function TriggerDetailPageInner() {
           )}
         </div>
         <TooltipProvider>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    size="sm"
+                    onClick={handleRunNow}
+                    disabled={running || !canRun || !trigger.is_enabled}
+                    className="gap-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    {t("runNow")}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {(!canRun || !trigger.is_enabled) && (
+                <TooltipContent className="max-w-xs text-center">
+                  {!canRun ? t("noPermission", { role: roleName }) : t("runNowDisabled")}
+                </TooltipContent>
+              )}
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditing(true)}
+                    disabled={editing || !canEdit}
+                    className="gap-2"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    {t("edit")}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!canEdit && (
+                <TooltipContent className="max-w-xs text-center">
+                  {t("noPermission", { role: roleName })}
+                </TooltipContent>
+              )}
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
@@ -249,6 +322,18 @@ function TriggerDetailPageInner() {
         </TooltipProvider>
       </div>
 
+      {editing && (
+        <TriggerEditForm
+          trigger={trigger}
+          workspaceId={activeWorkspaceId ?? undefined}
+          onSaved={(updated) => {
+            setTrigger(updated);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      )}
+
       <Tabs defaultValue="overview">
         <TabsList className="mb-6">
           <TabsTrigger value="overview">{t("overviewTab")}</TabsTrigger>
@@ -288,6 +373,16 @@ function TriggerDetailPageInner() {
                   <div className="w-40 shrink-0 text-sm text-muted-foreground">{t("pinnedVersion")}</div>
                   <div className="text-sm font-mono break-all flex-1">
                     {trigger.model_project_version_id ?? trigger.version_id ?? "—"}
+                  </div>
+                </div>
+                <div className="flex items-start gap-4 px-4 py-3">
+                  <div className="w-40 shrink-0 text-sm text-muted-foreground">{t("solverLabel")}</div>
+                  <div className="text-sm flex-1" data-testid="trigger-solver">
+                    {trigger.solver_name
+                      ? trigger.solver_name === "auto"
+                        ? tAuto("label")
+                        : solverDisplayName(trigger.solver_name)
+                      : t("solverFromModel")}
                   </div>
                 </div>
                 <div className="flex items-start gap-4 px-4 py-3">
@@ -365,7 +460,7 @@ function TriggerDetailPageInner() {
                               {field.required ? (
                                 <Badge variant="default" className="text-xs">{t("schemaRequired")}</Badge>
                               ) : (
-                                <span className="text-muted-foreground text-xs">No</span>
+                                <span className="text-muted-foreground text-xs">{t("schemaNotRequired")}</span>
                               )}
                             </td>
                           </tr>
@@ -394,7 +489,7 @@ function TriggerDetailPageInner() {
         </TabsContent>
 
         <TabsContent value="runs">
-          <RunHistoryTable triggerId={triggerId} />
+          <RunHistoryTable triggerId={triggerId} refreshKey={runsVersion} />
         </TabsContent>
 
         <TabsContent value="schedule">

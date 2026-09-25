@@ -4084,9 +4084,42 @@ export interface paths {
          *     - 401: Missing or invalid trigger secret
          *     - 404: Trigger not found
          *     - 409: Trigger is disabled
-         *     - 422: Override validation failed (run still created with validation_failed status)
+         *     - 422: Override validation failed, or the model names a solver this server
+         *       does not have (run still created with validation_failed status). The body
+         *       carries a ``code`` beside ``detail``.
          */
         post: operations["fire_trigger_api_v2_triggers__trigger_id__fire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/triggers/{trigger_id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a trigger once, as the signed-in user
+         * @description Queue one run with the trigger's own settings and override defaults.
+         *
+         *     The "Run now" button on the trigger page. It authenticates like the rest of
+         *     the page, never with the trigger secret: the page does not hold the secret,
+         *     and asking a person to paste it to test their own trigger would put it in
+         *     the browser.
+         *
+         *     A refused input answers 422 and records nothing. ``/fire`` records a refused
+         *     call as a run because its caller is a remote system and the owner needs to
+         *     see it. Here the person is looking at the answer.
+         *
+         *     It counts against the same per-trigger budget as ``/fire``.
+         */
+        post: operations["run_now_api_v2_triggers__trigger_id__run_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4165,7 +4198,11 @@ export interface paths {
         };
         /**
          * Get the cron schedule for a trigger
-         * @description Return the schedule attached to a trigger, or 404 if none exists.
+         * @description Return the schedule attached to a trigger, or null when it has none.
+         *
+         *     Most triggers have no schedule, and that is a normal answer. It used to be a
+         *     404, which the page handled, and the browser still logged it as an error on
+         *     every trigger page. A 404 now means only that the trigger is not there.
          */
         get: operations["get_schedule_api_v2_triggers__trigger_id__schedule_get"];
         put?: never;
@@ -8626,10 +8663,22 @@ export interface components {
              */
             dual_bound?: number | null;
             /**
+             * Error Code
+             * @description Stable code for a known refusal, e.g. 'solver.quadratic_in_objective'. error_message carries the same refusal in English.
+             */
+            error_code?: string | null;
+            /**
              * Error Message
              * @description Error details if failed
              */
             error_message?: string | null;
+            /**
+             * Error Params
+             * @description Values for the sentence that error_code names.
+             */
+            error_params?: {
+                [key: string]: string;
+            } | null;
             /**
              * Execution Id
              * @description ID of the persisted execution
@@ -10833,6 +10882,11 @@ export interface components {
              */
             override_schema?: components["schemas"]["OverrideFieldSchema"][] | null;
             /**
+             * Solver Name
+             * @description Solver this trigger runs on ('auto', 'scip', 'highs', 'cbc', 'glpk', 'jaos'). Null keeps the solver the pinned version names. An override that sets solver_name still wins for that fire.
+             */
+            solver_name?: string | null;
+            /**
              * Version Id
              * @description Pinned model version snapshot ID
              */
@@ -10902,6 +10956,11 @@ export interface components {
             override_schema: {
                 [key: string]: unknown;
             }[] | null;
+            /**
+             * Solver Name
+             * @description Solver this trigger runs on ('auto', 'scip', 'highs', 'cbc', 'glpk', 'jaos'). Null keeps the solver the pinned version names. An override that sets solver_name still wins for that fire.
+             */
+            solver_name?: string | null;
             /**
              * Source
              * @description Which kind of model this fires
@@ -11020,6 +11079,11 @@ export interface components {
                 [key: string]: unknown;
             }[] | null;
             /**
+             * Solver Name
+             * @description Solver this trigger runs on ('auto', 'scip', 'highs', 'cbc', 'glpk', 'jaos'). Null keeps the solver the pinned version names. An override that sets solver_name still wins for that fire.
+             */
+            solver_name?: string | null;
+            /**
              * Source
              * @description Which kind of model this fires
              * @enum {string}
@@ -11111,6 +11175,11 @@ export interface components {
             name?: string | null;
             /** Override Schema */
             override_schema?: components["schemas"]["OverrideFieldSchema"][] | null;
+            /**
+             * Solver Name
+             * @description Solver this trigger runs on ('auto', 'scip', 'highs', 'cbc', 'glpk', 'jaos'). Null keeps the solver the pinned version names. An override that sets solver_name still wins for that fire.
+             */
+            solver_name?: string | null;
             /** Webhook Secret */
             webhook_secret?: string | null;
             /** Webhook Url */
@@ -18647,6 +18716,37 @@ export interface operations {
             };
         };
     };
+    run_now_api_v2_triggers__trigger_id__run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trigger_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerFireResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_runs_api_v2_triggers__trigger_id__runs_get: {
         parameters: {
             query?: {
@@ -18762,7 +18862,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScheduleResponse"];
+                    "application/json": components["schemas"]["ScheduleResponse"] | null;
                 };
             };
             /** @description Validation Error */

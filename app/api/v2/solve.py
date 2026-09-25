@@ -48,11 +48,27 @@ from app.schemas.optimization import (
 )
 from app.services.idempotency import idempotency_execution_id
 from app.services.platform_settings_service import PlatformSettingsService as PSS
+from app.shared.constants.execution_provenance import ORIGIN_API
 
 logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/solve", tags=["solve"])
+
+
+def _origin_or_channel(request: Request, origin: str | None) -> str | None:
+    """The origin to record: the one the caller named, else ``api`` for an API key.
+
+    Custom Solve in the app names no origin, and neither does a script calling
+    this endpoint. Both were stored as "manual", so the execution page could not
+    say where a run came from. The browser signs in with a session cookie and
+    never sends an API key, so an API key with no origin is a program.
+    """
+    if origin:
+        return origin
+    if getattr(request.state, "api_key", None) is not None:
+        return ORIGIN_API
+    return None
 
 
 def _is_verbose(request: Request) -> bool:
@@ -162,7 +178,7 @@ def solve_optimization_problem(  # def: blocks on the queued result (ADR-007 S2)
             problem=problem,
             workspace_id=workspace_member.workspace_id if workspace_member else None,
             solver_name_param=solver_name,
-            origin=origin,
+            origin=_origin_or_channel(request, origin),
             source_kind=source_kind,
             source_id=source_id,
             dataset_id=None,
@@ -442,7 +458,7 @@ def solve_multi_objective_endpoint(  # def: blocks on the queued result in the t
         problem=body.problem,
         config=body.config,
         workspace_id=workspace_member.workspace_id if workspace_member else None,
-        origin=origin,
+        origin=_origin_or_channel(request, origin),
         source_kind=source_kind,
         source_id=source_id,
     )
@@ -511,7 +527,7 @@ def solve_optimization_problem_async(  # sync ON PURPOSE -> FastAPI threadpool
         problem=problem,
         workspace_id=workspace_member.workspace_id if workspace_member else None,
         solver_name_param=solver_name,
-        origin=origin,
+        origin=_origin_or_channel(request, origin),
         source_kind=source_kind,
         source_id=source_id,
         dataset_id=dataset_id,

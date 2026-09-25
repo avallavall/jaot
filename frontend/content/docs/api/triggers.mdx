@@ -39,6 +39,7 @@ Creates an HTTP event trigger pinned to a specific model version. The plaintext 
 | `document_id` | string | Yes | Builder document to solve |
 | `version_id` | string | Yes | Pinned model version |
 | `override_schema` | array | No | Fields that can be overridden at fire time |
+| `solver_name` | string | No | Solver every run uses (`auto`, `scip`, `highs`, `cbc`, `glpk`, `jaos`). Leave it out to use the solver the pinned version names. An unknown name is refused with 422 |
 | `webhook_url` | string | No | URL to receive solve results |
 | `webhook_secret` | string | No | Secret for webhook signature verification |
 | `workspace_id` | string | No | Workspace scope |
@@ -248,6 +249,7 @@ Partially update a trigger. The `version_id` is immutable after creation -- crea
 | `name` | string | Updated trigger name |
 | `description` | string | Updated description |
 | `override_schema` | array | Updated override fields |
+| `solver_name` | string or null | Solver every run uses. `null` goes back to the solver the pinned version names |
 | `webhook_url` | string | Updated webhook URL |
 | `webhook_secret` | string | Updated webhook secret |
 
@@ -387,6 +389,10 @@ Fire a trigger to queue an async solve. Authentication uses the **per-trigger se
 | `trigger_secret` | string | No | Alternative to Authorization header |
 | `override_data` | object | No | Override values for fields defined in `override_schema` |
 
+A field you leave out of `override_data` takes its `default` from the schema, when it has one. A required field with a default does not have to be sent.
+
+The run solves the pinned version, then applies the trigger's `solver_name`, then the overrides. So a solver named by an override, sent or taken from its default, wins over the trigger's solver.
+
 <CodeTabs>
 ```python
 import requests
@@ -448,7 +454,32 @@ const { run_id, status } = await response.json();
 | 401 | Missing or invalid trigger secret |
 | 404 | Trigger not found |
 | 409 | Trigger is disabled |
-| 422 | Override validation failed |
+| 422 | Override validation failed, or the model names a solver this server does not have |
+
+A 422 still records a run with status `validation_failed`, so the refused call shows in the run history. The body keeps `detail` as `{"error", "run_id"}` and adds a `code` beside it: `trigger.override_unknown_fields`, `trigger.override_missing_required` or `trigger.solver_unavailable`, with the values in `params`.
+
+---
+
+## Run a trigger now
+
+```
+POST /api/v2/triggers/{trigger_id}/run
+```
+
+Queue one run with the trigger's own settings and override defaults. This is the **Run now** button on the trigger page. It authenticates with your session or API key, never with the trigger secret, and needs the solver role in the trigger's workspace. It counts against the same per-trigger limit as `/fire`.
+
+A refused input answers 422 with the same `code` as `/fire`, and records no run.
+
+**Authentication:** API key (organization scope)
+
+### Response (202 Accepted)
+
+```json
+{
+  "run_id": "trun_x1y2z3w4",
+  "status": "pending"
+}
+```
 
 ---
 
@@ -537,6 +568,8 @@ POST /api/v2/triggers/{trigger_id}/runs/{run_id}/rerun
 ```
 
 Queue a new run using the override data from a previous run. Authenticated via API key (not trigger secret), since the user is already authenticated.
+
+The input is checked first. If it would be refused again, for example the run was `validation_failed` and the schema has not changed, the rerun answers 422 with a `code` and records no new run.
 
 **Authentication:** API key (organization scope)
 

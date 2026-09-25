@@ -80,6 +80,58 @@ class SolverQueueMismatchError(SolverError):
     """Worker's ``SOLVER_QUEUE`` did not match the solver requested by the task."""
 
 
+# Codes a linear-only solver puts on its refusal of a quadratic model. The page
+# shows the translated sentence for the code. ``error_message`` keeps the English
+# sentence, because API clients read it and the page falls back to it. Every code
+# here needs an ``errors.codes`` entry in frontend/messages/en.json (a test checks).
+CODE_LINEAR_ONLY = "solver.linear_only"
+CODE_QUADRATIC_IN_OBJECTIVE = "solver.quadratic_in_objective"
+CODE_QUADRATIC_IN_CONSTRAINT = "solver.quadratic_in_constraint"
+LINEAR_ONLY_CODES = frozenset(
+    {CODE_LINEAR_ONLY, CODE_QUADRATIC_IN_OBJECTIVE, CODE_QUADRATIC_IN_CONSTRAINT}
+)
+
+
+class LinearOnlyError(SolverError, ValueError):
+    """A linear-only solver refusing a quadratic model.
+
+    It carries a code and plain-value params so the refusal can be shown in the
+    reader's language. It is a ``ValueError`` too: the JAOS adapter turns a
+    ``ValueError`` raised while it builds the model into an error result, and
+    this refusal must stay one of those.
+    """
+
+    def __init__(self, message: str, *, code: str, params: dict[str, str]) -> None:
+        super().__init__(message)
+        self.code = code
+        self.params = params
+
+
+def quadratic_term_refusal(
+    message: str, *, solver: str, variables: list[str], constraint: str | None
+) -> LinearOnlyError:
+    """The refusal of one quadratic term, in the objective or in a named constraint."""
+    params = {"solver": solver, "term": "*".join(variables)}
+    if constraint is None:
+        return LinearOnlyError(message, code=CODE_QUADRATIC_IN_OBJECTIVE, params=params)
+    return LinearOnlyError(
+        message,
+        code=CODE_QUADRATIC_IN_CONSTRAINT,
+        params={**params, "constraint": constraint},
+    )
+
+
+def refusal_fields(exc: BaseException) -> dict[str, Any]:
+    """``error_code`` and ``error_params`` for an error result built from ``exc``.
+
+    Empty for any other exception. A code promises a known sentence, and an
+    unexpected failure has none: the page shows its English message as it is.
+    """
+    if isinstance(exc, LinearOnlyError):
+        return {"error_code": exc.code, "error_params": dict(exc.params)}
+    return {}
+
+
 #: "The version has not been read yet." Not None, because None is a legitimate
 #: answer — the solver is there and would not say — and caching it must stop the
 #: adapter from asking again on every call.

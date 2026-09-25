@@ -2946,7 +2946,6 @@
       "allStatus": "Alle Status",
       "allOrigins": "Alle Quellen",
       "totalExecutions": "{count} Ausführungen gesamt",
-      "external": "Extern",
       "tableHeaders": {
         "status": "Status",
         "origin": "Quelle",
@@ -2972,7 +2971,8 @@
       "selectedCount": "{count, plural, one {# ausgewählt} other {# ausgewählt}}",
       "clearSelection": "Aufheben",
       "compareSelected": "Vergleichen",
-      "selectTwoHint": "Wähle genau zwei Ausführungen zum Vergleichen."
+      "selectTwoHint": "Wähle genau zwei Ausführungen zum Vergleichen.",
+      "noSavedModel": "Kein gespeichertes Modell"
     },
     "execution": {
       "title": "Ausführungsdetails",
@@ -3064,14 +3064,19 @@
       "inputDataRawJson": "Eingabedaten (Roh-JSON)",
       "resultDataRawJson": "Ergebnisdaten (Roh-JSON)",
       "openInStudio": "Im Studio öffnen",
-      "externalExecution": "Diese Ausführung wurde von außen ausgelöst. Es steht kein Modell dahinter, sie kann also nicht im Studio geöffnet werden und hat keinen Verlauf.",
       "viewTriggerConfig": "Trigger-Konfiguration anzeigen",
       "failedToLoad": "Ausführung konnte nicht geladen werden",
       "visualization": "Visualisierung",
       "variableValues": "Variablenwerte",
       "insightsTitle": "Automatische Analyse",
       "datasetBadge": "Für diesen Lauf verwendeter Datensatz",
-      "importedExecution": "Dieser Lauf kam aus einer Datei, die Sie importiert haben. Dahinter steht kein gespeichertes Modell, es gibt also nichts im Studio zu öffnen und keinen Verlauf. Importieren Sie die Datei erneut, um sie auszuführen."
+      "importedExecution": "Dieser Lauf kam aus einer Datei, die Sie importiert haben. Dahinter steht kein gespeichertes Modell, es gibt also nichts im Studio zu öffnen und keinen Verlauf. Importieren Sie die Datei erneut, um sie auszuführen.",
+      "triggeredExecution": "Dieser Lauf wurde von einem Trigger gestartet. Kein Studio-Modell ist mit ihm verknüpft, daher kann er nicht im Studio geöffnet werden und hat keinen Verlauf.",
+      "apiExecution": "Dieser Lauf kam über die API. Er ist mit keinem gespeicherten Modell verknüpft, daher kann er nicht im Studio geöffnet werden und hat keinen Verlauf.",
+      "mcpExecution": "Dieser Lauf wurde von einem KI-Assistenten über MCP gesendet. Er ist mit keinem gespeicherten Modell verknüpft, daher kann er nicht im Studio geöffnet werden und hat keinen Verlauf.",
+      "comparisonExecution": "Dieser Lauf ist eine Spalte eines Solver-Vergleichs für ein Problem, das nicht als Modell gespeichert wurde. Daher kann er nicht im Studio geöffnet werden.",
+      "directExecution": "Dieser Lauf hat ein direkt eingegebenes Problem gelöst, zum Beispiel unter „JSON lösen“. Es wurde nicht als Modell gespeichert, daher kann der Lauf nicht im Studio geöffnet werden und hat keinen Verlauf.",
+      "noSavedModelExecution": "Dieser Lauf ist mit keinem gespeicherten Modell verknüpft, daher kann er nicht im Studio geöffnet werden und hat keinen Verlauf."
     },
     "compare": {
       "title": "Ausführungsvergleich",
@@ -3551,13 +3556,14 @@
       "enableTrigger": "Trigger aktivieren",
       "viewDetails": "Triggerdetails anzeigen",
       "deleteTrigger": "Trigger löschen",
-      "toggleEnabled": "Trigger {state}",
       "toggleError": "Trigger konnte nicht umgeschaltet werden",
       "loadError": "Trigger konnten nicht geladen werden",
       "deleteConfirm": "Trigger \"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",
       "deleteTitle": "Trigger löschen",
       "deleted": "Trigger gelöscht",
-      "deleteError": "Trigger konnte nicht gelöscht werden"
+      "deleteError": "Trigger konnte nicht gelöscht werden",
+      "toggledOn": "Trigger aktiviert",
+      "toggledOff": "Trigger deaktiviert"
     },
     "new": {
       "title": "Trigger erstellen",
@@ -3579,7 +3585,6 @@
       "noPermission": "Ihre Rolle ({role}) darf keine Trigger verwalten. Bitten Sie den Admin des Arbeitsbereichs um die Editor-Rolle.",
       "notFound": "Trigger nicht gefunden",
       "loadError": "Trigger konnte nicht geladen werden",
-      "toggleEnabled": "Trigger {state}",
       "toggleError": "Trigger konnte nicht umgeschaltet werden",
       "deleteConfirm": "Trigger \"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",
       "deleteTitle": "Trigger löschen",
@@ -3611,7 +3616,29 @@
       "copyError": "Konnte nicht in die Zwischenablage kopieren",
       "copyLabel": "{label} kopieren",
       "statusEnabled": "Aktiviert",
-      "statusDisabled": "Deaktiviert"
+      "statusDisabled": "Deaktiviert",
+      "toggledOn": "Trigger aktiviert",
+      "toggledOff": "Trigger deaktiviert",
+      "runNow": "Jetzt ausführen",
+      "runNowQueued": "Lauf eingereiht. Er erscheint im Laufverlauf.",
+      "runNowError": "Der Trigger konnte nicht ausgeführt werden",
+      "runNowDisabled": "Aktivieren Sie den Trigger, um ihn auszuführen.",
+      "edit": "Bearbeiten",
+      "editTitle": "Trigger bearbeiten",
+      "nameLabel": "Name",
+      "nameRequired": "Name ist erforderlich",
+      "solverLabel": "Solver",
+      "solverFromModel": "Der Solver des Modells",
+      "solverHelp": "Gilt für jeden Lauf dieses Triggers. Eine Überschreibung, die den Solver setzt, hat für diesen Lauf Vorrang.",
+      "defaultsTitle": "Standardwerte der Überschreibungen",
+      "defaultsHelp": "Gelten, wenn ein Aufruf das Feld nicht sendet, und für „Jetzt ausführen“. Lassen Sie das Feld leer für keinen Standardwert.",
+      "invalidDefault": "Das ist kein gültiger {type}-Wert.",
+      "save": "Speichern",
+      "saving": "Wird gespeichert...",
+      "cancel": "Abbrechen",
+      "saved": "Trigger aktualisiert",
+      "saveError": "Der Trigger konnte nicht gespeichert werden",
+      "schemaNotRequired": "Nein"
     },
     "codeSnippets": {
       "title": "Code-Snippets",
@@ -3697,7 +3724,11 @@
       "createdAt": "Erstellt am",
       "errorMessage": "Fehlermeldung",
       "overrideData": "Überschreibungsdaten",
-      "resultData": "Ergebnisdaten"
+      "resultData": "Ergebnisdaten",
+      "webhookDeliveredLabel": "Zugestellt",
+      "webhookFailedAfter": "Fehlgeschlagen nach {count, plural, one {# Versuch} other {# Versuchen}}",
+      "webhookRetrying": "{count, plural, one {# fehlgeschlagener Versuch} other {# fehlgeschlagene Versuche}}, neuer Versuch geplant",
+      "webhookNotSent": "Nicht gesendet: Die Adresse ist nicht öffentlich"
     },
     "schedule": {
       "title": "Zeitplan",
@@ -4686,7 +4717,10 @@
         "publish_needs_own_change": "Dieses Modell stammt aus dem Marktplatz und hat sich seitdem nicht geändert. Committe eine eigene Änderung und veröffentliche es dann als deinen Eintrag."
       },
       "trigger": {
-        "webhook_url_unreachable": "Der Server erreicht diese Webhook-Adresse nicht: Sie zeigt auf {address}, eine private, Loopback- oder Link-Local-Adresse. Verwende eine öffentliche URL."
+        "webhook_url_unreachable": "Der Server erreicht diese Webhook-Adresse nicht: Sie zeigt auf {address}, eine private, Loopback- oder Link-Local-Adresse. Verwende eine öffentliche URL.",
+        "override_unknown_fields": "Unbekannte Überschreibungsfelder: {fields}.",
+        "override_missing_required": "Fehlende Pflicht-Überschreibungsfelder: {fields}.",
+        "solver_unavailable": "Der Solver „{solver}“ ist auf diesem Server nicht verfügbar."
       },
       "admin": {
         "email_taken": "Ein anderes Konto benutzt diese E-Mail-Adresse bereits.",
@@ -4703,6 +4737,11 @@
         "requires_use": "Nutzen Sie dieses Modell im Studio, bevor Sie es bewerten.",
         "requires_run": "Führen Sie dieses Modell im Studio erfolgreich aus, bevor Sie es bewerten.",
         "report_own": "Sie können Ihre eigene Bewertung nicht melden. Löschen Sie sie stattdessen."
+      },
+      "solver": {
+        "linear_only": "{solver} löst nur lineare Modelle, und dieses Modell enthält quadratische Terme. Verwenden Sie SCIP (oder die automatische Auswahl) für quadratische Modelle.",
+        "quadratic_in_objective": "{solver} löst nur lineare Modelle. Die Zielfunktion enthält den quadratischen Term {term}. Verwenden Sie SCIP (oder die automatische Auswahl) für quadratische Modelle.",
+        "quadratic_in_constraint": "{solver} löst nur lineare Modelle. Die Nebenbedingung {constraint} enthält den quadratischen Term {term}. Verwenden Sie SCIP (oder die automatische Auswahl) für quadratische Modelle."
       }
     }
   },
