@@ -661,6 +661,12 @@ def list_project_executions(
     generic ``source_kind="model_project"`` provenance (the universal
     ``/solve/async`` path the studio uses for live streaming) — so no solve
     entry point has to change (see the solve-contract-drift safeguard).
+
+    A solver-comparison column is left out. It carries the project's id too,
+    and the "Last run" line under the Solve button showed a matrix cell as this
+    model's last run while "Runs of this model" did not list it. Both read this
+    endpoint, so they now follow one rule: the model's own runs. A column
+    belongs to its comparison, which has its own page.
     """
     _project_or_404(db, project_id, org, user)
     # `ProjectExecutionItem` is a compact row by design — no payloads. The query
@@ -684,6 +690,7 @@ def list_project_executions(
                     ModelExecution.source_id == project_id,
                 ),
             ),
+            ModelExecution.comparison_id.is_(None),
         )
     )
     if status_filter:
