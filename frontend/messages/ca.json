@@ -5208,8 +5208,8 @@
       "workSummary": "{work} {unit} en {seconds}, {rate} per segon",
       "workEndOnly": "Un punt sol és un solver que només va informar del seu recompte final, sense traça de la cerca.",
       "workUnit": {
-        "nodes": "nodes",
-        "iterations": "iteracions"
+        "nodes": "{count, plural, one {node} other {nodes}}",
+        "iterations": "{count, plural, one {iteració} other {iteracions}}"
       },
       "workOmitted": {
         "noCount": "{solver}: no es dibuixa, no va informar ni de nodes ni d'iteracions.",

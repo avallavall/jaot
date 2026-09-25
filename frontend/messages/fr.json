@@ -5208,8 +5208,8 @@
       "workSummary": "{work} {unit} en {seconds}, {rate} par seconde",
       "workEndOnly": "Un point isolé est un solveur qui n'a donné que son décompte final, sans trace de sa recherche.",
       "workUnit": {
-        "nodes": "nœuds",
-        "iterations": "itérations"
+        "nodes": "{count, plural, one {nœud} other {nœuds}}",
+        "iterations": "{count, plural, one {itération} other {itérations}}"
       },
       "workOmitted": {
         "noCount": "{solver} : non tracé, il n'a rapporté ni nœuds ni itérations.",

@@ -5208,8 +5208,8 @@
       "workSummary": "{work} {unit} in {seconds}, {rate} pro Sekunde",
       "workEndOnly": "Ein einzelner Punkt ist ein Solver, der nur seinen Endstand gemeldet hat, ohne Spur der Suche.",
       "workUnit": {
-        "nodes": "Knoten",
-        "iterations": "Iterationen"
+        "nodes": "{count, plural, one {Knoten} other {Knoten}}",
+        "iterations": "{count, plural, one {Iteration} other {Iterationen}}"
       },
       "workOmitted": {
         "noCount": "{solver}: nicht gezeichnet, er hat weder Knoten noch Iterationen gemeldet.",

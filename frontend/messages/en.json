@@ -5208,8 +5208,8 @@
       "workSummary": "{work} {unit} in {seconds}, {rate} per second",
       "workEndOnly": "A single dot is a solver that reported only its final count, with no trace of the search.",
       "workUnit": {
-        "nodes": "nodes",
-        "iterations": "iterations"
+        "nodes": "{count, plural, one {node} other {nodes}}",
+        "iterations": "{count, plural, one {iteration} other {iterations}}"
       },
       "workOmitted": {
         "noCount": "{solver}: not shown, it reported neither a node nor an iteration count.",

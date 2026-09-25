@@ -123,7 +123,8 @@ function WorkPanelRow({
   showAxis: boolean;
 }) {
   const t = useTranslations("solverCompare");
-  const unit = t(`charts.workUnit.${panel.unit}`);
+  // "1 nodes" was printed for a solve that stopped at the root.
+  const unit = t(`charts.workUnit.${panel.unit}`, { count: panel.total });
   const points =
     panel.points.length > 0 ? panel.points : [{ seconds: panel.seconds, work: panel.total }];
 

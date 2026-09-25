@@ -5208,8 +5208,8 @@
       "workSummary": "{work} {unit} en {seconds}, {rate} por segundo",
       "workEndOnly": "Un punto suelto es un solver que sólo informó de su recuento final, sin traza de la búsqueda.",
       "workUnit": {
-        "nodes": "nodos",
-        "iterations": "iteraciones"
+        "nodes": "{count, plural, one {nodo} other {nodos}}",
+        "iterations": "{count, plural, one {iteración} other {iteraciones}}"
       },
       "workOmitted": {
         "noCount": "{solver}: no se dibuja, no informó ni de nodos ni de iteraciones.",

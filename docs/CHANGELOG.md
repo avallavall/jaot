@@ -63,6 +63,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The studio's solver matrix, the model's runs and scenarios, the comparer (checkboxes, table, chart axes and notes), the home page race and the admin System tab printed "HIGHS" or the raw key.** They now print the brand names.
 - **JAOS was nearly invisible in the comparer's and the matrix's line charts on the dark theme**, and GLPK on the light one: charts took the colour palette by position. Each solver now has its own colour in every chart, readable in both themes.
 - **The API docs for the solver comparison left JAOS out of every example**, and several pages counted four solvers.
+- **The comparer's work chart said "1 nodes"**. The unit follows the count now, in every language.
 - **A trigger ignored the defaults of its override fields.** A field `solver` with the default `jaos` still ran on SCIP when a call left it out. Defaults now apply, and a required field with a default no longer has to be sent.
 - **Trigger runs lost the model they ran.** The executions list called the model "External" and the execution page said no model was behind the run. Trigger runs now link to the pinned model and version.
 - **The execution page said "triggered externally" for every run with no saved model**, Custom Solve included. It now says where the run came from: a trigger, Custom Solve, the API, MCP or a solver comparison. The executions list says "No saved model" instead of "External".
