@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
+import { redirect } from "@/i18n/navigation";
+import {
+  MAINTENANCE_PAGE_ATTRIBUTE,
+  MAINTENANCE_REWRITE_HEADER,
+  fetchMaintenanceMode,
+} from "@/lib/maintenance";
 
 export async function generateMetadata({
   params,
@@ -21,10 +28,26 @@ export default async function MaintenancePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+
+  // The proxy shows this page in place of the one asked for while the site is
+  // in maintenance, and marks that request with a header. Without the header,
+  // somebody opened /maintenance by hand, and the page said "Under
+  // Maintenance" even when the site was up. Ask the API first in that case.
+  // The proxy's answer is not checked again: it is cached for a few seconds,
+  // and a second answer that disagreed would send the visitor home, where the
+  // proxy would send them straight back here.
+  const shownByProxy = (await headers()).get(MAINTENANCE_REWRITE_HEADER) === "1";
+  if (!shownByProxy && !(await fetchMaintenanceMode())) {
+    redirect({ href: "/", locale });
+  }
+
   const t = await getTranslations({ locale, namespace: "maintenance" });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div
+      className="min-h-screen flex items-center justify-center bg-background"
+      {...{ [MAINTENANCE_PAGE_ATTRIBUTE]: "" }}
+    >
       <div className="mx-4 max-w-md rounded-lg border bg-card p-8 text-center shadow-lg">
         <div className="mb-4">
           <svg

@@ -1,11 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
+import { MAINTENANCE_REWRITE_HEADER, fetchMaintenanceMode } from "./lib/maintenance";
 
 const intlMiddleware = createMiddleware(routing);
-
-const BACKEND_URL =
-  process.env.API_PROXY_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
 
 let maintenanceCache: { value: boolean; expiresAt: number } | null = null;
 const CACHE_TTL_MS = 15_000; // 15 seconds
@@ -15,26 +13,10 @@ async function isMaintenanceMode(): Promise<boolean> {
   if (maintenanceCache && now < maintenanceCache.expiresAt) {
     return maintenanceCache.value;
   }
-
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/v2/health`, {
-      signal: AbortSignal.timeout(3000),
-    });
-
-    if (!res.ok) {
-      maintenanceCache = { value: false, expiresAt: now + CACHE_TTL_MS };
-      return false;
-    }
-
-    const data = await res.json();
-    const isMaintenance = data?.maintenance === true;
-    maintenanceCache = { value: isMaintenance, expiresAt: now + CACHE_TTL_MS };
-    return isMaintenance;
-  } catch {
-    // Network error or timeout — don't block users
-    maintenanceCache = { value: false, expiresAt: now + CACHE_TTL_MS };
-    return false;
-  }
+  // An unreachable health check reads as "not in maintenance": don't block users.
+  const value = await fetchMaintenanceMode();
+  maintenanceCache = { value, expiresAt: now + CACHE_TTL_MS };
+  return value;
 }
 
 // Paths that should never redirect to maintenance
@@ -76,7 +58,11 @@ export default async function proxy(request: NextRequest) {
       const locale = localeMatch?.[1] ?? routing.defaultLocale;
       const url = request.nextUrl.clone();
       url.pathname = `/${locale}/maintenance`;
-      return NextResponse.rewrite(url);
+      // Tell the page it was put there by this check. Without the mark it
+      // asks the API itself, for a visitor who typed /maintenance by hand.
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set(MAINTENANCE_REWRITE_HEADER, "1");
+      return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
     }
   }
 
