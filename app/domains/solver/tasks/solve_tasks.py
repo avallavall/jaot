@@ -23,6 +23,7 @@ from app.domains.solver.warm_start import load_warm_start_solution
 from app.models import ModelExecution
 from app.models.model_project import ModelProject
 from app.schemas.optimization import (
+    MULTI_OBJECTIVE_STATUS,
     MultiObjectiveConfig,
     MultiObjectiveResult,
     OptimizationProblem,
@@ -394,19 +395,22 @@ def solve_multi_objective_async(
     organization_id: str,
     user_id: str | None = None,
     workspace_id: str | None = None,
+    solver_name: str | None = None,
 ) -> dict[str, Any]:
     """Async multi-objective solve (ADR-007 S4b).
 
-    Runs the self-contained scalarization loop (``SolverService.solve_multi_objective``,
-    always SCIP) and persists the Pareto front under the nested ``multi_objective``
-    result_data — an empty front (infeasible) is a completed run, matching the sync
-    contract. Mirrors ``solve_async``'s writer discipline.
+    Runs the scalarization loop (``SolverService.solve_pareto_front``) on the
+    solver the request named (SCIP for a task queued before the name was sent)
+    and persists the Pareto front under the nested ``multi_objective``
+    result_data. An empty front (infeasible) is a completed run, matching the
+    sync contract. Mirrors ``solve_async``'s writer discipline.
     """
     task_id = self.request.id
     logger.info(f"Starting async multi-objective solve {task_id} for org {organization_id}")
+    solver_name = solver_name or DEFAULT_SOLVER_NAME
 
     try:
-        _assert_queue_match("scip")  # scalarization always runs on the SCIP queue
+        _assert_queue_match(solver_name)
 
         _publish_ws_event(
             task_id,
@@ -422,12 +426,12 @@ def solve_multi_objective_async(
 
         problem = OptimizationProblem(**problem_data)
         config = MultiObjectiveConfig(**config_data)
-        solver = get_solver_service()
+        solver = get_solver_service(solver_name)
 
         start_time = time.monotonic()
         ACTIVE_SOLVES.inc()
         try:
-            pareto_points = solver.solve_multi_objective(problem, config)
+            front = solver.solve_pareto_front(problem, config)
         finally:
             ACTIVE_SOLVES.dec()
         execution_time = time.monotonic() - start_time
@@ -435,19 +439,28 @@ def solve_multi_objective_async(
 
         labels = [obj.label or f"Objective {i + 1}" for i, obj in enumerate(config.objectives)]
         mo_result = MultiObjectiveResult(
-            pareto_points=pareto_points,
+            pareto_points=front.points,
             mode=config.mode,
-            n_solved=len(pareto_points),
+            n_solved=len(front.points),
             labels=labels,
+            solver_used=solver_name,
         )
+        # A front is not one answer, so the run's verdict is not "optimal": the
+        # execution page said "Optimal solution proven" over a row of dashes.
+        # An empty front carries the verdict that emptied it (infeasible, ...).
+        if front.points:
+            verdict = MULTI_OBJECTIVE_STATUS
+        else:
+            verdict = (front.empty_status or SolverStatus.INFEASIBLE).value
         # Nested result_data: single-solve keys stay null (a Pareto front, not one answer).
         result_data = {
             "multi_objective": mo_result.model_dump(mode="json"),
             "objective_value": None,
-            "solver_status": "optimal",
+            "solver_status": verdict,
+            "solver_used": solver_name,
         }
 
-        SOLVE_TOTAL.labels(status="optimal", generator="multi_objective").inc()
+        SOLVE_TOTAL.labels(status=verdict, generator="multi_objective").inc()
 
         # Persist the terminal row (parity with solve_async's W1 sibling) so the run
         # shows up in history immediately instead of staying a 'pending' zombie.
@@ -477,6 +490,7 @@ def solve_multi_objective_async(
             "task_id": task_id,
             "multi_objective": True,
             "result": mo_result.model_dump(mode="json"),
+            "solver_used": solver_name,
             "execution_time_seconds": execution_time,
         }
 

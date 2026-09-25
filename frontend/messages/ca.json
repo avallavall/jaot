@@ -2938,7 +2938,12 @@
       "asyncTaskId": "ID de tasca: {id}",
       "solverUsed": "Solver",
       "autoRouted": "triat automàticament",
-      "sensitivityLabel": "Sensibilitat"
+      "sensitivityLabel": "Sensibilitat",
+      "milliseconds": "{ms} ms",
+      "nonZeroOnly": "Només valors diferents de zero ({zeros, plural, one {# val zero} other {# valen zero}})",
+      "allZero": "{count, plural, one {L'única variable val zero.} other {Les # variables valen zero.}}",
+      "solutionCapped": "Es mostren {shown} de {total}.",
+      "openSavedRun": "Obre l'execució desada per veure tots els valors."
     },
     "executions": {
       "title": "Historial d'Execucions",
@@ -2972,7 +2977,10 @@
       "selectedCount": "{count, plural, one {# seleccionada} other {# seleccionades}}",
       "clearSelection": "Treu",
       "compareSelected": "Compara",
-      "selectTwoHint": "Selecciona exactament dues execucions per comparar."
+      "selectTwoHint": "Selecciona exactament dues execucions per comparar.",
+      "multiObjectiveRun": "Multiobjectiu",
+      "paretoFront": "Front de Pareto",
+      "milliseconds": "{ms} ms"
     },
     "execution": {
       "title": "Detalls de l'Execució",
@@ -3071,7 +3079,16 @@
       "variableValues": "Valors de variables",
       "insightsTitle": "Anàlisi automàtica",
       "datasetBadge": "Dataset usat en aquesta execució",
-      "importedExecution": "Aquesta execució va venir d'un fitxer que vas importar. No hi ha cap model desat al darrere, així que no hi ha res per obrir al taller i no hi ha historial. Torna a importar el fitxer per executar-lo."
+      "importedExecution": "Aquesta execució va venir d'un fitxer que vas importar. No hi ha cap model desat al darrere, així que no hi ha res per obrir al taller i no hi ha historial. Torna a importar el fitxer per executar-lo.",
+      "multiObjective": {
+        "badge": "Multiobjectiu",
+        "status": "Front de Pareto · {count, plural, one {# punt} other {# punts}}",
+        "title": "Front de Pareto",
+        "summary": "Una execució multiobjectiu: {count, plural, one {# punt} other {# punts}}, calculats amb el mètode {mode}.",
+        "modeEpsilon": "epsilon-restricció",
+        "modeWeighted": "de suma ponderada",
+        "empty": "No s'ha trobat cap punt. L'estat del solver indica per què."
+      }
     },
     "compare": {
       "title": "Comparació d'Execucions",
@@ -3134,7 +3151,6 @@
       "atLeastOneVariable": "Es requereix almenys 1 variable.",
       "variablesMustHaveName": "Totes les variables han de tenir un nom.",
       "bothExpressionsRequired": "Es requereixen ambdues expressions d'objectiu.",
-      "weightsMustSumToOne": "Els pesos han de sumar 1.0 (actual: {sum}).",
       "noConstraintsWarning": "No hi ha restriccions definides. El problema pot ser il·limitat.",
       "paretoComputed": "Front de Pareto calculat: {count} solucions trobades.",
       "solveFailed": "Error en resoldre",
@@ -3171,7 +3187,11 @@
       "clearImport": "Netejar importació",
       "importSuccess": "Problema importat correctament de \"{name}\".",
       "importFailed": "Error en importar el model.",
-      "needsInputData": "Aquest model necessita dades d'entrada per previsualitzar. Usant exemple."
+      "needsInputData": "Aquest model necessita dades d'entrada per previsualitzar. Usant exemple.",
+      "solverHelp": "Qualsevol solver pot calcular el front: resol un subproblema per punt. Auto tria HiGHS per a un model lineal i SCIP si hi ha variables enteres. Un objectiu quadràtic necessita SCIP.",
+      "runSummary": "{count, plural, one {# punt} other {# punts}} al front, resolt amb {solver}.",
+      "runSummaryNoSolver": "{count, plural, one {# punt} other {# punts}} al front.",
+      "openSavedRun": "Obre l'execució desada"
     },
     "comparison": {
       "differentModels": "Aquestes dues execucions són de models diferents: {a} i {b}.",
@@ -3197,7 +3217,11 @@
         "removedInA": "Present només a l'Execució A (eliminat)"
       },
       "changesOnly": "Només canvis ({shown}/{total})",
-      "noChanges": "Les dues execucions assignen valors idèntics a totes les variables."
+      "noChanges": "Les dues execucions assignen valors idèntics a totes les variables.",
+      "solver": "Solver",
+      "status": "Estat",
+      "objective": "Objectiu",
+      "paretoFront": "Front de Pareto"
     },
     "export": {
       "csv": "Exportar CSV",
@@ -3321,8 +3345,7 @@
       "epsilonConstraint": "Restricció Epsilon",
       "weightedCombination": "Combinació Ponderada",
       "epsilonDescription": "Mètode de restricció epsilon: restringeix l'objectiu 2 i escombra els límits.",
-      "weightedDescription": "Escalarització ponderada: combina objectius amb pesos que sumen 1.0.",
-      "weightsMustSum": "Els pesos han de sumar 1.0",
+      "weightedDescription": "Suma ponderada: prova n pesos repartits per igual, des de tot a l'objectiu 2 fins a tot a l'objectiu 1. Abans, cada objectiu s'escala pel seu rang al front.",
       "objectiveN": "Objectiu {n}",
       "label": "Etiqueta",
       "labelOptional": "(opcional)",
@@ -3330,8 +3353,6 @@
       "direction": "Direcció",
       "minimize": "Minimitzar",
       "maximize": "Maximitzar",
-      "weight": "Pes",
-      "autoCalculated": "(calculat automàticament)",
       "paretoPoints": "Punts de Pareto (n_points)",
       "morePointsNote": "Més punts = front de Pareto més fi, però més resolucions (cost més alt).",
       "labelPlaceholder1": "p. ex., Benefici",
@@ -4703,6 +4724,21 @@
         "requires_use": "Fes servir aquest model a l'estudi abans de valorar-lo.",
         "requires_run": "Executa aquest model amb èxit a l'estudi abans de valorar-lo.",
         "report_own": "No pots denunciar la teva pròpia valoració. Esborra-la."
+      },
+      "problem": {
+        "objective_undefined_variables": "L'objectiu fa servir variables que no estan declarades: {names}.",
+        "objective_unreadable": "No es pot llegir l'objectiu. Revisa'n els operadors i els parèntesis.",
+        "constraint_undefined_variables": "La restricció {constraint} fa servir variables que no estan declarades: {names}.",
+        "constraint_unreadable": "No es pot llegir la restricció {constraint}. Revisa'n els operadors i els parèntesis.",
+        "bounds_cross": "La variable {variable} té una cota inferior ({lower}) més gran que la superior ({upper}).",
+        "binary_bounds": "La variable binària {variable} ha d'estar entre 0 i 1.",
+        "mo_objective_undefined_variables": "L'objectiu {n} fa servir variables que no estan declarades: {names}.",
+        "mo_objective_unreadable": "No es pot llegir l'objectiu {n}. Revisa'n els operadors i els parèntesis.",
+        "unreadable": "No es pot llegir el problema. Revisa'n les expressions."
+      },
+      "multi_objective": {
+        "solver_no_quadratic": "{solver} no pot resoldre un model amb termes quadràtics. Tria SCIP o Auto.",
+        "solver_no_integer": "{solver} no pot resoldre un model amb variables enteres. Tria un altre solver."
       }
     }
   },

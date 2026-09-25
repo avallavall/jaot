@@ -24,10 +24,12 @@ from app.schemas.optimization import (
     OptimizationProblem,
 )
 from app.shared.constants.execution_provenance import ExecutionSource
+from app.shared.core.http_errors import CodedHTTPException
 
 __all__ = [
     "ExecutionSource",
     "extract_variable_names",
+    "invalid_problem_http",
     "load_warm_start_solution",
     "validate_problem",
 ]
@@ -64,7 +66,24 @@ def validate_problem(problem: OptimizationProblem) -> None:
     try:
         domain_validate_problem(problem)
     except InvalidProblemError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.detail) from exc
+        raise invalid_problem_http(exc) from exc
+
+
+def invalid_problem_http(exc: InvalidProblemError) -> HTTPException:
+    """The 400 for an invalid problem: the English detail, plus the issue's code.
+
+    ``detail`` is unchanged for API and MCP clients. The code is what a page
+    renders, in the reader's language, instead of a message that prints a
+    Python set or the parser's own diagnostic.
+    """
+    if exc.code:
+        return CodedHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=exc.detail,
+            code=exc.code,
+            params=exc.params,
+        )
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.detail)
 
 
 # Re-exported, not reimplemented. This module used to carry a second copy of the

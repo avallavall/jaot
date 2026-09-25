@@ -31,6 +31,7 @@ from typing import Any
 from app.domains.solver import ports
 from app.models import ExecutionStatus, ModelExecution
 from app.models.model_project import ModelProject
+from app.schemas.optimization import MULTI_OBJECTIVE_STATUS
 from app.shared.utils.datetime_helpers import utcnow
 
 logger = logging.getLogger(__name__)
@@ -173,15 +174,16 @@ def apply_multi_objective_completed(
 
     Multi-objective yields a Pareto front, not a single ``OptimizationResult``, so the
     caller passes the already-shaped nested ``result_data`` — ``{"multi_objective": …,
-    "objective_value": None, "solver_status": "optimal"}`` — directly instead of
+    "objective_value": None, "solver_status": "pareto_front"}`` — directly instead of
     ``to_result_data()``. An empty front (infeasible) is still a completed run,
-    matching the synchronous contract. No commit.
+    matching the synchronous contract, and its ``solver_status`` says why it is
+    empty. No commit.
     """
     if is_terminal(execution):
         return False
     execution.status = ExecutionStatus.COMPLETED.value
     execution.result_data = result_data
-    execution.solver_status = str(result_data.get("solver_status") or "optimal")[:32]
+    execution.solver_status = str(result_data.get("solver_status") or MULTI_OBJECTIVE_STATUS)[:32]
     execution.objective_value = result_data.get("objective_value")
     if execution_time_seconds is not None:
         execution.execution_time_ms = to_ms(execution_time_seconds)

@@ -12,8 +12,11 @@ This module is the thin orchestrator that:
 Phase 4 Plan 03 / SOLV-04 / SOLV-05.
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 
 import numpy as np
 from sqlalchemy.orm import Session
@@ -30,6 +33,7 @@ from app.schemas.optimization import (
     MultiObjectiveConfig,
     Objective,
     ObjectiveSense,
+    ObjectiveSpec,
     OptimizationProblem,
     OptimizationResult,
     ParetoPoint,
@@ -58,8 +62,8 @@ def _emit_expression_string(parsed: ParsedExpression) -> str:
 
 
 def _build_weighted_objective(
-    obj1: Objective,
-    obj2: Objective,
+    obj1: Objective | ObjectiveSpec,
+    obj2: Objective | ObjectiveSpec,
     w1: float,
     w2: float,
 ) -> Objective:
@@ -91,6 +95,30 @@ def _build_scalarized_problem(
         objective=scalar_objective,
         constraints=[*base.constraints, *extras],
         options=base.options,
+    )
+
+
+def multi_objective_view(
+    problem: OptimizationProblem, config: MultiObjectiveConfig
+) -> OptimizationProblem:
+    """The problem as its scalarized subproblems carry it, for classification.
+
+    Every subproblem optimises one objective and puts the other one, or both,
+    in a constraint. A quadratic objective therefore ends up in a constraint
+    somewhere, and a solver that cannot take one cannot run the front. The
+    problem's own ``objective`` is not solved at all in multi-objective mode,
+    so it is replaced.
+    """
+    obj1, obj2 = config.objectives[0], config.objectives[1]
+    held = [
+        Constraint(name=f"_mo_objective_{n}", expression=f"{spec.expression} <= 0")
+        for n, spec in enumerate((obj1, obj2), start=1)
+    ]
+    return problem.model_copy(
+        update={
+            "objective": Objective(sense=obj1.sense, expression=obj1.expression),
+            "constraints": [*problem.constraints, *held],
+        }
     )
 
 
@@ -212,7 +240,25 @@ class SolverService:
         config: MultiObjectiveConfig,
         solver_name: str | None = None,
     ) -> list[ParetoPoint]:
-        """Solve a multi-objective problem via D-02 gate or scalarization loops."""
+        """Solve a multi-objective problem and return its Pareto front."""
+        return self.solve_pareto_front(problem, config, solver_name=solver_name).points
+
+    def solve_pareto_front(
+        self,
+        problem: OptimizationProblem,
+        config: MultiObjectiveConfig,
+        solver_name: str | None = None,
+    ) -> ParetoFront:
+        """Solve a multi-objective problem via the D-02 gate or the scalarization loops.
+
+        Returns the front and, when it is empty, the verdict that explains why.
+
+        Raises:
+            MultiObjectiveSolveError: no point was found and the solver failed
+                (an error, not a verdict such as "infeasible"). An empty front
+                used to be reported for a model the solver could not run at
+                all, and it read as "this model has no trade-offs".
+        """
         name = solver_name or self._default_solver_name
         adapter = registry.get(name)
 
@@ -225,13 +271,17 @@ class SolverService:
         if adapter.capabilities.supports_multi_objective and hasattr(
             adapter, "solve_multi_objective"
         ):
-            return adapter.solve_multi_objective(problem, config)
+            return ParetoFront(points=adapter.solve_multi_objective(problem, config))
 
+        run = _Scalarization(adapter, problem, config, self.parser)
         if config.mode == "epsilon":
-            return self._solve_epsilon_constraint(problem, config, adapter)
-        if config.mode == "weighted":
-            return self._solve_weighted(problem, config, adapter)
-        raise ValueError(f"Unknown multi-objective mode: {config.mode}")
+            points = self._solve_epsilon_constraint(run, config)
+        elif config.mode == "weighted":
+            points = self._solve_weighted(run, config)
+        else:
+            raise ValueError(f"Unknown multi-objective mode: {config.mode}")
+        front = self._pareto_front(points, sense1=run.obj1.sense, sense2=run.obj2.sense)
+        return run.finish(front)
 
     def _is_nondominated(
         self,
@@ -293,139 +343,247 @@ class SolverService:
 
     def _solve_weighted(
         self,
-        problem: OptimizationProblem,
+        run: _Scalarization,
         config: MultiObjectiveConfig,
-        adapter: object,
     ) -> list[ParetoPoint]:
-        """Weighted-sum scalarization: builds OptimizationProblem per weight and calls adapter.solve()."""
-        obj1 = config.objectives[0]
-        obj2 = config.objectives[1]
-        variable_names = [v.name for v in problem.variables]
+        """Weighted sum, swept over ``n_points`` weights from objective 2 to objective 1.
 
-        label1 = obj1.label or "Objective 1"
-        label2 = obj2.label or "Objective 2"
+        The two ends are solved lexicographically instead of with a zero weight.
+        A zero weight lets the solver return any of the points that tie on the
+        other objective, and the one it picked could be dominated: with
+        max 3x+5y against min 2x+4y it returned (10, 8) where (12, 8) was
+        feasible.
 
-        weights = np.linspace(0.0, 1.0, config.n_points)
-        pareto_points: list[ParetoPoint] = []
+        Each objective is divided by its range between the two ends before it is
+        weighted. Without that, the weights only mean something when both
+        objectives are in the same units: a cost in millions against a count in
+        tens puts every interior weight on the cost end of the front.
+        """
+        obj1, obj2 = run.obj1, run.obj2
+        best_for_2 = run.lexicographic_end(first=obj2, second=obj1)  # weight 1 on objective 2
+        best_for_1 = run.lexicographic_end(first=obj1, second=obj2)  # weight 1 on objective 1
 
-        for w1 in weights:
-            w2 = 1.0 - w1
-            try:
-                scalar_obj = _build_weighted_objective(obj1, obj2, w1, w2)
-                subproblem = _build_scalarized_problem(problem, scalar_obj)
-                result = adapter.solve(subproblem)
+        scale1 = scale2 = 1.0
+        if best_for_1 is not None and best_for_2 is not None:
+            range1 = abs(best_for_1.f1 - best_for_2.f1)
+            range2 = abs(best_for_2.f2 - best_for_1.f2)
+            if range1 < _SAME_POINT_TOLERANCE or range2 < _SAME_POINT_TOLERANCE:
+                # One point is best on both objectives: there is no trade-off to sweep.
+                return [best_for_1, best_for_2]
+            scale1, scale2 = range1, range2
 
-                if result.status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
-                    continue
-                if not result.solution:
-                    continue
-
-                f1_val = _compute_objective_value(result, obj1, self.parser, variable_names)
-                f2_val = _compute_objective_value(result, obj2, self.parser, variable_names)
-                point = ParetoPoint(
-                    f1=f1_val,
-                    f2=f2_val,
-                    solution=dict(result.solution),
-                    objective_values={label1: f1_val, label2: f2_val},
-                )
-                pareto_points.append(point)
-
-            except Exception as e:
-                logger.debug(f"Weighted solve failed for w1={w1}: {e}")
-                continue
-
-        return self._pareto_front(pareto_points, sense1=obj1.sense, sense2=obj2.sense)
+        points = [best_for_2] if best_for_2 is not None else []
+        for w1 in np.linspace(0.0, 1.0, config.n_points)[1:-1]:
+            c1 = float(w1) / scale1
+            c2 = (1.0 - float(w1)) / scale2
+            # A common factor does not move the optimum. Dividing it out keeps
+            # the coefficients near 1 instead of at 1e-7 for a wide range.
+            largest = max(c1, c2)
+            scalar = _build_weighted_objective(obj1, obj2, c1 / largest, c2 / largest)
+            result = run.solve(scalar)
+            if result is not None:
+                points.append(run.point(result))
+        if best_for_1 is not None:
+            points.append(best_for_1)
+        return points
 
     def _solve_epsilon_constraint(
         self,
-        problem: OptimizationProblem,
+        run: _Scalarization,
         config: MultiObjectiveConfig,
-        adapter: object,
     ) -> list[ParetoPoint]:
-        """Epsilon-constraint: finds f2 range, then calls adapter.solve() per epsilon subproblem."""
-        obj1 = config.objectives[0]
-        obj2 = config.objectives[1]
-        variable_names = [v.name for v in problem.variables]
+        """Epsilon constraint: best objective 1 for ``n_points`` limits on objective 2.
 
-        label1 = obj1.label or "Objective 1"
-        label2 = obj2.label or "Objective 2"
-
-        # --- Step 1: Find f2 optimal (optimize obj2 alone) ---
-        scalar_obj2 = Objective(sense=obj2.sense, expression=obj2.expression)
-        sub_opt = _build_scalarized_problem(problem, scalar_obj2)
-        result_opt = adapter.solve(sub_opt)
-
-        if result_opt.status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
-            logger.warning("Could not find f2 optimal — returning empty Pareto set")
+        The limits run from the value objective 2 takes where objective 1 is at
+        its best, to the best value objective 2 can reach. Both ends are points
+        of the front, solved lexicographically. The old grid stopped one step
+        short of the best value of objective 2, so that end of the front was
+        never shown.
+        """
+        obj1, obj2 = run.obj1, run.obj2
+        best_for_2 = run.lexicographic_end(first=obj2, second=obj1)
+        if best_for_2 is None:
+            # Objective 2 has no best value (infeasible, unbounded or an error),
+            # so there is nothing to put a limit on.
             return []
+        f2_best = best_for_2.f2
+        best_for_1 = run.lexicographic_end(first=obj1, second=obj2)
+        if best_for_1 is not None:
+            f2_far = best_for_1.f2
+            if abs(f2_far - f2_best) < _SAME_POINT_TOLERANCE:
+                # One point is best on both objectives: there is no trade-off.
+                return [best_for_1, best_for_2]
+        else:
+            f2_far = self._far_end_without_best_first(run, f2_best)
 
-        f2_optimal = _compute_objective_value(result_opt, obj2, self.parser, variable_names)
+        limits = np.linspace(f2_far, f2_best, config.n_points)
+        points = [best_for_1] if best_for_1 is not None else []
+        # Without a best point for objective 1, the far end is solved like any
+        # other limit. The near end is always the lexicographic point.
+        for eps in limits[1:-1] if best_for_1 is not None else limits[:-1]:
+            operator = "<=" if obj2.sense == ObjectiveSense.MINIMIZE else ">="
+            limit = f"{obj2.expression} {operator} {float(eps)!r}"
+            result = run.solve(Objective(sense=obj1.sense, expression=obj1.expression), [limit])
+            if result is not None:
+                points.append(run.point(result))
+        points.append(best_for_2)
+        return points
 
-        # --- Step 2: Find f2 worst (optimize f2 in opposite direction) ---
+    def _far_end_without_best_first(self, run: _Scalarization, f2_best: float) -> float:
+        """Where the epsilon grid starts when objective 1 has no best value.
+
+        That is the worst value objective 2 can take. When it has none either
+        (unbounded the other way) or it equals the best value, the grid steps
+        away from the best value in the direction that makes objective 2 WORSE.
+        The old step went the other way whenever the optimum was zero or
+        negative, and always for a constant MAXIMIZE objective: every epsilon
+        then asked for better than the optimum, every subproblem was
+        infeasible, and the front came back empty.
+        """
+        obj2 = run.obj2
         opposite = (
             ObjectiveSense.MAXIMIZE
             if obj2.sense == ObjectiveSense.MINIMIZE
             else ObjectiveSense.MINIMIZE
         )
-        scalar_obj2_w = Objective(sense=opposite, expression=obj2.expression)
-        sub_worst = _build_scalarized_problem(problem, scalar_obj2_w)
-        result_worst = adapter.solve(sub_worst)
+        step = max(1.0, abs(f2_best))
+        worse = f2_best + step if obj2.sense == ObjectiveSense.MINIMIZE else f2_best - step
+        result = run.solve(Objective(sense=opposite, expression=obj2.expression))
+        if result is None:
+            return worse
+        f2_worst = run.value(result, obj2)
+        if abs(f2_worst - f2_best) < 1e-9:
+            return worse
+        return f2_worst
 
-        # When obj2 has no worst value (unbounded the other way) or a single
-        # value, step away from its optimum in the direction that makes it
-        # WORSE. The old step went the other way whenever the optimum was zero
-        # or negative, and always for a constant MAXIMIZE objective: every
-        # epsilon then asked for better than the optimum, every subproblem was
-        # infeasible, and the front came back empty.
-        step = max(1.0, abs(f2_optimal))
-        worse = f2_optimal + step if obj2.sense == ObjectiveSense.MINIMIZE else f2_optimal - step
-        if result_worst.status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
-            f2_worst = worse
-        else:
-            f2_worst = _compute_objective_value(result_worst, obj2, self.parser, variable_names)
 
-        if abs(f2_worst - f2_optimal) < 1e-9:
-            f2_worst = worse
+@dataclass(frozen=True)
+class ParetoFront:
+    """A multi-objective run's answer: the front, and why it is empty when it is."""
 
-        epsilons = np.linspace(f2_worst, f2_optimal, config.n_points + 1)[:-1]
+    points: list[ParetoPoint]
+    #: The verdict of the solve that left the front empty (infeasible,
+    #: unbounded, time limit). None when the front has points.
+    empty_status: SolverStatus | None = None
 
-        # --- Step 3: For each epsilon, solve constrained problem ---
-        pareto_points: list[ParetoPoint] = []
 
-        for eps in epsilons:
-            try:
-                if obj2.sense == ObjectiveSense.MINIMIZE:
-                    eps_constraint = f"{obj2.expression} <= {eps}"
-                else:
-                    eps_constraint = f"{obj2.expression} >= {eps}"
+class MultiObjectiveSolveError(RuntimeError):
+    """The solver failed on the subproblems, so no front could be computed."""
 
-                scalar_obj1 = Objective(sense=obj1.sense, expression=obj1.expression)
-                subproblem = _build_scalarized_problem(
-                    problem, scalar_obj1, extra_constraint_exprs=[eps_constraint]
+
+#: How far a held objective may move from the value it is held at, relative to
+#: its size. The value comes from a solution that satisfies the model only
+#: within the solver's own tolerance (about 1e-6), so holding it exactly could
+#: make the second solve infeasible. A slack far below that tolerance cannot
+#: buy a visibly different point.
+_HOLD_TOLERANCE = 1e-9
+
+
+def _hold(objective: ObjectiveSpec, value: float) -> str:
+    """A constraint that keeps ``objective`` at least as good as ``value``."""
+    slack = _HOLD_TOLERANCE * max(1.0, abs(value))
+    if objective.sense == ObjectiveSense.MAXIMIZE:
+        return f"{objective.expression} >= {value - slack!r}"
+    return f"{objective.expression} <= {value + slack!r}"
+
+
+class _Scalarization:
+    """One multi-objective run: the solver, the base problem and every refusal it gave.
+
+    Each subproblem is a fresh OptimizationProblem handed to ``adapter.solve()``.
+    No solver API is called here.
+    """
+
+    def __init__(
+        self,
+        adapter: object,
+        problem: OptimizationProblem,
+        config: MultiObjectiveConfig,
+        parser: ExpressionParser,
+    ) -> None:
+        self.adapter = adapter
+        self.problem = problem
+        self.obj1, self.obj2 = config.objectives[0], config.objectives[1]
+        self.label1 = self.obj1.label or "Objective 1"
+        self.label2 = self.obj2.label or "Objective 2"
+        self.parser = parser
+        self.variable_names = [v.name for v in problem.variables]
+        #: Every subproblem that did not produce a solution, in the order solved.
+        self.refusals: list[OptimizationResult] = []
+
+    def solve(
+        self, objective: Objective, extra_constraints: list[str] | None = None
+    ) -> OptimizationResult | None:
+        """Solve one subproblem. None when it produced no solution."""
+        subproblem = _build_scalarized_problem(self.problem, objective, extra_constraints)
+        try:
+            result = self.adapter.solve(subproblem)  # type: ignore[attr-defined]
+        except (SolverNotFoundError, SolverUnavailableError):
+            raise
+        except Exception as exc:  # an adapter bug must not lose the other points
+            logger.debug("Multi-objective subproblem failed: %s", exc)
+            result = OptimizationResult(
+                status=SolverStatus.ERROR, solve_time_seconds=0.0, error_message=str(exc)
+            )
+        if result.status in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE) and result.solution:
+            return result
+        self.refusals.append(result)
+        return None
+
+    def value(self, result: OptimizationResult, objective: ObjectiveSpec) -> float:
+        """The value ``objective`` takes at ``result``'s solution."""
+        spec = Objective(sense=objective.sense, expression=objective.expression)
+        return _compute_objective_value(result, spec, self.parser, self.variable_names)
+
+    def point(self, result: OptimizationResult) -> ParetoPoint:
+        """The Pareto point ``result`` stands for."""
+        f1 = self.value(result, self.obj1)
+        f2 = self.value(result, self.obj2)
+        return ParetoPoint(
+            f1=f1,
+            f2=f2,
+            solution=dict(result.solution or {}),
+            objective_values={self.label1: f1, self.label2: f2},
+        )
+
+    def lexicographic_end(
+        self, *, first: ObjectiveSpec, second: ObjectiveSpec
+    ) -> ParetoPoint | None:
+        """The best point for ``first``, and among those the best for ``second``.
+
+        Optimising ``first`` alone can land on any of the points that tie on
+        it, and some of them are worse on ``second`` than they need to be: that
+        point is dominated, and it is the end of the front. So ``first`` is held
+        at its optimum and ``second`` is optimised.
+
+        None when ``first`` has no optimum. When the second solve fails, the
+        first answer is kept: it is still optimal for ``first``.
+        """
+        lead = self.solve(Objective(sense=first.sense, expression=first.expression))
+        if lead is None:
+            return None
+        held = self.solve(
+            Objective(sense=second.sense, expression=second.expression),
+            [_hold(first, self.value(lead, first))],
+        )
+        return self.point(held if held is not None else lead)
+
+    def finish(self, points: list[ParetoPoint]) -> ParetoFront:
+        """The run's answer. Raises when the solver failed on any subproblem.
+
+        A failed subproblem is not a verdict about the model: the points it
+        would have given are missing, and the front that is left looks
+        complete. HiGHS refusing a quadratic objective still returned the one
+        end whose subproblems were linear.
+        """
+        for refusal in self.refusals:
+            if refusal.status == SolverStatus.ERROR:
+                raise MultiObjectiveSolveError(
+                    refusal.error_message or "The solver failed on a multi-objective subproblem."
                 )
-                result = adapter.solve(subproblem)
-
-                if (
-                    result.status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE)
-                    or not result.solution
-                ):
-                    continue
-
-                f1_val = _compute_objective_value(result, obj1, self.parser, variable_names)
-                f2_val = _compute_objective_value(result, obj2, self.parser, variable_names)
-                point = ParetoPoint(
-                    f1=f1_val,
-                    f2=f2_val,
-                    solution=dict(result.solution),
-                    objective_values={label1: f1_val, label2: f2_val},
-                )
-                pareto_points.append(point)
-
-            except Exception as exc:
-                logger.debug(f"Epsilon-constraint solve failed for eps={eps}: {exc}")
-                continue
-
-        return self._pareto_front(pareto_points, sense1=obj1.sense, sense2=obj2.sense)
+        if points or not self.refusals:
+            return ParetoFront(points=points)
+        return ParetoFront(points=[], empty_status=self.refusals[0].status)
 
 
 #: How close two objective values have to be to count as the same point. The

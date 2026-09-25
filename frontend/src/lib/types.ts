@@ -1,5 +1,6 @@
 // Imported so they can be referenced by frontend-only types below; re-exported alongside the barrels.
 import type {
+  ProblemValidationIssue,
   OptimizationProblemInput as _OptimizationProblem,
   OptimizationResult as _OptimizationResult,
   OverrideFieldSchema as _OverrideField,
@@ -34,6 +35,7 @@ export type {
   OptimizationProblemInput as OptimizationProblem,
   OptimizationResult,
   ParetoPoint,
+  ProblemValidationIssue,
   RhsRange,
   RhsScenario,
   ScenarioAnalysis,
@@ -339,7 +341,9 @@ export interface ExecutionSummary {
   status: ExecutionStatus;
   error_message?: string;
   execution_time_ms?: number;
-  solver_status?: _SolverStatus;
+  // A multi-objective run that found a front stores "pareto_front": a front is
+  // many answers, and no single-solve verdict describes it.
+  solver_status?: _SolverStatus | "pareto_front";
   objective_value?: number;
   created_at: string;
   completed_at?: string;
@@ -455,6 +459,8 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+  /** The same errors with a code a page translates (absent on an older API). */
+  issues?: ProblemValidationIssue[];
 }
 
 

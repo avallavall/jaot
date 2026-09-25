@@ -6,6 +6,8 @@ Uses real SCIP solver with small problems (not mocked).
 Requires: docker-compose --profile test up -d
 """
 
+import pytest
+
 from app.domains.solver.services.solver_service import SolverService
 from app.schemas.optimization import (
     MultiObjectiveConfig,
@@ -317,16 +319,199 @@ class TestEpsilonRangeWhenTheSecondObjectiveHasNoWorstValue:
             n_points=4,
         )
 
+    # The grid used to stop one step short of the optimum, so every point sat
+    # strictly on the worse side. The optimum is an end of the front and is now
+    # on it: the points run from it (0) toward worse values, and none is better.
     def test_minimize_with_an_optimum_of_zero(self):
         points = SolverService(solver_name="scip").solve_multi_objective(
             self._problem(), self._config("x", ObjectiveSense.MINIMIZE)
         )
         assert points, "the front came back empty"
-        assert all(p.f2 > 0 for p in points)
+        assert all(p.f2 >= -1e-9 for p in points)
+        assert min(p.f2 for p in points) == pytest.approx(0.0, abs=1e-6)
+        assert any(p.f2 > 0 for p in points), "the grid never stepped toward worse values"
 
     def test_maximize_with_a_negative_optimum(self):
         points = SolverService(solver_name="scip").solve_multi_objective(
             self._problem(), self._config("-x", ObjectiveSense.MAXIMIZE)
         )
         assert points, "the front came back empty"
-        assert all(p.f2 < 0 for p in points)
+        assert all(p.f2 <= 1e-9 for p in points)
+        assert max(p.f2 for p in points) == pytest.approx(0.0, abs=1e-6)
+        assert any(p.f2 < 0 for p in points), "the grid never stepped toward worse values"
+
+    def test_the_made_up_end_when_the_first_objective_has_no_best_value(self):
+        """Objective 1 unbounded and objective 2 unbounded the other way.
+
+        No point is best for objective 1, and objective 2 has no worst value, so
+        the far end of the grid is made up by stepping from the optimum of
+        objective 2 toward worse values.
+        """
+        config = MultiObjectiveConfig(
+            mode="epsilon",
+            objectives=[
+                ObjectiveSpec(expression="x + y", sense=ObjectiveSense.MAXIMIZE, label="Output"),
+                ObjectiveSpec(expression="x", sense=ObjectiveSense.MINIMIZE, label="Emissions"),
+            ],
+            n_points=4,
+        )
+        points = SolverService(solver_name="scip").solve_multi_objective(self._problem(), config)
+
+        assert points, "the front came back empty"
+        assert all(p.f2 >= -1e-9 for p in points)
+        assert min(p.f2 for p in points) == pytest.approx(0.0, abs=1e-6)
+        assert any(p.f2 > 0 for p in points)
+
+
+def _profit_vs_emissions_body(**problem_extra) -> dict:
+    """The model the QA pass drove (2026-09-25): max 3x+5y against min 2x+4y."""
+    return {
+        "problem": {
+            "name": "profit_vs_emissions",
+            "variables": [
+                {"name": "x", "type": "continuous", "lower_bound": 0},
+                {"name": "y", "type": "continuous", "lower_bound": 0},
+            ],
+            "constraints": [
+                {"expression": "x + y <= 10"},
+                {"expression": "x <= 8"},
+                {"expression": "y <= 7"},
+                {"expression": "x + 2*y >= 4"},
+            ],
+            "objective": {"expression": "3*x + 5*y", "sense": "maximize"},
+            **problem_extra,
+        },
+        "config": {
+            "mode": "epsilon",
+            "n_points": 3,
+            "objectives": [
+                {"expression": "3*x + 5*y", "sense": "maximize", "label": "P"},
+                {"expression": "2*x + 4*y", "sense": "minimize", "label": "E"},
+            ],
+        },
+    }
+
+
+class TestMultiObjectiveSolverChoice:
+    """The solver the request names is the solver that runs, and the run says so.
+
+    The endpoint ran SCIP whatever was asked: a request naming JAOS came back
+    from SCIP and was stored as SCIP. The response had no execution id, so the
+    page could not link to the run it had just made.
+    """
+
+    @pytest.mark.parametrize("solver", ["highs", "jaos", "cbc", "glpk"])
+    def test_the_named_solver_runs_and_is_stored(
+        self, solver, authenticated_client, db_session, test_organization, monkeypatch
+    ):
+        from app.domains.solver import execution_writer
+        from app.models import ModelExecution
+
+        stored: dict = {}
+        real_write = execution_writer.mark_multi_objective_completed_by_task
+
+        def _capture(*args, **kwargs):
+            stored.update(kwargs)
+            return real_write(*args, **kwargs)
+
+        monkeypatch.setattr(execution_writer, "mark_multi_objective_completed_by_task", _capture)
+
+        res = authenticated_client.post(
+            "/api/v2/solve/multi-objective", json=_profit_vs_emissions_body(solver_name=solver)
+        )
+
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert body["solver_used"] == solver
+        assert body["execution_id"].startswith("exe_")
+        row = (
+            db_session.query(ModelExecution)
+            .filter(
+                ModelExecution.id == body["execution_id"],
+                ModelExecution.organization_id == test_organization.id,
+            )
+            .one()
+        )
+        assert row.solver_name == solver
+        # What the run page reads: the front, and a verdict that says it is one.
+        assert stored["result_data"]["solver_status"] == "pareto_front"
+        assert stored["result_data"]["solver_used"] == solver
+        front = stored["result_data"]["multi_objective"]["pareto_points"]
+        assert [(p["f1"], p["f2"]) for p in front] == [
+            (p["f1"], p["f2"]) for p in body["pareto_points"]
+        ]
+        assert len(front) == 3
+
+    def test_the_query_parameter_names_the_solver_too(
+        self, authenticated_client, db_session, test_organization
+    ):
+        res = authenticated_client.post(
+            "/api/v2/solve/multi-objective?solver_name=highs", json=_profit_vs_emissions_body()
+        )
+
+        assert res.status_code == 200, res.text
+        assert res.json()["solver_used"] == "highs"
+
+    def test_no_solver_named_keeps_scip(self, authenticated_client, db_session, test_organization):
+        res = authenticated_client.post(
+            "/api/v2/solve/multi-objective", json=_profit_vs_emissions_body()
+        )
+
+        assert res.status_code == 200, res.text
+        assert res.json()["solver_used"] == "scip"
+
+    def test_auto_routes_a_linear_front_to_highs(
+        self, authenticated_client, db_session, test_organization
+    ):
+        res = authenticated_client.post(
+            "/api/v2/solve/multi-objective", json=_profit_vs_emissions_body(solver_name="auto")
+        )
+
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert body["solver_used"] == "highs"
+        assert body["auto_route_reason"]
+
+    def test_a_quadratic_objective_on_a_linear_solver_is_refused_up_front(
+        self, authenticated_client, db_session, test_organization
+    ):
+        body = _profit_vs_emissions_body(solver_name="highs")
+        body["config"]["objectives"][0]["expression"] = "x*y"
+
+        res = authenticated_client.post("/api/v2/solve/multi-objective", json=body)
+
+        assert res.status_code == 422, res.text
+        assert res.json()["code"] == "multi_objective.solver_no_quadratic"
+        assert res.json()["params"] == {"solver": "HiGHS"}
+
+    def test_a_quadratic_objective_runs_on_scip(
+        self, authenticated_client, db_session, test_organization
+    ):
+        body = _profit_vs_emissions_body(solver_name="scip")
+        body["config"]["objectives"][1]["expression"] = "x*x + y*y"
+
+        res = authenticated_client.post("/api/v2/solve/multi-objective", json=body)
+
+        assert res.status_code == 200, res.text
+        assert res.json()["n_solved"] >= 1
+
+    def test_an_objective_naming_an_undeclared_variable_is_a_400(
+        self, authenticated_client, db_session, test_organization
+    ):
+        body = _profit_vs_emissions_body()
+        body["config"]["objectives"][1]["expression"] = "2*x + 4*q"
+
+        res = authenticated_client.post("/api/v2/solve/multi-objective", json=body)
+
+        assert res.status_code == 400, res.text
+        assert res.json()["code"] == "problem.mo_objective_undefined_variables"
+        assert res.json()["params"] == {"n": 2, "names": "q"}
+
+    def test_an_unknown_solver_is_refused(
+        self, authenticated_client, db_session, test_organization
+    ):
+        res = authenticated_client.post(
+            "/api/v2/solve/multi-objective", json=_profit_vs_emissions_body(solver_name="gurobi")
+        )
+
+        assert res.status_code == 422, res.text

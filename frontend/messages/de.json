@@ -2938,7 +2938,12 @@
       "asyncTaskId": "Aufgaben-ID: {id}",
       "solverUsed": "Solver",
       "autoRouted": "automatisch gewählt",
-      "sensitivityLabel": "Sensitivität"
+      "sensitivityLabel": "Sensitivität",
+      "milliseconds": "{ms} ms",
+      "nonZeroOnly": "Nur Werte ungleich null ({zeros, plural, one {# ist null} other {# sind null}})",
+      "allZero": "{count, plural, one {Die einzige Variable ist null.} other {Alle # Variablen sind null.}}",
+      "solutionCapped": "{shown} von {total} angezeigt.",
+      "openSavedRun": "Öffne den gespeicherten Lauf, um alle Werte zu sehen."
     },
     "executions": {
       "title": "Ausführungsverlauf",
@@ -2972,7 +2977,10 @@
       "selectedCount": "{count, plural, one {# ausgewählt} other {# ausgewählt}}",
       "clearSelection": "Aufheben",
       "compareSelected": "Vergleichen",
-      "selectTwoHint": "Wähle genau zwei Ausführungen zum Vergleichen."
+      "selectTwoHint": "Wähle genau zwei Ausführungen zum Vergleichen.",
+      "multiObjectiveRun": "Multi-Objektiv",
+      "paretoFront": "Pareto-Front",
+      "milliseconds": "{ms} ms"
     },
     "execution": {
       "title": "Ausführungsdetails",
@@ -3071,7 +3079,16 @@
       "variableValues": "Variablenwerte",
       "insightsTitle": "Automatische Analyse",
       "datasetBadge": "Für diesen Lauf verwendeter Datensatz",
-      "importedExecution": "Dieser Lauf kam aus einer Datei, die Sie importiert haben. Dahinter steht kein gespeichertes Modell, es gibt also nichts im Studio zu öffnen und keinen Verlauf. Importieren Sie die Datei erneut, um sie auszuführen."
+      "importedExecution": "Dieser Lauf kam aus einer Datei, die Sie importiert haben. Dahinter steht kein gespeichertes Modell, es gibt also nichts im Studio zu öffnen und keinen Verlauf. Importieren Sie die Datei erneut, um sie auszuführen.",
+      "multiObjective": {
+        "badge": "Multi-Objektiv",
+        "status": "Pareto-Front · {count, plural, one {# Punkt} other {# Punkte}}",
+        "title": "Pareto-Front",
+        "summary": "Ein Multi-Objektiv-Lauf: {count, plural, one {# Punkt} other {# Punkte}}, berechnet mit der Methode {mode}.",
+        "modeEpsilon": "Epsilon-Constraint",
+        "modeWeighted": "gewichtete Summe",
+        "empty": "Es wurde kein Punkt gefunden. Der Solver-Status oben sagt, warum."
+      }
     },
     "compare": {
       "title": "Ausführungsvergleich",
@@ -3134,7 +3151,6 @@
       "atLeastOneVariable": "Mindestens 1 Variable ist erforderlich.",
       "variablesMustHaveName": "Alle Variablen müssen einen Namen haben.",
       "bothExpressionsRequired": "Beide Zielfunktionsausdrücke sind erforderlich.",
-      "weightsMustSumToOne": "Gewichte müssen sich zu 1,0 summieren (aktuell: {sum}).",
       "noConstraintsWarning": "Keine Nebenbedingungen definiert. Das Problem könnte unbeschränkt sein.",
       "paretoComputed": "Pareto-Front berechnet: {count} Lösungen gefunden.",
       "solveFailed": "Lösung fehlgeschlagen",
@@ -3171,7 +3187,11 @@
       "clearImport": "Import löschen",
       "importSuccess": "Problem erfolgreich von \"{name}\" importiert.",
       "importFailed": "Fehler beim Importieren des Modells.",
-      "needsInputData": "Dieses Modell benötigt Eingabedaten zur Vorschau. Beispiel wird verwendet."
+      "needsInputData": "Dieses Modell benötigt Eingabedaten zur Vorschau. Beispiel wird verwendet.",
+      "solverHelp": "Jeder Solver kann die Front berechnen: Er löst ein Teilproblem pro Punkt. Auto wählt HiGHS für ein lineares Modell und SCIP bei ganzzahligen Variablen. Eine quadratische Zielfunktion braucht SCIP.",
+      "runSummary": "{count, plural, one {# Punkt} other {# Punkte}} auf der Front, gelöst mit {solver}.",
+      "runSummaryNoSolver": "{count, plural, one {# Punkt} other {# Punkte}} auf der Front.",
+      "openSavedRun": "Gespeicherten Lauf öffnen"
     },
     "comparison": {
       "differentModels": "Diese beiden Läufe gehören zu verschiedenen Modellen: {a} und {b}.",
@@ -3197,7 +3217,11 @@
         "removedInA": "Nur in Lauf A vorhanden (entfernt)"
       },
       "changesOnly": "Nur Änderungen ({shown}/{total})",
-      "noChanges": "Beide Läufe weisen allen Variablen identische Werte zu."
+      "noChanges": "Beide Läufe weisen allen Variablen identische Werte zu.",
+      "solver": "Solver",
+      "status": "Status",
+      "objective": "Zielfunktion",
+      "paretoFront": "Pareto-Front"
     },
     "export": {
       "csv": "CSV exportieren",
@@ -3321,8 +3345,7 @@
       "epsilonConstraint": "Epsilon-Nebenbedingung",
       "weightedCombination": "Gewichtete Kombination",
       "epsilonDescription": "Epsilon-Nebenbedingungsmethode: beschränkt Zielfunktion 2 und durchläuft Schranken.",
-      "weightedDescription": "Gewichtete Skalarisierung: kombiniert Zielfunktionen mit Gewichten, die sich zu 1,0 summieren.",
-      "weightsMustSum": "Gewichte müssen sich zu 1,0 summieren",
+      "weightedDescription": "Gewichtete Summe: probiert n gleichmäßig verteilte Gewichte, von allem auf Zielfunktion 2 bis allem auf Zielfunktion 1. Jede Zielfunktion wird vorher auf ihre Spanne auf der Front skaliert.",
       "objectiveN": "Zielfunktion {n}",
       "label": "Bezeichnung",
       "labelOptional": "(optional)",
@@ -3330,8 +3353,6 @@
       "direction": "Richtung",
       "minimize": "Minimieren",
       "maximize": "Maximieren",
-      "weight": "Gewicht",
-      "autoCalculated": "(automatisch berechnet)",
       "paretoPoints": "Pareto-Punkte (n_points)",
       "morePointsNote": "Mehr Punkte = feinere Pareto-Front, aber mehr Lösungen (höhere Kosten).",
       "labelPlaceholder1": "z.B., Gewinn",
@@ -4703,6 +4724,21 @@
         "requires_use": "Nutzen Sie dieses Modell im Studio, bevor Sie es bewerten.",
         "requires_run": "Führen Sie dieses Modell im Studio erfolgreich aus, bevor Sie es bewerten.",
         "report_own": "Sie können Ihre eigene Bewertung nicht melden. Löschen Sie sie stattdessen."
+      },
+      "problem": {
+        "objective_undefined_variables": "Die Zielfunktion verwendet nicht deklarierte Variablen: {names}.",
+        "objective_unreadable": "Die Zielfunktion ist nicht lesbar. Prüfe Operatoren und Klammern.",
+        "constraint_undefined_variables": "Nebenbedingung {constraint} verwendet nicht deklarierte Variablen: {names}.",
+        "constraint_unreadable": "Nebenbedingung {constraint} ist nicht lesbar. Prüfe Operatoren und Klammern.",
+        "bounds_cross": "Variable {variable} hat eine Untergrenze ({lower}) über ihrer Obergrenze ({upper}).",
+        "binary_bounds": "Die binäre Variable {variable} muss zwischen 0 und 1 liegen.",
+        "mo_objective_undefined_variables": "Zielfunktion {n} verwendet nicht deklarierte Variablen: {names}.",
+        "mo_objective_unreadable": "Zielfunktion {n} ist nicht lesbar. Prüfe Operatoren und Klammern.",
+        "unreadable": "Das Problem ist nicht lesbar. Prüfe die Ausdrücke."
+      },
+      "multi_objective": {
+        "solver_no_quadratic": "{solver} kann kein Modell mit quadratischen Termen lösen. Wähle SCIP oder Auto.",
+        "solver_no_integer": "{solver} kann kein Modell mit ganzzahligen Variablen lösen. Wähle einen anderen Solver."
       }
     }
   },

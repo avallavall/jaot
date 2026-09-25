@@ -2938,7 +2938,12 @@
       "asyncTaskId": "ID de tarea: {id}",
       "solverUsed": "Solver",
       "autoRouted": "elegido automáticamente",
-      "sensitivityLabel": "Sensibilidad"
+      "sensitivityLabel": "Sensibilidad",
+      "milliseconds": "{ms} ms",
+      "nonZeroOnly": "Solo valores distintos de cero ({zeros, plural, one {# vale cero} other {# valen cero}})",
+      "allZero": "{count, plural, one {La única variable vale cero.} other {Las # variables valen cero.}}",
+      "solutionCapped": "Se muestran {shown} de {total}.",
+      "openSavedRun": "Abre la ejecución guardada para ver todos los valores."
     },
     "executions": {
       "title": "Historial de ejecuciones",
@@ -2972,7 +2977,10 @@
       "selectedCount": "{count, plural, one {# seleccionada} other {# seleccionadas}}",
       "clearSelection": "Quitar",
       "compareSelected": "Comparar",
-      "selectTwoHint": "Selecciona exactamente dos ejecuciones para comparar."
+      "selectTwoHint": "Selecciona exactamente dos ejecuciones para comparar.",
+      "multiObjectiveRun": "Multiobjetivo",
+      "paretoFront": "Frente de Pareto",
+      "milliseconds": "{ms} ms"
     },
     "execution": {
       "title": "Detalles de ejecución",
@@ -3071,7 +3079,16 @@
       "variableValues": "Valores de variables",
       "insightsTitle": "Análisis automático",
       "datasetBadge": "Dataset usado en esta ejecución",
-      "importedExecution": "Esta ejecución vino de un fichero que importaste. No hay ningún modelo guardado detrás, así que no hay nada que abrir en el taller y no hay historial. Vuelve a importar el fichero para ejecutarlo."
+      "importedExecution": "Esta ejecución vino de un fichero que importaste. No hay ningún modelo guardado detrás, así que no hay nada que abrir en el taller y no hay historial. Vuelve a importar el fichero para ejecutarlo.",
+      "multiObjective": {
+        "badge": "Multiobjetivo",
+        "status": "Frente de Pareto · {count, plural, one {# punto} other {# puntos}}",
+        "title": "Frente de Pareto",
+        "summary": "Una ejecución multiobjetivo: {count, plural, one {# punto} other {# puntos}}, calculados con el método {mode}.",
+        "modeEpsilon": "epsilon-restricción",
+        "modeWeighted": "de suma ponderada",
+        "empty": "No se encontró ningún punto. El estado del solver indica por qué."
+      }
     },
     "compare": {
       "title": "Comparación de ejecuciones",
@@ -3134,7 +3151,6 @@
       "atLeastOneVariable": "Se requiere al menos 1 variable.",
       "variablesMustHaveName": "Todas las variables deben tener nombre.",
       "bothExpressionsRequired": "Ambas expresiones de objetivo son obligatorias.",
-      "weightsMustSumToOne": "Los pesos deben sumar 1.0 (actual: {sum}).",
       "noConstraintsWarning": "Sin restricciones definidas. El problema puede ser no acotado.",
       "paretoComputed": "Pareto front calculado: {count} soluciones encontradas.",
       "solveFailed": "Error en la resolución",
@@ -3171,7 +3187,11 @@
       "clearImport": "Limpiar importación",
       "importSuccess": "Problema importado correctamente de \"{name}\".",
       "importFailed": "Error al importar el modelo.",
-      "needsInputData": "Este modelo necesita datos de entrada para previsualizar. Usando ejemplo."
+      "needsInputData": "Este modelo necesita datos de entrada para previsualizar. Usando ejemplo.",
+      "solverHelp": "Cualquier solver puede calcular el frente: resuelve un subproblema por punto. Auto elige HiGHS para un modelo lineal y SCIP si hay variables enteras. Un objetivo cuadrático necesita SCIP.",
+      "runSummary": "{count, plural, one {# punto} other {# puntos}} en el frente, resuelto con {solver}.",
+      "runSummaryNoSolver": "{count, plural, one {# punto} other {# puntos}} en el frente.",
+      "openSavedRun": "Abrir la ejecución guardada"
     },
     "comparison": {
       "differentModels": "Estas dos ejecuciones son de modelos distintos: {a} y {b}.",
@@ -3197,7 +3217,11 @@
         "removedInA": "Solo presente en Ejecución A (eliminado)"
       },
       "changesOnly": "Solo cambios ({shown}/{total})",
-      "noChanges": "Las dos ejecuciones asignan valores idénticos a todas las variables."
+      "noChanges": "Las dos ejecuciones asignan valores idénticos a todas las variables.",
+      "solver": "Solver",
+      "status": "Estado",
+      "objective": "Objetivo",
+      "paretoFront": "Frente de Pareto"
     },
     "export": {
       "csv": "Exportar CSV",
@@ -3321,8 +3345,7 @@
       "epsilonConstraint": "Epsilon Constraint",
       "weightedCombination": "Combinación ponderada",
       "epsilonDescription": "Método epsilon-constraint: restringe el objetivo 2 y barre límites.",
-      "weightedDescription": "Escalarización ponderada: combina objetivos con pesos que suman 1.0.",
-      "weightsMustSum": "Los pesos deben sumar 1.0",
+      "weightedDescription": "Suma ponderada: prueba n pesos repartidos por igual, desde todo en el objetivo 2 hasta todo en el objetivo 1. Antes, cada objetivo se escala por su rango en el frente.",
       "objectiveN": "Objetivo {n}",
       "label": "Etiqueta",
       "labelOptional": "(opcional)",
@@ -3330,8 +3353,6 @@
       "direction": "Dirección",
       "minimize": "Minimizar",
       "maximize": "Maximizar",
-      "weight": "Peso",
-      "autoCalculated": "(calculado automáticamente)",
       "paretoPoints": "Puntos Pareto (n_points)",
       "morePointsNote": "Más puntos = Pareto front más fino, pero más resoluciones (mayor coste).",
       "labelPlaceholder1": "ej., Beneficio",
@@ -4703,6 +4724,21 @@
         "requires_use": "Usa este modelo en el estudio antes de valorarlo.",
         "requires_run": "Ejecuta este modelo con éxito en el estudio antes de valorarlo.",
         "report_own": "No puedes denunciar tu propia valoración. Bórrala."
+      },
+      "problem": {
+        "objective_undefined_variables": "El objetivo usa variables que no están declaradas: {names}.",
+        "objective_unreadable": "No se puede leer el objetivo. Revisa sus operadores y paréntesis.",
+        "constraint_undefined_variables": "La restricción {constraint} usa variables que no están declaradas: {names}.",
+        "constraint_unreadable": "No se puede leer la restricción {constraint}. Revisa sus operadores y paréntesis.",
+        "bounds_cross": "La variable {variable} tiene una cota inferior ({lower}) mayor que la superior ({upper}).",
+        "binary_bounds": "La variable binaria {variable} debe quedar entre 0 y 1.",
+        "mo_objective_undefined_variables": "El objetivo {n} usa variables que no están declaradas: {names}.",
+        "mo_objective_unreadable": "No se puede leer el objetivo {n}. Revisa sus operadores y paréntesis.",
+        "unreadable": "No se puede leer el problema. Revisa sus expresiones."
+      },
+      "multi_objective": {
+        "solver_no_quadratic": "{solver} no puede resolver un modelo con términos cuadráticos. Elige SCIP o Auto.",
+        "solver_no_integer": "{solver} no puede resolver un modelo con variables enteras. Elige otro solver."
       }
     }
   },

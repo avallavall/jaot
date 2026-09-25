@@ -21,6 +21,8 @@ import { OriginBadge } from "@/components/solve/OriginBadge";
 import { noModelMessageKey } from "@/lib/execution-origin";
 import { readVariableBounds } from "@/lib/variable-bounds";
 import { SolveFactCard } from "@/components/solve/SolveFactCard";
+import { MultiObjectiveRunView } from "@/components/solve/MultiObjectiveRunView";
+import { MULTI_OBJECTIVE_STATUS, readMultiObjective } from "@/lib/multi-objective-run";
 import { useSolverCapabilities } from "@/hooks/useSolvers";
 import { solverDisplayName } from "@/lib/solver-display";
 import { useLocale, useTranslations } from "next-intl";
@@ -50,6 +52,9 @@ export default function ExecutionDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const resultData = execution?.result_data as OptimizationResult | undefined;
+  // A multi-objective run holds a Pareto front and none of the single-solve
+  // fields, so it gets its own view instead of a summary of dashes.
+  const multiObjective = readMultiObjective(execution?.result_data);
   const variables = resultData?.variables ?? [];
   // The range each variable was declared with. It is in the problem the run
   // stored, which this page already holds — four columns of the Solution
@@ -187,6 +192,14 @@ export default function ExecutionDetailPage() {
             sourceKind={execution.source_kind ?? undefined}
             triggerName={execution.input_data?.trigger_name as string | undefined}
           />
+          {multiObjective && (
+            <span
+              data-testid="execution-kind-badge"
+              className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-sm text-primary"
+            >
+              {t("multiObjective.badge")}
+            </span>
+          )}
           {/* §8/S1: which dataset (scenario) the run was compiled against. */}
           {execution.dataset_name && (
             <span
@@ -218,17 +231,23 @@ export default function ExecutionDetailPage() {
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">{t("duration")}</div>
           <div className="font-medium">
-            {execution.execution_time_ms ? `${execution.execution_time_ms}ms` : "-"}
+            {execution.execution_time_ms
+              ? t("durationMs", { ms: execution.execution_time_ms.toLocaleString(locale) })
+              : "-"}
           </div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">{t("solverStatus")}</div>
-          <div className="font-medium">
-            {execution.solver_status
-              ? tVerdict.has(execution.solver_status)
-                ? tVerdict(execution.solver_status)
-                : execution.solver_status
-              : "-"}
+          <div className="font-medium" data-testid="execution-solver-status">
+            {multiObjective &&
+            (execution.solver_status === MULTI_OBJECTIVE_STATUS ||
+              multiObjective.pareto_points.length > 0)
+              ? t("multiObjective.status", { count: multiObjective.pareto_points.length })
+              : execution.solver_status
+                ? tVerdict.has(execution.solver_status)
+                  ? tVerdict(execution.solver_status)
+                  : execution.solver_status
+                : "-"}
           </div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
@@ -260,113 +279,118 @@ export default function ExecutionDetailPage() {
         </div>
       )}
 
-      {/* Results Tabs: Solution Explorer + Sensitivity */}
-      <div className="mb-8">
-        <Tabs defaultValue="results">
-          <TabsList className="mb-4">
-            <TabsTrigger value="results" data-testid="execution-tab-results">
-              {t("results")}
-            </TabsTrigger>
-            <TabsTrigger value="visualization" data-testid="execution-tab-visualization">
-              {t("visualization")}
-            </TabsTrigger>
-            <TabsTrigger value="sensitivity" data-testid="execution-tab-sensitivity">
-              {t("sensitivity")}
-            </TabsTrigger>
-          </TabsList>
+      {multiObjective && <MultiObjectiveRunView front={multiObjective} />}
 
-          <TabsContent value="results">
-            {variables.length > 0 && (
-              <div className="mb-6">
-                <SolutionExplainer
-                  executionId={executionId}
-                  canExplain={canExplain}
-                  hasSensitivity={Boolean(resultData?.sensitivity)}
-                />
-              </div>
-            )}
+      {/* Results Tabs: Solution Explorer + Sensitivity. Not for a multi-objective
+          run: every panel in them reads one solution, and a front has many. */}
+      {!multiObjective && (
+        <div className="mb-8">
+          <Tabs defaultValue="results">
+            <TabsList className="mb-4">
+              <TabsTrigger value="results" data-testid="execution-tab-results">
+                {t("results")}
+              </TabsTrigger>
+              <TabsTrigger value="visualization" data-testid="execution-tab-visualization">
+                {t("visualization")}
+              </TabsTrigger>
+              <TabsTrigger value="sensitivity" data-testid="execution-tab-sensitivity">
+                {t("sensitivity")}
+              </TabsTrigger>
+            </TabsList>
 
-            {isInfeasible && (
-              <div className="mb-6">
-                <InfeasibilityPanel
-                  executionId={executionId}
-                  initialAnalysis={infeasibilityAnalysis}
-                />
-              </div>
-            )}
+            <TabsContent value="results">
+              {variables.length > 0 && (
+                <div className="mb-6">
+                  <SolutionExplainer
+                    executionId={executionId}
+                    canExplain={canExplain}
+                    hasSensitivity={Boolean(resultData?.sensitivity)}
+                  />
+                </div>
+              )}
 
-            {variables.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-foreground mb-3">{t("solutionExplorer")}</h2>
-                <StructuredSolutionView variables={variables} bounds={variableBounds} />
-              </div>
-            )}
+              {isInfeasible && (
+                <div className="mb-6">
+                  <InfeasibilityPanel
+                    executionId={executionId}
+                    initialAnalysis={infeasibilityAnalysis}
+                  />
+                </div>
+              )}
 
-            {/* Honest post-solve summary (A2). The old live convergence chart was
-                a flat, useless line for essentially every real model (SCIP proves
-                optimality node-by-node while the incumbent barely moves), so we
-                state how the model solved instead of drawing a fake curve. */}
-            {resultData && !isInfeasible && (
-              <div className="mt-6" ref={chartRef}>
-                <h2 className="text-lg font-semibold text-foreground mb-3">{t("solveSummary")}</h2>
-                <SolveFactCard
-                  status={execution?.solver_status}
-                  objectiveValue={resultData.objective_value ?? execution?.objective_value}
-                  gap={resultData.gap}
-                  nodes={resultData.nodes}
-                  iterations={resultData.iterations}
-                  solveTimeSeconds={resultData.solve_time_seconds}
-                />
-              </div>
-            )}
+              {variables.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-foreground mb-3">{t("solutionExplorer")}</h2>
+                  <StructuredSolutionView variables={variables} bounds={variableBounds} />
+                </div>
+              )}
 
-            {/* Exact, solution-based analysis (A3): binding constraints, slack/
-                utilization and objective contributions computed from x*. Anything
-                that answers "what if it changed?" belongs to the Sensitivity tab. */}
-            {resultData && !isInfeasible && variables.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-lg font-semibold text-foreground mb-3">{t("analysisTitle")}</h2>
-                <ExactAnalysisPanel executionId={executionId} />
-              </div>
-            )}
-          </TabsContent>
+              {/* Honest post-solve summary (A2). The old live convergence chart was
+                  a flat, useless line for essentially every real model (SCIP proves
+                  optimality node-by-node while the incumbent barely moves), so we
+                  state how the model solved instead of drawing a fake curve. */}
+              {resultData && !isInfeasible && (
+                <div className="mt-6" ref={chartRef}>
+                  <h2 className="text-lg font-semibold text-foreground mb-3">{t("solveSummary")}</h2>
+                  <SolveFactCard
+                    status={execution?.solver_status}
+                    objectiveValue={resultData.objective_value ?? execution?.objective_value}
+                    gap={resultData.gap}
+                    nodes={resultData.nodes}
+                    iterations={resultData.iterations}
+                    solveTimeSeconds={resultData.solve_time_seconds}
+                  />
+                </div>
+              )}
 
-          <TabsContent value="visualization">
-            {variables.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-foreground mb-3">{t("variableValues")}</h2>
+              {/* Exact, solution-based analysis (A3): binding constraints, slack/
+                  utilization and objective contributions computed from x*. Anything
+                  that answers "what if it changed?" belongs to the Sensitivity tab. */}
+              {resultData && !isInfeasible && variables.length > 0 && (
+                <div className="mt-8">
+                  <h2 className="text-lg font-semibold text-foreground mb-3">{t("analysisTitle")}</h2>
+                  <ExactAnalysisPanel executionId={executionId} />
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="visualization">
+              {variables.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-3">{t("variableValues")}</h2>
+                  <div className="bg-card border border-border rounded-lg p-4">
+                    <VariableValuesChart variables={variables} />
+                  </div>
+                </div>
+              )}
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-3">{t("insightsTitle")}</h2>
                 <div className="bg-card border border-border rounded-lg p-4">
-                  <VariableValuesChart variables={variables} />
+                  <InsightsPanel executionId={executionId} />
                 </div>
               </div>
-            )}
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-3">{t("insightsTitle")}</h2>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <InsightsPanel executionId={executionId} />
-              </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="sensitivity">
-            {/* The what-if by re-solves (L2) leads: it is the honest answer to
-                the question the LP-relaxation duals below only approximate, and
-                it belongs in the tab that carries the name. It used to sit at
-                the bottom of Results, where nobody looking for sensitivity went. */}
-            {resultData && !isInfeasible && variables.length > 0 && (
-              <div className="mb-8">
-                <ScenarioAnalysisSection executionId={executionId} />
-              </div>
-            )}
-            <SensitivityTab
-              sensitivity={resultData?.sensitivity}
-              solverName={effectiveSolver}
-              capabilities={solverCapabilities}
-              solverStatus={execution.solver_status}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+            <TabsContent value="sensitivity">
+              {/* The what-if by re-solves (L2) leads: it is the honest answer to
+                  the question the LP-relaxation duals below only approximate, and
+                  it belongs in the tab that carries the name. It used to sit at
+                  the bottom of Results, where nobody looking for sensitivity went. */}
+              {resultData && !isInfeasible && variables.length > 0 && (
+                <div className="mb-8">
+                  <ScenarioAnalysisSection executionId={executionId} />
+                </div>
+              )}
+              <SensitivityTab
+                sensitivity={resultData?.sensitivity}
+                solverName={effectiveSolver}
+                capabilities={solverCapabilities}
+                solverStatus={execution.solver_status}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
 
       <div className="space-y-3 mb-8">
         <details className="bg-card border border-border rounded-lg overflow-hidden">

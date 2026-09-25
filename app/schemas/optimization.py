@@ -195,11 +195,17 @@ class ObjectiveSpec(BaseModel):
 
     expression: str = Field(..., description="Objective expression (e.g., '3*x + 2*y')")
     sense: ObjectiveSense = Field(..., description="Minimize or maximize this objective")
+    # Kept so clients that send it keep working. Reading it would mean one solve
+    # at one weight pair, and weighted mode is a front of n_points solves.
     weight: float | None = Field(
         default=None,
         ge=0.0,
         le=1.0,
-        description="Weight for weighted-scalarization mode (0.0 to 1.0)",
+        description=(
+            "Not used. Weighted mode sweeps the weights itself: n_points solves, from "
+            "all weight on objective 2 to all weight on objective 1. Accepted so "
+            "clients that send it keep working."
+        ),
     )
     label: str | None = Field(default=None, description="Human-readable label for this objective")
 
@@ -208,7 +214,14 @@ class MultiObjectiveConfig(BaseModel):
     """Configuration for multi-objective optimization."""
 
     mode: Literal["epsilon", "weighted"] = Field(
-        ..., description="Solving mode: epsilon-constraint or weighted scalarization"
+        ...,
+        description=(
+            "How the front is computed. 'epsilon': the best objective 1 under n_points "
+            "limits on objective 2. 'weighted': the best weighted sum of the two "
+            "objectives, each scaled by its range on the front, for n_points weights "
+            "from 0 to 1. Both ends of the front are always included: the best point "
+            "for each objective, and among those the best for the other one."
+        ),
     )
     objectives: list[ObjectiveSpec] = Field(
         ...,
@@ -559,6 +572,13 @@ class ParetoPoint(BaseModel):
     )
 
 
+#: The ``solver_status`` stored on a multi-objective run that found a front. A
+#: front is many answers, each optimal for its own subproblem, so no single-solve
+#: verdict describes it: "optimal" made the execution page announce a proven
+#: optimum over a row of dashes. An empty front keeps the verdict that emptied it.
+MULTI_OBJECTIVE_STATUS = "pareto_front"
+
+
 class MultiObjectiveResult(BaseModel):
     """Result of a multi-objective optimization solve."""
 
@@ -566,6 +586,15 @@ class MultiObjectiveResult(BaseModel):
     mode: str = Field(..., description="Solving mode used (epsilon or weighted)")
     n_solved: int = Field(..., description="Number of Pareto points found")
     labels: list[str] = Field(..., description="Labels for each objective")
+    execution_id: str | None = Field(
+        default=None, description="The saved run, to open it in the execution history"
+    )
+    solver_used: str | None = Field(
+        default=None, description="The solver that ran the subproblems (after auto-routing)"
+    )
+    auto_route_reason: str | None = Field(
+        default=None, description="Why automatic selection chose solver_used"
+    )
 
 
 class OptimizationProblem(BaseModel):
@@ -777,6 +806,16 @@ class OptimizationResult(BaseModel):
         }
 
 
+class ProblemValidationIssue(BaseModel):
+    """One entry of ``errors``, as a code and parameters a page can translate."""
+
+    code: str = Field(..., description="Stable code, e.g. problem.constraint_unreadable")
+    params: dict[str, str | int | float] = Field(
+        default_factory=dict, description="Values the translated sentence names"
+    )
+    message: str = Field(..., description="The English text, as listed in errors")
+
+
 class ProblemValidationResponse(BaseModel):
     """Verdict of ``POST /solve/validate`` — a dry run that never touches a solver.
 
@@ -788,6 +827,14 @@ class ProblemValidationResponse(BaseModel):
     valid: bool
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    issues: list[ProblemValidationIssue] = Field(
+        default_factory=list,
+        description=(
+            "The same errors, in the same order, each with a code and parameters. "
+            "The English in errors prints Python sets and parser diagnostics; a page "
+            "shows the translated sentence for the code instead."
+        ),
+    )
     num_variables: int | None = None
     num_constraints: int | None = None
     variable_types: dict[str, int] | None = Field(

@@ -3672,11 +3672,16 @@ export interface paths {
          * Solve Multi Objective Endpoint
          * @description Solve a multi-objective problem. Returns a Pareto front.
          *
-         *     ADR-007 S4b — async-under-the-hood: the SCIP scalarization loop runs in the
+         *     ADR-007 S4b — async-under-the-hood: the scalarization loop runs in the
          *     dedicated ``solve_multi_objective_async`` worker (a durable execution record);
          *     the handler waits in the threadpool and returns the classic
          *     ``MultiObjectiveResult``, degrading to 202 + the task envelope past the wait
          *     budget.
+         *
+         *     The solver is ``problem.solver_name``, else the ``solver_name`` query
+         *     parameter, else SCIP. ``auto`` picks one for the problem with both
+         *     objectives in it. The response names the saved run (``execution_id``) and
+         *     the solver that ran (``solver_used``).
          */
         post: operations["solve_multi_objective"];
         delete?: never;
@@ -8290,7 +8295,7 @@ export interface components {
         MultiObjectiveConfig: {
             /**
              * Mode
-             * @description Solving mode: epsilon-constraint or weighted scalarization
+             * @description How the front is computed. 'epsilon': the best objective 1 under n_points limits on objective 2. 'weighted': the best weighted sum of the two objectives, each scaled by its range on the front, for n_points weights from 0 to 1. Both ends of the front are always included: the best point for each objective, and among those the best for the other one.
              * @enum {string}
              */
             mode: "epsilon" | "weighted";
@@ -8312,6 +8317,16 @@ export interface components {
          */
         MultiObjectiveResult: {
             /**
+             * Auto Route Reason
+             * @description Why automatic selection chose solver_used
+             */
+            auto_route_reason?: string | null;
+            /**
+             * Execution Id
+             * @description The saved run, to open it in the execution history
+             */
+            execution_id?: string | null;
+            /**
              * Labels
              * @description Labels for each objective
              */
@@ -8331,6 +8346,11 @@ export interface components {
              * @description Points on the Pareto front
              */
             pareto_points: components["schemas"]["ParetoPoint"][];
+            /**
+             * Solver Used
+             * @description The solver that ran the subproblems (after auto-routing)
+             */
+            solver_used?: string | null;
         };
         /**
          * MultiObjectiveSolveRequest
@@ -8471,7 +8491,7 @@ export interface components {
             sense: components["schemas"]["ObjectiveSense"];
             /**
              * Weight
-             * @description Weight for weighted-scalarization mode (0.0 to 1.0)
+             * @description Not used. Weighted mode sweeps the weights itself: n_points solves, from all weight on objective 2 to all weight on objective 1. Accepted so clients that send it keep working.
              */
             weight?: number | null;
         };
@@ -9320,6 +9340,29 @@ export interface components {
             };
         };
         /**
+         * ProblemValidationIssue
+         * @description One entry of ``errors``, as a code and parameters a page can translate.
+         */
+        ProblemValidationIssue: {
+            /**
+             * Code
+             * @description Stable code, e.g. problem.constraint_unreadable
+             */
+            code: string;
+            /**
+             * Message
+             * @description The English text, as listed in errors
+             */
+            message: string;
+            /**
+             * Params
+             * @description Values the translated sentence names
+             */
+            params?: {
+                [key: string]: string | number;
+            };
+        };
+        /**
          * ProblemValidationResponse
          * @description Verdict of ``POST /solve/validate`` — a dry run that never touches a solver.
          *
@@ -9330,6 +9373,11 @@ export interface components {
         ProblemValidationResponse: {
             /** Errors */
             errors?: string[];
+            /**
+             * Issues
+             * @description The same errors, in the same order, each with a code and parameters. The English in errors prints Python sets and parser diagnostics; a page shows the translated sentence for the code instead.
+             */
+            issues?: components["schemas"]["ProblemValidationIssue"][];
             /** Num Constraints */
             num_constraints?: number | null;
             /** Num Variables */
@@ -11869,6 +11917,7 @@ export type Percentiles = components['schemas']['Percentiles'];
 export type PlanLimitsResponse = components['schemas']['PlanLimitsResponse'];
 export type PlatformOverviewResponse = components['schemas']['PlatformOverviewResponse'];
 export type PreviewRequest = components['schemas']['PreviewRequest'];
+export type ProblemValidationIssue = components['schemas']['ProblemValidationIssue'];
 export type ProblemValidationResponse = components['schemas']['ProblemValidationResponse'];
 export type ProgressPoint = components['schemas']['ProgressPoint'];
 export type ProjectCreate = components['schemas']['ProjectCreate'];
@@ -17958,6 +18007,7 @@ export interface operations {
         parameters: {
             query?: {
                 origin?: string | null;
+                solver_name?: string | null;
                 source_id?: string | null;
                 source_kind?: string | null;
                 workspace_id?: string | null;
