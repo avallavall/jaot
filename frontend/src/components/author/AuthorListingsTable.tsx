@@ -91,10 +91,16 @@ export function AuthorListingsTable({ listings, onChanged }: AuthorListingsTable
             const busy = busyId === row.model_project_id;
             return (
               <TableRow key={row.model_project_id}>
-                <TableCell>
+                {/* Table cells never wrap. A one-line description made the table
+                    wider than its card, so the name and the actions were cut off
+                    at desktop width. This cell wraps instead. */}
+                <TableCell
+                  className="min-w-48 max-w-md whitespace-normal"
+                  data-testid="listing-model-cell"
+                >
                   <div className="font-medium">{row.display_name}</div>
                   {row.short_description && (
-                    <div className="line-clamp-1 text-xs text-muted-foreground">
+                    <div className="line-clamp-2 text-xs text-muted-foreground">
                       {row.short_description}
                     </div>
                   )}

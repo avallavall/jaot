@@ -103,6 +103,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A run that proved its model infeasible was announced as "completed successfully"**, in a green toast. The notification now says what the solver found (no feasible solution, unbounded, stopped at the time limit), with a warning toast. A run with no saved model is named after its problem instead of "Your model".
 - **A member outside one workspace lost every run and comparison with no saved model from the history lists** as soon as any model was filed in that workspace. Custom Solve runs are back in their list.
 - **A deactivated account could still sign in.** The login answered with a session and a refresh token, and every page after it sent the person back to the login page with no reason. An admin's "Delete" deactivates too. Signing in now says the account is disabled, and no session is created.
+- **"What I Publish" cut off the model name and the actions at desktop width**, when a listing had a long description.
 
 ## [3.10.0] - 2026-09-24
 

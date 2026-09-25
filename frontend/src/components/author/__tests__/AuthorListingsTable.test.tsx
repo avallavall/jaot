@@ -102,6 +102,21 @@ describe("AuthorListingsTable", () => {
     expect(screen.queryByText("author.listings.viewPublic")).not.toBeInTheDocument();
   });
 
+  // Found driving the app (2026-09-25): at 1440 px the name was cut to "S Facility"
+  // and "View public page" to "View public pa". Table cells never wrap, so a
+  // one-line description set the table's width.
+  it("lets the model name and description wrap instead of widening the table", () => {
+    render(
+      <AuthorListingsTable
+        listings={[row({ short_description: "A long description ".repeat(12) })]}
+        onChanged={vi.fn()}
+      />,
+    );
+    const cell = screen.getByTestId("listing-model-cell");
+    expect(cell.className).toContain("whitespace-normal");
+    expect(cell.className).toContain("max-w-md");
+  });
+
   it("always offers the edit link — it is where logos and screenshots live", () => {
     render(<AuthorListingsTable listings={[row()]} onChanged={vi.fn()} />);
 
