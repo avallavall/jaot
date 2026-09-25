@@ -21,6 +21,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import ValidationError
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, defer
 
 from app.api.deps import (
@@ -228,7 +229,14 @@ def list_comparisons(
         )
         if open_ids:
             walled = walled.filter(ModelProject.workspace_id.notin_(open_ids))
-        base = base.filter(~SolverComparison.model_project_id.in_(walled))
+        # A comparison of an unsaved problem has no model. ``NOT IN`` alone is
+        # NULL for it, and SQL dropped every such row once any model was walled.
+        base = base.filter(
+            or_(
+                SolverComparison.model_project_id.is_(None),
+                ~SolverComparison.model_project_id.in_(walled),
+            )
+        )
     total = base.count()
     rows = base.order_by(SolverComparison.created_at.desc()).limit(limit).offset(offset).all()
     return ComparisonListResponse(

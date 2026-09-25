@@ -100,6 +100,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **"Health" in the studio's "Model at a glance" read "—" on every model**, while the Analyze tab showed its grade. It now shows the grade.
 - **The Favorites page was titled "My Models"**, the name of the studio's model list. It is now "Favorites".
 - **The old `/solve/<model>/publish` address opened the Build tab.** It now opens the studio's publish page.
+- **A run that proved its model infeasible was announced as "completed successfully"**, in a green toast. The notification now says what the solver found (no feasible solution, unbounded, stopped at the time limit), with a warning toast. A run with no saved model is named after its problem instead of "Your model".
+- **A member outside one workspace lost every run and comparison with no saved model from the history lists** as soon as any model was filed in that workspace. Custom Solve runs are back in their list.
 
 ## [3.10.0] - 2026-09-24
 

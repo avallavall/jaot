@@ -589,7 +589,14 @@
         "execution_completed": {
           "title": "Execution completed",
           "message": "Your optimization “{model}” completed successfully.",
-          "messageWithObjective": "Your optimization “{model}” completed successfully. Objective value: {objective}"
+          "messageWithObjective": "Your optimization “{model}” completed successfully. Objective value: {objective}",
+          "titleFinished": "Execution finished",
+          "infeasible": "Your optimization “{model}” finished: the model has no feasible solution.",
+          "unbounded": "Your optimization “{model}” finished: the objective is unbounded.",
+          "time_limit": "Your optimization “{model}” stopped at its time limit.",
+          "time_limitWithObjective": "Your optimization “{model}” stopped at its time limit. Best value found: {objective}",
+          "feasible": "Your optimization “{model}” finished with a plan that is not proven optimal.",
+          "feasibleWithObjective": "Your optimization “{model}” finished with a plan that is not proven optimal. Objective value: {objective}"
         },
         "execution_failed": {
           "title": "Execution failed",

@@ -32,7 +32,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, defer
 
 from app.api.deps import (
@@ -269,7 +269,10 @@ def list_batches(
         )
         if open_ids:
             walled = walled.filter(ModelProject.workspace_id.notin_(open_ids))
-        groups = groups.filter(~Comparison.model_project_id.in_(walled))
+        # Same NULL rule as the comparison list: a row of no model stays.
+        groups = groups.filter(
+            or_(Comparison.model_project_id.is_(None), ~Comparison.model_project_id.in_(walled))
+        )
     if project_id:
         groups = groups.filter(Comparison.model_project_id == project_id)
     groups = groups.group_by(Comparison.batch_id)

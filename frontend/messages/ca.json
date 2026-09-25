@@ -589,7 +589,14 @@
         "execution_completed": {
           "title": "Execució completada",
           "message": "La teva optimització «{model}» ha acabat correctament.",
-          "messageWithObjective": "La teva optimització «{model}» ha acabat correctament. Valor objectiu: {objective}"
+          "messageWithObjective": "La teva optimització «{model}» ha acabat correctament. Valor objectiu: {objective}",
+          "titleFinished": "Execució acabada",
+          "infeasible": "La teva optimització «{model}» ha acabat: el model no té cap solució factible.",
+          "unbounded": "La teva optimització «{model}» ha acabat: l'objectiu no està fitat.",
+          "time_limit": "La teva optimització «{model}» s'ha aturat en el seu límit de temps.",
+          "time_limitWithObjective": "La teva optimització «{model}» s'ha aturat en el seu límit de temps. Millor valor trobat: {objective}",
+          "feasible": "La teva optimització «{model}» ha acabat amb un pla que no està demostrat com a òptim.",
+          "feasibleWithObjective": "La teva optimització «{model}» ha acabat amb un pla que no està demostrat com a òptim. Valor objectiu: {objective}"
         },
         "execution_failed": {
           "title": "Execució fallida",

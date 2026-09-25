@@ -589,7 +589,14 @@
         "execution_completed": {
           "title": "Exécution terminée",
           "message": "Votre optimisation « {model} » s’est terminée correctement.",
-          "messageWithObjective": "Votre optimisation « {model} » s’est terminée correctement. Valeur objectif : {objective}"
+          "messageWithObjective": "Votre optimisation « {model} » s’est terminée correctement. Valeur objectif : {objective}",
+          "titleFinished": "Exécution arrêtée",
+          "infeasible": "Votre optimisation « {model} » est terminée : le modèle n’a aucune solution réalisable.",
+          "unbounded": "Votre optimisation « {model} » est terminée : l’objectif n’est pas borné.",
+          "time_limit": "Votre optimisation « {model} » s’est arrêtée à sa limite de temps.",
+          "time_limitWithObjective": "Votre optimisation « {model} » s’est arrêtée à sa limite de temps. Meilleure valeur trouvée : {objective}",
+          "feasible": "Votre optimisation « {model} » est terminée avec un plan dont l’optimalité n’est pas prouvée.",
+          "feasibleWithObjective": "Votre optimisation « {model} » est terminée avec un plan dont l’optimalité n’est pas prouvée. Valeur objectif : {objective}"
         },
         "execution_failed": {
           "title": "Échec de l’exécution",

@@ -757,6 +757,7 @@ def solve_model_async(
                 execution_id=execution_id,
                 model_name=model.name,
                 objective_value=result.objective_value,
+                solver_status=result.status.value,
             )
             # The notification writer only flushes; without this commit the row
             # dies with the session when the task ends — the log line printed,

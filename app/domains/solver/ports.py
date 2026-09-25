@@ -56,8 +56,9 @@ class SolveEventSink(Protocol):
         execution_id: str,
         model_name: str,
         objective_value: float | None,
+        solver_status: str | None = None,
     ) -> None:
-        """A model execution finished with a solution."""
+        """A model execution finished. ``solver_status`` says what it found."""
 
     def solve_failed(
         self,

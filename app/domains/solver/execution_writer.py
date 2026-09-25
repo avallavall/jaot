@@ -29,7 +29,7 @@ import logging
 from typing import Any
 
 from app.domains.solver import ports
-from app.models import ExecutionStatus, ModelExecution
+from app.models import ExecutionStatus, ModelExecution, SolverComparison
 from app.models.model_project import ModelProject
 from app.schemas.optimization import MULTI_OBJECTIVE_STATUS
 from app.shared.utils.datetime_helpers import utcnow
@@ -308,7 +308,9 @@ def _model_name_for(db: Any, execution: ModelExecution) -> str:
     """The name to put in the notification, or a neutral fallback.
 
     ``ModelExecution`` stores which project ran, not its name — and a run can
-    have no project at all (a raw ``POST /solve`` carries only a problem).
+    have no project at all (a raw ``POST /solve`` carries only a problem). That
+    problem usually has a name, and the notification said "Your model" instead.
+    Only the name is read from the stored input: the rest can be megabytes.
     """
     if execution.model_project_id:
         name = (
@@ -318,6 +320,21 @@ def _model_name_for(db: Any, execution: ModelExecution) -> str:
         )
         if name:
             return str(name)
+    if execution.comparison_id:
+        # A comparison column keeps no copy of the problem; its parent names it.
+        problem_name = (
+            db.query(SolverComparison.problem_name)
+            .filter(SolverComparison.id == execution.comparison_id)
+            .scalar()
+        )
+    else:
+        problem_name = (
+            db.query(ModelExecution.input_data["name"].as_string())
+            .filter(ModelExecution.id == execution.id)
+            .scalar()
+        )
+    if problem_name and problem_name.strip():
+        return problem_name.strip()[:255]
     return "Your model"
 
 
@@ -393,6 +410,7 @@ def _notify_completed(db: Any, execution: ModelExecution) -> None:
             execution_id=execution.id,
             model_name=_model_name_for(db, execution),
             objective_value=execution.objective_value,
+            solver_status=execution.solver_status,
         )
         db.commit()
     except Exception as exc:  # noqa: BLE001

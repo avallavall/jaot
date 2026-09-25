@@ -589,7 +589,14 @@
         "execution_completed": {
           "title": "Ejecución completada",
           "message": "Tu optimización «{model}» ha terminado correctamente.",
-          "messageWithObjective": "Tu optimización «{model}» ha terminado correctamente. Valor objetivo: {objective}"
+          "messageWithObjective": "Tu optimización «{model}» ha terminado correctamente. Valor objetivo: {objective}",
+          "titleFinished": "Ejecución terminada",
+          "infeasible": "Tu optimización «{model}» ha terminado: el modelo no tiene ninguna solución factible.",
+          "unbounded": "Tu optimización «{model}» ha terminado: el objetivo no está acotado.",
+          "time_limit": "Tu optimización «{model}» se ha detenido en su límite de tiempo.",
+          "time_limitWithObjective": "Tu optimización «{model}» se ha detenido en su límite de tiempo. Mejor valor encontrado: {objective}",
+          "feasible": "Tu optimización «{model}» ha terminado con un plan que no está demostrado como óptimo.",
+          "feasibleWithObjective": "Tu optimización «{model}» ha terminado con un plan que no está demostrado como óptimo. Valor objetivo: {objective}"
         },
         "execution_failed": {
           "title": "Ejecución fallida",

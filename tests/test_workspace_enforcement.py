@@ -714,6 +714,55 @@ class TestARunIsBehindTheSameWallAsItsModel:
         res = client.get(f"/api/v2/models/executions/{loose.id}")
         assert res.status_code == 200, res.text
 
+    def test_the_lists_keep_the_runs_of_no_model_once_a_wall_exists(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """``NOT (model_project_id IN walled)`` is NULL for a run of no model.
+
+        SQL drops such a row, so a member outside one workspace lost every
+        Custom Solve run and every comparison of an unsaved problem from the
+        org-wide lists as soon as any model was filed in that workspace.
+        """
+        from app.models.optimization_model import ExecutionStatus, ModelExecution
+        from app.models.solver_comparison import SolverComparison
+
+        ws, org, outsider = (
+            enforcement_setup["ws"],
+            enforcement_setup["org"],
+            enforcement_setup["non_member"],
+        )
+        _, _, walled_run = self._model_with_a_run(db_session, ws, org)
+        loose_run = ModelExecution(
+            id=generate_id("exe_"),
+            organization_id=org.id,
+            input_data={"name": "loose", "variables": [], "objective": {}, "constraints": []},
+            result_data={"model": {}, "objective_value": 0.0, "solver_status": "optimal"},
+            status=ExecutionStatus.COMPLETED.value,
+            solver_status="optimal",
+            objective_value=0.0,
+        )
+        loose_comparison = SolverComparison(
+            id=generate_id("cmp_"),
+            organization_id=org.id,
+            model_project_id=None,
+            problem_name="Not saved as a model",
+            solver_names=["scip", "highs"],
+            status="completed",
+            time_limit_seconds=10.0,
+            gap_tolerance=0.0001,
+        )
+        db_session.add_all([loose_run, loose_comparison])
+        db_session.commit()
+        mock_auth(outsider)
+
+        runs = client.get("/api/v2/models/executions/all?page_size=100")
+        comparisons = client.get("/api/v2/solvers/compare?limit=100")
+        assert runs.status_code == 200, runs.text
+        assert comparisons.status_code == 200, comparisons.text
+        assert walled_run.id not in runs.text
+        assert loose_run.id in runs.text
+        assert loose_comparison.id in comparisons.text
+
 
 class TestATriggerAndAComparisonStandBehindTheWall:
     """# CONTRACT-TEST: a trigger, its schedule and a comparison obey the wall.

@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { notificationText, type Translator } from "../notification-text";
+import {
+  finishedWithoutOptimum,
+  notificationText,
+  type Translator,
+} from "../notification-text";
 import type { Notification } from "@/lib/types";
 
 /**
@@ -16,6 +20,11 @@ const MESSAGES: Record<string, Record<string, string>> = {
   "execution_completed.message": "Tu optimización «{model}» ha terminado correctamente.",
   "execution_completed.messageWithObjective":
     "Tu optimización «{model}» ha terminado correctamente. Valor objetivo: {objective}",
+  "execution_completed.titleFinished": "Ejecución terminada",
+  "execution_completed.infeasible":
+    "Tu optimización «{model}» ha terminado: el modelo no tiene ninguna solución factible.",
+  "execution_completed.time_limitWithObjective":
+    "Tu optimización «{model}» se ha detenido en su límite de tiempo. Mejor valor encontrado: {objective}",
   "execution_failed.title": "Ejecución fallida",
   "execution_failed.message": "Tu optimización «{model}» ha fallado: {error}",
   "model_activated.title": "Modelo adoptado",
@@ -132,5 +141,37 @@ describe("notification type translations", () => {
       return typeof types?.[group]?.[leaf] !== "string";
     });
     expect(missing).toEqual([]);
+  });
+});
+
+/**
+ * A run that proves its model infeasible still ends as "execution_completed".
+ * The toast said "completed successfully", in green, for a model with no
+ * solution at all.
+ */
+describe("a completed run with no proven optimum", () => {
+  it("says the model has no feasible solution", () => {
+    const n = make({ data: { model_name: "Blend", objective_value: null, solver_status: "infeasible" } });
+    const out = notificationText(n, t, "es");
+    expect(out.title).toBe("Ejecución terminada");
+    expect(out.message).toBe(
+      "Tu optimización «Blend» ha terminado: el modelo no tiene ninguna solución factible.",
+    );
+    expect(finishedWithoutOptimum(n)).toBe("infeasible");
+  });
+
+  it("says a run stopped at its time limit, with the best value it found", () => {
+    const n = make({ data: { model_name: "Fleet", objective_value: 450, solver_status: "time_limit" } });
+    expect(notificationText(n, t, "es").message).toBe(
+      "Tu optimización «Fleet» se ha detenido en su límite de tiempo. Mejor valor encontrado: 450",
+    );
+  });
+
+  it("keeps the success wording for an optimal run and for rows without a status", () => {
+    const optimal = make({ data: { model_name: "Fleet", solver_status: "optimal" } });
+    const old = make({ data: { model_name: "Fleet" } });
+    expect(finishedWithoutOptimum(optimal)).toBeNull();
+    expect(finishedWithoutOptimum(old)).toBeNull();
+    expect(notificationText(optimal, t, "es").title).toBe("Ejecución completada");
   });
 });

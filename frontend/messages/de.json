@@ -589,7 +589,14 @@
         "execution_completed": {
           "title": "Ausführung abgeschlossen",
           "message": "Ihre Optimierung „{model}“ wurde erfolgreich abgeschlossen.",
-          "messageWithObjective": "Ihre Optimierung „{model}“ wurde erfolgreich abgeschlossen. Zielwert: {objective}"
+          "messageWithObjective": "Ihre Optimierung „{model}“ wurde erfolgreich abgeschlossen. Zielwert: {objective}",
+          "titleFinished": "Ausführung beendet",
+          "infeasible": "Ihre Optimierung „{model}“ ist beendet: Das Modell hat keine zulässige Lösung.",
+          "unbounded": "Ihre Optimierung „{model}“ ist beendet: Die Zielfunktion ist unbeschränkt.",
+          "time_limit": "Ihre Optimierung „{model}“ wurde am Zeitlimit angehalten.",
+          "time_limitWithObjective": "Ihre Optimierung „{model}“ wurde am Zeitlimit angehalten. Bester gefundener Wert: {objective}",
+          "feasible": "Ihre Optimierung „{model}“ ist mit einem Plan beendet, dessen Optimalität nicht bewiesen ist.",
+          "feasibleWithObjective": "Ihre Optimierung „{model}“ ist mit einem Plan beendet, dessen Optimalität nicht bewiesen ist. Zielwert: {objective}"
         },
         "execution_failed": {
           "title": "Ausführung fehlgeschlagen",

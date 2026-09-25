@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { notificationText } from "@/lib/notification-text";
+import { finishedWithoutOptimum, notificationText } from "@/lib/notification-text";
 import type { Notification } from "@/lib/types";
 import { useDateFormat } from "@/hooks/useDateFormat";
 
@@ -91,10 +91,10 @@ export function NotificationBell() {
     }
   };
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
+  const getNotificationIcon = (notification: Notification) => {
+    switch (notification.type as string) {
       case "execution_completed":
-        return "✅";
+        return finishedWithoutOptimum(notification) ? "⚠️" : "✅";
       case "execution_failed":
         return "❌";
       default:
@@ -147,7 +147,13 @@ export function NotificationBell() {
       const latest = notifications.find((n) => !n.is_read);
       if (latest) {
         const { title, message } = notificationText(latest, tType, locale);
-        const show = latest.type === "execution_failed" ? toast.error : toast.success;
+        // A run that proved its model infeasible is not a success to celebrate.
+        const show =
+          latest.type === "execution_failed"
+            ? toast.error
+            : finishedWithoutOptimum(latest)
+              ? toast.warning
+              : toast.success;
         show(title, {
           description: message,
           action: { label: t("view"), onClick: () => setIsOpen(true) },
@@ -212,7 +218,7 @@ export function NotificationBell() {
                 >
                   <div className="flex gap-3">
                     <span className="text-lg flex-shrink-0">
-                      {getNotificationIcon(notification.type)}
+                      {getNotificationIcon(notification)}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">

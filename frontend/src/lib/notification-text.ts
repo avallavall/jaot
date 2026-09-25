@@ -27,6 +27,23 @@ function text(data: Record<string, unknown> | undefined, key: string): string | 
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/** Verdicts of a run that completed without a proven optimum. */
+const FINISHED_WITHOUT_OPTIMUM = new Set(["infeasible", "unbounded", "time_limit", "feasible"]);
+
+/**
+ * The verdict of a completed run that found no proven optimum, or null.
+ *
+ * Such a run is still "execution_completed": the solver ran to the end. It was
+ * announced as "completed successfully" in a green toast when the model had no
+ * feasible solution at all. Rows written before the server sent
+ * `solver_status` carry none and keep the old wording.
+ */
+export function finishedWithoutOptimum(notification: Notification): string | null {
+  if ((notification.type as string) !== "execution_completed") return null;
+  const status = text(notification.data, "solver_status");
+  return status && FINISHED_WITHOUT_OPTIMUM.has(status) ? status : null;
+}
+
 function formatObjective(value: unknown, locale: string): string | null {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 4 }).format(value);
@@ -49,6 +66,15 @@ function messageKeyAndValues(
     case "execution_completed": {
       if (!modelName) return null;
       const objective = formatObjective(data?.objective_value, locale);
+      const verdict = finishedWithoutOptimum(notification);
+      if (verdict) {
+        return objective === null
+          ? { key: `execution_completed.${verdict}`, values: { model: modelName } }
+          : {
+              key: `execution_completed.${verdict}WithObjective`,
+              values: { model: modelName, objective },
+            };
+      }
       return objective === null
         ? { key: "execution_completed.message", values: { model: modelName } }
         : {
@@ -90,7 +116,9 @@ export function notificationText(
   locale: string,
 ): NotificationText {
   const resolved = messageKeyAndValues(notification, locale);
-  const titleKey = `${notification.type}.title`;
+  const titleKey = finishedWithoutOptimum(notification)
+    ? `${notification.type}.titleFinished`
+    : `${notification.type}.title`;
 
   if (!resolved || !t.has(titleKey) || !t.has(resolved.key)) {
     return { title: notification.title, message: notification.message };

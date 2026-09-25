@@ -276,6 +276,7 @@ def trigger_solve_task(
                         execution_id=model_execution.id,
                         model_name=trigger.name,
                         objective_value=model_execution.objective_value,
+                        solver_status=model_execution.solver_status,
                     )
                 else:
                     svc.notify_execution_failed(

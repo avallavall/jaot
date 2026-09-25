@@ -795,7 +795,14 @@ def list_all_executions(
         )
         if open_ids:
             walled = walled.filter(ModelProject.workspace_id.notin_(open_ids))
-        query = query.filter(~ModelExecution.model_project_id.in_(walled))
+        # A run of no model is filed in no workspace. ``NOT IN`` alone is NULL
+        # for it, and SQL dropped every such row once any model was walled.
+        query = query.filter(
+            or_(
+                ModelExecution.model_project_id.is_(None),
+                ~ModelExecution.model_project_id.in_(walled),
+            )
+        )
 
     if status:
         query = query.filter(ModelExecution.status == status)

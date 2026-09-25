@@ -12,6 +12,17 @@ from app.shared.utils.datetime_helpers import utcnow
 logger = logging.getLogger(__name__)
 
 
+# Verdicts of a run that completed without a proven answer, as the stored
+# English says them. Any other status (optimal, or none given) reads "completed
+# successfully".
+_FINISHED_WITHOUT_ANSWER = {
+    "infeasible": "finished: the model has no feasible solution",
+    "unbounded": "finished: the objective is unbounded",
+    "time_limit": "stopped at its time limit",
+    "feasible": "finished with a plan that is not proven optimal",
+}
+
+
 class NotificationService:
     """Service for creating and managing notifications."""
 
@@ -82,9 +93,22 @@ class NotificationService:
         execution_id: str,
         model_name: str,
         objective_value: float | None = None,
+        solver_status: str | None = None,
     ) -> Notification:
-        """Notify user that an execution completed successfully."""
-        message = f"Your optimization '{model_name}' completed successfully."
+        """Notify user that an execution finished, in words that match its verdict.
+
+        A run that proved its model infeasible also ends as "completed", and it
+        was announced as "completed successfully" in a green toast. The stored
+        English says what the solver found; the interface reads ``solver_status``
+        from ``data`` to say it in the reader's language.
+        """
+        verdict = _FINISHED_WITHOUT_ANSWER.get((solver_status or "").lower())
+        if verdict is None:
+            title = "Execution Completed"
+            message = f"Your optimization '{model_name}' completed successfully."
+        else:
+            title = "Execution Finished"
+            message = f"Your optimization '{model_name}' {verdict}."
         if objective_value is not None:
             message += f" Objective value: {objective_value:.4f}"
 
@@ -92,12 +116,13 @@ class NotificationService:
             user_id=user_id,
             organization_id=organization_id,
             notification_type=NotificationType.EXECUTION_COMPLETED,
-            title="Execution Completed",
+            title=title,
             message=message,
             data={
                 "execution_id": execution_id,
                 "model_name": model_name,
                 "objective_value": objective_value,
+                "solver_status": solver_status,
             },
             link=f"/solve/executions/{execution_id}",
         )

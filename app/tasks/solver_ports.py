@@ -56,6 +56,7 @@ class PlatformSolveEvents:
         execution_id: str,
         model_name: str,
         objective_value: float | None,
+        solver_status: str | None = None,
     ) -> None:
         NotificationService(db).notify_execution_completed(
             user_id=user_id,
@@ -63,6 +64,7 @@ class PlatformSolveEvents:
             execution_id=execution_id,
             model_name=model_name,
             objective_value=objective_value,
+            solver_status=solver_status,
         )
 
     def solve_failed(

@@ -363,6 +363,55 @@ class TestEveryTerminalRunNotifies:
             "the solve_async worker completed a run and left no notification"
         )
 
+    def test_an_infeasible_run_of_no_model_is_named_and_not_called_a_success(
+        self, db_session, test_user, test_organization
+    ):
+        """Found driving the app (2026-09-25).
+
+        A Custom Solve run that proved its model infeasible was announced as
+        "Your optimization 'Your model' completed successfully", in a green
+        toast. The run has no saved model, but its problem has a name, and the
+        solver found no solution at all.
+        """
+        from app.domains.solver import execution_writer
+        from app.schemas.optimization import OptimizationResult, SolverStatus
+
+        task_id = generate_id("task_")
+        execution_id = generate_id("exe_")
+        execution_writer.insert_pending(
+            db_session,
+            execution_id=execution_id,
+            organization_id=test_organization.id,
+            celery_task_id=task_id,
+            input_data={"name": "QA infeasible blend", "variables": [], "constraints": []},
+            solver_name="jaos",
+            executed_by_user_id=test_user.id,
+            origin="manual",
+        )
+        db_session.commit()
+
+        register_solver_ports()
+        execution_writer.mark_completed_by_task(
+            task_id,
+            test_organization.id,
+            result=OptimizationResult(status=SolverStatus.INFEASIBLE, solve_time_seconds=0.01),
+            execution_time_seconds=0.01,
+            solver_name="jaos",
+        )
+
+        db_session.expire_all()
+        row = next(
+            r
+            for r in db_session.query(Notification).filter_by(user_id=test_user.id).all()
+            if r.data.get("execution_id") == execution_id
+        )
+        assert row.data["model_name"] == "QA infeasible blend"
+        assert row.data["solver_status"] == "infeasible"
+        assert "successfully" not in row.message
+        assert row.message == (
+            "Your optimization 'QA infeasible blend' finished: the model has no feasible solution."
+        )
+
     # CONTRACT-TEST: the multi-objective worker is a terminal path too. It wrote
     # its COMPLETED row through the same writer but skipped the notification —
     # the hook had only been added to `mark_completed_by_task`, while the
