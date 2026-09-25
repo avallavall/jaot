@@ -109,6 +109,9 @@ class WorkspaceMemberResponse(BaseModel):
     role: str
     joined_at: datetime
     invited_by: str | None = None
+    # The organization owner. The server refuses a role change or a removal for
+    # this row, so the page does not offer them.
+    is_org_owner: bool = False
 
 
 class InviteResponse(BaseModel):

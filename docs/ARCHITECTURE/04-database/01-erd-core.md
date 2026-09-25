@@ -22,6 +22,7 @@ erDiagram
     USER ||--o{ WORKSPACE_MEMBER : "workspace_roles"
 
     WORKSPACE ||--o{ WORKSPACE_MEMBER : "has_members"
+    WORKSPACE ||--o{ WORKSPACE_REMOVAL : "removed_members"
 
     OPTIMIZATION_MODEL ||--o{ MODEL_EXECUTION : "spawns_executions"
 
@@ -32,6 +33,7 @@ erDiagram
 
     USER : string id (pk) "usr_*"
     USER : string email (unique)
+    USER : string name "the one name every page shows"
     USER : string organization_id (fk)
     USER : string password_hash "nullable for API-key-only"
     USER : bool email_verified
@@ -58,6 +60,11 @@ erDiagram
     WORKSPACE_MEMBER : string workspace_id (fk)
     WORKSPACE_MEMBER : string user_id (fk)
     WORKSPACE_MEMBER : string role "admin|editor|solver|viewer"
+
+    WORKSPACE_REMOVAL : string id (pk) "wkr_*"
+    WORKSPACE_REMOVAL : string workspace_id (fk)
+    WORKSPACE_REMOVAL : string user_id (fk)
+    WORKSPACE_REMOVAL : datetime removed_at "an invite created before it is refused"
 
     OPTIMIZATION_MODEL : string id (pk) "opt_*"
     OPTIMIZATION_MODEL : string organization_id (fk)

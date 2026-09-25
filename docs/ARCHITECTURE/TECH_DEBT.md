@@ -5,7 +5,21 @@ bottom — one line, with the date. Its reasoning, its measurements and the bugs
 are in the commit that closed it and in [CHANGELOG](../CHANGELOG.md); repeating them here
 turned this file into 500 lines of post-mortem nobody could act on.
 
-**Nothing is open.** Every entry below is closed or rejected.
+---
+
+## Open
+
+### D-37 · Drop `users.display_name`
+
+The code reads and writes one name, `users.name` (2026-09-25). The migration
+`20260925_one_user_name` copied every display name into `name` and emptied the
+column, and the ORM no longer maps it. The column stays one release because
+`deploy.sh` migrates while the previous API image still serves, and that image
+selects `users.display_name` on every authenticated request.
+
+**To close:** in the next release, a migration that drops the column. It is
+safe on the normal deploy path once no running image maps it. Take the usual
+backup: the down leg cannot restore the values.
 
 ---
 

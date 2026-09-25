@@ -4470,7 +4470,10 @@ export interface paths {
          *     Email invites are single-use; link invites are multi-use but idempotent
          *     (second call by the same user is a no-op).
          *
-         *     The user must already be authenticated (signed up and logged in).
+         *     The user must already be authenticated (signed up and logged in). A person
+         *     with no account creates one from the invite link instead: signup with an
+         *     ``invite_token`` puts the account in the inviting organization and redeems
+         *     the invite in the same request.
          */
         post: operations["accept_invite_api_v2_workspaces__workspace_id__invites_accept_post"];
         delete?: never;
@@ -4562,6 +4565,9 @@ export interface paths {
          *     Restrictions:
          *     - Cannot remove the org owner.
          *     - Cannot remove yourself (admin must transfer admin role first).
+         *
+         *     The removal is recorded in ``workspace_removals``, so the invites the person
+         *     could still open (a link lives for 7 days) no longer let them back in.
          */
         delete: operations["remove_member_api_v2_workspaces__workspace_id__members__user_id__delete"];
         options?: never;
@@ -6832,12 +6838,14 @@ export interface components {
              * Format: email
              */
             email: string;
+            /** Invite Token */
+            invite_token?: string | null;
             /** Locale */
             locale?: string | null;
             /** Name */
             name: string;
             /** Organization Name */
-            organization_name: string;
+            organization_name?: string | null;
             /** Password */
             password: string;
             /**
@@ -11572,6 +11580,11 @@ export interface components {
             id: string;
             /** Invited By */
             invited_by?: string | null;
+            /**
+             * Is Org Owner
+             * @default false
+             */
+            is_org_owner: boolean;
             /**
              * Joined At
              * Format: date-time

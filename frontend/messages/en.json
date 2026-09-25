@@ -1257,7 +1257,9 @@
       "signupFailed": "Signup failed",
       "registrationDisabled": "Registration is currently closed. We are preparing for launch.",
       "contactSupport": "Contact support@jaot.io if you need early access.",
-      "backToLogin": "Back to login"
+      "backToLogin": "Back to login",
+      "inviteNotice": "You are joining a team. Your account will belong to the organization that invited you, so there is no organization to name.",
+      "joinedWorkspace": "Account created. You have joined the workspace."
     },
     "passwordStrength": {
       "weak": "Weak",
@@ -1310,7 +1312,6 @@
     "join": {
       "processing": "Processing your invite...",
       "accepting": "Accepting invite...",
-      "signInToAccept": "Sign in to accept the workspace invite",
       "successTitle": "You're in!",
       "successMessage": "You've successfully joined the workspace. You can now collaborate with your team.",
       "goToWorkspaces": "Go to Workspaces",
@@ -1318,7 +1319,11 @@
       "errorMessage": "This invite link may have expired, been revoked, or already been used.",
       "goToDashboard": "Go to Dashboard",
       "signIn": "Sign In",
-      "acceptFailed": "Failed to accept invite"
+      "acceptFailed": "Failed to accept invite",
+      "invitedTitle": "You have been invited to a workspace",
+      "invitedMessage": "New to JAOT? Create an account: it joins the team that invited you. If you already have an account in that organization, sign in.",
+      "createAccount": "Create an account",
+      "signOutAndCreate": "Sign out and create an account"
     },
     "emailBanner": {
       "message": "Please verify your email address. Check your inbox for a verification link."
@@ -1799,7 +1804,8 @@
       "deleted": "Deleted",
       "deletedMessage": "API key has been deleted",
       "createError": "Failed to create API key",
-      "deleteError": "Failed to delete API key"
+      "deleteError": "Failed to delete API key",
+      "nameRequired": "Enter a name for the key."
     },
     "audit": {
       "title": "Audit Log",
@@ -1832,7 +1838,28 @@
       "timeDaysAgo": "{count}d ago",
       "adminRequired": "Your role ({role}) does not allow viewing the audit log. Contact your workspace admin to get the Admin role.",
       "loadError": "Failed to load audit log",
-      "noWorkspaceForMember": "You are not in a workspace yet, and only the organisation owner can create one. Ask them to invite you."
+      "noWorkspaceForMember": "You are not in a workspace yet, and only the organization owner can create one. Ask them to invite you.",
+      "actions": {
+        "solve": "Solve Executed",
+        "model_edit": "Model Edited",
+        "model_delete": "Model Deleted",
+        "model_publish": "Model Published",
+        "model_unpublish": "Model Unpublished",
+        "member_invite": "Member Invited",
+        "member_join": "Member Joined",
+        "member_remove": "Member Removed",
+        "role_change": "Role Changed",
+        "invite_revoke": "Invite Revoked",
+        "workspace_create": "Workspace Created",
+        "workspace_update": "Workspace Updated",
+        "trigger_create": "Trigger Created",
+        "trigger_update": "Trigger Updated",
+        "trigger_delete": "Trigger Deleted",
+        "trigger_fire": "Trigger Fired",
+        "trigger_schedule_create": "Schedule Created",
+        "trigger_schedule_update": "Schedule Updated",
+        "trigger_schedule_delete": "Schedule Deleted"
+      }
     },
     "myProfile": {
       "title": "My Profile",
@@ -1913,7 +1940,7 @@
         "roleSolver": "Solver: can run solves and create models (includes Viewer permissions).",
         "roleAdmin": "Admin: full access including inviting members and managing settings."
       },
-      "noWorkspaceForMember": "You are not in a workspace yet, and only the organisation owner can create one. Ask them to invite you."
+      "noWorkspaceForMember": "You are not in a workspace yet, and only the organization owner can create one. Ask them to invite you."
     },
     "workspaces": {
       "title": "Workspaces",
@@ -1990,7 +2017,8 @@
         "admin": "Admin",
         "editor": "Editor",
         "solver": "Solver",
-        "viewer": "Viewer"
+        "viewer": "Viewer",
+        "member": "Member"
       },
       "sentSuccess": "Invite sent to {email}",
       "linkGenerated": "Invite link generated",
@@ -1998,7 +2026,10 @@
       "copyFailed": "Failed to copy to clipboard",
       "sendError": "Failed to send invite",
       "generateError": "Failed to generate link",
-      "revokeError": "Failed to revoke invite"
+      "revokeError": "Failed to revoke invite",
+      "linkPending": "Link · expires {date}",
+      "copyLink": "Copy the invite link",
+      "revokeInvite": "Revoke this invite"
     },
     "memberTable": {
       "headers": {
@@ -2012,10 +2043,12 @@
       "removeMember": "Remove member",
       "roleUpdated": "{name}'s role updated to {role}",
       "roleError": "Failed to update role",
-      "removeConfirm": "Remove {name} from this workspace?",
+      "removeConfirm": "Remove {name} from this workspace? The invite links they still have stop working for them. To bring them back, send them a new invite.",
       "removeTitle": "Remove Member",
       "removed": "{name} removed from workspace",
-      "removeError": "Failed to remove member"
+      "removeError": "Failed to remove member",
+      "removeMemberNamed": "Remove {name}",
+      "roleOf": "Role of {name}"
     },
     "userPublicProfile": {
       "backToCatalog": "Back to Marketplace",
@@ -4678,8 +4711,9 @@
         "revoked": "This invitation has been revoked.",
         "expired": "This invitation has expired. Ask for a new one.",
         "already_accepted": "This invitation has already been used.",
-        "other_organization": "This invitation is for another organization's workspace. Sign in with an account of that organization, or ask them to invite the account you use.",
-        "other_email": "This invitation was sent to another email address. Sign in with that address to accept it."
+        "other_organization": "This invitation is for a workspace of another organization, and your account belongs to a different one. An account belongs to one organization only. To join this team, sign out and create a new account from this invitation, with another email address.",
+        "other_email": "This invitation was sent to another email address. Sign in with that address to accept it.",
+        "removed_member": "You were removed from this workspace after this invitation was created, so it no longer works for you. Ask a workspace admin for a new invitation."
       },
       "projects": {
         "publish_needs_commit": "Publishing pins your latest committed version. The marketplace never sees your working draft. Commit your model in the workspace, then come back.",
@@ -4703,6 +4737,19 @@
         "requires_use": "Use this model in the studio before you review it.",
         "requires_run": "Run this model successfully in the studio before you review it.",
         "report_own": "You cannot report your own review. Delete it instead."
+      },
+      "workspace": {
+        "member_not_found": "This person is not a member of this workspace.",
+        "own_role": "You cannot change your own role. Ask another admin.",
+        "owner_role": "The organization owner's role cannot be changed.",
+        "owner_not_removable": "The organization owner cannot be removed from a workspace.",
+        "remove_self": "You cannot remove yourself. Give the admin role to someone else first."
+      },
+      "account": {
+        "wrong_password": "That password is not correct. Your account has not been deleted."
+      },
+      "profile": {
+        "name_required": "The display name cannot be empty."
       }
     }
   },

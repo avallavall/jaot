@@ -41,7 +41,7 @@ erDiagram
     USER : string id (pk)
     USER : string email
     USER : string slug "public username"
-    USER : string display_name
+    USER : string name "shown as the display name"
     USER : string bio "profile"
 
     MODEL_PROJECT : string id (pk) "mp_* (or preserved legacy id)"

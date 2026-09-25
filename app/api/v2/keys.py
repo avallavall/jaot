@@ -8,6 +8,7 @@ from sqlalchemy import or_
 from app.api.deps import DBSession
 from app.api.v2.auth import get_current_user
 from app.models import APIKey, User
+from app.models.audit_log import AuditAction
 from app.schemas.api_key import (
     APIKeyInfo,
     CreateKeyRequest,
@@ -15,6 +16,7 @@ from app.schemas.api_key import (
     KeyListResponse,
     RevokeKeyResponse,
 )
+from app.services.audit_service import log_action
 from app.services.auth import APIKeyService
 from app.services.platform_settings_service import PlatformSettingsService as PSS
 from app.shared.utils.datetime_helpers import utcnow
@@ -83,6 +85,21 @@ def create_api_key(
         name=request.name,
         description=request.description,
         expires_at=expires_at,
+    )
+    # A key is a standing credential, so its creation and its revocation are
+    # audited. It belongs to a user, not to a workspace: organization-level entry.
+    log_action(
+        db=db,
+        organization_id=current_user.organization_id,
+        actor=current_user,
+        action=AuditAction.API_KEY_CREATE,
+        target_type="api_key",
+        target_id=api_key_model.id,
+        target_name=api_key_model.name,
+        metadata={
+            "key_prefix": api_key_model.key_prefix,
+            "expires_at": expires_at.isoformat() if expires_at else None,
+        },
     )
     db.commit()
 
@@ -173,8 +190,18 @@ def revoke_api_key(
             detail="API key not found",
         )
 
-    # Revoke key
-    key.is_active = False
+    if key.is_active:
+        key.is_active = False
+        log_action(
+            db=db,
+            organization_id=current_user.organization_id,
+            actor=current_user,
+            action=AuditAction.API_KEY_REVOKE,
+            target_type="api_key",
+            target_id=key.id,
+            target_name=key.name,
+            metadata={"key_prefix": key.key_prefix},
+        )
     db.commit()
 
     return RevokeKeyResponse(message="API key revoked successfully", key_id=key_id)

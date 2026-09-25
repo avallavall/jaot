@@ -1257,7 +1257,9 @@
       "signupFailed": "Error en registrar-se",
       "registrationDisabled": "El registre està tancat temporalment. Estem preparant el llançament.",
       "contactSupport": "Contacta amb support@jaot.io si necessites accés anticipat.",
-      "backToLogin": "Tornar a l'inici de sessió"
+      "backToLogin": "Tornar a l'inici de sessió",
+      "inviteNotice": "T'uneixes a un equip. El teu compte pertanyerà a l'organització que t'ha convidat, així que no cal posar nom a cap organització.",
+      "joinedWorkspace": "Compte creat. T'has unit a l'espai de treball."
     },
     "passwordStrength": {
       "weak": "Feble",
@@ -1310,7 +1312,6 @@
     "join": {
       "processing": "Processant la teva invitació...",
       "accepting": "Acceptant invitació...",
-      "signInToAccept": "Inicia sessió per acceptar la invitació a l'espai de treball",
       "successTitle": "Ja hi ets!",
       "successMessage": "T'has unit a l'espai de treball correctament. Ja pots col·laborar amb el teu equip.",
       "goToWorkspaces": "Anar als espais de treball",
@@ -1318,7 +1319,11 @@
       "errorMessage": "Aquest enllaç d'invitació pot haver expirat, estat revocat o ja utilitzat.",
       "goToDashboard": "Anar al tauler",
       "signIn": "Iniciar sessió",
-      "acceptFailed": "Error en acceptar la invitació"
+      "acceptFailed": "Error en acceptar la invitació",
+      "invitedTitle": "T'han convidat a un espai de treball",
+      "invitedMessage": "Nou a JAOT? Crea un compte: s'uneix a l'equip que t'ha convidat. Si ja tens un compte en aquella organització, inicia la sessió.",
+      "createAccount": "Crear un compte",
+      "signOutAndCreate": "Tancar la sessió i crear un compte"
     },
     "emailBanner": {
       "message": "Verifica el teu correu electrònic. Busca l'enllaç de verificació a la teva safata d'entrada."
@@ -1799,7 +1804,8 @@
       "deleted": "Eliminada",
       "deletedMessage": "La clau API ha estat eliminada",
       "createError": "Error en crear la clau API",
-      "deleteError": "Error en eliminar la clau API"
+      "deleteError": "Error en eliminar la clau API",
+      "nameRequired": "Escriu un nom per a la clau."
     },
     "audit": {
       "title": "Registre d'Auditoria",
@@ -1832,7 +1838,28 @@
       "adminRequired": "El teu rol ({role}) no permet veure el registre d'auditoria. Demana a l'admin de l'espai de treball el rol d'Admin.",
       "loadError": "Error en carregar el registre d'auditoria",
       "createWorkspace": "Crear Espai de Treball",
-      "noWorkspaceForMember": "Encara no ets a cap espai de treball, i només el propietari de l'organització en pot crear un. Demana-li que t'hi convidi."
+      "noWorkspaceForMember": "Encara no ets a cap espai de treball, i només el propietari de l'organització en pot crear un. Demana-li que t'hi convidi.",
+      "actions": {
+        "solve": "Resolució executada",
+        "model_edit": "Model editat",
+        "model_delete": "Model eliminat",
+        "model_publish": "Model publicat",
+        "model_unpublish": "Model retirat",
+        "member_invite": "Membre convidat",
+        "member_join": "Membre unit",
+        "member_remove": "Membre tret",
+        "role_change": "Rol canviat",
+        "invite_revoke": "Invitació revocada",
+        "workspace_create": "Espai de treball creat",
+        "workspace_update": "Espai de treball actualitzat",
+        "trigger_create": "Disparador creat",
+        "trigger_update": "Disparador actualitzat",
+        "trigger_delete": "Disparador eliminat",
+        "trigger_fire": "Disparador executat",
+        "trigger_schedule_create": "Programació creada",
+        "trigger_schedule_update": "Programació actualitzada",
+        "trigger_schedule_delete": "Programació eliminada"
+      }
     },
     "myProfile": {
       "title": "El Meu Perfil",
@@ -1990,7 +2017,8 @@
         "admin": "Administrador",
         "editor": "Editor",
         "solver": "Solucionador",
-        "viewer": "Visualitzador"
+        "viewer": "Visualitzador",
+        "member": "Membre"
       },
       "sentSuccess": "Invitació enviada a {email}",
       "linkGenerated": "Enllaç d'invitació generat",
@@ -1998,7 +2026,10 @@
       "copyFailed": "Error en copiar al porta-retalls",
       "sendError": "Error en enviar la invitació",
       "generateError": "Error en generar l'enllaç",
-      "revokeError": "Error en revocar la invitació"
+      "revokeError": "Error en revocar la invitació",
+      "linkPending": "Enllaç · caduca el {date}",
+      "copyLink": "Copiar l'enllaç d'invitació",
+      "revokeInvite": "Revocar aquesta invitació"
     },
     "memberTable": {
       "headers": {
@@ -2012,10 +2043,12 @@
       "removeMember": "Eliminar membre",
       "roleUpdated": "El rol de {name} s'ha actualitzat a {role}",
       "roleError": "Error en actualitzar el rol",
-      "removeConfirm": "Eliminar {name} d'aquest espai de treball?",
+      "removeConfirm": "Treure {name} d'aquest espai de treball? Els enllaços d'invitació que encara tingui deixen de servir-li. Perquè torni, envia-li una invitació nova.",
       "removeTitle": "Eliminar Membre",
       "removed": "{name} eliminat de l'espai de treball",
-      "removeError": "Error en eliminar el membre"
+      "removeError": "Error en eliminar el membre",
+      "removeMemberNamed": "Treure {name}",
+      "roleOf": "Rol de {name}"
     },
     "userPublicProfile": {
       "backToCatalog": "Tornar al Catàleg",
@@ -4678,8 +4711,9 @@
         "revoked": "Aquesta invitació s’ha revocat.",
         "expired": "Aquesta invitació ha caducat. Demana’n una de nova.",
         "already_accepted": "Aquesta invitació ja s’ha fet servir.",
-        "other_organization": "Aquesta invitació és per a l'espai de treball d'una altra organització. Inicia la sessió amb un compte d'aquella organització, o demana'ls que convidin el compte que fas servir.",
-        "other_email": "Aquesta invitació es va enviar a una altra adreça de correu. Inicia la sessió amb aquella adreça per acceptar-la."
+        "other_organization": "Aquesta invitació és per a un espai de treball d'una altra organització, i el teu compte pertany a una de diferent. Un compte pertany a una sola organització. Per unir-te a aquest equip, tanca la sessió i crea un compte nou des d'aquesta invitació, amb una altra adreça de correu.",
+        "other_email": "Aquesta invitació es va enviar a una altra adreça de correu. Inicia la sessió amb aquella adreça per acceptar-la.",
+        "removed_member": "Et van treure d'aquest espai de treball després de crear aquesta invitació, així que ja no et serveix. Demana una invitació nova a un administrador de l'espai de treball."
       },
       "projects": {
         "publish_needs_commit": "En publicar es fixa la teva darrera versió commitejada: el marketplace mai no veu el teu esborrany de treball. Commiteja el model a l'espai de treball i torna.",
@@ -4703,6 +4737,19 @@
         "requires_use": "Fes servir aquest model a l'estudi abans de valorar-lo.",
         "requires_run": "Executa aquest model amb èxit a l'estudi abans de valorar-lo.",
         "report_own": "No pots denunciar la teva pròpia valoració. Esborra-la."
+      },
+      "workspace": {
+        "member_not_found": "Aquesta persona no és membre d'aquest espai de treball.",
+        "own_role": "No pots canviar el teu propi rol. Demana-ho a un altre administrador.",
+        "owner_role": "El rol del propietari de l'organització no es pot canviar.",
+        "owner_not_removable": "El propietari de l'organització no es pot treure d'un espai de treball.",
+        "remove_self": "No et pots treure a tu mateix. Primer dona el rol d'administrador a una altra persona."
+      },
+      "account": {
+        "wrong_password": "La contrasenya no és correcta. El teu compte no s'ha eliminat."
+      },
+      "profile": {
+        "name_required": "El nom visible no pot estar buit."
       }
     }
   },

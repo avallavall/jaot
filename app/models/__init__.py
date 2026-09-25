@@ -40,6 +40,7 @@ from app.models.workspace import (
     Workspace,
     WorkspaceInvite,
     WorkspaceMember,
+    WorkspaceRemoval,
     WorkspaceRole,
 )
 
@@ -82,6 +83,7 @@ __all__ = [
     "Workspace",
     "WorkspaceMember",
     "WorkspaceInvite",
+    "WorkspaceRemoval",
     "WorkspaceRole",
     "InviteMethod",
     # LLM Conversations

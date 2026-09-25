@@ -3,6 +3,7 @@
 import logging
 from typing import Any
 
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, load_only
 
 from app.models import (
@@ -40,7 +41,8 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
     """
     now = utcnow().isoformat()
 
-    # User profile
+    # User profile. `name` is the one name the person has: "Display Name" on
+    # My Profile edits it (20260925_one_user_name).
     user_data = {
         "id": user.id,
         "email": user.email,
@@ -50,6 +52,13 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
         "email_verified": user.email_verified,
         "skill_level": user.skill_level,
         "tos_accepted_at": str(user.tos_accepted_at) if user.tos_accepted_at else None,
+        "locale": user.locale,
+        "slug": user.slug,
+        "bio": user.bio,
+        "avatar_url": user.avatar_url,
+        "linkedin_url": user.linkedin_url,
+        "twitter_url": user.twitter_url,
+        "is_public_profile": user.is_public_profile,
     }
 
     # Organization
@@ -144,6 +153,131 @@ def export_user_data(db: Session, user: User, org: Organization) -> dict[str, An
         "executions": executions_data,
         "api_keys": keys_data,
         "notifications": notifs_data,
+        "workspace_memberships": _workspace_memberships(db, user, org),
+        "invites_sent": _invites_sent(db, user, org),
+        **_audit_entries(db, user, org),
+    }
+
+
+def _workspace_memberships(db: Session, user: User, org: Organization) -> list[dict[str, Any]]:
+    """The workspaces the person belongs to, with their role in each."""
+    rows = (
+        db.query(
+            WorkspaceMember.workspace_id,
+            Workspace.name,
+            WorkspaceMember.role,
+            WorkspaceMember.joined_at,
+            WorkspaceMember.invited_by,
+        )
+        .join(Workspace, Workspace.id == WorkspaceMember.workspace_id)
+        .filter(
+            WorkspaceMember.user_id == user.id,
+            WorkspaceMember.organization_id == org.id,
+        )
+        .order_by(WorkspaceMember.joined_at)
+        .all()
+    )
+    return [
+        {
+            "workspace_id": r.workspace_id,
+            "workspace_name": r.name,
+            "role": r.role,
+            "joined_at": str(r.joined_at),
+            "invited_by": r.invited_by,
+        }
+        for r in rows
+    ]
+
+
+def _invites_sent(db: Session, user: User, org: Organization) -> list[dict[str, Any]]:
+    """The invites the person created. The token hash is never exported."""
+    rows = (
+        db.query(
+            WorkspaceInvite.id,
+            WorkspaceInvite.workspace_id,
+            WorkspaceInvite.method,
+            WorkspaceInvite.role,
+            WorkspaceInvite.invitee_email,
+            WorkspaceInvite.created_at,
+            WorkspaceInvite.expires_at,
+            WorkspaceInvite.accepted_at,
+            WorkspaceInvite.is_revoked,
+        )
+        .filter(
+            WorkspaceInvite.created_by == user.id,
+            WorkspaceInvite.organization_id == org.id,
+        )
+        .order_by(WorkspaceInvite.created_at)
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "workspace_id": r.workspace_id,
+            "method": r.method,
+            "role": r.role,
+            "invitee_email": r.invitee_email,
+            "created_at": str(r.created_at),
+            "expires_at": str(r.expires_at),
+            "accepted_at": str(r.accepted_at) if r.accepted_at else None,
+            "is_revoked": r.is_revoked,
+        }
+        for r in rows
+    ]
+
+
+#: Newest audit entries exported. Every solve writes one, so a busy account
+#: holds tens of thousands within the one-year retention. The export says when
+#: it stopped at the cap.
+AUDIT_EXPORT_LIMIT = 5000
+
+
+def _audit_entries(db: Session, user: User, org: Organization) -> dict[str, Any]:
+    """Audit entries the person made, or that are about them.
+
+    Only the scalar columns are read. ``before_state``, ``after_state`` and the
+    metadata can hold a whole model snapshot for an edit, and the export does not
+    write them.
+    """
+    rows = (
+        db.query(
+            AuditLog.id,
+            AuditLog.workspace_id,
+            AuditLog.action,
+            AuditLog.actor_id,
+            AuditLog.actor_name,
+            AuditLog.target_type,
+            AuditLog.target_id,
+            AuditLog.target_name,
+            AuditLog.created_at,
+        )
+        .filter(
+            AuditLog.organization_id == org.id,
+            or_(
+                AuditLog.actor_id == user.id,
+                and_(AuditLog.target_type == "user", AuditLog.target_id == user.id),
+            ),
+        )
+        .order_by(AuditLog.created_at.desc())
+        .limit(AUDIT_EXPORT_LIMIT + 1)
+        .all()
+    )
+    return {
+        "audit_log": [
+            {
+                "id": r.id,
+                "workspace_id": r.workspace_id,
+                "action": r.action,
+                "actor_id": r.actor_id,
+                "actor_name": r.actor_name,
+                "target_type": r.target_type,
+                "target_id": r.target_id,
+                "target_name": r.target_name,
+                "created_at": str(r.created_at),
+            }
+            for r in rows[:AUDIT_EXPORT_LIMIT]
+        ],
+        "audit_log_truncated": len(rows) > AUDIT_EXPORT_LIMIT,
     }
 
 

@@ -3,7 +3,7 @@
 import json
 import logging
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse, Response
 
 from app.api.deps import DBSession
@@ -13,6 +13,7 @@ from app.models import Organization, User
 from app.schemas.gdpr import AccountDeleteRequest
 from app.services.auth import PasswordService
 from app.services.gdpr_service import delete_user_account, export_user_data
+from app.shared.core.http_errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +56,17 @@ def delete_account(
     """
     user: User = get_current_user(request)
 
-    # Verify password
+    # A wrong password is a refusal of this action, not of the session: 403.
+    # It was a 401, which the web client reads as an expired session. It
+    # refreshed the session, sent the DELETE a second time, and the page showed
+    # nothing.
     if not user.password_hash or not PasswordService.verify_password(
         body.password, user.password_hash
     ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+        raise CodedHTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid password",
+            code="account.wrong_password",
         )
 
     delete_user_account(db, user)

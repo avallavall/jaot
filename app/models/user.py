@@ -57,9 +57,11 @@ class User(Base):
     slug: Mapped[str | None] = mapped_column(
         String(100), nullable=True, unique=True, index=True
     )  # URL-friendly username
-    display_name: Mapped[str | None] = mapped_column(
-        String(100), nullable=True
-    )  # Public display name
+    # There is one name: `name`. "Display Name" on My Profile edits it. The
+    # `users.display_name` column is no longer mapped: the profile wrote it while
+    # the member list, the audit log and the export read `name`, so a rename
+    # showed in one place only. 20260925_one_user_name moved its values into
+    # `name`; a later release drops the column (TECH_DEBT D-37).
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     linkedin_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

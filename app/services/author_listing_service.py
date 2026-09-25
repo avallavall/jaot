@@ -128,7 +128,7 @@ def list_reviews_received(
 
 
 def _reviewer_name(user: User | None) -> str | None:
-    """Display name, falling back to the account name; None if the user is gone."""
+    """The reviewer's name; None if the user is gone."""
     if user is None:
         return None
-    return user.display_name or user.name
+    return user.name
