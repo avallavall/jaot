@@ -1,33 +1,38 @@
 import { test, expect } from "@playwright/test";
+import fs from "fs";
+import path from "path";
 
 /**
  * Multi-Language Translation Verification
  *
  * Tests that all 4 non-English locales render translated content,
  * not English fallback text, and that SEO/i18n plumbing works.
- * (Pricing checks removed — the pricing page died with ADR-008;
- * hero copy tracks the post-fusion "Build, Use, or Automate".)
+ *
+ * The expected words come from the message files. The hero was rewritten in
+ * August ("Routes, shifts and budgets,") and this spec kept looking for the old
+ * "Build, Use, or Automate" in every language, so it failed on a page that was
+ * correctly translated.
  */
 
 const ALL_LOCALES = ["es", "ca", "fr", "de"] as const;
 
-/** Expected translated "Sign In" nav text for each locale */
-const SIGN_IN: Record<string, string> = {
-  es: "Iniciar sesión",
-  ca: "Iniciar sessió",
-  fr: "Se Connecter",
-  de: "Anmelden",
-};
+type Messages = { public: { hero: { titleLine1: string }; nav: { signIn: string } } };
+function messages(locale: string): Messages {
+  const file = path.join(__dirname, "..", "messages", `${locale}.json`);
+  return JSON.parse(fs.readFileSync(file, "utf-8")) as Messages;
+}
 
-/** Expected translated hero line 1 for each locale */
-const HERO_LINE1: Record<string, string> = {
-  es: "Crea, usa o automatiza",
-  ca: "Crea, usa o automatitza",
-  fr: "Construis, Utilise ou Automatise",
-  de: "Erstellen, nutzen oder automatisieren",
-};
+/** Translated "Sign In" nav text for each locale */
+const SIGN_IN: Record<string, string> = Object.fromEntries(
+  ALL_LOCALES.map((l) => [l, messages(l).public.nav.signIn]),
+);
 
-const HERO_LINE1_EN = "Build, Use, or Automate";
+/** Translated hero line 1 for each locale */
+const HERO_LINE1: Record<string, string> = Object.fromEntries(
+  ALL_LOCALES.map((l) => [l, messages(l).public.hero.titleLine1]),
+);
+
+const HERO_LINE1_EN = messages("en").public.hero.titleLine1;
 
 test.describe("Multi-Language Translations", () => {
   test.describe("Homepage renders translated content for all 4 locales", () => {
