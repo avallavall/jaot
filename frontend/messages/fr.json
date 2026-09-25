@@ -3141,7 +3141,7 @@
       "goToRunHistory": "Aller à l'historique"
     },
     "favorites": {
-      "title": "Mes modèles",
+      "title": "Favoris",
       "subtitle": "Vos favoris et modèles récemment utilisés",
       "favoritesTab": "Favoris ({count})",
       "recentTab": "Récents ({count})",

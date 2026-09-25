@@ -97,6 +97,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The copy-link, remove-member and revoke-invite buttons had no name** for screen readers.
 - **Signing out put the page you were on into the login address**, so the next person to sign in on that browser landed on it.
 - **"Create Key" with an empty name did nothing.** It now asks for a name.
+- **"Health" in the studio's "Model at a glance" read "—" on every model**, while the Analyze tab showed its grade. It now shows the grade.
+- **The Favorites page was titled "My Models"**, the name of the studio's model list. It is now "Favorites".
+- **The old `/solve/<model>/publish` address opened the Build tab.** It now opens the studio's publish page.
 
 ## [3.10.0] - 2026-09-24
 

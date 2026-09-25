@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { api } from "@/lib/api";
+import type { ModelHealth } from "@/lib/types";
 import { useModelProjectStore } from "./store/useModelProjectStore";
 import { selectModelStats } from "./store/stats";
 
 /**
  * Persistent right rail — the model "at a glance", live from the canonical store.
- * Health is wired to the backend ModelStatsService (health score) in P1.
+ * Health comes from the backend ModelStatsService, like the Analyze tab's card.
  */
 export function LiveStatsPanel() {
   const t = useTranslations("studio");
@@ -16,6 +18,29 @@ export function LiveStatsPanel() {
   const hasDslSource = useModelProjectStore((s) => s.draftDslSource.trim().length > 0);
   const activeDataset = useModelProjectStore((s) => s.activeDataset);
   const stats = useMemo(() => selectModelStats(problem), [problem]);
+  const modelId = useModelProjectStore((s) => s.modelId);
+  const saveState = useModelProjectStore((s) => s.saveState);
+  const [health, setHealth] = useState<ModelHealth | null>(null);
+  const isPersisted = !!modelId && modelId !== "new";
+
+  // The row said "—" on every model while the Analyze tab beside it showed a
+  // grade: nothing ever filled it in. It reads the persisted draft, so it is
+  // fetched once the project is loaded and again after each autosave.
+  useEffect(() => {
+    if (!isPersisted || !projectLoaded || saveState === "saving") return;
+    let cancelled = false;
+    api
+      .getModelStats(modelId)
+      .then((s) => {
+        if (!cancelled) setHealth(s.health ?? null);
+      })
+      .catch(() => {
+        /* the grade is an extra; the other rows still render */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [modelId, isPersisted, projectLoaded, saveState]);
 
   // A JModel source that only declares `set I; param w{I}; var x{I}` has no
   // variables until a dataset says what I is. The zero is true, and read next to
@@ -40,7 +65,7 @@ export function LiveStatsPanel() {
       label: t("statDensity"),
       value: hasMatrix && projectLoaded ? `${(stats.density * 100).toFixed(1)}%` : "—",
     },
-    { label: t("statHealth"), value: "—" },
+    { label: t("statHealth"), value: health ? `${health.band} · ${health.score}/100` : "—" },
   ];
 
   return (

@@ -3166,7 +3166,7 @@
       "goToRunHistory": "Go to run history"
     },
     "favorites": {
-      "title": "My Models",
+      "title": "Favorites",
       "subtitle": "Your favorites and recently used models",
       "favoritesTab": "Favorites ({count})",
       "recentTab": "Recent ({count})",

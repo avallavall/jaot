@@ -12,6 +12,12 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/es/solve/executions/exe_1848fe0a2b",
 }));
 
+// Breadcrumbs reads the active workspace's name for workspace pages. No
+// workspace is active on an execution page.
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ activeWorkspaceId: null, activeWorkspaceName: null }),
+}));
+
 import { Breadcrumbs, breadcrumbLabel } from "../Breadcrumbs";
 
 describe("breadcrumb labels", () => {

@@ -1,6 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
+
+// The panel asks the backend for the health grade. Most tests here are about
+// the other rows, so the default answer carries no grade.
+const { getModelStats } = vi.hoisted(() => ({
+  getModelStats: vi.fn().mockResolvedValue({ health: null }),
+}));
+vi.mock("@/lib/api", () => ({ api: { getModelStats } }));
 
 /**
  * A declaration-only JModel source (`set I; param w{I}; var x{I} binary`) has no
@@ -126,5 +133,46 @@ describe("Model at a glance, before the project has been read", () => {
     renderPanel((store) => store.getState().setProjectLoaded(true));
 
     expect(valueFor("studio.statVariables")).toBe("0");
+  });
+});
+
+/**
+ * "Health" read "—" on every model while the Analyze tab beside it showed a
+ * grade such as "A 100/100". Nothing ever filled the row in.
+ */
+describe("Model at a glance, health", () => {
+  function valueFor(label: string): string {
+    const row = screen.getByText(label).closest("div") as HTMLElement;
+    return row.querySelector("dd")?.textContent?.trim() ?? "";
+  }
+
+  beforeEach(() => {
+    getModelStats.mockClear();
+  });
+
+  it("shows the backend's grade once the project has loaded", async () => {
+    getModelStats.mockResolvedValue({
+      health: { score: 100, band: "A", deductions: [], has_hard_error: false },
+    });
+    renderPanel((store) => {
+      store.getState().setProjectLoaded(true);
+      store.getState().setProblem(GROUNDED, { source: "dsl" });
+    });
+
+    await waitFor(() => expect(valueFor("studio.statHealth")).toBe("A · 100/100"));
+    expect(getModelStats).toHaveBeenCalledWith("mp_1");
+  });
+
+  it("keeps the dash when the stats cannot be read", async () => {
+    getModelStats.mockRejectedValue(new Error("offline"));
+    renderPanel((store) => store.getState().setProjectLoaded(true));
+
+    await waitFor(() => expect(getModelStats).toHaveBeenCalled());
+    expect(valueFor("studio.statHealth")).toBe("—");
+  });
+
+  it("does not ask before the project has been read", () => {
+    renderPanel(() => {});
+    expect(getModelStats).not.toHaveBeenCalled();
   });
 });
