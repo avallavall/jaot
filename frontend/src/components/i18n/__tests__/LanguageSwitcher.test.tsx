@@ -5,8 +5,9 @@ import { LanguageSwitcher } from "../LanguageSwitcher";
 
 // Mock next-intl. The translator prints the values it was given, so a test can
 // see which language the button's name carries.
+const { current } = vi.hoisted(() => ({ current: { locale: "en" } }));
 vi.mock("next-intl", () => ({
-  useLocale: () => "en",
+  useLocale: () => current.locale,
   useTranslations: (namespace: string) => (key: string, values?: Record<string, unknown>) =>
     `${namespace}.${key}${values ? ` ${JSON.stringify(values)}` : ""}`,
 }));
@@ -14,6 +15,7 @@ vi.mock("next-intl", () => ({
 // Mock i18n navigation (avoid transitive next-intl/navigation loading)
 const mockReplace = vi.fn();
 vi.mock("@/i18n/navigation", () => ({
+  getPathname: ({ href, locale }: { href: string; locale: string }) => `/${locale}${href}`,
   usePathname: () => "/marketplace",
   useRouter: () => ({
     replace: mockReplace,
@@ -24,6 +26,7 @@ vi.mock("@/i18n/navigation", () => ({
 vi.mock("@/i18n/routing", () => ({
   routing: {
     locales: ["en", "es", "ca", "fr", "de"],
+    defaultLocale: "en",
   },
 }));
 
@@ -130,5 +133,35 @@ describe("LanguageSwitcher, what it keeps", () => {
     await pickSpanish();
 
     expect(mockReplace).toHaveBeenCalledWith("/marketplace", { locale: "es" });
+  });
+});
+
+/**
+ * Found driving the site (2026-09-25): on /de, picking English set the cookie,
+ * then the client router reused its cached "/" -> "/de" redirect and the page
+ * stayed German. Switching to the default language loads "/en/..." instead.
+ */
+describe("LanguageSwitcher, back to the default language", () => {
+  it("loads the page through the /en prefix, keeping query and hash", async () => {
+    current.locale = "de";
+    mockReplace.mockClear();
+    window.history.replaceState({}, "", "/de/marketplace?a=1#top");
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...original, assign, search: "?a=1", hash: "#top" },
+    });
+    try {
+      const user = userEvent.setup();
+      render(<LanguageSwitcher />);
+      await user.click(screen.getByRole("button"));
+      await user.click(screen.getByText("English"));
+      expect(assign).toHaveBeenCalledWith("/en/marketplace?a=1#top");
+      expect(mockReplace).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, "location", { configurable: true, value: original });
+      current.locale = "en";
+    }
   });
 });

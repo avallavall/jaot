@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { getPathname, usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -51,7 +51,18 @@ export function LanguageSwitcher({ onLocaleChange }: LanguageSwitcherProps) {
     // hash come off the address bar, which is where they still are.
     const search = typeof window === "undefined" ? "" : window.location.search;
     const hash = typeof window === "undefined" ? "" : window.location.hash;
-    router.replace(`${pathname}${search}${hash}`, { locale: newLocale });
+    if (newLocale === routing.defaultLocale && newLocale !== locale) {
+      // English has no prefix, so the client router went to "/..." and reused a
+      // redirect it had cached under the old cookie ("/" -> "/de"): switching
+      // from German to English stayed on German. A full load through "/en/..."
+      // lets the server store the new cookie and drop the prefix.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a full load is the point
+      window.location.assign(
+        `${getPathname({ href: pathname, locale: newLocale, forcePrefix: true })}${search}${hash}`,
+      );
+    } else {
+      router.replace(`${pathname}${search}${hash}`, { locale: newLocale });
+    }
     onLocaleChange?.(newLocale);
 
     // Fire-and-forget backend sync for authenticated users
