@@ -14,6 +14,7 @@ import { ORIGIN_KEYS, executionOriginHref } from "@/lib/execution-origin";
 import { EmptyState } from "@/components/guidance/EmptyState";
 import { useDateFormat } from "@/hooks/useDateFormat";
 import { MULTI_OBJECTIVE_STATUS } from "@/lib/multi-objective-run";
+import { completedWithoutPlan } from "@/lib/execution-outcome";
 
 // The filter goes to `?origin=`, which the backend matches against the origin
 // column — so `model_project` is left out: it is a source_kind, and offering it
@@ -101,6 +102,7 @@ export default function ExecutionsPage() {
         return "bg-blue-100 text-blue-800";
       case "pending":
         return "bg-yellow-100 text-yellow-800";
+      case "neutral":
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -214,7 +216,16 @@ export default function ExecutionsPage() {
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(exec.status)}`}>
+                    {/* The job's state. "Completed" with no plan is not painted
+                        as a success (see completedWithoutPlan). */}
+                    <span
+                      data-testid="execution-status-badge"
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        completedWithoutPlan(exec)
+                          ? getStatusColor("neutral")
+                          : getStatusColor(exec.status)
+                      }`}
+                    >
                       {statusLabel(exec.status)}
                     </span>
                   </td>
