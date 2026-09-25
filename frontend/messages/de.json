@@ -3314,6 +3314,10 @@
         "paretoFront": "Pareto-Front",
         "paretoSolutions": "Pareto-Lösungen:",
         "mode": "Modus:",
+        "modeName": {
+          "weighted": "Gewichtete Summe",
+          "epsilon": "Epsilon-Constraint"
+        },
         "pointNumber": "Punkt #{number}",
         "clickToHighlight": "Klicken Sie auf einen Punkt, um die entsprechende Zeile in der Tabelle unten hervorzuheben.",
         "clickToSelect": "Klicken Sie auf Punkte, um Kompromisse zu erkunden. Wählen Sie bis zu 2 Punkte zum Vergleichen.",

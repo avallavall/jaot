@@ -3314,6 +3314,10 @@
         "paretoFront": "Front de Pareto",
         "paretoSolutions": "Solutions de Pareto :",
         "mode": "Mode :",
+        "modeName": {
+          "weighted": "Somme pondérée",
+          "epsilon": "Epsilon-contrainte"
+        },
         "pointNumber": "Point n°{number}",
         "clickToHighlight": "Cliquez sur un point pour mettre en surbrillance la ligne correspondante dans le tableau ci-dessous.",
         "clickToSelect": "Cliquez sur les points pour explorer les compromis. Sélectionnez jusqu'à 2 points pour comparer.",

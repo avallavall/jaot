@@ -3311,9 +3311,13 @@
     },
     "charts": {
       "pareto": {
-        "paretoFront": "Pareto Front",
+        "paretoFront": "Frente de Pareto",
         "paretoSolutions": "Soluciones Pareto:",
         "mode": "Modo:",
+        "modeName": {
+          "weighted": "Suma ponderada",
+          "epsilon": "Epsilon-restricción"
+        },
         "pointNumber": "Punto #{number}",
         "clickToHighlight": "Haz clic en un punto para resaltar la fila correspondiente en la tabla de abajo.",
         "clickToSelect": "Haz clic en los puntos para explorar compensaciones. Selecciona hasta 2 puntos para comparar.",
@@ -3387,7 +3391,7 @@
     },
     "multiObjectiveConfig": {
       "solvingMode": "Modo de resolución",
-      "epsilonConstraint": "Epsilon Constraint",
+      "epsilonConstraint": "Epsilon-restricción",
       "weightedCombination": "Combinación ponderada",
       "epsilonDescription": "Método epsilon-constraint: restringe el objetivo 2 y barre límites.",
       "weightedDescription": "Suma ponderada: prueba n pesos repartidos por igual, desde todo en el objetivo 2 hasta todo en el objetivo 1. Antes, cada objetivo se escala por su rango en el frente.",

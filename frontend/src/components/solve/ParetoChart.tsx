@@ -272,7 +272,10 @@ export function ParetoChart({ result, axisPair = [0, 1] }: ParetoChartProps) {
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/40 rounded-md">
           <span className="text-muted-foreground">{t("mode")}</span>
-          <span className="font-semibold capitalize">{result.mode}</span>
+          {/* The raw value ("weighted") reached every locale in English. */}
+          <span className="font-semibold">
+            {t.has(`modeName.${result.mode}`) ? t(`modeName.${result.mode}`) : result.mode}
+          </span>
         </div>
       </div>
 

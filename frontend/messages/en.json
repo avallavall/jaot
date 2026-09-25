@@ -3351,6 +3351,10 @@
         "paretoFront": "Pareto Front",
         "paretoSolutions": "Pareto solutions:",
         "mode": "Mode:",
+        "modeName": {
+          "weighted": "Weighted sum",
+          "epsilon": "Epsilon-constraint"
+        },
         "pointNumber": "Point #{number}",
         "clickToHighlight": "Click a point to highlight the corresponding row in the table below.",
         "clickToSelect": "Click points to explore trade-offs. Select up to 2 points to compare.",

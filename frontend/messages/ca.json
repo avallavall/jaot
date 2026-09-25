@@ -3314,6 +3314,10 @@
         "paretoFront": "Front de Pareto",
         "paretoSolutions": "Solucions Pareto:",
         "mode": "Mode:",
+        "modeName": {
+          "weighted": "Suma ponderada",
+          "epsilon": "Epsilon-restricció"
+        },
         "pointNumber": "Punt #{number}",
         "clickToHighlight": "Feu clic en un punt per ressaltar la fila corresponent a la taula de sota.",
         "clickToSelect": "Feu clic als punts per explorar compromisos. Seleccioneu fins a 2 punts per comparar.",
