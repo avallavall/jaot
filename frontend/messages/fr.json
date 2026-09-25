@@ -2889,6 +2889,7 @@
       "category": "Catégorie",
       "tags": "Tags",
       "tagsPlaceholder": "optimisation, budget, planification (séparés par des virgules)",
+      "tagsHelp": "Jusqu'à {maxTags} tags, de {maxChars} caractères au plus chacun.",
       "publishToMarketplace": "Publier sur le marketplace",
       "publishing": "Publication...",
       "published": "Publié",
@@ -4794,7 +4795,9 @@
       },
       "projects": {
         "publish_needs_commit": "La publication épingle votre dernière version validée : la place de marché ne voit jamais votre brouillon de travail. Validez votre modèle dans l'espace de travail, puis revenez.",
-        "publish_needs_own_change": "Ce modèle a été adopté depuis la place de marché et n'a pas changé depuis. Validez une modification qui vous est propre, puis publiez-le comme votre fiche."
+        "publish_needs_own_change": "Ce modèle a été adopté depuis la place de marché et n'a pas changé depuis. Validez une modification qui vous est propre, puis publiez-le comme votre fiche.",
+        "publish_tag_too_long": "Le tag « {tag} » est trop long. Un tag peut avoir au plus {max} caractères.",
+        "publish_too_many_tags": "Une fiche peut avoir au plus {max} tags. Celle-ci en a {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "Le serveur ne peut pas joindre cette adresse de webhook : elle pointe vers {address}, une adresse privée, de loopback ou de lien local. Utilisez une URL publique.",

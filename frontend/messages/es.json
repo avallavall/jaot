@@ -2889,6 +2889,7 @@
       "category": "Categoría",
       "tags": "Etiquetas",
       "tagsPlaceholder": "optimización, presupuesto, planificación (separadas por comas)",
+      "tagsHelp": "Hasta {maxTags} etiquetas, de {maxChars} caracteres como máximo cada una.",
       "publishToMarketplace": "Publicar en el Marketplace",
       "publishing": "Publicando...",
       "published": "Publicado",
@@ -4794,7 +4795,9 @@
       },
       "projects": {
         "publish_needs_commit": "Al publicar se fija tu última versión commiteada: el marketplace nunca ve tu borrador de trabajo. Commitea el modelo en el espacio de trabajo y vuelve.",
-        "publish_needs_own_change": "Este modelo lo adoptaste del marketplace y no ha cambiado desde entonces. Commitea un cambio propio y publícalo como tu ficha."
+        "publish_needs_own_change": "Este modelo lo adoptaste del marketplace y no ha cambiado desde entonces. Commitea un cambio propio y publícalo como tu ficha.",
+        "publish_tag_too_long": "La etiqueta «{tag}» es demasiado larga. Una etiqueta puede tener como máximo {max} caracteres.",
+        "publish_too_many_tags": "Una ficha puede tener como máximo {max} etiquetas. Esta tiene {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "El servidor no puede llegar a esta dirección de webhook: apunta a {address}, una dirección privada, de loopback o de enlace local. Usa una URL pública.",

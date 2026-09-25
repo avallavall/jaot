@@ -62,7 +62,12 @@ from app.models.model_project import (
 )
 from app.models.optimization_model import ModelExecution
 from app.models.workspace import WorkspaceRole
-from app.schemas.model import ModelCatalogResponse, PublishModelRequest
+from app.schemas.model import (
+    MAX_TAG_CHARS,
+    MAX_TAGS,
+    ModelCatalogResponse,
+    PublishModelRequest,
+)
 from app.schemas.model_project import (
     CommitRequest,
     DatasetCreate,
@@ -462,6 +467,24 @@ def publish_model_project(
     listing pins HEAD, never the dirty draft).
     """
     project = _writable_project_or_404(db, project_id, org, user)
+    # Refused with a code, so the form can say which limit and in which language.
+    long_tag = body.tag_too_long()
+    if long_tag is not None:
+        shown = long_tag[:60]
+        raise CodedHTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code="projects.publish_tag_too_long",
+            params={"tag": shown, "max": MAX_TAG_CHARS},
+            detail=f"The tag '{shown}' is too long. A tag can have at most {MAX_TAG_CHARS} characters.",
+        )
+    if body.too_many_tags():
+        count = len(body.tags or [])
+        raise CodedHTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code="projects.publish_too_many_tags",
+            params={"max": MAX_TAGS, "count": count},
+            detail=f"A listing can have at most {MAX_TAGS} tags. This one has {count}.",
+        )
     try:
         listing = svc.publish_listing(db, project, author_org_id=org.id, req=body)
     except ProjectNotPublishableError as exc:

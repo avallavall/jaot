@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import StudioPublishPage from "../page";
 import { api } from "@/lib/api";
@@ -26,9 +26,10 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+const { showError } = vi.hoisted(() => ({ showError: vi.fn() }));
 vi.mock("@/components/ui/dialog-custom", () => ({
   useDialog: () => ({
-    showError: vi.fn(),
+    showError,
     showSuccess: vi.fn(),
     confirm: vi.fn().mockResolvedValue(true),
     DialogComponent: () => null,
@@ -148,5 +149,53 @@ describe("StudioPublishPage", () => {
       expect.objectContaining({ display_name: "My Model" })
     );
     await waitFor(() => expect(intlRouterPush).toHaveBeenCalledWith("/marketplace/mp_pub_1"));
+  });
+
+  // The form took a 60-character tag, which no marketplace card can show
+  // (found driving the marketplace, 2026-09-24). The server now refuses it
+  // with a code; the form says the limit and refuses first.
+  it("shows the tag limits under the tags field", async () => {
+    mockApi.getProject.mockResolvedValue(project() as never);
+    mockApi.getCatalogModel.mockRejectedValue(new Error("404"));
+
+    render(<StudioPublishPage />);
+
+    expect(await screen.findByLabelText("solve.publish.tags")).toHaveAccessibleDescription(
+      "solve.publish.tagsHelp",
+    );
+  });
+
+  it("refuses a tag past the limit before publishing", async () => {
+    mockApi.getProject.mockResolvedValue(project() as never);
+    mockApi.getCatalogModel.mockRejectedValue(new Error("404"));
+
+    render(<StudioPublishPage />);
+    const tagsField = await screen.findByLabelText("solve.publish.tags");
+    fireEvent.change(tagsField, {
+      target: { value: "planning, a tag that goes on for far longer than a card can show" },
+    });
+    screen.getByTestId("studio-publish-submit").click();
+
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledWith("errors.codes.projects.publish_tag_too_long"),
+    );
+    expect(mockApi.publishModel).not.toHaveBeenCalled();
+  });
+
+  it("sends each tag once, trimmed, with blanks dropped", async () => {
+    mockApi.getProject.mockResolvedValue(project() as never);
+    mockApi.getCatalogModel.mockRejectedValue(new Error("404"));
+    mockApi.publishModel.mockResolvedValue({ id: "mp_pub_1" } as never);
+
+    render(<StudioPublishPage />);
+    const tagsField = await screen.findByLabelText("solve.publish.tags");
+    fireEvent.change(tagsField, { target: { value: " routing, Routing , ,fleet" } });
+    screen.getByTestId("studio-publish-submit").click();
+
+    await waitFor(() => expect(mockApi.publishModel).toHaveBeenCalled());
+    expect(mockApi.publishModel).toHaveBeenCalledWith(
+      "mp_pub_1",
+      expect.objectContaining({ tags: ["routing", "fleet"] }),
+    );
   });
 });

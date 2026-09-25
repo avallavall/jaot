@@ -2889,6 +2889,7 @@
       "category": "Kategorie",
       "tags": "Tags",
       "tagsPlaceholder": "Optimierung, Budget, Planung (kommagetrennt)",
+      "tagsHelp": "Bis zu {maxTags} Tags, jeweils höchstens {maxChars} Zeichen.",
       "publishToMarketplace": "Im Marktplatz veröffentlichen",
       "publishing": "Wird veröffentlicht...",
       "published": "Veröffentlicht",
@@ -4794,7 +4795,9 @@
       },
       "projects": {
         "publish_needs_commit": "Beim Veröffentlichen wird deine zuletzt committete Version festgeschrieben. Den Arbeitsentwurf sieht der Marktplatz nie. Committe dein Modell im Arbeitsbereich und komm zurück.",
-        "publish_needs_own_change": "Dieses Modell stammt aus dem Marktplatz und hat sich seitdem nicht geändert. Committe eine eigene Änderung und veröffentliche es dann als deinen Eintrag."
+        "publish_needs_own_change": "Dieses Modell stammt aus dem Marktplatz und hat sich seitdem nicht geändert. Committe eine eigene Änderung und veröffentliche es dann als deinen Eintrag.",
+        "publish_tag_too_long": "Der Tag „{tag}“ ist zu lang. Ein Tag darf höchstens {max} Zeichen haben.",
+        "publish_too_many_tags": "Ein Eintrag darf höchstens {max} Tags haben. Dieser hat {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "Der Server erreicht diese Webhook-Adresse nicht: Sie zeigt auf {address}, eine private, Loopback- oder Link-Local-Adresse. Verwende eine öffentliche URL.",

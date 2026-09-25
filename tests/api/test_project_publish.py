@@ -173,6 +173,70 @@ class TestProjectPublish:
         assert res.status_code == 200, res.text
 
 
+class TestTagLimits:
+    """A tag is a word or two on a card, and a listing has a handful of them.
+
+    The publish form took a 60-character tag, and nothing on the server said
+    no (found driving the marketplace, 2026-09-24). The limits live on the
+    request schema and the route refuses with a code the form translates.
+    """
+
+    def test_a_tag_past_the_limit_is_refused_with_a_code(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        _committed_project(db_session, test_organization, test_user, pid="proj_tag_long")
+        long_tag = "a tag that goes on for far longer than any card can show"
+
+        res = authenticated_client.post(
+            "/api/v2/projects/proj_tag_long/publish",
+            json={**_BODY, "tags": ["routing", long_tag]},
+        )
+
+        assert res.status_code == 422, res.text
+        assert res.json()["code"] == "projects.publish_tag_too_long"
+        assert res.json()["params"] == {"tag": long_tag, "max": 30}
+        assert db_session.get(ModelProjectListing, "proj_tag_long") is None
+
+    def test_a_tag_at_the_limit_is_accepted(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        _committed_project(db_session, test_organization, test_user, pid="proj_tag_edge")
+
+        res = authenticated_client.post(
+            "/api/v2/projects/proj_tag_edge/publish", json={**_BODY, "tags": ["x" * 30]}
+        )
+
+        assert res.status_code == 200, res.text
+        assert res.json()["tags"] == ["x" * 30]
+
+    def test_too_many_tags_are_refused_with_a_code(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        _committed_project(db_session, test_organization, test_user, pid="proj_tag_many")
+
+        res = authenticated_client.post(
+            "/api/v2/projects/proj_tag_many/publish",
+            json={**_BODY, "tags": [f"tag{i}" for i in range(11)]},
+        )
+
+        assert res.status_code == 422, res.text
+        assert res.json()["code"] == "projects.publish_too_many_tags"
+        assert res.json()["params"] == {"max": 10, "count": 11}
+
+    def test_blank_and_repeated_tags_do_not_count(
+        self, authenticated_client, db_session, test_organization, test_user
+    ):
+        _committed_project(db_session, test_organization, test_user, pid="proj_tag_tidy")
+        tags = [" routing ", "Routing", "", "  ", *[f"tag{i}" for i in range(9)]]
+
+        res = authenticated_client.post(
+            "/api/v2/projects/proj_tag_tidy/publish", json={**_BODY, "tags": tags}
+        )
+
+        assert res.status_code == 200, res.text
+        assert res.json()["tags"] == ["routing", *[f"tag{i}" for i in range(9)]]
+
+
 class TestArchiveWithdrawsListing:
     """Archiving a published project takes its listing off the marketplace.
 

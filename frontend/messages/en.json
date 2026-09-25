@@ -2914,6 +2914,7 @@
       "category": "Category",
       "tags": "Tags",
       "tagsPlaceholder": "optimization, budget, planning (comma separated)",
+      "tagsHelp": "Up to {maxTags} tags, each up to {maxChars} characters.",
       "publishToMarketplace": "Publish to Marketplace",
       "publishing": "Publishing...",
       "published": "Published",
@@ -4794,7 +4795,9 @@
       },
       "projects": {
         "publish_needs_commit": "Publishing pins your latest committed version. The marketplace never sees your working draft. Commit your model in the workspace, then come back.",
-        "publish_needs_own_change": "This model was adopted from the marketplace and has not changed since. Commit a change of your own, then publish it as your listing."
+        "publish_needs_own_change": "This model was adopted from the marketplace and has not changed since. Commit a change of your own, then publish it as your listing.",
+        "publish_tag_too_long": "The tag \"{tag}\" is too long. A tag can have at most {max} characters.",
+        "publish_too_many_tags": "A listing can have at most {max} tags. This one has {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "This webhook address cannot be reached from the server: it resolves to {address}, a private, loopback or link-local address. Use a public URL.",

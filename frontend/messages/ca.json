@@ -2889,6 +2889,7 @@
       "category": "Categoria",
       "tags": "Etiquetes",
       "tagsPlaceholder": "optimització, pressupost, planificació (separades per comes)",
+      "tagsHelp": "Fins a {maxTags} etiquetes, de {maxChars} caràcters com a màxim cadascuna.",
       "publishToMarketplace": "Publicar al Marketplace",
       "publishing": "Publicant...",
       "published": "Publicat",
@@ -4794,7 +4795,9 @@
       },
       "projects": {
         "publish_needs_commit": "En publicar es fixa la teva darrera versió commitejada: el marketplace mai no veu el teu esborrany de treball. Commiteja el model a l'espai de treball i torna.",
-        "publish_needs_own_change": "Aquest model el vas adoptar del marketplace i no ha canviat des de llavors. Commiteja un canvi propi i publica'l com la teva fitxa."
+        "publish_needs_own_change": "Aquest model el vas adoptar del marketplace i no ha canviat des de llavors. Commiteja un canvi propi i publica'l com la teva fitxa.",
+        "publish_tag_too_long": "L'etiqueta «{tag}» és massa llarga. Una etiqueta pot tenir com a màxim {max} caràcters.",
+        "publish_too_many_tags": "Una fitxa pot tenir com a màxim {max} etiquetes. Aquesta en té {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "El servidor no pot arribar a aquesta adreça de webhook: apunta a {address}, una adreça privada, de loopback o d'enllaç local. Fes servir una URL pública.",

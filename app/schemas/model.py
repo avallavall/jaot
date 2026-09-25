@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class ModelCatalogResponse(BaseModel):
@@ -68,6 +68,11 @@ class ModelCatalogListResponse(BaseModel):
 # the longest text any listing carries today.
 MAX_SECTION_CHARS = 50_000
 MAX_DESCRIPTION_CHARS = 10_000
+# A tag is a word or two on a marketplace card and a search filter. The publish
+# form took a 60-character tag, which no card can show. The route refuses a
+# listing past these limits with a code, so the form can say which one.
+MAX_TAGS = 10
+MAX_TAG_CHARS = 30
 
 
 class PublishModelRequest(BaseModel):
@@ -77,7 +82,13 @@ class PublishModelRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=MAX_DESCRIPTION_CHARS)
     short_description: str | None = Field(None, max_length=500)
     category: str = "general"
-    tags: list[str] | None = None
+    tags: list[str] | None = Field(
+        None,
+        description=(
+            f"At most {MAX_TAGS} tags of at most {MAX_TAG_CHARS} characters each. "
+            "Blank and repeated tags are dropped."
+        ),
+    )
     is_public: bool = True
     # Rich description sections
     section_overview: str | None = Field(None, max_length=MAX_SECTION_CHARS)
@@ -85,6 +96,32 @@ class PublishModelRequest(BaseModel):
     section_how_it_works: str | None = Field(None, max_length=MAX_SECTION_CHARS)
     section_example_io: str | None = Field(None, max_length=MAX_SECTION_CHARS)
     section_changelog: str | None = Field(None, max_length=MAX_SECTION_CHARS)
+
+    @field_validator("tags")
+    @classmethod
+    def _tidy_tags(cls, tags: list[str] | None) -> list[str] | None:
+        """Trim each tag and drop blank and repeated ones, first spelling kept.
+
+        "a, a, " is one tag. Counting the blanks and repeats would refuse a
+        listing for tags nobody sees.
+        """
+        if tags is None:
+            return None
+        seen: set[str] = set()
+        tidy: list[str] = []
+        for tag in tags:
+            text = tag.strip()
+            if text and text.casefold() not in seen:
+                seen.add(text.casefold())
+                tidy.append(text)
+        return tidy
+
+    def tag_too_long(self) -> str | None:
+        """The first tag longer than ``MAX_TAG_CHARS``, or None."""
+        return next((t for t in self.tags or [] if len(t) > MAX_TAG_CHARS), None)
+
+    def too_many_tags(self) -> bool:
+        return len(self.tags or []) > MAX_TAGS
 
 
 class UpdateCatalogSectionsRequest(BaseModel):

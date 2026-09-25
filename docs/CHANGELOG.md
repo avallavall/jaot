@@ -108,6 +108,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **JModel errors about a dataset were English in every language**, such as "model grounds to zero variables". Fourteen more compile errors now come with a code, and the editor translates them.
 - **A JModel compile error said where it was as a character count**, such as "pos 712". The editor and the dataset import now say the line and the column.
 - **"Last run" under the Solve button showed a cell of a solver matrix as the model's last run**, while "Runs of this model" did not list matrix runs. Both now show only the model's own runs.
+- **The marketplace publish form accepted a tag of any length**, such as one of 60 characters. A listing now has at most 10 tags of at most 30 characters each, and the form says so. Blank and repeated tags are dropped.
 
 ## [3.10.0] - 2026-09-24
 
