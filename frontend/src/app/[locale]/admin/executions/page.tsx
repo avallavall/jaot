@@ -24,6 +24,7 @@ import { Activity, Clock, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 import { useLocale, useTranslations } from "next-intl";
 import { useDateFormat } from "@/hooks/useDateFormat";
+import { SOLVER_DISPLAY_NAMES, solverDisplayName } from "@/lib/solver-display";
 
 interface AdminExecution {
   id: string;
@@ -35,6 +36,7 @@ interface AdminExecution {
   organization_id: string | null;
   organization_name?: string | null;
   status: string;
+  solver_name?: string | null;
   execution_time_ms: number | null;
   created_at: string;
 }
@@ -63,6 +65,9 @@ export default function AdminExecutionsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Which solver ran is the first question about a run once there are five of
+  // them. The table had no column for it and no way to narrow to one.
+  const [solverFilter, setSolverFilter] = useState<string>("all");
   // Computed by the server over every execution the filters select. Averaging
   // the twenty rows on screen and printing the result beside the heading is
   // what made this page report 6.15 s for a platform whose real average was
@@ -72,7 +77,7 @@ export default function AdminExecutionsPage() {
   useEffect(() => {
     loadExecutions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter]);
+  }, [page, statusFilter, solverFilter]);
 
   const loadExecutions = async () => {
     setLoading(true);
@@ -83,6 +88,9 @@ export default function AdminExecutionsPage() {
       };
       if (statusFilter !== "all") {
         params.status = statusFilter;
+      }
+      if (solverFilter !== "all") {
+        params.solver = solverFilter;
       }
 
       const queryString = new URLSearchParams(
@@ -172,8 +180,14 @@ export default function AdminExecutionsPage() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-40" aria-label={tc("status")}>
             <SelectValue placeholder={tc("status")} />
           </SelectTrigger>
           <SelectContent>
@@ -182,6 +196,25 @@ export default function AdminExecutionsPage() {
             <SelectItem value="failed">{t("failed")}</SelectItem>
             <SelectItem value="running">{t("running")}</SelectItem>
             <SelectItem value="pending">{t("pending")}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={solverFilter}
+          onValueChange={(value) => {
+            setSolverFilter(value);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-40" aria-label={t("tableHeaders.solver")}>
+            <SelectValue placeholder={t("tableHeaders.solver")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allSolvers")}</SelectItem>
+            {Object.entries(SOLVER_DISPLAY_NAMES).map(([key, brand]) => (
+              <SelectItem key={key} value={key}>
+                {brand}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -194,6 +227,7 @@ export default function AdminExecutionsPage() {
                 <TableHead>{t("tableHeaders.id")}</TableHead>
                 <TableHead>{t("tableHeaders.model")}</TableHead>
                 <TableHead>{t("tableHeaders.organization")}</TableHead>
+                <TableHead>{t("tableHeaders.solver")}</TableHead>
                 <TableHead>{t("tableHeaders.status")}</TableHead>
                 <TableHead>{t("tableHeaders.duration")}</TableHead>
                 <TableHead>{t("tableHeaders.date")}</TableHead>
@@ -242,6 +276,13 @@ export default function AdminExecutionsPage() {
                       ) : (
                         // Guarded the same way the Model cell is: an id-less row
                         // must not build `/marketplace/authors/undefined`.
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {exec.solver_name ? (
+                        solverDisplayName(exec.solver_name)
+                      ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>

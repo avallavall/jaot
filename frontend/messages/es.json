@@ -2159,6 +2159,7 @@
       "totalExecutions": "Ejecuciones totales",
       "avgTime": "Tiempo medio",
       "allStatus": "Todos los estados",
+      "allSolvers": "Todos los solvers",
       "completed": "Completada",
       "failed": "Fallida",
       "running": "En curso",
@@ -2167,6 +2168,7 @@
         "id": "ID",
         "model": "Modelo",
         "organization": "Organización",
+        "solver": "Solver",
         "status": "Estado",
         "duration": "Duración",
         "date": "Fecha"
