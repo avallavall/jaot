@@ -34,6 +34,10 @@ export function SettingField({
 }: SettingFieldProps) {
   const t = useTranslations("admin.settings");
   const locale = useLocale();
+  // The label names the control through this id. Without it the switches had
+  // role=switch and no name, so a screen reader said "switch, off" and nothing
+  // about what it turns off.
+  const inputId = `setting-${entry.key}`;
 
   // Only worth showing when it differs from what the field already displays,
   // and never for secrets (the value is masked, so a default tells nothing).
@@ -48,6 +52,7 @@ export function SettingField({
     if (entry.is_secret) {
       return (
         <Input
+          id={inputId}
           value="****"
           disabled
           className="max-w-xs font-mono"
@@ -59,6 +64,7 @@ export function SettingField({
     if (entry.is_readonly) {
       return (
         <Input
+          id={inputId}
           value={value}
           disabled
           className="max-w-xs"
@@ -70,6 +76,7 @@ export function SettingField({
       case "bool":
         return (
           <Switch
+            id={inputId}
             checked={value === "true"}
             onCheckedChange={(checked) =>
               onChange(entry.key, checked ? "true" : "false")
@@ -83,6 +90,7 @@ export function SettingField({
         return (
           <div className="flex items-center gap-2 max-w-xs">
             <Input
+              id={inputId}
               type="number"
               value={value}
               min={entry.min_value ?? undefined}
@@ -102,6 +110,7 @@ export function SettingField({
       case "json":
         return (
           <Textarea
+            id={inputId}
             value={value}
             onChange={(e) => onChange(entry.key, e.target.value)}
             disabled={disabled}
@@ -114,6 +123,7 @@ export function SettingField({
       default:
         return (
           <Input
+            id={inputId}
             type="text"
             value={value}
             onChange={(e) => onChange(entry.key, e.target.value)}
@@ -127,7 +137,7 @@ export function SettingField({
   return (
     <div className="space-y-1.5 py-3 border-b border-border last:border-0">
       <div className="flex items-center gap-2">
-        <Label className="text-sm font-medium">
+        <Label htmlFor={inputId} className="text-sm font-medium">
           {isModified && (
             <span className="inline-block w-2 h-2 rounded-full bg-primary mr-1.5" />
           )}
