@@ -43,7 +43,7 @@ test.describe("Multi-Language Translations", () => {
 
         // Hero title line 1 should be translated
         const heroText = HERO_LINE1[locale];
-        await expect(page.getByText(heroText)).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByText(heroText).first()).toBeVisible({ timeout: 10_000 });
 
         // "Sign In" nav link should be translated
         const signInText = SIGN_IN[locale];
@@ -84,7 +84,7 @@ test.describe("Multi-Language Translations", () => {
       await expect(page).toHaveURL(/\/fr/);
 
       // French hero text should appear
-      await expect(page.getByText(HERO_LINE1.fr)).toBeVisible();
+      await expect(page.getByText(HERO_LINE1.fr).first()).toBeVisible();
     });
 
     test("Switch from German back to English removes prefix", async ({ page }) => {
@@ -107,7 +107,7 @@ test.describe("Multi-Language Translations", () => {
     for (const locale of spotCheckLocales) {
       test(`${locale}: no "Sign In" English fallback on homepage`, async ({ page }) => {
         await page.goto(`/${locale}`);
-        await expect(page.getByText(HERO_LINE1[locale])).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByText(HERO_LINE1[locale]).first()).toBeVisible({ timeout: 10_000 });
 
         // The exact English "Sign In" should not be present (case-sensitive exact match)
         const signInEn = page.getByText("Sign In", { exact: true });
