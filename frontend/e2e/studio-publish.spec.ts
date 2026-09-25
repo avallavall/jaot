@@ -114,7 +114,8 @@ test.describe("Studio — publish to marketplace", () => {
 
     await page.getByTestId("studio-publish-submit").click();
     // Publishing is deliberate: a confirm dialog guards the submit.
-    await page.getByRole("button", { name: "Accept" }).click();
+    // The confirm button says what it does ("Publish") since 149f01d9.
+    await page.getByRole("dialog").getByRole("button", { name: /^publish$/i }).click();
 
     // Success redirects to the new public listing — its id IS the project id.
     await page.waitForURL(new RegExp(`/marketplace/${projectId}`), { timeout: NAV });
@@ -140,7 +141,8 @@ test.describe("Studio — publish to marketplace", () => {
     // masking the redirect under test (and old bookmarks point at real models).
     const projectId = await createBlankProject(page);
     await page.goto(`/solve/${projectId}/publish`);
-    await expect(page).toHaveURL(new RegExp(`/studio/${projectId}/build`), {
+    // The studio has its own publish page; the old address opened the Build tab.
+    await expect(page).toHaveURL(new RegExp(`/studio/${projectId}/publish`), {
       timeout: 15_000,
     });
   });

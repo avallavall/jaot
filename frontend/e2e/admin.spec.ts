@@ -157,7 +157,9 @@ test.describe("Admin Dashboard", () => {
       const headerTexts = await headers.allTextContents();
       const joined = headerTexts.join(" ").toLowerCase();
       expect(joined).toContain("name");
-      expect(joined).toContain("plan");
+      // Plans went with billing (ADR-008).
+      expect(joined).toContain("users");
+      expect(joined).toContain("status");
     });
 
     test("organization page has search input", async ({ page }) => {

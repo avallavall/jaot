@@ -184,7 +184,7 @@ test.describe("Admin CRUD — Functional Tests", () => {
   // 3. Organizations table has real data
   // -------------------------------------------------------------------------
 
-  test("organizations table displays org names and plan names", async ({
+  test("organizations table displays org names and user counts", async ({
     page,
   }) => {
     const adminPage = new AdminPage(page);
@@ -195,12 +195,13 @@ test.describe("Admin CRUD — Functional Tests", () => {
     const table = page.getByRole("table");
     await expect(table).toBeVisible({ timeout: NAV_TIMEOUT });
 
-    // Verify column headers include "Name" and "Plan"
+    // Plans went with billing (ADR-008); the table lists name, users and status.
     const headers = page.getByRole("columnheader");
     const headerTexts = await headers.allTextContents();
     const joined = headerTexts.join(" ").toLowerCase();
     expect(joined, "Org table should have Name column").toContain("name");
-    expect(joined, "Org table should have Plan column").toContain("plan");
+    expect(joined, "Org table should have Users column").toContain("users");
+    expect(joined, "Org table should have Status column").toContain("status");
 
     // Verify table has at least one data row
     const rows = page.getByRole("row");
@@ -218,15 +219,6 @@ test.describe("Admin CRUD — Functional Tests", () => {
       nonEmptyCells.length,
       "Org table cells should contain non-empty data"
     ).toBeGreaterThan(0);
-
-    // Check for plan name indicators (free, starter, pro, enterprise, etc.)
-    const pageText = await page.locator("#main-content").textContent();
-    const hasPlanName =
-      /free|starter|pro|enterprise|business|team/i.test(pageText || "");
-    expect(
-      hasPlanName,
-      "Org table should show plan names (free, starter, pro, etc.)"
-    ).toBe(true);
   });
 
   // -------------------------------------------------------------------------

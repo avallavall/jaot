@@ -103,6 +103,9 @@ test("02 — Sensitivity tab: shadow prices + variable reduced costs", async ({ 
 });
 
 test("03 — AI explanation (best-effort, skipped when LLM unavailable)", async ({ page, request }) => {
+  // The wait below is 30 s, the same as the default test limit, so with no
+  // model configured the test timed out before it could mark itself skipped.
+  test.setTimeout(90_000);
   const executionId = await solveDemo(request);
   await page.goto(`/en/solve/executions/${executionId}`);
   await page.waitForLoadState("networkidle");
