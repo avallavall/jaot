@@ -2357,6 +2357,9 @@
       "defaultValue": "Standard: {value}"
     },
     "users": {
+      "deactivate": "Deaktivieren",
+      "deactivateTitle": "Benutzer deaktivieren",
+      "deactivateConfirm": "\"{name}\" kann sich nicht mehr anmelden. Ein Admin kann das Konto mit Bearbeiten wieder aktivieren.",
       "title": "Benutzer",
       "subtitle": "Alle Benutzer organisationsübergreifend verwalten",
       "newUser": "+ Neuer Benutzer",
@@ -2381,7 +2384,6 @@
       "active": "Aktiv",
       "inactive": "Inaktiv",
       "edit": "Bearbeiten",
-      "delete": "Löschen",
       "organizationLabel": "Organisation",
       "selectOrg": "Organisation auswählen...",
       "nameLabel": "Name",
@@ -2392,8 +2394,6 @@
       "activeLabel": "Aktiv",
       "create": "Erstellen",
       "saveChanges": "Änderungen speichern",
-      "deleteConfirm": "Sind Sie sicher, dass Sie Benutzer \"{name}\" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
-      "deleteTitle": "Benutzer löschen",
       "pageOf": "Seite {page} von {totalPages}",
       "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "loadError": "Laden fehlgeschlagen. Bitte erneut versuchen.",

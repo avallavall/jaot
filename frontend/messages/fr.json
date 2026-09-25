@@ -2357,6 +2357,9 @@
       "defaultValue": "Par défaut : {value}"
     },
     "users": {
+      "deactivate": "Désactiver",
+      "deactivateTitle": "Désactiver l'utilisateur",
+      "deactivateConfirm": "« {name} » ne pourra plus se connecter. Un administrateur peut réactiver le compte avec Modifier.",
       "title": "Utilisateurs",
       "subtitle": "Gérez tous les utilisateurs de toutes les organisations",
       "newUser": "+ Nouvel utilisateur",
@@ -2381,7 +2384,6 @@
       "active": "Actif",
       "inactive": "Inactif",
       "edit": "Modifier",
-      "delete": "Supprimer",
       "organizationLabel": "Organisation",
       "selectOrg": "Sélectionner l'organisation...",
       "nameLabel": "Nom",
@@ -2392,8 +2394,6 @@
       "activeLabel": "Actif",
       "create": "Créer",
       "saveChanges": "Enregistrer les modifications",
-      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer l'utilisateur « {name} » ? Cette action est irréversible.",
-      "deleteTitle": "Supprimer l'utilisateur",
       "pageOf": "Page {page} sur {totalPages}",
       "operationFailed": "L'opération a échoué. Veuillez réessayer.",
       "loadError": "Échec du chargement. Réessayez.",
