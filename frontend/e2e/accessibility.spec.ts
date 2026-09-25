@@ -18,13 +18,13 @@ const BLOCKING_IMPACTS = ["critical", "serious"] as const;
  * Returns the full results for debugging.
  */
 async function assertAccessible(page: import("@playwright/test").Page) {
-  // A run-completed toast that is still fading in has half-transparent colours
-  // (axe measured 1.15:1). Let it settle, with the pointer off it so it is not
-  // held open, and scan it in its final colours.
+  // Run-completed toasts from earlier specs' solves arrive on these pages. One
+  // fading in, or stacked behind another, is drawn half-transparent and axe
+  // measures the blend (1.15:1). The page is what is under test here, and the
+  // toast colours have their own fix, so let the toasts leave first, with the
+  // pointer off them (sonner keeps a hovered toast open).
   await page.mouse.move(0, 0);
-  if (await page.locator("[data-sonner-toast]").count()) {
-    await page.waitForTimeout(1_000);
-  }
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 20_000 });
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
