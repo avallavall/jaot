@@ -1266,7 +1266,7 @@
       "tosRequired": "Sie müssen den Nutzungsbedingungen und der Datenschutzerklärung zustimmen",
       "signupFailed": "Registrierung fehlgeschlagen",
       "registrationDisabled": "Die Registrierung ist derzeit geschlossen. Wir bereiten den Launch vor.",
-      "contactSupport": "Kontaktieren Sie support@jaot.io, wenn Sie frühzeitigen Zugang benötigen.",
+      "contactSupport": "<link>Kontaktieren Sie uns</link>, wenn Sie ein Konto benötigen.",
       "backToLogin": "Zurück zur Anmeldung",
       "inviteNotice": "Sie treten einem Team bei. Ihr Konto gehört zu der Organisation, die Sie eingeladen hat. Sie müssen also keine Organisation benennen.",
       "joinedWorkspace": "Konto erstellt. Sie sind dem Arbeitsbereich beigetreten."

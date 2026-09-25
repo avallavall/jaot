@@ -1266,7 +1266,7 @@
       "tosRequired": "You must agree to the Terms of Service and Privacy Policy",
       "signupFailed": "Signup failed",
       "registrationDisabled": "Registration is currently closed. We are preparing for launch.",
-      "contactSupport": "Contact support@jaot.io if you need early access.",
+      "contactSupport": "<link>Contact us</link> if you need an account.",
       "backToLogin": "Back to login",
       "inviteNotice": "You are joining a team. Your account will belong to the organization that invited you, so there is no organization to name.",
       "joinedWorkspace": "Account created. You have joined the workspace."

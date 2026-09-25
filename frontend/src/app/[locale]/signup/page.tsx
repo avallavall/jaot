@@ -184,14 +184,21 @@ export default function SignupPage() {
             <p className="text-muted-foreground">
               {t("signup.registrationDisabled")}
             </p>
+            {/* This named support@jaot.io, which is wrong on a self-hosted
+                instance. The site's own contact page reaches whoever runs it. */}
             <p className="text-sm text-muted-foreground">
-              {t("signup.contactSupport")}
+              {t.rich("signup.contactSupport", {
+                link: (chunks) => (
+                  <Link href="/contact" className="text-primary underline">
+                    {chunks}
+                  </Link>
+                ),
+              })}
             </p>
-            <Link href="/login">
-              <Button variant="outline" className="w-full">
-                {t("signup.backToLogin")}
-              </Button>
-            </Link>
+            {/* One element: a <button> inside the <a> is two nested controls. */}
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/login">{t("signup.backToLogin")}</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
