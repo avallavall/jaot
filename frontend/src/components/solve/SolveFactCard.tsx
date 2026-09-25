@@ -32,9 +32,11 @@ export function SolveFactCard({
 }: SolveFactCardProps) {
   const locale = useLocale();
   const t = useTranslations("solve.execution.summary");
-  const gapPct = gap != null ? `${(gap * 100).toFixed(2)}%` : "—";
+  // Gap and time were written with toFixed, so a Spanish page read "0.00%" and
+  // "0.00s" beside an objective of "9,5".
+  const gapPct = formatGap(gap, locale);
 
-  const { key, values } = headline(status, nodes, gap);
+  const { key, values } = headline(status, nodes, gap, locale);
 
   const fmtNum = (v: number | null | undefined, digits = 6): string =>
     v == null ? "—" : v.toLocaleString(locale, { maximumFractionDigits: digits });
@@ -52,7 +54,11 @@ export function SolveFactCard({
         <Metric label={t("iterations")} value={iterations != null ? fmtNum(iterations, 0) : "—"} />
         <Metric
           label={t("time")}
-          value={solveTimeSeconds != null ? `${solveTimeSeconds.toFixed(2)}s` : "—"}
+          value={
+            solveTimeSeconds != null
+              ? `${solveTimeSeconds.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} s`
+              : "—"
+          }
         />
       </div>
     </div>
@@ -61,12 +67,22 @@ export function SolveFactCard({
 
 /** Pick the honest headline. `nodes` drives the optimal case: absent (old rows /
  *  solvers that don't report it) degrades to the plain "optimal proven". */
+function formatGap(gap: number | null | undefined, locale: string): string {
+  if (gap == null) return "—";
+  return gap.toLocaleString(locale, {
+    style: "percent",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function headline(
   status: string | null | undefined,
   nodes: number | null | undefined,
   gap: number | null | undefined,
+  locale: string,
 ): { key: string; values: Record<string, string | number> } {
-  const gapPct = gap != null ? `${(gap * 100).toFixed(2)}%` : "—";
+  const gapPct = formatGap(gap, locale);
   switch (status) {
     case "time_limit":
       return { key: "headlineTimeLimit", values: { gap: gapPct } };

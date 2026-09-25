@@ -44,4 +44,20 @@ describe("a component", () => {
     expect(screen.getByText("12.345,678")).toBeInTheDocument();
     expect(screen.getByText("1.500")).toBeInTheDocument();
   });
+
+  // The gap and the time were written with toFixed: a Spanish page read
+  // "0.00%" and "0.00s" beside an objective of "9,5".
+  it("formats the gap and the time in the page's language too", async () => {
+    vi.resetModules();
+    vi.doMock("next-intl", () => ({
+      useLocale: () => "es",
+      useTranslations: () => (key: string) => key,
+    }));
+    const { SolveFactCard } = await import("@/components/solve/SolveFactCard");
+    render(
+      <SolveFactCard status="time_limit" objectiveValue={9.5} gap={0.0512} solveTimeSeconds={1.5} />,
+    );
+    expect(screen.getByText(/^5,12\s?%$/)).toBeInTheDocument();
+    expect(screen.getByText("1,50 s")).toBeInTheDocument();
+  });
 });

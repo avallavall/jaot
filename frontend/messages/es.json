@@ -3495,7 +3495,7 @@
       "value": "Valor",
       "lowerBound": "Límite inferior",
       "upperBound": "Límite superior",
-      "bindingStatus": "Binding",
+      "bindingStatus": "Activa",
       "slack": "Holgura",
       "nonZeroOnly": "Solo distintas de cero",
       "zerosHiddenNote": "{count, plural, one {# variable en cero oculta} other {# variables en cero ocultas}}",
