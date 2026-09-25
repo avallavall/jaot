@@ -75,6 +75,11 @@ export function DatasetsCard() {
   const { datasets, refresh } = useProjectDatasets(isPersisted ? modelId : null);
 
   const [editor, setEditor] = useState<EditorState | null>(null);
+  // One dialog instance per opening. Reopening while the last one was still
+  // fading out reused that instance, and its overlay ended up above the new
+  // content: Save could not be clicked. Found by the E2E suite, which clicks
+  // "New dataset" as soon as the saved row appears.
+  const [editorSession, setEditorSession] = useState(0);
   const [saving, setSaving] = useState(false);
   const [skeletonLoading, setSkeletonLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -144,6 +149,7 @@ export function DatasetsCard() {
 
   const openCreate = () => {
     setView("json");
+    setEditorSession((n) => n + 1);
     setEditor({ id: null, name: "", description: "", text: NEW_DATASET_TEMPLATE });
   };
 
@@ -152,6 +158,7 @@ export function DatasetsCard() {
       // The list is compact — fetch the full values on demand.
       const full = await api.getProjectDataset(modelId, row.id);
       setView("json");
+      setEditorSession((n) => n + 1);
       setEditor({
         id: full.id,
         name: full.name,
@@ -375,7 +382,11 @@ export function DatasetsCard() {
         </ul>
       )}
 
-      <Dialog open={editor !== null} onOpenChange={(open) => !open && setEditor(null)}>
+      <Dialog
+        key={editorSession}
+        open={editor !== null}
+        onOpenChange={(open) => !open && setEditor(null)}
+      >
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
