@@ -32,6 +32,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-09-25
+
 ### Added
 - **JAOS is a fifth solver.** JAOS is an open-source LP/MIP solver (Apache-2.0). It gives the same answer and does the same work on any machine and thread count. Pick it by name, or add it as a column in a solver comparison. Automatic selection never picks it.
 - **JAOS shows its progress while it solves**, as SCIP does: the best plan, the bound and the gap, live. A comparison draws its trace next to the other solvers'.
@@ -1060,7 +1062,8 @@ Full rewrite of the platform. The plugin-based system was replaced by a universa
 - Only 3.0.0 onwards is tagged in this repository — it is the first release published
   here — so the comparison links below start there.
 
-[Unreleased]: https://github.com/avallavall/jaot/compare/v3.10.0...HEAD
+[Unreleased]: https://github.com/avallavall/jaot/compare/v3.11.0...HEAD
+[3.11.0]: https://github.com/avallavall/jaot/compare/v3.10.0...v3.11.0
 [3.10.0]: https://github.com/avallavall/jaot/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/avallavall/jaot/compare/v3.8.0...v3.9.0
 [3.8.0]: https://github.com/avallavall/jaot/compare/v3.7.0...v3.8.0
