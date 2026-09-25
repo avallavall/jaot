@@ -9,14 +9,14 @@ trigger does today.
 Additive and reversible: the downgrade drops the column.
 
 Revision ID: 20260925_trigger_solver_name
-Revises: 20260924_drop_billing_tables
+Revises: 20260925_one_user_name
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "20260925_trigger_solver_name"
-down_revision = "20260924_drop_billing_tables"
+down_revision = "20260925_one_user_name"
 branch_labels = None
 depends_on = None
 
