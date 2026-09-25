@@ -82,15 +82,16 @@ test.describe("Multi-Objective Optimization", () => {
     await expect(epsilonBtn).toBeVisible();
     await expect(weightedBtn).toBeVisible();
 
-    // Switch to weighted mode — weight sliders should appear
+    // Weighted mode sweeps the weights on the server (2026-09-25): the weight
+    // sliders it used to show were never read, so they are gone. Both modes
+    // keep only the Pareto-points slider.
     await weightedBtn.click();
-
-    const sliderCount = await page.locator('input[type="range"]').count();
-    expect(sliderCount).toBeGreaterThanOrEqual(2);
+    await expect(weightedBtn).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('input[type="range"]')).toHaveCount(1);
 
     // Switch back to epsilon mode
     await epsilonBtn.click();
-
+    await expect(epsilonBtn).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator('input[type="range"]')).toHaveCount(1);
   });
 

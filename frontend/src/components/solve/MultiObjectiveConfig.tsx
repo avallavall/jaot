@@ -204,6 +204,8 @@ export function MultiObjectiveConfigForm({
           <button
             type="button"
             onClick={() => setMode("epsilon")}
+            // The colour was the only sign of the chosen mode.
+            aria-pressed={value.mode === "epsilon"}
             className={`flex-1 px-4 py-2 text-sm rounded-md border transition-colors ${
               value.mode === "epsilon"
                 ? "bg-primary text-primary-foreground border-primary"
@@ -215,6 +217,8 @@ export function MultiObjectiveConfigForm({
           <button
             type="button"
             onClick={() => setMode("weighted")}
+            // The colour was the only sign of the chosen mode.
+            aria-pressed={value.mode === "weighted"}
             className={`flex-1 px-4 py-2 text-sm rounded-md border transition-colors ${
               value.mode === "weighted"
                 ? "bg-primary text-primary-foreground border-primary"
