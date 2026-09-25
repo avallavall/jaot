@@ -58,10 +58,15 @@ class User(Base):
         String(100), nullable=True, unique=True, index=True
     )  # URL-friendly username
     # There is one name: `name`. "Display Name" on My Profile edits it. The
-    # `users.display_name` column is no longer mapped: the profile wrote it while
-    # the member list, the audit log and the export read `name`, so a rename
-    # showed in one place only. 20260925_one_user_name moved its values into
-    # `name`; a later release drops the column (TECH_DEBT D-37).
+    # profile used to write `users.display_name` while the member list, the audit
+    # log and the export read `name`, so a rename showed in one place only.
+    # 20260925_one_user_name moved its values into `name`. The column stays one
+    # release so the old image survives the deploy, and a later release drops it
+    # (TECH_DEBT D-37). It stays mapped under a name nothing should read, because
+    # a fresh install must hold exactly what the models map.
+    _retired_display_name: Mapped[str | None] = mapped_column(
+        "display_name", String(100), nullable=True
+    )
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     linkedin_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

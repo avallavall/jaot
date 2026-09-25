@@ -13,11 +13,13 @@ turned this file into 500 lines of post-mortem nobody could act on.
 
 The code reads and writes one name, `users.name` (2026-09-25). The migration
 `20260925_one_user_name` copied every display name into `name` and emptied the
-column, and the ORM no longer maps it. The column stays one release because
+column. The ORM maps it as `User._retired_display_name`, which nothing reads, so a
+fresh install still matches the models. The column stays one release because
 `deploy.sh` migrates while the previous API image still serves, and that image
 selects `users.display_name` on every authenticated request.
 
-**To close:** in the next release, a migration that drops the column. It is
+**To close:** in the next release, a migration that drops the column, and the
+`_retired_display_name` mapping with it. It is
 safe on the normal deploy path once no running image maps it. Take the usual
 backup: the down leg cannot restore the values.
 
