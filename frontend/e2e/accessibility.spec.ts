@@ -18,6 +18,13 @@ const BLOCKING_IMPACTS = ["critical", "serious"] as const;
  * Returns the full results for debugging.
  */
 async function assertAccessible(page: import("@playwright/test").Page) {
+  // A run-completed toast that is still fading in has half-transparent colours
+  // (axe measured 1.15:1). Let it settle, with the pointer off it so it is not
+  // held open, and scan it in its final colours.
+  await page.mouse.move(0, 0);
+  if (await page.locator("[data-sonner-toast]").count()) {
+    await page.waitForTimeout(1_000);
+  }
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();

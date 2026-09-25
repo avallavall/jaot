@@ -512,7 +512,9 @@ test.describe("Template Flow", () => {
     // the drawer also has an X icon labeled "Close results drawer")
     const closeButton = drawer.getByRole("button", { name: "Close", exact: true });
     // The bell's "Execution completed" toast sits bottom-right, over this button,
-    // for a few seconds after the run. Wait for it rather than click through it.
+    // for a few seconds after the run. Wait for it rather than click through it,
+    // with the pointer off it: sonner keeps a hovered toast open.
+    await page.mouse.move(0, 0);
     await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 20_000 });
     await closeButton.click();
 

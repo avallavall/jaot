@@ -106,7 +106,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **"What I Publish" cut off the model name and the actions at desktop width**, when a listing had a long description.
 - **The Pareto chart printed its method as "Weighted" in every language**, and the Spanish page titled it "Pareto Front" and "Epsilon Constraint".
 - **The execution page's solve summary wrote the gap and the time in English format** ("0.00%", "0.00s") on every page, and the Spanish solution explorer said "Binding".
-- **The unread count on the notification bell failed the WCAG AA contrast check** (white on light red, 3.8:1).
+- **The unread count on the notification bell and the coloured toasts failed the WCAG AA contrast check** (the bell white on light red 3.8:1, the green "Execution completed" 4.25:1, the orange warning about 3.1:1).
 - **Switching from another language back to English did nothing.** The page stayed in the other language. It now loads the English page.
 - **Opening "New dataset" right after saving one gave a dialog whose buttons could not be clicked.** The closing dialog's overlay stayed on top of the new one.
 - **A scenario that failed to launch said why in English in every language.** Its code sat inside the error detail, where the web client did not look.

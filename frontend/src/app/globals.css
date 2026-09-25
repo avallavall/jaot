@@ -483,6 +483,17 @@ html {
   }
 }
 
+/* Sonner's light rich colours fail WCAG AA for the 13 px toast text: success
+   4.25:1, info about 4.4:1, warning about 3.1:1 (the accessibility E2E spec
+   caught the green "Execution completed"). Same text hues, darker. Doubled
+   selector for the same injection-order reason as the rule above. */
+[data-sonner-toaster][data-sonner-toaster][data-sonner-theme="light"] {
+  --success-text: hsl(140, 100%, 21%);
+  --info-text: hsl(210, 92%, 38%);
+  --warning-text: hsl(31, 92%, 32%);
+  --error-text: hsl(360, 100%, 40%);
+}
+
 /* JModel notation on the landing page. Same ordering trap as sonner above:
    katex.min.css is imported from the component, so Next injects it AFTER the
    Tailwind utilities and any `[&_.katex]` arbitrary variant loses on order.
