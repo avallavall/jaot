@@ -598,6 +598,17 @@ async function request<T>(
             body.detail.message ||
             body.detail.error ||
             JSON.stringify(body.detail);
+          // Some routes (scenario solve, matrix launch) put the code inside the
+          // detail object. Without reading it here their refusals stayed English.
+          if (typeof body.detail.code === "string") {
+            code = body.detail.code;
+            params =
+              body.detail.params &&
+              typeof body.detail.params === "object" &&
+              !Array.isArray(body.detail.params)
+                ? (body.detail.params as Record<string, unknown>)
+                : undefined;
+          }
         } else {
           message = body.error || body.detail || body.message || message;
         }

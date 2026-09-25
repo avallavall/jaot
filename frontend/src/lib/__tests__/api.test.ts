@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { api } from "../api";
+import { api, ApiError } from "../api";
 
 // Helper to set up fetch mock
 function mockFetch(body: unknown, status = 200) {
@@ -49,6 +49,28 @@ describe("ApiClient", () => {
       mockFetch({ detail: "API key not found" }, 401);
 
       await expect(api.request("/api/v2/auth/me")).rejects.toThrow("API key not found");
+    });
+
+    // The scenario-solve and matrix routes put `code` inside `detail`. The client
+    // read only a top-level code, so those refusals stayed English everywhere.
+    it("reads a code that sits inside the detail object", async () => {
+      mockFetch(
+        {
+          detail: {
+            message: "Dataset 'Rota' does not fill the model",
+            code: "jmodel.dataset_unknown_param",
+            params: { name: "peso" },
+          },
+        },
+        422,
+      );
+
+      const err = (await api
+        .request("/api/v2/projects/mp_1/datasets/ds_1/solve")
+        .catch((e: unknown) => e)) as ApiError;
+      expect(err.code).toBe("jmodel.dataset_unknown_param");
+      expect(err.params).toEqual({ name: "peso" });
+      expect(err.message).toBe("Dataset 'Rota' does not fill the model");
     });
 
     it("throws generic HTTP error when backend returns no detail", async () => {

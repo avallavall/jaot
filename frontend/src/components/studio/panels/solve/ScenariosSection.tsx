@@ -8,7 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, translateApiError } from "@/lib/errors";
 import type { ProjectExecutionItem } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useModelProjectStore } from "../../store/useModelProjectStore";
@@ -68,6 +68,7 @@ function variableMap(result: unknown): Map<string, number> {
  */
 export function ScenariosSection({ solverName }: { solverName: string }) {
   const t = useTranslations("studio");
+  const tError = useTranslations("errors.codes");
   const modelId = useModelProjectStore((s) => s.modelId);
   const draftDslSource = useModelProjectStore((s) => s.draftDslSource);
   const projectLoaded = useModelProjectStore((s) => s.projectLoaded);
@@ -160,7 +161,14 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
         } catch (err: unknown) {
           // A 422 carries the structured compiler message (request() unwraps
           // detail.message); anything else falls back to the generic label.
-          failures[dsId] = getErrorMessage(err, t("scenariosLaunchFailed"));
+          // The row said the server's English ("Dataset 'Rota' does not fill…")
+          // in every language. The code names the failure; the English stays
+          // the fallback when a code has no words yet.
+          failures[dsId] = translateApiError(
+            err,
+            tError,
+            getErrorMessage(err, t("scenariosLaunchFailed")),
+          );
         } finally {
           setLaunchPhases((prev) => {
             const next = { ...prev };
