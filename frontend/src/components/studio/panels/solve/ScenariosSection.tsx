@@ -13,6 +13,7 @@ import type { ProjectExecutionItem } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useModelProjectStore } from "../../store/useModelProjectStore";
 import { useProjectDatasets } from "../../datasets/useProjectDatasets";
+import { solverDisplayName } from "@/lib/solver-display";
 
 const POLL_MS = 5000;
 const DIFF_ROW_CAP = 50;
@@ -382,7 +383,7 @@ export function ScenariosSection({ solverName }: { solverName: string }) {
                     {run?.execution_time_ms != null ? `${run.execution_time_ms}ms` : "—"}
                   </td>
                   <td className="py-2 text-muted-foreground">
-                    {run?.solver_name?.toUpperCase() ?? "—"}
+                    {run?.solver_name ? solverDisplayName(run.solver_name) : "—"}
                   </td>
                 </tr>
               );

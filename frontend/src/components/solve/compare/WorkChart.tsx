@@ -16,6 +16,7 @@ import type { ComparisonSolverResult } from "@/lib/types";
 
 import { type WorkPanel, workData } from "./work";
 import { pageLocale } from "@/lib/page-locale";
+import { solverDisplayName } from "@/lib/solver-display";
 
 /** Five tokens, five solvers, in the order the comparison ran them. */
 const CHART_COLORS = [
@@ -100,7 +101,7 @@ export function WorkChart({ results }: { results: ComparisonSolverResult[] }) {
         {data.omitted.map((omission) => (
           <p key={omission.solver}>
             {t(`charts.workOmitted.${omission.reason}`, {
-              solver: omission.solver.toUpperCase(),
+              solver: solverDisplayName(omission.solver),
             })}
           </p>
         ))}
@@ -136,7 +137,7 @@ function WorkPanelRow({
   return (
     <figure data-testid={`work-panel-${panel.solver}`}>
       <figcaption className="flex flex-wrap items-baseline gap-x-2 text-xs">
-        <span className="font-medium">{panel.solver.toUpperCase()}</span>
+        <span className="font-medium">{solverDisplayName(panel.solver)}</span>
         <span className="text-muted-foreground">
           {t("charts.workSummary", {
             work: whole(panel.total),
@@ -182,7 +183,7 @@ function WorkPanelRow({
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
             labelFormatter={(value) => seconds(Number(value))}
-            formatter={(value) => [`${whole(Number(value))} ${unit}`, panel.solver.toUpperCase()]}
+            formatter={(value) => [`${whole(Number(value))} ${unit}`, solverDisplayName(panel.solver)]}
           />
           {/* Straight segments, not a smoothed curve: nothing is known about
               what the solver did between two reports, and a spline would draw a

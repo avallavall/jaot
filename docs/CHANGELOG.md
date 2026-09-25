@@ -59,7 +59,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Admin settings showed raw key names as group headings**, such as "AUTH MAX" and "APP VERSION".
 - **An empty AI provider account never triggered the admin alert** that says to top it up: Anthropic's real reply was not recognised.
 - **Twelve industry guides in the docs showed a broken image.** They linked builder screenshots that were never added.
-- **The studio's solver matrix printed "HIGHS"** in its columns, checkboxes and summary lines. It now prints the brand names.
+- **The studio's solver matrix, the model's runs and scenarios, and the comparer's notes printed "HIGHS".** They now print the brand names.
 - **A trigger ignored the defaults of its override fields.** A field `solver` with the default `jaos` still ran on SCIP when a call left it out. Defaults now apply, and a required field with a default no longer has to be sent.
 - **Trigger runs lost the model they ran.** The executions list called the model "External" and the execution page said no model was behind the run. Trigger runs now link to the pinned model and version.
 - **The execution page said "triggered externally" for every run with no saved model**, Custom Solve included. It now says where the run came from: a trigger, Custom Solve, the API, MCP or a solver comparison. The executions list says "No saved model" instead of "External".

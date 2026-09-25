@@ -268,7 +268,7 @@ function OverrunNotice({ comparison }: { comparison: ComparisonDetail }) {
       {offenders.map(({ row, overrun }) => (
         <p key={row.solver_name}>
           {t("overrun.notice", {
-            solver: row.solver_name.toUpperCase(),
+            solver: solverDisplayName(row.solver_name),
             overrun: formatSeconds(overrun),
           })}
         </p>
@@ -321,7 +321,7 @@ function ClockDisagreementNotice({ comparison }: { comparison: ComparisonDetail 
       {affected.map(({ row, excess }) => (
         <p key={row.solver_name}>
           {t("clockDisagreement.notice", {
-            solver: row.solver_name.toUpperCase(),
+            solver: solverDisplayName(row.solver_name),
             excess: formatSeconds(excess),
           })}
         </p>

@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import type { ProjectExecutionItem } from "@/lib/types";
 import { apiDate, relativeTimeBase } from "@/lib/dates";
 import { useModelProjectStore } from "../../store/useModelProjectStore";
+import { solverDisplayName } from "@/lib/solver-display";
 
 const POLL_MS = 7000;
 const LIMIT = 15;
@@ -131,7 +132,7 @@ export function ProjectRunsCard() {
                   {run.execution_time_ms != null ? `${run.execution_time_ms}ms` : "—"}
                 </td>
                 <td className="py-2 text-muted-foreground">
-                  {run.solver_name?.toUpperCase() ?? "—"}
+                  {run.solver_name ? solverDisplayName(run.solver_name) : "—"}
                 </td>
               </tr>
             ))}

@@ -29,6 +29,7 @@ import {
   timeBars,
 } from "./comparison-charts";
 import { pageLocale } from "@/lib/page-locale";
+import { solverDisplayName } from "@/lib/solver-display";
 
 /** Row height plus room for the axis. Four solvers must not need a scrollbar. */
 function chartHeight(rows: number): number {
@@ -166,7 +167,7 @@ function BoundChart({ bars, omitted }: { bars: BoundBar[]; omitted: BoundOmissio
           {omitted.map((omission) => (
             <p key={omission.solver}>
               {t(`charts.boundOmitted.${omission.reason}`, {
-                solver: omission.solver.toUpperCase(),
+                solver: solverDisplayName(omission.solver),
               })}
             </p>
           ))}
