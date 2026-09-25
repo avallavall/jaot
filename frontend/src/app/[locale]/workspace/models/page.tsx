@@ -21,6 +21,9 @@ export default function AuthorModelsPage() {
   // An outage must not read as "you haven't published anything yet" — that is a
   // statement about the author's work, and it would be a false one.
   const [failed, setFailed] = useState(false);
+  // Bumped when a listing is withdrawn or published again, so the author
+  // checklist above the table loads its steps again.
+  const [listingChanges, setListingChanges] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +49,7 @@ export default function AuthorModelsPage() {
           )
         : rows,
     );
+    setListingChanges((n) => n + 1);
   };
 
   return (
@@ -55,7 +59,7 @@ export default function AuthorModelsPage() {
         <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
 
-      <AuthorOnboarding />
+      <AuthorOnboarding refreshKey={listingChanges} />
 
       <Tabs defaultValue="listings">
         <TabsList>
