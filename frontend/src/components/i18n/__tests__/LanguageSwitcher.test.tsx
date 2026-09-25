@@ -3,9 +3,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 
-// Mock next-intl useLocale
+// Mock next-intl. The translator prints the values it was given, so a test can
+// see which language the button's name carries.
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
+  useTranslations: (namespace: string) => (key: string, values?: Record<string, unknown>) =>
+    `${namespace}.${key}${values ? ` ${JSON.stringify(values)}` : ""}`,
 }));
 
 // Mock i18n navigation (avoid transitive next-intl/navigation loading)
@@ -40,6 +43,16 @@ describe("LanguageSwitcher", () => {
     const button = screen.getByRole("button");
     expect(button).toBeInTheDocument();
     expect(button.textContent).toContain("en");
+  });
+
+  // The button showed "EN" and nothing else, so a screen reader announced
+  // "EN, button" with no word saying what the button does.
+  it("names the button with what it is for and the current language", () => {
+    render(<LanguageSwitcher />);
+    const button = screen.getByRole("button");
+    expect(button).toHaveAccessibleName(
+      'common.languageSwitcher.label {"language":"English"}',
+    );
   });
 
   it("shows all 5 languages when dropdown is opened", async () => {

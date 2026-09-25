@@ -420,6 +420,9 @@
     "versionRestoreLabel": "Restaura la versió {version}"
   },
   "common": {
+    "languageSwitcher": {
+      "label": "Idioma: {language}"
+    },
     "loading": "Carregant...",
     "save": "Desar",
     "cancel": "Cancel·lar",

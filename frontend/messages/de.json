@@ -420,6 +420,9 @@
     "versionRestoreLabel": "Version {version} wiederherstellen"
   },
   "common": {
+    "languageSwitcher": {
+      "label": "Sprache: {language}"
+    },
     "loading": "Wird geladen...",
     "save": "Speichern",
     "cancel": "Abbrechen",

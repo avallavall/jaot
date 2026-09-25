@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +38,7 @@ interface LanguageSwitcherProps {
 
 export function LanguageSwitcher({ onLocaleChange }: LanguageSwitcherProps) {
   const locale = useLocale();
+  const t = useTranslations("common");
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -64,8 +65,15 @@ export function LanguageSwitcher({ onLocaleChange }: LanguageSwitcherProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1.5">
-          <Globe className="h-4 w-4" />
+        {/* The visible text is only the code ("EN"), which says nothing about
+            what the button does. The name says it and spells the language out. */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5"
+          aria-label={t("languageSwitcher.label", { language: LOCALE_NAMES[locale] ?? locale })}
+        >
+          <Globe className="h-4 w-4" aria-hidden="true" />
           <span className="text-xs uppercase">{locale}</span>
         </Button>
       </DropdownMenuTrigger>
