@@ -2739,6 +2739,7 @@
       "useInStudio": "Utiliser dans le studio"
     },
     "detail": {
+      "noReviewsOwnModel": "Aucun avis pour le moment.",
       "by": "par {author}",
       "verified": "Vérifié",
       "cancel": "Annuler",

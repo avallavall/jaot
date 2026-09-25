@@ -2739,6 +2739,7 @@
       "useInStudio": "Usa a l'estudi"
     },
     "detail": {
+      "noReviewsOwnModel": "Encara no hi ha ressenyes.",
       "by": "per {author}",
       "verified": "Verificat",
       "cancel": "Cancel·lar",
