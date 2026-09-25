@@ -147,6 +147,8 @@ export function VersionControls() {
         setConfirmDiscard(null);
         toast.success(t("versionRestored"));
       } catch (err: unknown) {
+        // The tab believed the draft was clean, and the server holds work it
+        // did not know about (saved before a reload, or from another tab).
         if ((err as { status?: number })?.status === 409) {
           setConfirmDiscard(versionId);
           return;
@@ -155,6 +157,21 @@ export function VersionControls() {
       }
     },
     [modelId, ws, storeApi, t]
+  );
+
+  // Ask before any request when this tab knows it holds uncommitted work. The
+  // page used to POST first and wait for the 409, which the browser logs as a
+  // red console error on every restore of a dirty draft. The 409 above stays
+  // as the fallback for work the tab cannot see.
+  const requestRestore = useCallback(
+    (versionId: string) => {
+      if (storeApi.getState().headDirty) {
+        setConfirmDiscard(versionId);
+        return;
+      }
+      void handleRestore(versionId);
+    },
+    [storeApi, handleRestore]
   );
 
   if (!isPersisted) return null;
@@ -207,7 +224,7 @@ export function VersionControls() {
         isOpen={historyOpen}
         refreshKey={counter}
         onClose={() => setHistoryOpen(false)}
-        onRestore={handleRestore}
+        onRestore={requestRestore}
       />
 
       <AlertDialog
