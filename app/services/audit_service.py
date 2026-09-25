@@ -80,7 +80,7 @@ def log_action(
         before_state: JSON snapshot of the entity's state before the action.
             Used for edit/delete actions to enable diff display.
         after_state: JSON snapshot of the entity's state after the action.
-        metadata: Additional context (e.g., credit amount for POOL_ALLOCATE,
+        metadata: Additional context (e.g., the role an invite grants,
             error message for failed solves, input params, etc.).
         actor_id_override: Explicit actor ID when no User object is available
             (e.g., trigger fire uses trigger.created_by).

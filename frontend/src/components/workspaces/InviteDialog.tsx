@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { translateApiError } from "@/lib/errors";
 import type { WorkspaceInvite, WorkspaceRole } from "@/lib/types";
+import { useRoleLabel } from "@/components/workspaces/PermissionTooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,8 +48,21 @@ function formatExpiry(dateStr: string, day: (v: string) => string): string {
   return day(dateStr);
 }
 
+/**
+ * The link to hand out, absolute.
+ *
+ * The API answers a path ("/join/<token>"). The dialog showed that path and put
+ * it on the clipboard as it was, so the person who received it had half a link.
+ * The page's own origin is the site the recipient must open.
+ */
+export function absoluteInviteLink(path: string, origin: string): string {
+  return new URL(path, origin).href;
+}
+
 export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) {
   const t = useTranslations("workspace.invite");
+  const tError = useTranslations("errors.codes");
+  const roleLabel = useRoleLabel();
   const { day } = useDateFormat();
   const [emailInput, setEmailInput] = useState("");
   const [emailRole, setEmailRole] = useState<WorkspaceRole>("solver");
@@ -61,19 +76,25 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
   const [invitesLoaded, setInvitesLoaded] = useState(false);
   const [loadingInvites, setLoadingInvites] = useState(false);
 
-  const loadInvites = async () => {
-    if (invitesLoaded) return;
+  // Read when the dialog opens, and again after a link is made. The list used
+  // to load once, on the first tab change, so a link generated a moment ago was
+  // not in it until the dialog was closed and opened again.
+  const loadInvites = useCallback(async () => {
     setLoadingInvites(true);
     try {
       const data = await api.listInvites(workspaceId);
       setPendingInvites(data.filter((i) => !i.is_revoked));
       setInvitesLoaded(true);
     } catch (err) {
-      console.warn('Failed to load invites:', err);
+      console.warn("Failed to load invites:", err);
     } finally {
       setLoadingInvites(false);
     }
-  };
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (open) void loadInvites();
+  }, [open, loadInvites]);
 
   const handleSendEmail = async () => {
     if (!emailInput.trim()) return;
@@ -86,8 +107,9 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
       toast.success(t("sentSuccess", { email: emailInput.trim() }));
       setEmailInput("");
       setPendingInvites((prev) => [...prev, invite]);
+      setInvitesLoaded(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("sendError"));
+      toast.error(translateApiError(err, tError, t("sendError")));
     } finally {
       setSendingEmail(false);
     }
@@ -97,11 +119,12 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
     setGeneratingLink(true);
     try {
       const result = await api.createLinkInvite(workspaceId, { role: linkRole });
-      setGeneratedLink(result.invite_url);
+      setGeneratedLink(absoluteInviteLink(result.invite_url, window.location.origin));
       setLinkExpiresAt(result.expires_at);
       toast.success(t("linkGenerated"));
+      void loadInvites();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("generateError"));
+      toast.error(translateApiError(err, tError, t("generateError")));
     } finally {
       setGeneratingLink(false);
     }
@@ -124,7 +147,7 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
       setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
       toast.success(t("revoked"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("revokeError"));
+      toast.error(translateApiError(err, tError, t("revokeError")));
     }
   };
 
@@ -139,7 +162,7 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
         </DialogHeader>
 
         <div>
-          <Tabs defaultValue="email" onValueChange={() => { if (!invitesLoaded) loadInvites(); }}>
+          <Tabs defaultValue="email">
             <TabsList className="mb-4">
               <TabsTrigger value="email">{t("emailInvite")}</TabsTrigger>
               <TabsTrigger value="link">{t("shareableLink")}</TabsTrigger>
@@ -202,8 +225,17 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
                   <Label htmlFor="invite-generated-link">{t("inviteLink")}</Label>
                   <div className="flex gap-2">
                     <Input id="invite-generated-link" value={generatedLink} readOnly className="font-mono text-xs" />
-                    <Button variant="outline" size="sm" onClick={handleCopyLink}>
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyLink}
+                      aria-label={t("copyLink")}
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4" aria-hidden="true" />
+                      ) : (
+                        <Copy className="w-4 h-4" aria-hidden="true" />
+                      )}
                     </Button>
                   </div>
                   {linkExpiresAt && (
@@ -236,13 +268,12 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
                     className="flex items-center justify-between gap-2 text-sm"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <Badge
-                        className={`${ROLE_COLORS[invite.role]} border-0 capitalize text-xs shrink-0`}
-                      >
-                        {invite.role}
+                      <Badge className={`${ROLE_COLORS[invite.role]} border-0 text-xs shrink-0`}>
+                        {roleLabel(invite.role)}
                       </Badge>
                       <span className="text-muted-foreground truncate">
-                        {invite.invitee_email ?? `Link \u2022 expires ${formatExpiry(invite.expires_at, day)}`}
+                        {invite.invitee_email ??
+                          t("linkPending", { date: formatExpiry(invite.expires_at, day) })}
                       </span>
                     </div>
                     <Button
@@ -250,9 +281,10 @@ export function InviteDialog({ workspaceId, open, onClose }: InviteDialogProps) 
                       size="sm"
                       onClick={() => handleRevoke(invite)}
                       className="text-muted-foreground hover:text-destructive h-6 w-6 p-0 shrink-0"
-                      title={t("revoked")}
+                      aria-label={t("revokeInvite")}
+                      title={t("revokeInvite")}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3 h-3" aria-hidden="true" />
                     </Button>
                   </div>
                 ))}

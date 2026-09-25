@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { ChevronRight, Home } from "lucide-react";
 import { routing } from "@/i18n/routing";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Segment-to-translation-key mapping for human-readable breadcrumb names.
@@ -87,6 +88,10 @@ export function Breadcrumbs() {
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("common");
+  // A workspace page's segment is the workspace id. It was printed capitalized,
+  // "Wks_3273a900…", in every locale. The page makes the workspace it shows the
+  // active one, so its name is known here.
+  const { activeWorkspaceId, activeWorkspaceName } = useAuth();
 
   // Split, remove empty segments, and filter out the locale prefix
   const locales: readonly string[] = routing.locales;
@@ -101,6 +106,9 @@ export function Breadcrumbs() {
   }
 
   const getLabel = (segment: string): string => {
+    if (activeWorkspaceName && segment === activeWorkspaceId) {
+      return activeWorkspaceName;
+    }
     const key = SEGMENT_KEYS[segment];
     if (key) {
       return t(key);

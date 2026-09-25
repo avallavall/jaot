@@ -124,6 +124,7 @@ _ALL_TABLES = [
     "trigger_runs",
     "trigger_schedules",
     "solve_triggers",
+    "workspace_removals",
     "workspace_invites",
     "workspace_members",
     "workspaces",

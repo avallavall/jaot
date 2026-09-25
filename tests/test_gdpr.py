@@ -245,7 +245,13 @@ class TestAccountDeletion:
             "/api/v2/user/account",
             json={"password": "WrongPassword!", "confirmation": "DELETE"},
         )
-        assert resp.status_code == 401
+        # CONTRACT-TEST: a wrong password is a refusal of the action, not of the
+        # session. A 401 made the web client refresh the session, send the DELETE
+        # a second time and show nothing (QA, 2026-09-25).
+        assert resp.status_code == 403
+        assert resp.json()["code"] == "account.wrong_password"
+        db_session.expire_all()
+        assert db_session.get(User, user.id) is not None
 
     def test_account_deletion_sole_member_deletes_org(self, client, db_session, mock_auth):
         """If user is sole org member, the org must be deleted too."""

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Building2, ChevronDown, ChevronRight, ScrollText } from "lucide-react";
 import Link from "next/link";
-import { ACTION_LABELS, getActionMeta } from "@/lib/audit-labels";
+import { AUDIT_ACTIONS, getActionMeta } from "@/lib/audit-labels";
 import { useDateFormat } from "@/hooks/useDateFormat";
 
 function formatTimestamp(
@@ -90,6 +90,7 @@ export default function AuditLogPage() {
   const isAdmin = usePermission("admin");
   const roleName = useRoleDisplayName();
   const t = useTranslations("workspace.audit");
+  const tActions = useTranslations("workspace.audit.actions");
   const { dayTime } = useDateFormat();
   const tc = useTranslations("common");
 
@@ -168,7 +169,7 @@ export default function AuditLogPage() {
           <h2 className="text-xl font-semibold mb-2">{t("noWorkspace")}</h2>
           {/* "Select a workspace" implies there is one to select. A member who
               belongs to none, and who cannot create one — the server answers
-              403, only the organisation owner may — learned that only after a
+              403, only the organization owner may — learned that only after a
               second click. Say it here. */}
           <p className="text-muted-foreground mb-6">
             {isOwner ? t("noWorkspaceDescription") : t("noWorkspaceForMember")}
@@ -211,9 +212,9 @@ export default function AuditLogPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all">{t("allActions")}</SelectItem>
-            {Object.keys(ACTION_LABELS).map((a) => (
+            {AUDIT_ACTIONS.map((a) => (
               <SelectItem key={a} value={a}>
-                {ACTION_LABELS[a].label}
+                {getActionMeta(a, tActions).label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -295,7 +296,7 @@ export default function AuditLogPage() {
             <tbody>
               {entries.map((entry) => {
                 const isExpanded = expandedIds.has(entry.id);
-                const actionMeta = getActionMeta(entry.action);
+                const actionMeta = getActionMeta(entry.action, tActions);
                 return (
                   <>
                     <tr

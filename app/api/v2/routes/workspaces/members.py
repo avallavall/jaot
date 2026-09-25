@@ -8,14 +8,18 @@ Routes mounted under /{workspace_id}/members/:
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
+from sqlalchemy.orm import load_only
 
 from app.api.deps import CurrentOrg, CurrentUser, DBSession, RequireAdmin, RequireViewer
 from app.models.audit_log import AuditAction
 from app.models.user import User
-from app.models.workspace import WorkspaceMember
+from app.models.workspace import WorkspaceMember, WorkspaceRemoval
 from app.schemas.workspace import MemberRoleUpdate, WorkspaceMemberResponse
 from app.services.audit_service import log_action
+from app.shared.core.http_errors import CodedHTTPException
+from app.shared.utils.datetime_helpers import utcnow
+from app.shared.utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
 
@@ -36,25 +40,51 @@ def _get_member_or_404(
         .first()
     )
     if not member:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Member not found in this workspace",
+            code="workspace.member_not_found",
         )
     return member
 
 
-def _member_to_response(db: DBSession, member: WorkspaceMember) -> WorkspaceMemberResponse:
-    """Build WorkspaceMemberResponse with denormalized user_name and user_email."""
-    user = db.query(User).filter(User.id == member.user_id).first()
-    return WorkspaceMemberResponse(
-        id=member.id,
-        user_id=member.user_id,
-        user_name=user.name if user else member.user_id,
-        user_email=user.email if user else "",
-        role=member.role,
-        joined_at=member.joined_at,
-        invited_by=member.invited_by,
+def _members_to_response(
+    db: DBSession, members: list[WorkspaceMember], owner_user_id: str | None
+) -> list[WorkspaceMemberResponse]:
+    """Build the member rows, with each user's name and email read in one query.
+
+    ``is_org_owner`` lets the page hide the role select and the remove button on
+    the owner's row. The server refuses both for the owner, so offering them
+    only produced an error.
+    """
+    user_ids = [m.user_id for m in members]
+    users = (
+        {
+            u.id: u
+            for u in db.query(User)
+            .options(load_only(User.id, User.name, User.email))
+            .filter(User.id.in_(user_ids))
+            .all()
+        }
+        if user_ids
+        else {}
     )
+    rows = []
+    for member in members:
+        user = users.get(member.user_id)
+        rows.append(
+            WorkspaceMemberResponse(
+                id=member.id,
+                user_id=member.user_id,
+                user_name=user.name if user else member.user_id,
+                user_email=user.email if user else "",
+                role=member.role,
+                joined_at=member.joined_at,
+                invited_by=member.invited_by,
+                is_org_owner=owner_user_id is not None and member.user_id == owner_user_id,
+            )
+        )
+    return rows
 
 
 @router.get(
@@ -77,7 +107,7 @@ def list_members(
         )
         .all()
     )
-    return [_member_to_response(db, m) for m in members]
+    return _members_to_response(db, members, getattr(org, "owner_user_id", None))
 
 
 @router.patch(
@@ -101,14 +131,16 @@ def update_member_role(
     - Cannot target the org owner (owner's access is managed at org level).
     """
     if user_id == user.id:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot change your own role. Ask another admin.",
+            code="workspace.own_role",
         )
     if getattr(org, "owner_user_id", None) == user_id:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot change the organization owner's workspace role",
+            code="workspace.owner_role",
         )
 
     member = _get_member_or_404(db, workspace_id, user_id, org.id)
@@ -139,7 +171,7 @@ def update_member_role(
         before_role,
         body.role,
     )
-    return _member_to_response(db, member)
+    return _members_to_response(db, [member], getattr(org, "owner_user_id", None))[0]
 
 
 @router.delete(
@@ -160,16 +192,21 @@ def remove_member(
     Restrictions:
     - Cannot remove the org owner.
     - Cannot remove yourself (admin must transfer admin role first).
+
+    The removal is recorded in ``workspace_removals``, so the invites the person
+    could still open (a link lives for 7 days) no longer let them back in.
     """
     if getattr(org, "owner_user_id", None) == user_id:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot remove the organization owner from a workspace",
+            code="workspace.owner_not_removable",
         )
     if user_id == user.id:
-        raise HTTPException(
+        raise CodedHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot remove yourself. Transfer admin role first.",
+            code="workspace.remove_self",
         )
 
     member = _get_member_or_404(db, workspace_id, user_id, org.id)
@@ -188,5 +225,36 @@ def remove_member(
     )
 
     db.delete(member)
+    _record_removal(db, workspace_id, user_id, org.id, removed_by=user.id)
     db.commit()
     logger.info("Removed user %s from workspace %s", user_id, workspace_id)
+
+
+def _record_removal(
+    db: DBSession, workspace_id: str, user_id: str, org_id: str, removed_by: str
+) -> None:
+    """Move the (workspace, user) removal time to now, creating the row if needed."""
+    now = utcnow()
+    removal = (
+        db.query(WorkspaceRemoval)
+        .filter(
+            WorkspaceRemoval.workspace_id == workspace_id,
+            WorkspaceRemoval.user_id == user_id,
+            WorkspaceRemoval.organization_id == org_id,
+        )
+        .first()
+    )
+    if removal is None:
+        db.add(
+            WorkspaceRemoval(
+                id=generate_id("wkr_"),
+                workspace_id=workspace_id,
+                user_id=user_id,
+                organization_id=org_id,
+                removed_by=removed_by,
+                removed_at=now,
+            )
+        )
+    else:
+        removal.removed_at = now
+        removal.removed_by = removed_by

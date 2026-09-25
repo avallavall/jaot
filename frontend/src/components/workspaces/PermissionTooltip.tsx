@@ -1,6 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
+import type { WorkspaceRole } from "@/lib/types";
 import {
   Tooltip,
   TooltipContent,
@@ -35,11 +37,21 @@ export function PermissionTooltip({ message, children, show }: PermissionTooltip
 }
 
 /**
+ * Hook that returns a function naming a workspace role in the reader's language.
+ *
+ * The role values are English words ("admin", "viewer"), and the member table,
+ * its badge and the role-change toast printed them as they came, in every locale.
+ */
+export function useRoleLabel(): (role: WorkspaceRole | null | undefined) => string {
+  const t = useTranslations("workspace.invite.roles");
+  return (role) => (role ? t(role) : t("member"));
+}
+
+/**
  * Hook that returns the display name for the current user's workspace role.
  * Falls back to "Member" if no role is set.
  */
 export function useRoleDisplayName(): string {
   const { workspaceRole } = useAuth();
-  if (!workspaceRole) return "Member";
-  return workspaceRole.charAt(0).toUpperCase() + workspaceRole.slice(1);
+  return useRoleLabel()(workspaceRole);
 }

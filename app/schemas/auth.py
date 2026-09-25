@@ -125,7 +125,9 @@ class EmailSignupRequest(BaseModel):
 
     email: NormalizedEmail
     name: str = Field(..., min_length=2)
-    organization_name: str = Field(..., min_length=2)
+    #: Required without an invite. With one, the account joins the organization
+    #: that sent it and no organization is created, so no name is asked for.
+    organization_name: str | None = Field(default=None, min_length=2)
     password: str = Field(..., min_length=12)
     confirm_password: str = Field(..., min_length=12)
 
@@ -141,11 +143,22 @@ class EmailSignupRequest(BaseModel):
     #: keyed off User.locale, and nothing else writes it at account creation —
     #: without this the whole translated email programme went out in English.
     locale: str | None = Field(default=None, max_length=10)
+    #: The token of the workspace invite the person followed to sign up. Signup
+    #: used to open a new organization every time, and accepting an invite
+    #: refuses an account of another organization, so an invited person with no
+    #: account could never join the team.
+    invite_token: str | None = Field(default=None, min_length=1, max_length=256)
 
     @model_validator(mode="after")
     def passwords_match(self) -> "EmailSignupRequest":
         if self.password != self.confirm_password:
             raise ValueError("Passwords do not match")
+        return self
+
+    @model_validator(mode="after")
+    def organization_or_invite(self) -> "EmailSignupRequest":
+        if self.invite_token is None and not self.organization_name:
+            raise ValueError("organization_name is required when signing up without an invite")
         return self
 
 
@@ -157,6 +170,8 @@ class EmailSignupResponse(BaseModel):
     api_key: str
     message: str
     email_verified: bool
+    #: Set when the signup redeemed an invite: the workspace the account joined.
+    joined_workspace_id: str | None = None
 
 
 class ForgotPasswordRequest(BaseModel):

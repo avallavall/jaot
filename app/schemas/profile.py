@@ -37,6 +37,7 @@ class UserPublicProfile(BaseModel):
 
     id: str
     name: str
+    #: Same value as ``name``. Kept so the clients that read it do not break.
     display_name: str | None = None
     slug: str | None = None
     bio: str | None = None
@@ -106,6 +107,7 @@ class UpdateUserProfileRequest(BaseModel):
     """Request to update user profile."""
 
     slug: str | None = Field(None, max_length=100)
+    #: Sets the user's name (``users.name``), the one shown everywhere.
     display_name: str | None = Field(None, max_length=100)
     bio: str | None = Field(None, max_length=500)
     avatar_url: str | None = Field(None, max_length=500)

@@ -154,3 +154,48 @@ class WorkspaceInvite(Base):
             f"<WorkspaceInvite(id={self.id!r}, workspace_id={self.workspace_id!r}, "
             f"method={self.method!r}, is_revoked={self.is_revoked})>"
         )
+
+
+class WorkspaceRemoval(Base):
+    """The last time a user was removed from a workspace.
+
+    A link invite can be used by many people for 7 days. The membership row is
+    deleted on removal, so without this record a removed member opened the same
+    link again and was back in, with the link's role. Accepting an invite that
+    was created before the removal is refused. A new invite, created after the
+    removal, still works: that is how an admin brings the person back.
+
+    One row per (workspace, user). A second removal moves ``removed_at`` forward.
+    """
+
+    __tablename__ = "workspace_removals"
+    __table_args__ = (UniqueConstraint("workspace_id", "user_id", name="uq_workspace_removal"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    removed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    removed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<WorkspaceRemoval(workspace_id={self.workspace_id!r}, "
+            f"user_id={self.user_id!r}, removed_at={self.removed_at!r})>"
+        )

@@ -15,6 +15,30 @@ export const RETURN_PARAM = "next";
 /** Query parameter that tells the login page a session ran out under the user. */
 export const EXPIRED_PARAM = "expired";
 
+/** Query parameter carrying a workspace invite token through signup. */
+export const INVITE_PARAM = "invite";
+
+/** The signup page for somebody who opened an invite link without an account. */
+export function signupPathForInvite(token: string): string {
+  return `/signup?${new URLSearchParams({ [INVITE_PARAM]: token })}`;
+}
+
+/**
+ * The invite token a signup page was opened with, if any.
+ *
+ * Two ways lead there: the invite page's "Create an account" (`?invite=<token>`)
+ * and the login page's "Sign up" link, which carries `?next=/join/<token>`.
+ * Both must end with the account inside the inviting organization.
+ */
+export function inviteTokenFrom(search: string): string | null {
+  const query = new URLSearchParams(search);
+  const direct = query.get(INVITE_PARAM);
+  if (direct) return direct;
+  const next = query.get(RETURN_PARAM);
+  const match = next ? /^\/join\/([^/?#]+)$/.exec(next) : null;
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 /** Where a signed-in user lands when there is nothing to return to. */
 export function defaultLandingPath(isAdmin: boolean | undefined): string {
   return isAdmin ? "/admin" : "/studio";

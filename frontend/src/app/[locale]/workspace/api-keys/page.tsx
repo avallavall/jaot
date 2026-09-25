@@ -41,6 +41,8 @@ export default function ClientAPIKeysPage() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
+  // "Create Key" with an empty name did nothing and said nothing.
+  const [nameError, setNameError] = useState(false);
   const [newKeyValue, setNewKeyValue] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
 
@@ -62,7 +64,10 @@ export default function ClientAPIKeysPage() {
   }, [loadKeys]);
 
   const handleCreate = async () => {
-    if (!newKeyName.trim()) return;
+    if (!newKeyName.trim()) {
+      setNameError(true);
+      return;
+    }
 
     try {
       const data = await api.createKey({ name: newKeyName });
@@ -84,6 +89,7 @@ export default function ClientAPIKeysPage() {
   const handleCloseNewKey = () => {
     setIsCreateOpen(false);
     setNewKeyName("");
+    setNameError(false);
     setNewKeyValue(null);
     setShowKey(false);
   };
@@ -241,9 +247,19 @@ export default function ClientAPIKeysPage() {
                 <Input
                   id="api-key-name"
                   value={newKeyName}
-                  onChange={(e) => setNewKeyName(e.target.value)}
+                  onChange={(e) => {
+                    setNewKeyName(e.target.value);
+                    setNameError(false);
+                  }}
                   placeholder={t("keyPlaceholder")}
+                  aria-invalid={nameError ? true : undefined}
+                  aria-describedby={nameError ? "api-key-name-error" : undefined}
                 />
+                {nameError && (
+                  <p id="api-key-name-error" role="alert" className="mt-1 text-sm text-destructive">
+                    {t("nameRequired")}
+                  </p>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleCreate} className="flex-1">

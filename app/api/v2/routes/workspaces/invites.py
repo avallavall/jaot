@@ -15,7 +15,6 @@ Token security:
   - Link invites are multi-use but idempotent per user
 """
 
-import hashlib
 import logging
 import secrets
 from datetime import timedelta
@@ -36,6 +35,13 @@ from app.schemas.workspace import (
     LinkInviteResponse,
 )
 from app.services.audit_service import log_action
+from app.services.workspace_invite_service import (
+    add_member_from_invite,
+    find_redeemable_invite,
+    hash_invite_token,
+    refuse_if_removed_since,
+    refuse_other_email,
+)
 from app.shared.core.http_errors import CodedHTTPException
 from app.shared.utils.datetime_helpers import utcnow
 from app.shared.utils.id_generator import generate_id
@@ -49,11 +55,6 @@ router = APIRouter()
 accept_router = APIRouter()
 
 _INVITE_EXPIRY_DAYS = 7
-
-
-def _hash_token(plaintext: str) -> str:
-    """Return SHA-256 hex digest of plaintext invite token."""
-    return hashlib.sha256(plaintext.encode()).hexdigest()
 
 
 def _invite_to_response(invite: WorkspaceInvite) -> InviteResponse:
@@ -97,7 +98,7 @@ def create_email_invite(
     workspace = get_workspace_or_404(db, workspace_id, org.id)
 
     plaintext = secrets.token_urlsafe(32)
-    token_hash = _hash_token(plaintext)
+    token_hash = hash_invite_token(plaintext)
     now = utcnow()
     expires_at = now + timedelta(days=_INVITE_EXPIRY_DAYS)
 
@@ -192,7 +193,7 @@ def create_link_invite(
     get_workspace_or_404(db, workspace_id, org.id)
 
     plaintext = secrets.token_urlsafe(32)
-    token_hash = _hash_token(plaintext)
+    token_hash = hash_invite_token(plaintext)
     now = utcnow()
     expires_at = now + timedelta(days=_INVITE_EXPIRY_DAYS)
 
@@ -271,72 +272,26 @@ def accept_invite(
     Email invites are single-use; link invites are multi-use but idempotent
     (second call by the same user is a no-op).
 
-    The user must already be authenticated (signed up and logged in).
+    The user must already be authenticated (signed up and logged in). A person
+    with no account creates one from the invite link instead: signup with an
+    ``invite_token`` puts the account in the inviting organization and redeems
+    the invite in the same request.
     """
-    token_hash = _hash_token(body.token)
-
-    invite = db.query(WorkspaceInvite).filter(WorkspaceInvite.token_hash == token_hash).first()
-
-    if not invite:
-        raise CodedHTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invite not found or invalid token",
-            code="invite.not_found",
-        )
-
-    if invite.is_revoked:
-        raise CodedHTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This invite has been revoked",
-            code="invite.revoked",
-        )
-
-    now = utcnow()
-    if invite.expires_at < now:
-        raise CodedHTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This invite has expired",
-            code="invite.expired",
-        )
-
-    # Email invite: single-use check
-    if invite.method == InviteMethod.EMAIL.value:
-        if invite.accepted_at is not None:
-            raise CodedHTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="This email invite has already been accepted",
-                code="invite.already_accepted",
-            )
-
-    # An email invite is for the address it was sent to. Otherwise anyone in the
-    # organization who got hold of the token joined with the invite's role.
-    if (
-        invite.method == InviteMethod.EMAIL.value
-        and (invite.invitee_email or "").strip().lower() != (user.email or "").strip().lower()
-    ):
-        raise CodedHTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                "This invite was sent to another email address. Sign in with that "
-                "address to accept it."
-            ),
-            code="invite.other_email",
-        )
+    invite = find_redeemable_invite(db, body.token)
+    refuse_other_email(invite, user.email)
 
     # A workspace lives inside one organization and an account belongs to one
     # organization, so an invite can only be accepted from inside the same one.
     # Without this the accept answered "Successfully joined workspace", wrote a
     # membership row that showed the outsider in the owner's member list, and
-    # then every call to that workspace answered 404 — both people misled. It is
-    # the path an invited person takes when they have no account yet: signing up
-    # opens an organization of their own.
+    # then every call to that workspace answered 404 — both people misled.
     if user.organization_id != invite.organization_id:
         raise CodedHTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                "This invite belongs to another organization's workspace. "
-                "Ask them to invite the account you are signed in with, or sign "
-                "in with an account of that organization."
+                "This invite belongs to another organization's workspace, and an "
+                "account belongs to one organization. Sign out and create a new "
+                "account from the invite link, with another email address."
             ),
             code="invite.other_organization",
         )
@@ -357,33 +312,8 @@ def accept_invite(
             role=existing.role,
         )
 
-    member = WorkspaceMember(
-        id=generate_id("wkm_"),
-        workspace_id=invite.workspace_id,
-        user_id=user.id,
-        organization_id=invite.organization_id,
-        role=invite.role,
-        invited_by=invite.created_by,
-        joined_at=now,
-    )
-    db.add(member)
-
-    # For email invites: mark as used
-    if invite.method == InviteMethod.EMAIL.value:
-        invite.accepted_at = now
-        invite.accepted_by = user.id
-
-    log_action(
-        db=db,
-        organization_id=invite.organization_id,
-        actor=user,
-        action=AuditAction.MEMBER_INVITE,
-        workspace_id=invite.workspace_id,
-        target_type="user",
-        target_id=user.id,
-        target_name=user.name,
-        metadata={"action": "accepted", "method": invite.method, "role": invite.role},
-    )
+    refuse_if_removed_since(db, invite, user.id)
+    add_member_from_invite(db, invite, user)
 
     try:
         db.commit()
@@ -469,6 +399,7 @@ def revoke_invite(
     workspace_id: str,
     invite_id: str,
     db: DBSession,
+    user: CurrentUser,
     org: CurrentOrg,
     _admin: RequireAdmin,
 ) -> None:
@@ -487,6 +418,18 @@ def revoke_invite(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Invite not found",
         )
-    invite.is_revoked = True
+    if not invite.is_revoked:
+        invite.is_revoked = True
+        log_action(
+            db=db,
+            organization_id=org.id,
+            actor=user,
+            action=AuditAction.INVITE_REVOKE,
+            workspace_id=workspace_id,
+            target_type="invite",
+            target_id=invite.id,
+            target_name=invite.invitee_email or f"link:{invite.role}",
+            metadata={"method": invite.method, "role": invite.role},
+        )
     db.commit()
     logger.info("Revoked invite %s in workspace %s", invite_id, workspace_id)

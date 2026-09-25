@@ -82,6 +82,8 @@ export default function WorkspaceDetailPage({ params }: WorkspaceDetailPageProps
         description: editDescription.trim() || undefined,
       });
       setWorkspace(updated);
+      // The breadcrumb and the header read the active workspace's name.
+      void setActiveWorkspace(workspaceId);
       toast.success(t("settingsSaved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("saveError"));

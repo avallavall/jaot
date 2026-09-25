@@ -69,7 +69,7 @@ function TestConsumer() {
       <span data-testid="user">{user?.name ?? "none"}</span>
       <span data-testid="session-ended">{sessionEnded ? "ended" : "intact"}</span>
       <button onClick={() => login("ok_test_key")}>Login</button>
-      <button onClick={logout}>Logout</button>
+      <button onClick={() => logout()}>Logout</button>
     </div>
   );
 }

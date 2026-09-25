@@ -13,6 +13,7 @@ from app.schemas.profile import (
     UserReviewResponse,
 )
 from app.services.marketplace_fusion import MARKETPLACE_VISIBLE
+from app.shared.core.http_errors import CodedHTTPException
 
 router = APIRouter(tags=["users"])
 
@@ -57,7 +58,8 @@ def get_user_public_profile(
     return UserPublicProfile(
         id=user.id,
         name=user.name,
-        display_name=user.display_name or user.name,
+        # Kept for the clients that read it. There is one name (see User.name).
+        display_name=user.name,
         slug=user.slug,
         bio=user.bio,
         avatar_url=user.avatar_url,
@@ -166,8 +168,18 @@ def update_user_profile(
 
     if body.slug is not None:
         user.slug = body.slug
+    # "Display Name" on My Profile is the person's name. It used to be written to
+    # a second column that only the profile page read, so the member list, the
+    # audit log, the public profile and the export kept the old name.
     if body.display_name is not None:
-        user.display_name = body.display_name
+        name = body.display_name.strip()
+        if not name:
+            raise CodedHTTPException(
+                status_code=422,
+                detail="The display name cannot be empty.",
+                code="profile.name_required",
+            )
+        user.name = name
     if body.bio is not None:
         user.bio = body.bio
     if body.avatar_url is not None:

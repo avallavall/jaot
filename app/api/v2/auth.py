@@ -35,6 +35,11 @@ from app.schemas.common import SuccessResponse
 from app.services.auth import APIKeyService, JWTService, PasswordService
 from app.services.auth.password_service import DUMMY_HASH
 from app.services.platform_settings_service import PlatformSettingsService as PSS
+from app.services.workspace_invite_service import (
+    add_member_from_invite,
+    find_redeemable_invite,
+    refuse_other_email,
+)
 from app.shared.core.http_errors import CodedHTTPException
 from app.shared.core.rate_limiter import check_rate_limit, check_rate_limit_hourly
 
@@ -424,19 +429,35 @@ def signup_email(
             detail="Email already registered",
         )
 
-    limits = PSS.get_instance_limits(db)
+    # Signing up from an invite link. The account is created INSIDE the
+    # organization that sent the invite, and the invite is redeemed in the same
+    # transaction. Signup used to open a new organization every time, and
+    # accepting refuses an account of another organization, so an invited person
+    # with no account could never join. The checks are the ones the accept
+    # route makes; a refused invite creates no account at all.
+    invite = None
+    if body.invite_token is not None:
+        invite = find_redeemable_invite(db, body.invite_token)
+        refuse_other_email(invite, body.email)
 
     password_hash = PasswordService.hash_password(body.password)
 
-    org_prefix = PSS.get_str(db, "ID_PREFIX_ORGANIZATION")
-    org_id = f"{org_prefix}{secrets.token_hex(8)}"
-    organization = Organization(
-        id=org_id,
-        name=body.organization_name,
-        rate_limit_per_minute=limits["rate_limit_per_minute"],
-        rate_limit_per_day=limits["rate_limit_per_day"],
-    )
-    db.add(organization)
+    if invite is not None:
+        organization = (
+            db.query(Organization).filter(Organization.id == invite.organization_id).one()
+        )
+        org_id = organization.id
+    else:
+        limits = PSS.get_instance_limits(db)
+        org_prefix = PSS.get_str(db, "ID_PREFIX_ORGANIZATION")
+        org_id = f"{org_prefix}{secrets.token_hex(8)}"
+        organization = Organization(
+            id=org_id,
+            name=body.organization_name,
+            rate_limit_per_minute=limits["rate_limit_per_minute"],
+            rate_limit_per_day=limits["rate_limit_per_day"],
+        )
+        db.add(organization)
 
     usr_prefix = PSS.get_str(db, "ID_PREFIX_USER")
     user_id = f"{usr_prefix}{secrets.token_hex(8)}"
@@ -457,9 +478,13 @@ def signup_email(
     db.add(user)
     db.flush()
 
-    # The signup creator owns the organization they just created. This is the
-    # ONLY ownership signal (OrgOwnerUser dep). It does NOT grant platform-admin.
-    organization.owner_user_id = user_id
+    if invite is not None:
+        # A plain member of the inviting organization, never its owner.
+        add_member_from_invite(db, invite, user)
+    else:
+        # The signup creator owns the organization they just created. This is the
+        # ONLY ownership signal (OrgOwnerUser dep). It does NOT grant platform-admin.
+        organization.owner_user_id = user_id
 
     api_key_model, plaintext_key = APIKeyService.create_api_key(
         db=db,
@@ -525,14 +550,15 @@ def signup_email(
             user_id=user_id,
             org_id=org_id,
             event_type=evt.USER_SIGNUP,
-            metadata={"method": "email"},
+            metadata={"method": "email", "invited": invite is not None},
         )
-        analytics.log_event(
-            user_id=user_id,
-            org_id=org_id,
-            event_type=evt.ORG_CREATE,
-            metadata={"org_name": organization.name},
-        )
+        if invite is None:
+            analytics.log_event(
+                user_id=user_id,
+                org_id=org_id,
+                event_type=evt.ORG_CREATE,
+                metadata={"org_name": organization.name},
+            )
     except Exception:
         logger.debug("Failed to log analytics event", exc_info=True)
 
@@ -545,6 +571,7 @@ def signup_email(
             "Please check your email to verify your address."
         ),
         "email_verified": False,
+        "joined_workspace_id": invite.workspace_id if invite is not None else None,
     }
     response = JSONResponse(content=response_data, status_code=201)
     _set_auth_cookies(response, access_token, refresh_token_str, db=db)

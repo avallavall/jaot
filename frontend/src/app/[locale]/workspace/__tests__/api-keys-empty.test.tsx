@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 
@@ -76,6 +76,28 @@ describe("API Keys EmptyState", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("workspace.apiKeys.keyName")).toBeInTheDocument();
     });
+  });
+
+  // "Create Key" with an empty name did nothing and said nothing (QA, 2026-09-25).
+  it("says a name is needed when Create Key is pressed without one", async () => {
+    const user = userEvent.setup();
+    render(<ClientAPIKeysPage />);
+    await user.click(
+      await screen.findByRole("button", { name: /workspace\.apiKeys\.createFirstKey/i }),
+    );
+    const input = await screen.findByLabelText("workspace.apiKeys.keyName");
+
+    const dialog = input.closest("[role='dialog']") as HTMLElement;
+    await user.click(
+      within(dialog).getByRole("button", { name: "workspace.apiKeys.createKey" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("workspace.apiKeys.nameRequired");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(mockCreateKey).not.toHaveBeenCalled();
+
+    await user.type(input, "CI key");
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("does not show EmptyState when keys exist", async () => {

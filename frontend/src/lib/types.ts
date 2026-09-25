@@ -1140,6 +1140,8 @@ export interface WorkspaceMember {
   role: WorkspaceRole;
   joined_at: string;
   invited_by: string | null;
+  /** The organization owner: the server refuses a role change or a removal. */
+  is_org_owner?: boolean;
 }
 
 export interface WorkspaceInvite {

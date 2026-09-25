@@ -22,9 +22,18 @@ class AuditAction(str, Enum):
     MODEL_PUBLISH = "model_publish"
     MODEL_UNPUBLISH = "model_unpublish"
     MEMBER_INVITE = "member_invite"
+    # Somebody used an invite and joined. It was logged as member_invite, so the
+    # log said "Member Invited" for the person who had just joined.
+    MEMBER_JOIN = "member_join"
     MEMBER_REMOVE = "member_remove"
     ROLE_CHANGE = "role_change"
-    POOL_ALLOCATE = "pool_allocate"
+    INVITE_REVOKE = "invite_revoke"
+    # API keys belong to a user, not to a workspace: these entries are
+    # organization-level (workspace_id is NULL).
+    API_KEY_CREATE = "api_key_create"
+    API_KEY_REVOKE = "api_key_revoke"
+    # POOL_ALLOCATE ("pool_allocate") was removed with the credit pools (ADR-008).
+    # Old rows keep the value and the log shows it by its raw name.
     WORKSPACE_CREATE = "workspace_create"
     WORKSPACE_UPDATE = "workspace_update"
     TRIGGER_CREATE = "trigger_create"

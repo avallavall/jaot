@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderRoute, routeParams } from "@/test/route";
 import { ApiError } from "@/lib/api";
 
@@ -35,7 +36,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
   };
 });
 
-const auth = { isAuthenticated: true, isLoading: false };
+const logout = vi.fn();
+const auth = { isAuthenticated: true, isLoading: false, logout };
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => auth,
 }));
@@ -50,6 +52,7 @@ describe("JoinPage", () => {
   beforeEach(() => {
     mockPush.mockClear();
     mockAcceptInvite.mockReset();
+    logout.mockReset();
     auth.isAuthenticated = true;
     auth.isLoading = false;
   });
@@ -63,12 +66,41 @@ describe("JoinPage", () => {
   });
 
   // CONTRACT-TEST: an anonymous visitor comes back to the invite after signing in
-  it("sends an anonymous visitor to sign in, and back to this invite", async () => {
+  it("offers an anonymous visitor to sign in, and back to this invite", async () => {
     auth.isAuthenticated = false;
     await render();
 
     expect(mockAcceptInvite).not.toHaveBeenCalled();
-    expect(mockPush).toHaveBeenCalledWith("/login?next=%2Fjoin%2Ftok_abc");
+    expect(screen.getByRole("link", { name: "auth.join.signIn" })).toHaveAttribute(
+      "href",
+      "/login?next=%2Fjoin%2Ftok_abc",
+    );
+  });
+
+  // CONTRACT-TEST: an invited person with no account can create one that joins.
+  // The page used to send everybody to /login, and signing up from there opened
+  // an organization of their own, which the invite then refused.
+  it("offers an anonymous visitor to create an account that carries the invite", async () => {
+    auth.isAuthenticated = false;
+    await render();
+
+    expect(screen.getByRole("link", { name: "auth.join.createAccount" })).toHaveAttribute(
+      "href",
+      "/signup?invite=tok_abc",
+    );
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("tells an account of another organization how to join, and offers it", async () => {
+    mockAcceptInvite.mockRejectedValue(
+      new ApiError(403, "Other organization", undefined, "invite.other_organization"),
+    );
+    await render();
+
+    const message = await screen.findByTestId("join-error-message");
+    expect(message).toHaveTextContent("errors.codes.invite.other_organization");
+    await userEvent.click(screen.getByRole("button", { name: "auth.join.signOutAndCreate" }));
+    expect(logout).toHaveBeenCalledWith("/signup?invite=tok_abc");
   });
 
   it("waits while the session is still resolving", async () => {

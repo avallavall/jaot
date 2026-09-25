@@ -3,8 +3,10 @@ import {
   EXPIRED_PARAM,
   RETURN_PARAM,
   defaultLandingPath,
+  inviteTokenFrom,
   loginPathReturningTo,
   safeReturnPath,
+  signupPathForInvite,
 } from "../return-path";
 
 describe("safeReturnPath", () => {
@@ -71,5 +73,25 @@ describe("defaultLandingPath", () => {
     expect(defaultLandingPath(true)).toBe("/admin");
     expect(defaultLandingPath(false)).toBe("/studio");
     expect(defaultLandingPath(undefined)).toBe("/studio");
+  });
+});
+
+describe("the invite through signup", () => {
+  it("builds the signup path that carries an invite", () => {
+    expect(signupPathForInvite("tok_abc")).toBe("/signup?invite=tok_abc");
+  });
+
+  it("reads the invite from the invite page's link", () => {
+    expect(inviteTokenFrom("?invite=tok_abc")).toBe("tok_abc");
+  });
+
+  it("reads the invite from the login page's sign-up link", () => {
+    expect(inviteTokenFrom(`?${RETURN_PARAM}=%2Fjoin%2Ftok_abc`)).toBe("tok_abc");
+  });
+
+  it("finds no invite in any other destination", () => {
+    expect(inviteTokenFrom(`?${RETURN_PARAM}=%2Fworkspace`)).toBeNull();
+    expect(inviteTokenFrom(`?${RETURN_PARAM}=%2Fjoin%2Ftok%2Fextra`)).toBeNull();
+    expect(inviteTokenFrom("")).toBeNull();
   });
 });

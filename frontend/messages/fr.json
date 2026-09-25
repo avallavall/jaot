@@ -1257,7 +1257,9 @@
       "signupFailed": "Échec de l'inscription",
       "registrationDisabled": "Les inscriptions sont temporairement fermées. Nous préparons le lancement.",
       "contactSupport": "Contactez support@jaot.io si vous avez besoin d'un accès anticipé.",
-      "backToLogin": "Retour à la connexion"
+      "backToLogin": "Retour à la connexion",
+      "inviteNotice": "Vous rejoignez une équipe. Votre compte appartiendra à l'organisation qui vous a invité, il n'y a donc pas d'organisation à nommer.",
+      "joinedWorkspace": "Compte créé. Vous avez rejoint l'espace de travail."
     },
     "passwordStrength": {
       "weak": "Faible",
@@ -1310,7 +1312,6 @@
     "join": {
       "processing": "Traitement de votre invitation...",
       "accepting": "Acceptation de l'invitation...",
-      "signInToAccept": "Connectez-vous pour accepter l'invitation à l'espace de travail",
       "successTitle": "Vous y êtes !",
       "successMessage": "Vous avez rejoint l'espace de travail avec succès. Vous pouvez maintenant collaborer avec votre équipe.",
       "goToWorkspaces": "Aller aux Espaces de Travail",
@@ -1318,7 +1319,11 @@
       "errorMessage": "Ce lien d'invitation a peut-être expiré, été révoqué ou déjà utilisé.",
       "goToDashboard": "Aller au Tableau de Bord",
       "signIn": "Se Connecter",
-      "acceptFailed": "Échec de l'acceptation de l'invitation"
+      "acceptFailed": "Échec de l'acceptation de l'invitation",
+      "invitedTitle": "Vous avez été invité dans un espace de travail",
+      "invitedMessage": "Nouveau sur JAOT ? Créez un compte : il rejoint l'équipe qui vous a invité. Si vous avez déjà un compte dans cette organisation, connectez-vous.",
+      "createAccount": "Créer un compte",
+      "signOutAndCreate": "Se déconnecter et créer un compte"
     },
     "emailBanner": {
       "message": "Veuillez vérifier votre adresse e-mail. Vérifiez votre boîte de réception pour le lien de vérification."
@@ -1799,7 +1804,8 @@
       "deleted": "Supprimée",
       "deletedMessage": "La clé API a été supprimée",
       "createError": "Échec de la création de la clé API",
-      "deleteError": "Échec de la suppression de la clé API"
+      "deleteError": "Échec de la suppression de la clé API",
+      "nameRequired": "Saisissez un nom pour la clé."
     },
     "audit": {
       "title": "Journal d'audit",
@@ -1832,7 +1838,28 @@
       "adminRequired": "Votre rôle ({role}) ne permet pas de consulter le journal d'audit. Demandez le rôle Admin à l'administrateur de l'espace de travail.",
       "loadError": "Échec du chargement du journal d'audit",
       "createWorkspace": "Créer un espace de travail",
-      "noWorkspaceForMember": "Vous n'êtes encore dans aucun espace de travail, et seul le propriétaire de l'organisation peut en créer un. Demandez-lui de vous inviter."
+      "noWorkspaceForMember": "Vous n'êtes encore dans aucun espace de travail, et seul le propriétaire de l'organisation peut en créer un. Demandez-lui de vous inviter.",
+      "actions": {
+        "solve": "Résolution exécutée",
+        "model_edit": "Modèle modifié",
+        "model_delete": "Modèle supprimé",
+        "model_publish": "Modèle publié",
+        "model_unpublish": "Modèle retiré",
+        "member_invite": "Membre invité",
+        "member_join": "Membre arrivé",
+        "member_remove": "Membre retiré",
+        "role_change": "Rôle modifié",
+        "invite_revoke": "Invitation révoquée",
+        "workspace_create": "Espace de travail créé",
+        "workspace_update": "Espace de travail mis à jour",
+        "trigger_create": "Déclencheur créé",
+        "trigger_update": "Déclencheur mis à jour",
+        "trigger_delete": "Déclencheur supprimé",
+        "trigger_fire": "Déclencheur exécuté",
+        "trigger_schedule_create": "Planification créée",
+        "trigger_schedule_update": "Planification mise à jour",
+        "trigger_schedule_delete": "Planification supprimée"
+      }
     },
     "myProfile": {
       "title": "Mon profil",
@@ -1990,7 +2017,8 @@
         "admin": "Administrateur",
         "editor": "Éditeur",
         "solver": "Solveur",
-        "viewer": "Lecteur"
+        "viewer": "Lecteur",
+        "member": "Membre"
       },
       "sentSuccess": "Invitation envoyée à {email}",
       "linkGenerated": "Lien d'invitation généré",
@@ -1998,7 +2026,10 @@
       "copyFailed": "Échec de la copie dans le presse-papiers",
       "sendError": "Échec de l'envoi de l'invitation",
       "generateError": "Échec de la génération du lien",
-      "revokeError": "Échec de la révocation de l'invitation"
+      "revokeError": "Échec de la révocation de l'invitation",
+      "linkPending": "Lien · expire le {date}",
+      "copyLink": "Copier le lien d'invitation",
+      "revokeInvite": "Révoquer cette invitation"
     },
     "memberTable": {
       "headers": {
@@ -2012,10 +2043,12 @@
       "removeMember": "Retirer le membre",
       "roleUpdated": "Le rôle de {name} a été mis à jour en {role}",
       "roleError": "Échec de la mise à jour du rôle",
-      "removeConfirm": "Retirer {name} de cet espace de travail ?",
+      "removeConfirm": "Retirer {name} de cet espace de travail ? Les liens d'invitation qu'il possède encore ne fonctionnent plus pour lui. Pour le faire revenir, envoyez-lui une nouvelle invitation.",
       "removeTitle": "Retirer un membre",
       "removed": "{name} a été retiré de l'espace de travail",
-      "removeError": "Échec du retrait du membre"
+      "removeError": "Échec du retrait du membre",
+      "removeMemberNamed": "Retirer {name}",
+      "roleOf": "Rôle de {name}"
     },
     "userPublicProfile": {
       "backToCatalog": "Retour au Marketplace",
@@ -4730,8 +4763,9 @@
         "revoked": "Cette invitation a été révoquée.",
         "expired": "Cette invitation a expiré. Demandez-en une nouvelle.",
         "already_accepted": "Cette invitation a déjà été utilisée.",
-        "other_organization": "Cette invitation concerne l'espace de travail d'une autre organisation. Connectez-vous avec un compte de cette organisation, ou demandez-leur d'inviter le compte que vous utilisez.",
-        "other_email": "Cette invitation a été envoyée à une autre adresse e-mail. Connectez-vous avec cette adresse pour l'accepter."
+        "other_organization": "Cette invitation concerne un espace de travail d'une autre organisation, et votre compte appartient à une organisation différente. Un compte appartient à une seule organisation. Pour rejoindre cette équipe, déconnectez-vous et créez un nouveau compte depuis cette invitation, avec une autre adresse e-mail.",
+        "other_email": "Cette invitation a été envoyée à une autre adresse e-mail. Connectez-vous avec cette adresse pour l'accepter.",
+        "removed_member": "Vous avez été retiré de cet espace de travail après la création de cette invitation, elle ne fonctionne donc plus pour vous. Demandez une nouvelle invitation à un administrateur de l'espace de travail."
       },
       "projects": {
         "publish_needs_commit": "La publication épingle votre dernière version validée : la place de marché ne voit jamais votre brouillon de travail. Validez votre modèle dans l'espace de travail, puis revenez.",
@@ -4778,6 +4812,19 @@
       "multi_objective": {
         "solver_no_quadratic": "{solver} ne peut pas résoudre un modèle avec des termes quadratiques. Choisissez SCIP ou Auto.",
         "solver_no_integer": "{solver} ne peut pas résoudre un modèle avec des variables entières. Choisissez un autre solveur."
+    },
+      "workspace": {
+        "member_not_found": "Cette personne n'est pas membre de cet espace de travail.",
+        "own_role": "Vous ne pouvez pas modifier votre propre rôle. Demandez à un autre administrateur.",
+        "owner_role": "Le rôle du propriétaire de l'organisation ne peut pas être modifié.",
+        "owner_not_removable": "Le propriétaire de l'organisation ne peut pas être retiré d'un espace de travail.",
+        "remove_self": "Vous ne pouvez pas vous retirer vous-même. Donnez d'abord le rôle d'administrateur à quelqu'un d'autre."
+      },
+      "account": {
+        "wrong_password": "Ce mot de passe n'est pas correct. Votre compte n'a pas été supprimé."
+      },
+      "profile": {
+        "name_required": "Le nom affiché ne peut pas être vide."
       }
     }
   },

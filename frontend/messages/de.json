@@ -1257,7 +1257,9 @@
       "signupFailed": "Registrierung fehlgeschlagen",
       "registrationDisabled": "Die Registrierung ist derzeit geschlossen. Wir bereiten den Launch vor.",
       "contactSupport": "Kontaktieren Sie support@jaot.io, wenn Sie frühzeitigen Zugang benötigen.",
-      "backToLogin": "Zurück zur Anmeldung"
+      "backToLogin": "Zurück zur Anmeldung",
+      "inviteNotice": "Sie treten einem Team bei. Ihr Konto gehört zu der Organisation, die Sie eingeladen hat. Sie müssen also keine Organisation benennen.",
+      "joinedWorkspace": "Konto erstellt. Sie sind dem Arbeitsbereich beigetreten."
     },
     "passwordStrength": {
       "weak": "Schwach",
@@ -1310,7 +1312,6 @@
     "join": {
       "processing": "Ihre Einladung wird verarbeitet...",
       "accepting": "Einladung wird angenommen...",
-      "signInToAccept": "Melden Sie sich an, um die Workspace-Einladung anzunehmen",
       "successTitle": "Sie sind dabei!",
       "successMessage": "Sie sind dem Workspace erfolgreich beigetreten. Sie können jetzt mit Ihrem Team zusammenarbeiten.",
       "goToWorkspaces": "Zu den Workspaces",
@@ -1318,7 +1319,11 @@
       "errorMessage": "Dieser Einladungslink ist möglicherweise abgelaufen, wurde widerrufen oder wurde bereits verwendet.",
       "goToDashboard": "Zum Dashboard",
       "signIn": "Anmelden",
-      "acceptFailed": "Einladung konnte nicht angenommen werden"
+      "acceptFailed": "Einladung konnte nicht angenommen werden",
+      "invitedTitle": "Sie wurden in einen Arbeitsbereich eingeladen",
+      "invitedMessage": "Neu bei JAOT? Erstellen Sie ein Konto: Es tritt dem Team bei, das Sie eingeladen hat. Wenn Sie in dieser Organisation schon ein Konto haben, melden Sie sich an.",
+      "createAccount": "Konto erstellen",
+      "signOutAndCreate": "Abmelden und Konto erstellen"
     },
     "emailBanner": {
       "message": "Bitte verifizieren Sie Ihre E-Mail-Adresse. Überprüfen Sie Ihren Posteingang auf einen Verifizierungslink."
@@ -1799,7 +1804,8 @@
       "deleted": "Gelöscht",
       "deletedMessage": "API-Schlüssel wurde gelöscht",
       "createError": "API-Schlüssel konnte nicht erstellt werden",
-      "deleteError": "API-Schlüssel konnte nicht gelöscht werden"
+      "deleteError": "API-Schlüssel konnte nicht gelöscht werden",
+      "nameRequired": "Geben Sie einen Namen für den Schlüssel ein."
     },
     "audit": {
       "title": "Audit-Protokoll",
@@ -1832,7 +1838,28 @@
       "adminRequired": "Ihre Rolle ({role}) erlaubt es nicht, das Audit-Protokoll einzusehen. Bitten Sie den Admin des Arbeitsbereichs um die Admin-Rolle.",
       "loadError": "Audit-Protokoll konnte nicht geladen werden",
       "createWorkspace": "Arbeitsbereich erstellen",
-      "noWorkspaceForMember": "Sie sind noch in keinem Arbeitsbereich, und nur der Eigentümer der Organisation kann einen anlegen. Bitten Sie ihn um eine Einladung."
+      "noWorkspaceForMember": "Sie sind noch in keinem Arbeitsbereich, und nur der Eigentümer der Organisation kann einen anlegen. Bitten Sie ihn um eine Einladung.",
+      "actions": {
+        "solve": "Lösung ausgeführt",
+        "model_edit": "Modell bearbeitet",
+        "model_delete": "Modell gelöscht",
+        "model_publish": "Modell veröffentlicht",
+        "model_unpublish": "Modell zurückgezogen",
+        "member_invite": "Mitglied eingeladen",
+        "member_join": "Mitglied beigetreten",
+        "member_remove": "Mitglied entfernt",
+        "role_change": "Rolle geändert",
+        "invite_revoke": "Einladung widerrufen",
+        "workspace_create": "Arbeitsbereich erstellt",
+        "workspace_update": "Arbeitsbereich aktualisiert",
+        "trigger_create": "Trigger erstellt",
+        "trigger_update": "Trigger aktualisiert",
+        "trigger_delete": "Trigger gelöscht",
+        "trigger_fire": "Trigger ausgelöst",
+        "trigger_schedule_create": "Zeitplan erstellt",
+        "trigger_schedule_update": "Zeitplan aktualisiert",
+        "trigger_schedule_delete": "Zeitplan gelöscht"
+      }
     },
     "myProfile": {
       "title": "Mein Profil",
@@ -1990,7 +2017,8 @@
         "admin": "Admin",
         "editor": "Bearbeiter",
         "solver": "Solver",
-        "viewer": "Betrachter"
+        "viewer": "Betrachter",
+        "member": "Mitglied"
       },
       "sentSuccess": "Einladung an {email} gesendet",
       "linkGenerated": "Einladungslink generiert",
@@ -1998,7 +2026,10 @@
       "copyFailed": "Konnte nicht in die Zwischenablage kopieren",
       "sendError": "Einladung konnte nicht gesendet werden",
       "generateError": "Link konnte nicht generiert werden",
-      "revokeError": "Einladung konnte nicht widerrufen werden"
+      "revokeError": "Einladung konnte nicht widerrufen werden",
+      "linkPending": "Link · läuft ab am {date}",
+      "copyLink": "Einladungslink kopieren",
+      "revokeInvite": "Diese Einladung widerrufen"
     },
     "memberTable": {
       "headers": {
@@ -2012,10 +2043,12 @@
       "removeMember": "Mitglied entfernen",
       "roleUpdated": "Rolle von {name} auf {role} aktualisiert",
       "roleError": "Rolle konnte nicht aktualisiert werden",
-      "removeConfirm": "{name} aus diesem Arbeitsbereich entfernen?",
+      "removeConfirm": "{name} aus diesem Arbeitsbereich entfernen? Die Einladungslinks, die diese Person noch hat, funktionieren für sie nicht mehr. Um sie zurückzuholen, senden Sie ihr eine neue Einladung.",
       "removeTitle": "Mitglied entfernen",
       "removed": "{name} aus dem Arbeitsbereich entfernt",
-      "removeError": "Mitglied konnte nicht entfernt werden"
+      "removeError": "Mitglied konnte nicht entfernt werden",
+      "removeMemberNamed": "{name} entfernen",
+      "roleOf": "Rolle von {name}"
     },
     "userPublicProfile": {
       "backToCatalog": "Zurück zum Marketplace",
@@ -4730,8 +4763,9 @@
         "revoked": "Diese Einladung wurde widerrufen.",
         "expired": "Diese Einladung ist abgelaufen. Bitten Sie um eine neue.",
         "already_accepted": "Diese Einladung wurde bereits verwendet.",
-        "other_organization": "Diese Einladung gehört zum Arbeitsbereich einer anderen Organisation. Melde dich mit einem Konto dieser Organisation an, oder bitte sie, das Konto einzuladen, das du benutzt.",
-        "other_email": "Diese Einladung wurde an eine andere E-Mail-Adresse gesendet. Melde dich mit dieser Adresse an, um sie anzunehmen."
+        "other_organization": "Diese Einladung gilt für einen Arbeitsbereich einer anderen Organisation, und Ihr Konto gehört zu einer anderen. Ein Konto gehört zu genau einer Organisation. Um diesem Team beizutreten, melden Sie sich ab und erstellen Sie über diese Einladung ein neues Konto mit einer anderen E-Mail-Adresse.",
+        "other_email": "Diese Einladung wurde an eine andere E-Mail-Adresse gesendet. Melde dich mit dieser Adresse an, um sie anzunehmen.",
+        "removed_member": "Sie wurden aus diesem Arbeitsbereich entfernt, nachdem diese Einladung erstellt wurde. Sie gilt daher nicht mehr für Sie. Bitten Sie einen Admin des Arbeitsbereichs um eine neue Einladung."
       },
       "projects": {
         "publish_needs_commit": "Beim Veröffentlichen wird deine zuletzt committete Version festgeschrieben. Den Arbeitsentwurf sieht der Marktplatz nie. Committe dein Modell im Arbeitsbereich und komm zurück.",
@@ -4778,6 +4812,19 @@
       "multi_objective": {
         "solver_no_quadratic": "{solver} kann kein Modell mit quadratischen Termen lösen. Wähle SCIP oder Auto.",
         "solver_no_integer": "{solver} kann kein Modell mit ganzzahligen Variablen lösen. Wähle einen anderen Solver."
+    },
+      "workspace": {
+        "member_not_found": "Diese Person ist kein Mitglied dieses Arbeitsbereichs.",
+        "own_role": "Sie können Ihre eigene Rolle nicht ändern. Bitten Sie einen anderen Admin.",
+        "owner_role": "Die Rolle des Organisationsinhabers kann nicht geändert werden.",
+        "owner_not_removable": "Der Organisationsinhaber kann nicht aus einem Arbeitsbereich entfernt werden.",
+        "remove_self": "Sie können sich nicht selbst entfernen. Geben Sie die Admin-Rolle zuerst jemand anderem."
+      },
+      "account": {
+        "wrong_password": "Das Passwort ist nicht korrekt. Ihr Konto wurde nicht gelöscht."
+      },
+      "profile": {
+        "name_required": "Der Anzeigename darf nicht leer sein."
       }
     }
   },

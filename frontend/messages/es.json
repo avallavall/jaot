@@ -1257,7 +1257,9 @@
       "signupFailed": "Error al registrarse",
       "registrationDisabled": "El registro está cerrado temporalmente. Estamos preparando el lanzamiento.",
       "contactSupport": "Contacta con support@jaot.io si necesitas acceso anticipado.",
-      "backToLogin": "Volver al inicio de sesión"
+      "backToLogin": "Volver al inicio de sesión",
+      "inviteNotice": "Te unes a un equipo. Tu cuenta pertenecerá a la organización que te ha invitado, así que no hay que poner nombre a ninguna organización.",
+      "joinedWorkspace": "Cuenta creada. Te has unido al espacio de trabajo."
     },
     "passwordStrength": {
       "weak": "Débil",
@@ -1310,7 +1312,6 @@
     "join": {
       "processing": "Procesando tu invitación...",
       "accepting": "Aceptando invitación...",
-      "signInToAccept": "Inicia sesión para aceptar la invitación al espacio de trabajo",
       "successTitle": "¡Estás dentro!",
       "successMessage": "Te has unido al espacio de trabajo correctamente. Ya puedes colaborar con tu equipo.",
       "goToWorkspaces": "Ir a espacios de trabajo",
@@ -1318,7 +1319,11 @@
       "errorMessage": "Este enlace de invitación puede haber expirado, sido revocado o ya utilizado.",
       "goToDashboard": "Ir al panel",
       "signIn": "Iniciar sesión",
-      "acceptFailed": "Error al aceptar la invitación"
+      "acceptFailed": "Error al aceptar la invitación",
+      "invitedTitle": "Te han invitado a un espacio de trabajo",
+      "invitedMessage": "¿Nuevo en JAOT? Crea una cuenta: se une al equipo que te ha invitado. Si ya tienes una cuenta en esa organización, inicia sesión.",
+      "createAccount": "Crear una cuenta",
+      "signOutAndCreate": "Cerrar sesión y crear una cuenta"
     },
     "emailBanner": {
       "message": "Verifica tu correo electrónico. Busca el enlace de verificación en tu bandeja de entrada."
@@ -1799,7 +1804,8 @@
       "deleted": "Eliminada",
       "deletedMessage": "La clave API ha sido eliminada",
       "createError": "Error al crear la clave API",
-      "deleteError": "Error al eliminar la clave API"
+      "deleteError": "Error al eliminar la clave API",
+      "nameRequired": "Escribe un nombre para la clave."
     },
     "audit": {
       "title": "Registro de auditoría",
@@ -1832,7 +1838,28 @@
       "timeDaysAgo": "hace {count}d",
       "adminRequired": "Tu rol ({role}) no permite ver el registro de auditoría. Pide al admin del espacio de trabajo el rol de Admin.",
       "loadError": "Error al cargar el registro de auditoría",
-      "noWorkspaceForMember": "Todavía no estás en ningún espacio de trabajo, y sólo el propietario de la organización puede crear uno. Pídele que te invite."
+      "noWorkspaceForMember": "Todavía no estás en ningún espacio de trabajo, y sólo el propietario de la organización puede crear uno. Pídele que te invite.",
+      "actions": {
+        "solve": "Resolución ejecutada",
+        "model_edit": "Modelo editado",
+        "model_delete": "Modelo eliminado",
+        "model_publish": "Modelo publicado",
+        "model_unpublish": "Modelo retirado",
+        "member_invite": "Miembro invitado",
+        "member_join": "Miembro unido",
+        "member_remove": "Miembro quitado",
+        "role_change": "Rol cambiado",
+        "invite_revoke": "Invitación revocada",
+        "workspace_create": "Espacio de trabajo creado",
+        "workspace_update": "Espacio de trabajo actualizado",
+        "trigger_create": "Disparador creado",
+        "trigger_update": "Disparador actualizado",
+        "trigger_delete": "Disparador eliminado",
+        "trigger_fire": "Disparador ejecutado",
+        "trigger_schedule_create": "Programación creada",
+        "trigger_schedule_update": "Programación actualizada",
+        "trigger_schedule_delete": "Programación eliminada"
+      }
     },
     "myProfile": {
       "title": "Mi perfil",
@@ -1990,7 +2017,8 @@
         "admin": "Admin",
         "editor": "Editor",
         "solver": "Solver",
-        "viewer": "Visor"
+        "viewer": "Visor",
+        "member": "Miembro"
       },
       "sentSuccess": "Invitación enviada a {email}",
       "linkGenerated": "Enlace de invitación generado",
@@ -1998,7 +2026,10 @@
       "copyFailed": "Error al copiar al portapapeles",
       "sendError": "Error al enviar la invitación",
       "generateError": "Error al generar el enlace",
-      "revokeError": "Error al revocar la invitación"
+      "revokeError": "Error al revocar la invitación",
+      "linkPending": "Enlace · caduca el {date}",
+      "copyLink": "Copiar el enlace de invitación",
+      "revokeInvite": "Revocar esta invitación"
     },
     "memberTable": {
       "headers": {
@@ -2012,10 +2043,12 @@
       "removeMember": "Eliminar miembro",
       "roleUpdated": "El rol de {name} se actualizó a {role}",
       "roleError": "Error al actualizar el rol",
-      "removeConfirm": "¿Eliminar a {name} de este espacio de trabajo?",
+      "removeConfirm": "¿Quitar a {name} de este espacio de trabajo? Los enlaces de invitación que aún tenga dejan de servirle. Para que vuelva, envíale una invitación nueva.",
       "removeTitle": "Eliminar miembro",
       "removed": "{name} eliminado del espacio de trabajo",
-      "removeError": "Error al eliminar miembro"
+      "removeError": "Error al eliminar miembro",
+      "removeMemberNamed": "Quitar a {name}",
+      "roleOf": "Rol de {name}"
     },
     "userPublicProfile": {
       "backToCatalog": "Volver al Marketplace",
@@ -4730,8 +4763,9 @@
         "revoked": "Esta invitación se ha revocado.",
         "expired": "Esta invitación ha caducado. Pide una nueva.",
         "already_accepted": "Esta invitación ya se ha usado.",
-        "other_organization": "Esta invitación es para el espacio de trabajo de otra organización. Inicia sesión con una cuenta de esa organización, o pídeles que inviten a la cuenta que usas.",
-        "other_email": "Esta invitación se envió a otra dirección de correo. Inicia sesión con esa dirección para aceptarla."
+        "other_organization": "Esta invitación es para un espacio de trabajo de otra organización, y tu cuenta pertenece a una distinta. Una cuenta pertenece a una sola organización. Para unirte a este equipo, cierra la sesión y crea una cuenta nueva desde esta invitación, con otra dirección de correo.",
+        "other_email": "Esta invitación se envió a otra dirección de correo. Inicia sesión con esa dirección para aceptarla.",
+        "removed_member": "Te quitaron de este espacio de trabajo después de crear esta invitación, así que ya no te sirve. Pide una invitación nueva a un administrador del espacio de trabajo."
       },
       "projects": {
         "publish_needs_commit": "Al publicar se fija tu última versión commiteada: el marketplace nunca ve tu borrador de trabajo. Commitea el modelo en el espacio de trabajo y vuelve.",
@@ -4778,6 +4812,19 @@
       "multi_objective": {
         "solver_no_quadratic": "{solver} no puede resolver un modelo con términos cuadráticos. Elige SCIP o Auto.",
         "solver_no_integer": "{solver} no puede resolver un modelo con variables enteras. Elige otro solver."
+    },
+      "workspace": {
+        "member_not_found": "Esta persona no es miembro de este espacio de trabajo.",
+        "own_role": "No puedes cambiar tu propio rol. Pídeselo a otro administrador.",
+        "owner_role": "El rol del propietario de la organización no se puede cambiar.",
+        "owner_not_removable": "El propietario de la organización no se puede quitar de un espacio de trabajo.",
+        "remove_self": "No puedes quitarte a ti mismo. Primero da el rol de administrador a otra persona."
+      },
+      "account": {
+        "wrong_password": "La contraseña no es correcta. Tu cuenta no se ha eliminado."
+      },
+      "profile": {
+        "name_required": "El nombre visible no puede estar vacío."
       }
     }
   },
