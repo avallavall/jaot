@@ -96,11 +96,13 @@ export async function SolverRaceShowcase() {
                 {timedOut
                   ? t("rowCutOff", {
                       bound: format.number(row.bound ?? 0),
-                      nodes: format.number(row.nodes ?? 0),
+                      // Raw numbers: the messages choose "node" or "nodes"
+                      // and format the count themselves ("1 nodes" before).
+                      nodes: row.nodes ?? 0,
                     })
                   : t("rowWork", {
-                      nodes: format.number(row.nodes ?? 0),
-                      iterations: format.number(row.iterations ?? 0),
+                      nodes: row.nodes ?? 0,
+                      iterations: row.iterations ?? 0,
                     })}
               </p>
             </li>

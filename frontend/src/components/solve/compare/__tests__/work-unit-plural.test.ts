@@ -18,3 +18,14 @@ describe("the work chart's unit", () => {
     expect(t("workUnit.nodes", { count: 2773 })).toBe(other);
   });
 });
+
+// The home race said "1 nodes, 4,214 simplex iterations" for HiGHS.
+describe("the home race's work line", () => {
+  it.each([
+    ["en", en, "1 node, 4,214 simplex iterations"],
+    ["es", es, "1 nodo, 4214 iteraciones símplex"],
+  ])("agrees with the count in %s", (locale, messages, expected) => {
+    const t = createTranslator({ locale, messages, namespace: "public.solverRace" });
+    expect(t("rowWork", { nodes: 1, iterations: 4214 })).toBe(expected);
+  });
+});
