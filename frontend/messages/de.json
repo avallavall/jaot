@@ -4729,6 +4729,7 @@
       "auth": {
         "account_locked": "Konto nach zu vielen Fehlversuchen vorübergehend gesperrt. Versuchen Sie es in {minutes, plural, one {# Minute} other {# Minuten}} erneut.",
         "invalid_credentials": "Diese E-Mail-Adresse und dieses Passwort gehören zu keinem Konto.",
+        "account_disabled": "Dieses Konto ist deaktiviert. Wenden Sie sich an den Administrator dieser Website.",
         "verification_link_expired": "Dieser Bestätigungslink ist abgelaufen. Fordern Sie einen neuen an.",
         "verification_link_invalid": "Dieser Bestätigungslink ist nicht gültig.",
         "reset_link_invalid": "Dieser Link zum Zurücksetzen ist abgelaufen oder nicht gültig.",

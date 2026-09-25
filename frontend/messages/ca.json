@@ -4729,6 +4729,7 @@
       "auth": {
         "account_locked": "Compte bloquejat temporalment després de massa intents fallits. Torna-ho a provar d’aquí a {minutes, plural, one {# minut} other {# minuts}}.",
         "invalid_credentials": "Aquest correu i aquesta contrasenya no corresponen a cap compte.",
+        "account_disabled": "Aquest compte està desactivat. Contacta amb l’administrador d’aquest lloc.",
         "verification_link_expired": "Aquest enllaç de verificació ha caducat. Demana’n un de nou.",
         "verification_link_invalid": "Aquest enllaç de verificació no és vàlid.",
         "reset_link_invalid": "Aquest enllaç de restabliment ha caducat o no és vàlid.",

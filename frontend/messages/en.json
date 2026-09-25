@@ -4729,6 +4729,7 @@
       "auth": {
         "account_locked": "Account temporarily locked after too many failed attempts. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
         "invalid_credentials": "That email and password do not match an account.",
+        "account_disabled": "This account is disabled. Contact the administrator of this site.",
         "verification_link_expired": "This verification link has expired. Request a new one.",
         "verification_link_invalid": "This verification link is not valid.",
         "reset_link_invalid": "This reset link has expired or is not valid.",

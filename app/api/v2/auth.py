@@ -333,6 +333,18 @@ def login_email(
             detail="Organization not found",
         )
 
+    # A deactivated account (an admin's "Delete" deactivates too) was handed a
+    # session and a refresh token here. Every later request refused it, so the
+    # person saw a successful sign-in and then the login page, with no reason.
+    # Checked after the password, so the answer tells nothing to a guesser.
+    if not user.is_active or not org.is_active:
+        db.commit()  # keep the reset of failed attempts above
+        raise CodedHTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account is disabled. Contact the administrator of this site.",
+            code="auth.account_disabled",
+        )
+
     access_token = JWTService.create_access_token(
         user_id=user.id,
         org_id=org.id,

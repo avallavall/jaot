@@ -4729,6 +4729,7 @@
       "auth": {
         "account_locked": "Cuenta bloqueada temporalmente tras demasiados intentos fallidos. Inténtalo de nuevo en {minutes, plural, one {# minuto} other {# minutos}}.",
         "invalid_credentials": "Ese correo y esa contraseña no corresponden a ninguna cuenta.",
+        "account_disabled": "Esta cuenta está desactivada. Contacta con el administrador de este sitio.",
         "verification_link_expired": "Este enlace de verificación ha caducado. Pide uno nuevo.",
         "verification_link_invalid": "Este enlace de verificación no es válido.",
         "reset_link_invalid": "Este enlace de restablecimiento ha caducado o no es válido.",

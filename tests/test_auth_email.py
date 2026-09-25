@@ -385,6 +385,42 @@ class TestLoginEmail:
         assert data["user"]["email"] == "login@example.com"
         assert "jaot_access_token" in response.cookies
 
+    @pytest.mark.parametrize("who", ["user", "org"])
+    def test_a_disabled_account_gets_no_session(self, client, db_session, who):
+        """Found driving the admin panel (2026-09-25).
+
+        An admin deactivated a user (and "Delete" deactivates too). The login
+        still answered 200 with cookies and wrote a refresh token, and every
+        request after it answered 401: a sign-in that worked, then the login
+        page again with no reason given.
+        """
+        user, org = self._create_email_user(db_session)
+        (user if who == "user" else org).is_active = False
+        db_session.commit()
+
+        response = client.post(
+            "/api/v2/auth/login/email",
+            json={"email": "login@example.com", "password": "password123"},
+        )
+
+        assert response.status_code == 403
+        assert response.json()["code"] == "auth.account_disabled"
+        assert "jaot_access_token" not in response.cookies
+        assert db_session.query(RefreshToken).filter(RefreshToken.user_id == user.id).count() == 0
+
+    def test_a_disabled_account_with_a_wrong_password_learns_nothing(self, client, db_session):
+        user, _org = self._create_email_user(db_session)
+        user.is_active = False
+        db_session.commit()
+
+        response = client.post(
+            "/api/v2/auth/login/email",
+            json={"email": "login@example.com", "password": "wrongpassword"},
+        )
+
+        assert response.status_code == 401
+        assert response.json()["code"] == "auth.invalid_credentials"
+
     def test_wrong_password(self, client, db_session):
         self._create_email_user(db_session)
         response = client.post(
