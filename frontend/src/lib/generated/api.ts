@@ -2917,7 +2917,7 @@ export interface paths {
          *     the server and rides the ONE async pipeline, so the client sends a URL and
          *     nothing else. Async-only on purpose — scenario launches are batch and the
          *     client derives row state from the server. A compile failure is a 422
-         *     ``{message, position}``; the dataset is
+         *     ``{message, position, line, column, code, params}``; the dataset is
          *     org- and project-scoped (404 otherwise, anti-oracle).
          */
         post: operations["solve_project_dataset"];
@@ -2991,6 +2991,12 @@ export interface paths {
          *     generic ``source_kind="model_project"`` provenance (the universal
          *     ``/solve/async`` path the studio uses for live streaming) — so no solve
          *     entry point has to change (see the solve-contract-drift safeguard).
+         *
+         *     A solver-comparison column is left out. It carries the project's id too,
+         *     and the "Last run" line under the Solve button showed a matrix cell as this
+         *     model's last run while "Runs of this model" did not list it. Both read this
+         *     endpoint, so they now follow one rule: the model's own runs. A column
+         *     belongs to its comparison, which has its own page.
          */
         get: operations["list_project_executions"];
         put?: never;
@@ -6552,6 +6558,16 @@ export interface components {
              */
             code?: string | null;
             /**
+             * Column
+             * @description 1-based column of `position` on its line, when known
+             */
+            column?: number | null;
+            /**
+             * Line
+             * @description 1-based line of `position` in the source, when known
+             */
+            line?: number | null;
+            /**
              * Message
              * @description Human-readable error message
              */
@@ -9668,7 +9684,10 @@ export interface components {
             section_overview?: string | null;
             /** Short Description */
             short_description?: string | null;
-            /** Tags */
+            /**
+             * Tags
+             * @description At most 10 tags of at most 30 characters each. Blank and repeated tags are dropped.
+             */
             tags?: string[] | null;
         };
         /**
@@ -12243,6 +12262,7 @@ export interface operations {
                 origin?: string | null;
                 page?: number;
                 page_size?: number;
+                solver?: string | null;
                 status?: string | null;
             };
             header?: never;
