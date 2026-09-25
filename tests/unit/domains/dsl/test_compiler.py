@@ -7,7 +7,7 @@ error paths. Grammar: ``docs/JMODEL_GRAMMAR.md``.
 
 import pytest
 
-from app.domains.dsl import JModelData, JModelError, compile_jmodel
+from app.domains.dsl import JModelData, JModelError, compile_jmodel, line_and_column
 from app.schemas.optimization import VariableType
 
 pytestmark = pytest.mark.unit
@@ -1801,3 +1801,96 @@ def test_an_error_with_no_code_still_carries_its_message():
     assert error.code is None
     assert error.params == {}
     assert error.message
+
+
+# --------------------------------------------------------------------------- #
+# Data errors name themselves too: a dataset produces them                     #
+# --------------------------------------------------------------------------- #
+
+
+def _data_error_of(src: str, data: dict) -> JModelError:
+    with pytest.raises(JModelError) as caught:
+        compile_jmodel(src, data=JModelData.from_json(data))
+    return caught.value
+
+
+def test_a_dataset_that_empties_every_family_names_that():
+    """The error "model grounds to zero variables" had no code, so it was English everywhere.
+
+    A dataset with empty sets is the usual way to reach it: the "New dataset"
+    skeleton of a model with inline data is all empty lists (found driving the
+    studio, 2026-09-24).
+    """
+    error = _data_error_of(
+        PARAMETRIC_KNAPSACK,
+        {"sets": {"ITEMS": []}, "params": {"value": {}, "weight": {}, "cap": 5}},
+    )
+
+    assert error.code == "jmodel.zero_variables"
+    assert "zero variables" in error.message
+
+
+def test_a_dataset_symbol_the_model_does_not_declare_says_which():
+    unknown_set = _data_error_of(KNAPSACK, {"sets": {"X": ["a"]}})
+    unknown_param = _data_error_of(KNAPSACK, {"params": {"capp": 1}})
+
+    assert (unknown_set.code, unknown_set.params) == ("jmodel.dataset_unknown_set", {"name": "X"})
+    assert (unknown_param.code, unknown_param.params) == (
+        "jmodel.dataset_unknown_param",
+        {"name": "capp"},
+    )
+
+
+def test_a_missing_param_value_says_which_param_and_index():
+    error = _data_error_of(KNAPSACK, {"params": {"value": {"a": 1}}})
+
+    assert error.code == "jmodel.param_missing_value"
+    assert error.params["name"] == "value"
+    assert error.params["key"] in {"b", "c", "d"}
+
+
+def test_a_data_key_outside_its_set_says_which_member():
+    error = _data_error_of(
+        PARAMETRIC_KNAPSACK,
+        {
+            "sets": {"ITEMS": ["a", "b"]},
+            "params": {"value": {"a": 1, "zz": 2}, "weight": {"a": 1, "b": 1}, "cap": 5},
+        },
+    )
+
+    assert error.code == "jmodel.param_key_not_in_set"
+    assert error.params == {"name": "value", "member": "zz", "set": "ITEMS"}
+
+
+def test_a_scalar_param_given_a_table_says_so():
+    error = _data_error_of(PARAMETRIC_KNAPSACK, {"params": {"cap": {"a": 1}}})
+
+    assert (error.code, error.params) == ("jmodel.dataset_param_scalar", {"name": "cap"})
+
+
+def test_a_row_that_is_false_by_construction_names_the_row():
+    error = _error_of(
+        "set I := {a};\nvar x{I} >= 0;\nminimize o: x[a];\n"
+        "subject to impossible: sum{i in I: i != a} x[i] >= 5;"
+    )
+
+    assert error.code == "jmodel.constraint_always_false"
+    assert error.params == {"name": "impossible", "value": "-5", "op": ">="}
+
+
+# --------------------------------------------------------------------------- #
+# Where the error is, as a reader counts it                                     #
+# --------------------------------------------------------------------------- #
+
+
+def test_line_and_column_count_from_one():
+    source = "set I := {a};\nvar x{I} >= 0;\nminimize o: y;"
+
+    assert line_and_column(source, 0) == (1, 1)
+    assert line_and_column(source, source.index("var")) == (2, 1)
+    assert line_and_column(source, source.index("y;")) == (3, 13)
+
+
+def test_line_and_column_of_an_offset_past_the_end_is_the_end():
+    assert line_and_column("a\nbc", 99) == (2, 3)
+    assert line_and_column("", 0) == (1, 1)

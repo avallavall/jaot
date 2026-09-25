@@ -27,6 +27,7 @@ from app.domains.dsl import (
     compile_jmodel,
     inspect_declarations,
     latexify,
+    line_and_column,
 )
 from app.schemas.dsl import (
     DSL_GENERATE_MEDIA_TYPES,
@@ -66,6 +67,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dsl", tags=["dsl"])
 
 
+def _compile_error(exc: JModelError, source: str) -> DSLCompileError:
+    """The structured error the editor renders, with the line and column it points at."""
+    line = column = None
+    if exc.position is not None:
+        line, column = line_and_column(source, exc.position)
+    return DSLCompileError(
+        message=exc.message,
+        position=exc.position,
+        line=line,
+        column=column,
+        code=exc.code,
+        params=exc.params or None,
+    )
+
+
+#: The compiler contract is "JModelError or a problem"; anything else is a bug.
+_INTERNAL_ERROR = DSLCompileError(
+    message="internal compiler error", position=None, code="jmodel.internal_error"
+)
+
+
 def _grounding_budget(db: Session) -> int:
     """How much a compile may expand to on THIS instance (0 = no budget).
 
@@ -98,6 +120,7 @@ def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLC
                     error=DSLCompileError(
                         message="dataset not found — it may have been deleted",
                         position=None,
+                        code="jmodel.dataset_not_found",
                     ),
                 )
             data = JModelData.from_json(dataset.data_json)
@@ -105,24 +128,13 @@ def dsl_compile(body: DSLCompileRequest, db: DBSession, org: CurrentOrg) -> DSLC
             body.source, data=data, max_grounded_elements=_grounding_budget(db)
         )
     except JModelError as exc:
-        return DSLCompileResponse(
-            ok=False,
-            error=DSLCompileError(
-                message=exc.message,
-                position=exc.position,
-                code=exc.code,
-                params=exc.params or None,
-            ),
-        )
+        return DSLCompileResponse(ok=False, error=_compile_error(exc, body.source))
     except Exception:
         # The compiler contract is "JModelError or a problem" — anything else is a
         # compiler bug. Surface it as a structured failure (never a 500 mid-keystroke)
         # and log it loudly for us.
         logger.exception("JModel compiler crashed on user source")
-        return DSLCompileResponse(
-            ok=False,
-            error=DSLCompileError(message="internal compiler error", position=None),
-        )
+        return DSLCompileResponse(ok=False, error=_INTERNAL_ERROR)
     return DSLCompileResponse(ok=True, problem=problem)
 
 
@@ -141,21 +153,10 @@ def dsl_inspect(body: DSLInspectRequest, db: DBSession, _user: CurrentUser) -> D
     try:
         decls = inspect_declarations(body.source, max_grounded_elements=_grounding_budget(db))
     except JModelError as exc:
-        return DSLInspectResponse(
-            ok=False,
-            error=DSLCompileError(
-                message=exc.message,
-                position=exc.position,
-                code=exc.code,
-                params=exc.params or None,
-            ),
-        )
+        return DSLInspectResponse(ok=False, error=_compile_error(exc, body.source))
     except Exception:
         logger.exception("JModel inspector crashed on user source")
-        return DSLInspectResponse(
-            ok=False,
-            error=DSLCompileError(message="internal compiler error", position=None),
-        )
+        return DSLInspectResponse(ok=False, error=_INTERNAL_ERROR)
     return DSLInspectResponse(
         ok=True,
         sets=[DSLSetDecl(name=s.name, has_inline_values=s.has_inline_values) for s in decls.sets],
@@ -187,21 +188,10 @@ def dsl_latex(body: DSLLatexRequest, db: DBSession, _user: CurrentUser) -> DSLLa
     try:
         rendered = latexify(body.source, max_grounded_elements=_grounding_budget(db))
     except JModelError as exc:
-        return DSLLatexResponse(
-            ok=False,
-            error=DSLCompileError(
-                message=exc.message,
-                position=exc.position,
-                code=exc.code,
-                params=exc.params or None,
-            ),
-        )
+        return DSLLatexResponse(ok=False, error=_compile_error(exc, body.source))
     except Exception:
         logger.exception("JModel LaTeX renderer crashed on user source")
-        return DSLLatexResponse(
-            ok=False,
-            error=DSLCompileError(message="internal compiler error", position=None),
-        )
+        return DSLLatexResponse(ok=False, error=_INTERNAL_ERROR)
     return DSLLatexResponse(
         ok=True,
         model=DSLLatexModel(
@@ -406,7 +396,15 @@ async def dsl_generate(
 
     error = None
     if not outcome.ok and outcome.error_message:
-        error = DSLCompileError(message=outcome.error_message, position=outcome.error_position)
+        line = column = None
+        if outcome.error_position is not None and outcome.source:
+            line, column = line_and_column(outcome.source, outcome.error_position)
+        error = DSLCompileError(
+            message=outcome.error_message,
+            position=outcome.error_position,
+            line=line,
+            column=column,
+        )
 
     return DSLGenerateResponse(
         ok=outcome.ok,

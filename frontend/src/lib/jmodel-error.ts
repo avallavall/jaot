@@ -16,6 +16,8 @@ import type { ErrorTranslator } from "@/lib/errors";
 export interface JModelCompileError {
   message: string;
   position?: number | null;
+  line?: number | null;
+  column?: number | null;
   code?: string | null;
   params?: Record<string, string | number> | null;
 }
@@ -29,4 +31,19 @@ export function jmodelErrorText(
     return t(error.code, (error.params ?? {}) as Record<string, string | number>);
   }
   return error.message;
+}
+
+/**
+ * Where the compiler stopped, as "line 3, column 12" in the reader's language.
+ *
+ * The editor printed the character offset ("pos 712"), and a reader had to
+ * count characters to find the line. The server now sends the line and the
+ * column. Null when the error points at no place in the source.
+ */
+export function jmodelErrorLocation(
+  error: JModelCompileError | null | undefined,
+  t: (key: string, values: Record<string, number>) => string,
+): string | null {
+  if (!error || typeof error.line !== "number" || typeof error.column !== "number") return null;
+  return t("jmodelErrorAt", { line: error.line, column: error.column });
 }

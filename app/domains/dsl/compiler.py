@@ -156,6 +156,19 @@ class JModelError(Exception):
         self.params = params or {}
 
 
+def line_and_column(source: str, position: int) -> tuple[int, int]:
+    """The 1-based line and column of a 0-based character offset in ``source``.
+
+    A compile error knows the offset of the token it stopped at. A person reads
+    a line and a column: "pos 712" in a 40-line model sent them counting
+    characters. An offset past the end points just after the last character.
+    """
+    offset = max(0, min(position, len(source)))
+    before = source[:offset]
+    line_start = before.rfind("\n") + 1
+    return before.count("\n") + 1, offset - line_start + 1
+
+
 @dataclass(frozen=True)
 class JModelData:
     """A validated model↔data bundle: set members and param values for a JModel source.
@@ -1261,34 +1274,48 @@ def _apply_data(
             set_def = model.sets.get(name)
             if set_def is None:
                 raise JModelError(
-                    f"dataset provides unknown set {name!r} — the model does not declare it"
+                    f"dataset provides unknown set {name!r} — the model does not declare it",
+                    code="jmodel.dataset_unknown_set",
+                    params={"name": name},
                 )
             if members and len(members[0]) != set_def.dimen:
                 raise JModelError(
                     f"set {name!r} expects {set_def.dimen}-dimensional members but the "
                     f"dataset provides {len(members[0])} component(s) per member — "
                     f"declare `set {name} dimen {len(members[0])};` if the tuples are "
-                    "intended"
+                    "intended",
+                    code="jmodel.dataset_set_dimension",
+                    params={"name": name, "expected": set_def.dimen, "got": len(members[0])},
                 )
             if len(members) != len(set(members)):
-                raise JModelError(f"dataset set {name!r} has duplicate members")
+                raise JModelError(
+                    f"dataset set {name!r} has duplicate members",
+                    code="jmodel.dataset_duplicate_members",
+                    params={"name": name},
+                )
             set_def.members = list(members)
         for name, values in data.params.items():
             decl = model.params.get(name)
             if decl is None:
                 raise JModelError(
-                    f"dataset provides unknown param {name!r} — the model does not declare it"
+                    f"dataset provides unknown param {name!r} — the model does not declare it",
+                    code="jmodel.dataset_unknown_param",
+                    params={"name": name},
                 )
             arity = len(decl.index_sets)
             for key in values:
                 if arity == 0 and key != ():
                     raise JModelError(
-                        f"param {name!r} is scalar — the dataset value must be a single number"
+                        f"param {name!r} is scalar — the dataset value must be a single number",
+                        code="jmodel.dataset_param_scalar",
+                        params={"name": name},
                     )
                 if arity > 0 and key == ():
                     raise JModelError(
                         f"param {name!r} is indexed over {arity} set(s) — the dataset value "
-                        "must be an object of index keys to numbers"
+                        "must be an object of index keys to numbers",
+                        code="jmodel.dataset_param_indexed",
+                        params={"name": name},
                     )
                 # Exact key arity is checked at grounding (the flat arity of a param
                 # over tuple sets is the sum of its sets' dimensions).
@@ -1332,6 +1359,8 @@ def _eval_set_expr(
                 f"set {node.name!r} has no members — the computed set {target!r} needs "
                 "them; define them inline (:=) or provide a dataset",
                 position=node.pos,
+                code="jmodel.computed_set_needs_members",
+                params={"name": node.name, "target": target},
             )
         return list(operand.members)
     left = _eval_set_expr(node.left, model, target, budget)
@@ -1587,7 +1616,12 @@ def _eval_cond_operand(operand: CondOperand, env: dict[str, str], ctx: _Ctx) -> 
         ref = Ref(tok.value, operand.idx, tok.pos)
         key = tuple(_resolve_members(ref, param.index_sets, env, ctx))
         if key not in param.data:
-            raise JModelError(f"param {tok.value!r} has no value for index {key}", position=tok.pos)
+            raise JModelError(
+                f"param {tok.value!r} has no value for index {key}",
+                position=tok.pos,
+                code="jmodel.param_missing_value",
+                params={"name": tok.value, "key": ", ".join(key)},
+            )
         return str(param.data[key])
     if tok.kind == "NUM":
         return tok.value
@@ -1858,7 +1892,10 @@ def _ground(node: Expr, env: dict[str, str], ctx: _Ctx) -> _LinForm:
         key = tuple(members)
         if key not in param_decl.data:
             raise JModelError(
-                f"param {node.name!r} has no value for index {key}", position=node.pos
+                f"param {node.name!r} has no value for index {key}",
+                position=node.pos,
+                code="jmodel.param_missing_value",
+                params={"name": node.name, "key": ", ".join(key)},
             )
         return _LinForm.number(param_decl.data[key])
     raise JModelError(
@@ -1981,7 +2018,8 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
     if not variables:
         raise JModelError(
             "model grounds to zero variables — every variable family expands over an "
-            "empty set (check the dataset's set members)"
+            "empty set (check the dataset's set members)",
+            code="jmodel.zero_variables",
         )
 
     # 1b. params — declared index sets must exist, every data key must have the flat
@@ -2010,6 +2048,13 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
                     f"param {param.name!r} data key {','.join(key)!r} has {len(key)} "
                     f"member(s), expected {total_arity}",
                     position=param.pos,
+                    code="jmodel.param_key_arity",
+                    params={
+                        "name": param.name,
+                        "key": ", ".join(key),
+                        "count": len(key),
+                        "expected": total_arity,
+                    },
                 )
             offset = 0
             for set_name, members_frozen, dimen in group_specs:
@@ -2020,6 +2065,8 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
                         f"param {param.name!r} data key {key} has member {shown!r} "
                         f"which is not in set {set_name!r}",
                         position=param.pos,
+                        code="jmodel.param_key_not_in_set",
+                        params={"name": param.name, "member": shown, "set": set_name},
                     )
                 offset += dimen
 
@@ -2053,6 +2100,12 @@ def _lower(model: ModelAst, max_grounded_elements: int) -> OptimizationProblem:
                     f"constraint {flat_name!r} is constant and violated "
                     f"({_fmt_num(combined.const)} {con.op} 0 is false)",
                     position=con.pos,
+                    code="jmodel.constraint_always_false",
+                    params={
+                        "name": flat_name,
+                        "value": _fmt_num(combined.const),
+                        "op": con.op,
+                    },
                 )
             if flat_name in seen_constraints:
                 raise JModelError(

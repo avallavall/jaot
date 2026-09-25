@@ -256,7 +256,7 @@ export function DatasetsCard() {
       // the table view to keep editing structurally).
       setView("json");
     } catch (err: unknown) {
-      // 422 carries the parser message incl. the character position.
+      // 422 carries the parser message with the line and column it stopped at.
       toast.error(getErrorMessage(err, t("datasetImportFailed")));
     } finally {
       setImporting(false);

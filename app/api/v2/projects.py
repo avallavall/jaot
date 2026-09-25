@@ -49,7 +49,7 @@ from app.api.v2.solve_pipeline import (
     shape_sync_result,
     wait_for_task,
 )
-from app.domains.dsl import JModelData, JModelError, compile_jmodel
+from app.domains.dsl import JModelData, JModelError, compile_jmodel, line_and_column
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models import Organization, User
@@ -910,7 +910,10 @@ def import_project_dataset(  # sync ON PURPOSE -> threadpool (ADR-009): parses t
     except JModelError as exc:
         detail = exc.message
         if exc.position is not None:
-            detail += f" (pos {exc.position})"
+            # The parser counts characters of the decoded text, BOM removed.
+            text = content.decode("utf-8-sig", errors="replace")
+            line, column = line_and_column(text, exc.position)
+            detail += f" (line {line}, column {column})"
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail
         ) from exc
@@ -1284,7 +1287,7 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
     the server and rides the ONE async pipeline, so the client sends a URL and
     nothing else. Async-only on purpose — scenario launches are batch and the
     client derives row state from the server. A compile failure is a 422
-    ``{message, position}``; the dataset is
+    ``{message, position, line, column, code, params}``; the dataset is
     org- and project-scoped (404 otherwise, anti-oracle).
     """
     org = getattr(request.state, "organization", None)
@@ -1314,9 +1317,19 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
     try:
         problem = compile_jmodel(source, data=JModelData.from_json(dataset.data_json))
     except JModelError as exc:
+        line, column = (
+            line_and_column(source, exc.position) if exc.position is not None else (None, None)
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"message": exc.message, "position": exc.position},
+            detail={
+                "message": exc.message,
+                "position": exc.position,
+                "line": line,
+                "column": column,
+                "code": exc.code,
+                "params": exc.params or None,
+            },
         ) from exc
 
     # Same enqueue path and provenance the browser-side launch produced (origin

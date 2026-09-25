@@ -63,3 +63,31 @@ def test_every_raised_code_has_words() -> None:
         if not _translated(catalogue, code)
     )
     assert missing == [], f"codes with no errors.codes entry in en.json: {missing}"
+
+
+# The JModel compiler names its failures the same way, without the HTTP class:
+# `JModelError(..., code="jmodel.…")`, rendered by the editor from errors.codes.
+# "model grounds to zero variables" had no code and was English in every
+# locale (found driving the studio, 2026-09-24).
+_JMODEL_CODE = re.compile(r'\bcode="(?P<code>jmodel\.[a-z0-9_]+)"')
+
+
+def _jmodel_codes() -> dict[str, str]:
+    """``{code: file}`` for every literal ``jmodel.*`` code in the backend."""
+    found: dict[str, str] = {}
+    for path in (_REPO / "app").rglob("*.py"):
+        for match in _JMODEL_CODE.finditer(path.read_text(encoding="utf-8")):
+            found.setdefault(match.group("code"), str(path.relative_to(_REPO)))
+    return found
+
+
+def test_every_jmodel_code_has_words() -> None:
+    codes = _jmodel_codes()
+    assert "jmodel.unknown_symbol" in codes, "the scan found nothing"
+    assert "jmodel.zero_variables" in codes
+
+    catalogue = json.loads(_MESSAGES.read_text(encoding="utf-8"))["errors"]["codes"]
+    missing = sorted(
+        f"{code} ({where})" for code, where in codes.items() if not _translated(catalogue, code)
+    )
+    assert missing == [], f"JModel codes with no errors.codes entry in en.json: {missing}"

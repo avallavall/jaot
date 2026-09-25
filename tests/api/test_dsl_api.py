@@ -130,6 +130,7 @@ def test_compile_internal_error_is_structured_not_500(
     body = resp.json()
     assert body["ok"] is False
     assert body["error"]["message"] == "internal compiler error"
+    assert body["error"]["code"] == "jmodel.internal_error"
 
 
 @pytest.mark.integration
@@ -210,6 +211,53 @@ def test_compile_with_unknown_dataset_is_a_structured_error(
     body = resp.json()
     assert body["ok"] is False
     assert "dataset not found" in body["error"]["message"]
+    assert body["error"]["code"] == "jmodel.dataset_not_found"
+
+
+@pytest.mark.integration
+def test_compile_against_an_empty_dataset_names_the_failure(
+    authenticated_client, test_organization, db_session
+):
+    """The studio's case: a dataset whose sets are empty lists.
+
+    It compiled to "model grounds to zero variables", with no code, so the
+    editor printed that English sentence in every language (2026-09-24).
+    """
+    dsid = _create_dataset(authenticated_client, {"sets": {"I": []}, "params": {"w": {}}})
+    resp = authenticated_client.post(
+        "/api/v2/dsl/compile", json={"source": PARAMETRIC_SOURCE, "dataset_id": dsid}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ok"] is False
+    assert body["error"]["code"] == "jmodel.zero_variables"
+
+
+@pytest.mark.integration
+def test_compile_error_says_the_line_and_column(
+    authenticated_client, test_organization, db_session
+):
+    """The editor printed "pos 712", and a reader had to count characters."""
+    source = "var x >= 0;\nminimize obj: x + qq;\nsubject to c: x >= 1;"
+    resp = authenticated_client.post("/api/v2/dsl/compile", json={"source": source})
+    assert resp.status_code == 200, resp.text
+    error = resp.json()["error"]
+    # `qq` is on the second line, 19 characters in.
+    assert (error["line"], error["column"]) == (2, 19)
+    # The offset stays for API clients that already read it.
+    assert error["position"] == source.index("qq")
+
+
+@pytest.mark.integration
+def test_inspect_error_says_the_line_and_column(
+    authenticated_client, test_organization, db_session
+):
+    source = "set I := {a};\nparam w{I} := a 1\nvar x;"
+    resp = authenticated_client.post("/api/v2/dsl/inspect", json={"source": source})
+    assert resp.status_code == 200, resp.text
+    error = resp.json()["error"]
+    assert error["line"] is not None and error["line"] >= 2
+    assert error["column"] is not None and error["column"] >= 1
 
 
 # CONTRACT-TEST: /dsl/compile dataset resolution is org-scoped — another org's

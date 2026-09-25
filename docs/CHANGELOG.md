@@ -105,6 +105,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **A deactivated account could still sign in.** The login answered with a session and a refresh token, and every page after it sent the person back to the login page with no reason. An admin's "Delete" deactivates too. Signing in now says the account is disabled, and no session is created.
 - **"What I Publish" cut off the model name and the actions at desktop width**, when a listing had a long description.
 - **The admin executions list showed "—" as the model of most runs, and did not say which solver ran.** A run with no saved model is now named after its problem, and a new Solver column and filter show the solver.
+- **JModel errors about a dataset were English in every language**, such as "model grounds to zero variables". Fourteen more compile errors now come with a code, and the editor translates them.
+- **A JModel compile error said where it was as a character count**, such as "pos 712". The editor and the dataset import now say the line and the column.
 
 ## [3.10.0] - 2026-09-24
 

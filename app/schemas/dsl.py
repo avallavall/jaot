@@ -35,6 +35,14 @@ class DSLCompileError(BaseModel):
     position: int | None = Field(
         default=None, description="0-based character offset in the source, when known"
     )
+    # What the editor shows. It printed the offset ("pos 712"), and a reader had
+    # to count characters to find the line. The offset stays for API clients.
+    line: int | None = Field(
+        default=None, description="1-based line of `position` in the source, when known"
+    )
+    column: int | None = Field(
+        default=None, description="1-based column of `position` on its line, when known"
+    )
     # Additive, and the same contract the HTTP errors use: `message` is English
     # and unchanged, `code` is what a page in another language renders. The
     # editor used to print the compiler's English sentence inside a translated

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { DslCompileResult } from "@/lib/types";
-import { jmodelErrorText } from "@/lib/jmodel-error";
+import { jmodelErrorLocation, jmodelErrorText } from "@/lib/jmodel-error";
 import {
   useModelProjectStore,
   useModelProjectStoreApi,
@@ -315,6 +315,7 @@ export function JModelEditorPanel() {
   // Offer "derive a draft" exactly when the JModel source is NOT the current model:
   // the editor is empty, or it drifted because another lens changed the model.
   const canDerive = hasModel && (drifted || !text.trim());
+  const errorLocation = result && !result.ok ? jmodelErrorLocation(result.error, t) : null;
 
   return (
     <div className="flex flex-1 min-h-0 flex-col">
@@ -488,9 +489,7 @@ export function JModelEditorPanel() {
                     ? jmodelErrorText(result.error, tError)
                     : t("jmodelBlockedGeneric")}
                 </code>
-                {result && !result.ok && typeof result.error?.position === "number" && (
-                  <span className="opacity-70"> (pos {result.error.position})</span>
-                )}
+                {errorLocation && <span className="opacity-70"> ({errorLocation})</span>}
               </span>
               <p className="mt-1 opacity-80">{t("lensNotApplied")}</p>
               {/* S4 cross-link: a data-shaped error (declaration without values/members,
