@@ -50,6 +50,14 @@ test.describe("Authentication", () => {
 
   test.describe("Logout & Session (E2E-03)", () => {
     test("authenticated user can access dashboard then logout", async ({ page }) => {
+      // Pre-seed cookie consent (same pattern as studio-jmodel): the fixed bottom
+      // banner covers the sidebar's Logout button at the bottom of the screen.
+      await page.addInitScript(() => {
+        window.localStorage.setItem(
+          "jaot_cookie_consent",
+          JSON.stringify({ essential: true, analytics: false, timestamp: "2026-09-25T00:00:00.000Z" }),
+        );
+      });
       await page.goto("/studio");
       await expect(page).toHaveURL(/\/studio/);
 

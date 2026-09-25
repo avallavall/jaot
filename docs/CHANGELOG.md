@@ -106,6 +106,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **"What I Publish" cut off the model name and the actions at desktop width**, when a listing had a long description.
 - **The Pareto chart printed its method as "Weighted" in every language**, and the Spanish page titled it "Pareto Front" and "Epsilon Constraint".
 - **The execution page's solve summary wrote the gap and the time in English format** ("0.00%", "0.00s") on every page, and the Spanish solution explorer said "Binding".
+- **The unread count on the notification bell failed the WCAG AA contrast check** (white on light red, 3.8:1).
 
 ## [3.10.0] - 2026-09-24
 

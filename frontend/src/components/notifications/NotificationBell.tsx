@@ -174,7 +174,9 @@ export function NotificationBell() {
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium">
+            {/* red-600, not red-500: white on red-500 is 3.8:1, under the 4.5:1
+                WCAG AA asks of this 12 px text (the a11y E2E spec failed on it). */}
+            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-medium">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
