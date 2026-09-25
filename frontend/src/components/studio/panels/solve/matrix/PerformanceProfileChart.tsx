@@ -17,6 +17,7 @@ import type { ComparisonMatrixRow } from "@/lib/types";
 
 import { performanceProfile, profileSeries } from "./performance-profile";
 import { pageLocale } from "@/lib/page-locale";
+import { solverDisplayName } from "@/lib/solver-display";
 
 /** Five tokens, five solvers. The order follows the columns of the matrix. */
 const CHART_COLORS = [
@@ -122,7 +123,7 @@ export function PerformanceProfileChart({
               key={curve.solver}
               type="stepAfter"
               dataKey={curve.solver}
-              name={curve.solver}
+              name={solverDisplayName(curve.solver)}
               stroke={colorOf(curve.solver)}
               strokeWidth={2}
               dot={false}
@@ -137,7 +138,7 @@ export function PerformanceProfileChart({
         {best && best.wins > 0 ? (
           <p>
             {t("matrix.profile.fastestMost", {
-              solver: best.solver,
+              solver: solverDisplayName(best.solver),
               wins: best.wins,
               instances: profile.instances,
             })}
@@ -145,7 +146,9 @@ export function PerformanceProfileChart({
         ) : null}
         {profile.neverSolved.length > 0 ? (
           <p>
-            {t("matrix.profile.neverSolved", { solvers: profile.neverSolved.join(", ") })}
+            {t("matrix.profile.neverSolved", {
+              solvers: profile.neverSolved.map(solverDisplayName).join(", "),
+            })}
           </p>
         ) : null}
       </div>

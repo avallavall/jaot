@@ -13,6 +13,7 @@ import {
   heatOf,
 } from "./matrix-metrics";
 import { pageLocale } from "@/lib/page-locale";
+import { solverDisplayName } from "@/lib/solver-display";
 
 /** How far behind the best of its row, as colour. Four steps, one ramp. */
 const HEAT_CLASS: Record<Heat, string> = {
@@ -49,8 +50,12 @@ export function MatrixTable({ batch, metric, openRow, onOpenRow }: MatrixTablePr
               {t("matrix.colDataset")}
             </th>
             {batch.solver_names.map((solver) => (
-              <th key={solver} scope="col" className="px-3 py-2 text-right font-medium">
-                {solver.toUpperCase()}
+              <th
+                key={solver}
+                scope="col"
+                className="px-3 py-2 text-right font-medium normal-case tracking-normal"
+              >
+                {solverDisplayName(solver)}
               </th>
             ))}
           </tr>

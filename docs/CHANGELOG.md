@@ -56,6 +56,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **Signing up showed a disabled button and no reason** until the terms box was ticked. The button now works, and the form says what is missing.
 - **Admin settings showed raw key names as group headings**, such as "AUTH MAX" and "APP VERSION".
 - **An empty AI provider account never triggered the admin alert** that says to top it up: Anthropic's real reply was not recognised.
+- **Twelve industry guides in the docs showed a broken image.** They linked builder screenshots that were never added.
+- **The studio's solver matrix printed "HIGHS"** in its columns, checkboxes and summary lines. It now prints the brand names.
 
 ## [3.10.0] - 2026-09-24
 

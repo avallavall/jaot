@@ -32,6 +32,7 @@ import { ComparisonTable } from "@/components/solve/compare/ComparisonTable";
 import { isComparable, useSolvers } from "@/hooks/useSolvers";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { solverDisplayName } from "@/lib/solver-display";
 import type {
   ComparisonBatchDetail,
   ComparisonBatchSummary,
@@ -382,7 +383,7 @@ export function SolverMatrixSection() {
                         }
                         data-testid="studio-matrix-solver"
                       />
-                      <span className="uppercase">{solver.name}</span>
+                      <span>{solverDisplayName(solver.name)}</span>
                       {!comparable && (
                         <span className="text-xs normal-case text-muted-foreground">
                           {t("matrix.notComparable")}
@@ -512,7 +513,7 @@ export function SolverMatrixSection() {
             {winner ? (
               <p data-testid="studio-matrix-winner">
                 {t("matrix.winner", {
-                  solver: winner.solver.toUpperCase(),
+                  solver: solverDisplayName(winner.solver),
                   metric: t(`matrix.metric.${metric}`),
                   wins: winner.wins,
                   total: winner.rowsCompared,
