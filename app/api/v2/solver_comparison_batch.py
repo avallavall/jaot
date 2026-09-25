@@ -43,7 +43,7 @@ from app.api.deps import (
     enforce_workspace_of,
     workspace_ids_open_to,
 )
-from app.domains.dsl import JModelData, JModelError, compile_jmodel
+from app.domains.dsl import JModelData, JModelError, compile_jmodel, line_and_column
 from app.domains.solver.queue_routing import COMPARISON_QUEUE
 from app.domains.solver.services.classify import classify
 from app.domains.solver.services.comparison_service import (
@@ -442,6 +442,9 @@ def _check_model(
     try:
         problem = compile_jmodel(source, data=JModelData.from_json(dataset.data_json))
     except JModelError as exc:
+        line, column = (
+            line_and_column(source, exc.position) if exc.position is not None else (None, None)
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
@@ -449,6 +452,10 @@ def _check_model(
                 "dataset_name": dataset.name,
                 "message": exc.message,
                 "position": exc.position,
+                "line": line,
+                "column": column,
+                "code": exc.code,
+                "params": exc.params or None,
             },
         ) from exc
 

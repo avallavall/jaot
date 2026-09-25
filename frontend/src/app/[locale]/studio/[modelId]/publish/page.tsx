@@ -19,6 +19,26 @@ import { RichTextEditor } from "@/components/publish/RichTextEditor";
 import { LogoUpload } from "@/components/publish/LogoUpload";
 import { ScreenshotUpload } from "@/components/publish/ScreenshotUpload";
 
+// The backend's PublishModelRequest limits (MAX_TAGS, MAX_TAG_CHARS). The form
+// took a 60-character tag, which no marketplace card can show.
+const MAX_TAGS = 10;
+const MAX_TAG_CHARS = 30;
+
+/** The tags as the server keeps them: trimmed, no blanks, no repeats. */
+function parseTags(text: string): string[] {
+  const seen = new Set<string>();
+  const tags: string[] = [];
+  for (const raw of text.split(",")) {
+    const tag = raw.trim();
+    const key = tag.toLocaleLowerCase();
+    if (tag && !seen.has(key)) {
+      seen.add(key);
+      tags.push(tag);
+    }
+  }
+  return tags;
+}
+
 const CATEGORY_IDS = [
   "finance",
   "logistics",
@@ -132,7 +152,7 @@ export default function StudioPublishPage() {
         description: description.trim(),
         short_description: shortDescription.trim() || undefined,
         category,
-        tags: tags.split(",").map((s) => s.trim()).filter(Boolean),
+        tags: parseTags(tags),
         section_overview: sectionOverview.trim() || undefined,
         section_features: sectionFeatures.trim() || undefined,
         section_how_it_works: sectionHowItWorks.trim() || undefined,
@@ -157,10 +177,11 @@ export default function StudioPublishPage() {
       } else if (status === 422) {
         // Map the known pydantic constraint to a friendly, localized message —
         // the raw "String should have at least 10 characters" leaked to users.
+        // A refusal the server names (a tag limit) is written from its code.
         const detail = getErrorMessage(err, t("failedToPublish"));
         msg = detail.includes("at least 10 characters")
           ? t("descriptionTooShort")
-          : t("validationFailed", { detail });
+          : translateApiError(err, tError, t("validationFailed", { detail }));
       } else {
         msg = getErrorMessage(err, t("failedToPublish"));
       }
@@ -181,6 +202,22 @@ export default function StudioPublishPage() {
     // Mirror the backend's PublishModelRequest.description min_length=10 up front.
     if (description.trim().length < 10) {
       dialog.showError(t("descriptionTooShort"));
+      return;
+    }
+
+    // The same tag limits the server applies, said before the confirm dialog.
+    const tagList = parseTags(tags);
+    const longTag = tagList.find((tag) => tag.length > MAX_TAG_CHARS);
+    if (longTag) {
+      dialog.showError(
+        tError("projects.publish_tag_too_long", { tag: longTag, max: MAX_TAG_CHARS }),
+      );
+      return;
+    }
+    if (tagList.length > MAX_TAGS) {
+      dialog.showError(
+        tError("projects.publish_too_many_tags", { max: MAX_TAGS, count: tagList.length }),
+      );
       return;
     }
 
@@ -324,12 +361,19 @@ export default function StudioPublishPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">{t("tags")}</label>
+          <label htmlFor="publish-tags" className="block text-sm font-medium mb-2">
+            {t("tags")}
+          </label>
           <Input
+            id="publish-tags"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder={t("tagsPlaceholder")}
+            aria-describedby="publish-tags-help"
           />
+          <p id="publish-tags-help" className="text-xs text-muted-foreground mt-1">
+            {t("tagsHelp", { maxTags: MAX_TAGS, maxChars: MAX_TAG_CHARS })}
+          </p>
         </div>
 
         {/* Media operates on the listing, which exists only after the first publish. */}

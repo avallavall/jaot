@@ -207,6 +207,7 @@
     "jmodelHint": "Escribe el modelo en JModel (conjuntos, parámetros, familias indexadas). Se compila al modelo y se autoguarda.",
     "jmodelAriaLabel": "Modelo como código JModel",
     "jmodelInvalid": "Error de compilación",
+    "jmodelErrorAt": "línea {line}, columna {column}",
     "jmodelBlockedGeneric": "La fuente actual no compila con los datos seleccionados, así que resolver está bloqueado.",
     "jmodelValid": "Modelo válido",
     "jmodelCompiling": "Compilando…",
@@ -2162,6 +2163,7 @@
       "totalExecutions": "Ejecuciones totales",
       "avgTime": "Tiempo medio",
       "allStatus": "Todos los estados",
+      "allSolvers": "Todos los solvers",
       "completed": "Completada",
       "failed": "Fallida",
       "running": "En curso",
@@ -2170,6 +2172,7 @@
         "id": "ID",
         "model": "Modelo",
         "organization": "Organización",
+        "solver": "Solver",
         "status": "Estado",
         "duration": "Duración",
         "date": "Fecha"
@@ -2890,6 +2893,7 @@
       "category": "Categoría",
       "tags": "Etiquetas",
       "tagsPlaceholder": "optimización, presupuesto, planificación (separadas por comas)",
+      "tagsHelp": "Hasta {maxTags} etiquetas, de {maxChars} caracteres como máximo cada una.",
       "publishToMarketplace": "Publicar en el Marketplace",
       "publishing": "Publicando...",
       "published": "Publicado",
@@ -4772,7 +4776,21 @@
         "empty_set": "El conjunto {name} no tiene miembros. Escríbelos con := o dalos en un dataset.",
         "empty_param": "El param {name} no tiene valores. Escríbelos con := o dalos en un dataset.",
         "duplicate_members": "El conjunto {name} repite un miembro. Cada miembro aparece una sola vez.",
-        "unterminated_param": "El param {name} no está cerrado. Le falta un punto y coma al final."
+        "unterminated_param": "El param {name} no está cerrado. Le falta un punto y coma al final.",
+        "zero_variables": "El modelo no tiene variables. Cada familia de variables está indexada sobre un conjunto vacío. Revisa los miembros de los conjuntos en el dataset.",
+        "dataset_unknown_set": "El dataset da miembros para {name}, y el modelo no declara ningún conjunto con ese nombre.",
+        "dataset_set_dimension": "El conjunto {name} admite miembros de {expected} componentes, y el dataset da {got} por miembro.",
+        "dataset_duplicate_members": "El dataset repite un miembro del conjunto {name}. Cada miembro aparece una sola vez.",
+        "dataset_unknown_param": "El dataset da valores para {name}, y el modelo no declara ningún param con ese nombre.",
+        "dataset_param_scalar": "El param {name} es un solo número. El dataset debe darle un número.",
+        "dataset_param_indexed": "El param {name} está indexado. El dataset debe darle un objeto que asocie claves de índice a números.",
+        "computed_set_needs_members": "El conjunto {name} no tiene miembros, y el conjunto {target} se construye a partir de él. Escríbelos con := o dalos en un dataset.",
+        "param_missing_value": "El param {name} no tiene valor para el índice {key}.",
+        "param_key_arity": "El param {name} tiene una clave {key} con {count, plural, one {# miembro} other {# miembros}}, y necesita {expected}.",
+        "param_key_not_in_set": "El param {name} tiene una clave con {member}, que no es miembro del conjunto {set}.",
+        "constraint_always_false": "La restricción {name} se queda sin variables y siempre es falsa ({value} {op} 0).",
+        "dataset_not_found": "El dataset ya no existe. Puede que se haya borrado.",
+        "internal_error": "El compilador ha fallado con este código. Es un error de JAOT y ha quedado registrado."
       },
       "invite": {
         "not_found": "Este enlace de invitación no es válido.",
@@ -4785,7 +4803,9 @@
       },
       "projects": {
         "publish_needs_commit": "Al publicar se fija tu última versión commiteada: el marketplace nunca ve tu borrador de trabajo. Commitea el modelo en el espacio de trabajo y vuelve.",
-        "publish_needs_own_change": "Este modelo lo adoptaste del marketplace y no ha cambiado desde entonces. Commitea un cambio propio y publícalo como tu ficha."
+        "publish_needs_own_change": "Este modelo lo adoptaste del marketplace y no ha cambiado desde entonces. Commitea un cambio propio y publícalo como tu ficha.",
+        "publish_tag_too_long": "La etiqueta «{tag}» es demasiado larga. Una etiqueta puede tener como máximo {max} caracteres.",
+        "publish_too_many_tags": "Una ficha puede tener como máximo {max} etiquetas. Esta tiene {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "El servidor no puede llegar a esta dirección de webhook: apunta a {address}, una dirección privada, de loopback o de enlace local. Usa una URL pública.",

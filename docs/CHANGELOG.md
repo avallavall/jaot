@@ -118,6 +118,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The "Get set up as an author" checklist did not change after Withdraw or "Publish again"** on the same page. It now loads its steps again.
 - **Restoring a version over unsaved changes sent a request that failed before the studio asked.** The studio now asks first.
 - **With registration closed, the sign-up page named `support@jaot.io`**, which is wrong on a self-hosted instance. It now links to the site's contact page.
+- **The admin executions list showed "—" as the model of most runs, and did not say which solver ran.** A run with no saved model is now named after its problem, and a new Solver column and filter show the solver.
+- **JModel errors about a dataset were English in every language**, such as "model grounds to zero variables". Fourteen more compile errors now come with a code, and the editor translates them.
+- **A JModel compile error said where it was as a character count**, such as "pos 712". The editor and the dataset import now say the line and the column.
+- **"Last run" under the Solve button showed a cell of a solver matrix as the model's last run**, while "Runs of this model" did not list matrix runs. Both now show only the model's own runs.
+- **The marketplace publish form accepted a tag of any length**, such as one of 60 characters. A listing now has at most 10 tags of at most 30 characters each, and the form says so. Blank and repeated tags are dropped.
 
 ## [3.10.0] - 2026-09-24
 

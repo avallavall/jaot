@@ -49,7 +49,7 @@ from app.api.v2.solve_pipeline import (
     shape_sync_result,
     wait_for_task,
 )
-from app.domains.dsl import JModelData, JModelError, compile_jmodel
+from app.domains.dsl import JModelData, JModelError, compile_jmodel, line_and_column
 from app.domains.solver.services import SolverService, get_solver_service
 from app.domains.solver.services.template_engine import TemplateEngine, get_template_engine
 from app.models import Organization, User
@@ -62,7 +62,12 @@ from app.models.model_project import (
 )
 from app.models.optimization_model import ModelExecution
 from app.models.workspace import WorkspaceRole
-from app.schemas.model import ModelCatalogResponse, PublishModelRequest
+from app.schemas.model import (
+    MAX_TAG_CHARS,
+    MAX_TAGS,
+    ModelCatalogResponse,
+    PublishModelRequest,
+)
 from app.schemas.model_project import (
     CommitRequest,
     DatasetCreate,
@@ -462,6 +467,24 @@ def publish_model_project(
     listing pins HEAD, never the dirty draft).
     """
     project = _writable_project_or_404(db, project_id, org, user)
+    # Refused with a code, so the form can say which limit and in which language.
+    long_tag = body.tag_too_long()
+    if long_tag is not None:
+        shown = long_tag[:60]
+        raise CodedHTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code="projects.publish_tag_too_long",
+            params={"tag": shown, "max": MAX_TAG_CHARS},
+            detail=f"The tag '{shown}' is too long. A tag can have at most {MAX_TAG_CHARS} characters.",
+        )
+    if body.too_many_tags():
+        count = len(body.tags or [])
+        raise CodedHTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code="projects.publish_too_many_tags",
+            params={"max": MAX_TAGS, "count": count},
+            detail=f"A listing can have at most {MAX_TAGS} tags. This one has {count}.",
+        )
     try:
         listing = svc.publish_listing(db, project, author_org_id=org.id, req=body)
     except ProjectNotPublishableError as exc:
@@ -661,6 +684,12 @@ def list_project_executions(
     generic ``source_kind="model_project"`` provenance (the universal
     ``/solve/async`` path the studio uses for live streaming) — so no solve
     entry point has to change (see the solve-contract-drift safeguard).
+
+    A solver-comparison column is left out. It carries the project's id too,
+    and the "Last run" line under the Solve button showed a matrix cell as this
+    model's last run while "Runs of this model" did not list it. Both read this
+    endpoint, so they now follow one rule: the model's own runs. A column
+    belongs to its comparison, which has its own page.
     """
     _project_or_404(db, project_id, org, user)
     # `ProjectExecutionItem` is a compact row by design — no payloads. The query
@@ -684,6 +713,7 @@ def list_project_executions(
                     ModelExecution.source_id == project_id,
                 ),
             ),
+            ModelExecution.comparison_id.is_(None),
         )
     )
     if status_filter:
@@ -910,7 +940,10 @@ def import_project_dataset(  # sync ON PURPOSE -> threadpool (ADR-009): parses t
     except JModelError as exc:
         detail = exc.message
         if exc.position is not None:
-            detail += f" (pos {exc.position})"
+            # The parser counts characters of the decoded text, BOM removed.
+            text = content.decode("utf-8-sig", errors="replace")
+            line, column = line_and_column(text, exc.position)
+            detail += f" (line {line}, column {column})"
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail
         ) from exc
@@ -1284,7 +1317,7 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
     the server and rides the ONE async pipeline, so the client sends a URL and
     nothing else. Async-only on purpose — scenario launches are batch and the
     client derives row state from the server. A compile failure is a 422
-    ``{message, position}``; the dataset is
+    ``{message, position, line, column, code, params}``; the dataset is
     org- and project-scoped (404 otherwise, anti-oracle).
     """
     org = getattr(request.state, "organization", None)
@@ -1314,9 +1347,19 @@ def solve_project_dataset(  # def: the CPU-bound compile belongs in the threadpo
     try:
         problem = compile_jmodel(source, data=JModelData.from_json(dataset.data_json))
     except JModelError as exc:
+        line, column = (
+            line_and_column(source, exc.position) if exc.position is not None else (None, None)
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"message": exc.message, "position": exc.position},
+            detail={
+                "message": exc.message,
+                "position": exc.position,
+                "line": line,
+                "column": column,
+                "code": exc.code,
+                "params": exc.params or None,
+            },
         ) from exc
 
     # Same enqueue path and provenance the browser-side launch produced (origin

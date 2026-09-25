@@ -207,6 +207,7 @@
     "jmodelHint": "Écrivez le modèle en JModel (ensembles, paramètres, familles indexées). Il se compile vers le modèle et s'enregistre automatiquement.",
     "jmodelAriaLabel": "Modèle en code JModel",
     "jmodelInvalid": "Erreur de compilation",
+    "jmodelErrorAt": "ligne {line}, colonne {column}",
     "jmodelBlockedGeneric": "La source actuelle ne compile pas avec les données sélectionnées ; la résolution est bloquée.",
     "jmodelValid": "Modèle valide",
     "jmodelCompiling": "Compilation…",
@@ -2162,6 +2163,7 @@
       "totalExecutions": "Exécutions au total",
       "avgTime": "Temps moyen",
       "allStatus": "Tous les statuts",
+      "allSolvers": "Tous les solveurs",
       "completed": "Terminée",
       "failed": "Échouée",
       "running": "En cours",
@@ -2170,6 +2172,7 @@
         "id": "ID",
         "model": "Modèle",
         "organization": "Organisation",
+        "solver": "Solveur",
         "status": "Statut",
         "duration": "Durée",
         "date": "Date"
@@ -2890,6 +2893,7 @@
       "category": "Catégorie",
       "tags": "Tags",
       "tagsPlaceholder": "optimisation, budget, planification (séparés par des virgules)",
+      "tagsHelp": "Jusqu'à {maxTags} tags, de {maxChars} caractères au plus chacun.",
       "publishToMarketplace": "Publier sur le marketplace",
       "publishing": "Publication...",
       "published": "Publié",
@@ -4772,7 +4776,21 @@
         "empty_set": "L'ensemble {name} n'a aucun membre. Écrivez-les avec := ou fournissez-les dans un dataset.",
         "empty_param": "Le param {name} n'a aucune valeur. Écrivez-les avec := ou fournissez-les dans un dataset.",
         "duplicate_members": "L'ensemble {name} répète un membre. Chaque membre n'apparaît qu'une fois.",
-        "unterminated_param": "Le param {name} n'est pas fermé. Il manque un point-virgule à la fin."
+        "unterminated_param": "Le param {name} n'est pas fermé. Il manque un point-virgule à la fin.",
+        "zero_variables": "Le modèle n'a aucune variable. Chaque famille de variables est indexée sur un ensemble vide. Vérifiez les membres des ensembles dans le dataset.",
+        "dataset_unknown_set": "Le dataset fournit des membres pour {name}, et le modèle ne déclare aucun ensemble de ce nom.",
+        "dataset_set_dimension": "L'ensemble {name} attend des membres à {expected} composantes, et le dataset en fournit {got} par membre.",
+        "dataset_duplicate_members": "Le dataset répète un membre de l'ensemble {name}. Chaque membre n'apparaît qu'une fois.",
+        "dataset_unknown_param": "Le dataset fournit des valeurs pour {name}, et le modèle ne déclare aucun param de ce nom.",
+        "dataset_param_scalar": "Le param {name} est un seul nombre. Le dataset doit lui donner un nombre.",
+        "dataset_param_indexed": "Le param {name} est indexé. Le dataset doit lui donner un objet qui associe des clés d'index à des nombres.",
+        "computed_set_needs_members": "L'ensemble {name} n'a aucun membre, et l'ensemble {target} est construit à partir de lui. Écrivez-les avec := ou fournissez-les dans un dataset.",
+        "param_missing_value": "Le param {name} n'a pas de valeur pour l'index {key}.",
+        "param_key_arity": "Le param {name} a une clé {key} à {count, plural, one {# membre} other {# membres}}, et il en faut {expected}.",
+        "param_key_not_in_set": "Le param {name} a une clé avec {member}, qui n'est pas membre de l'ensemble {set}.",
+        "constraint_always_false": "La contrainte {name} n'a plus de variables et est toujours fausse ({value} {op} 0).",
+        "dataset_not_found": "Le dataset n'existe plus. Il a peut-être été supprimé.",
+        "internal_error": "Le compilateur a échoué sur cette source. C'est un bogue de JAOT, et il a été enregistré."
       },
       "invite": {
         "not_found": "Ce lien d’invitation n’est pas valide.",
@@ -4785,7 +4803,9 @@
       },
       "projects": {
         "publish_needs_commit": "La publication épingle votre dernière version validée : la place de marché ne voit jamais votre brouillon de travail. Validez votre modèle dans l'espace de travail, puis revenez.",
-        "publish_needs_own_change": "Ce modèle a été adopté depuis la place de marché et n'a pas changé depuis. Validez une modification qui vous est propre, puis publiez-le comme votre fiche."
+        "publish_needs_own_change": "Ce modèle a été adopté depuis la place de marché et n'a pas changé depuis. Validez une modification qui vous est propre, puis publiez-le comme votre fiche.",
+        "publish_tag_too_long": "Le tag « {tag} » est trop long. Un tag peut avoir au plus {max} caractères.",
+        "publish_too_many_tags": "Une fiche peut avoir au plus {max} tags. Celle-ci en a {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "Le serveur ne peut pas joindre cette adresse de webhook : elle pointe vers {address}, une adresse privée, de loopback ou de lien local. Utilisez une URL publique.",

@@ -722,6 +722,9 @@ export interface ProjectListItem {
 export interface DslCompileError {
   message: string;
   position?: number | null;
+  /** 1-based line and column of `position`: what the editor shows. */
+  line?: number | null;
+  column?: number | null;
   /** Names the failure so the editor can write it in the reader's language. Null on
    *  the compiler messages that do not name themselves yet — those show `message`. */
   code?: string | null;

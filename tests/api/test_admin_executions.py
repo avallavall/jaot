@@ -35,6 +35,9 @@ def _execution(
     status: str = "completed",
     model_project_id: str | None = None,
     origin: str = "visual_builder",
+    problem_name: str = "probe",
+    solver_name: str | None = None,
+    comparison_id: str | None = None,
 ) -> ModelExecution:
     row = ModelExecution(
         id=generate_id("exe_"),
@@ -43,9 +46,11 @@ def _execution(
         execution_time_ms=time_ms,
         origin=origin,
         model_project_id=model_project_id,
+        solver_name=solver_name,
+        comparison_id=comparison_id,
         # NOT NULL on the table. The endpoint defers this column rather than
         # reading it, which is the point of the list query.
-        input_data={"name": "probe", "variables": [], "constraints": []},
+        input_data={"name": problem_name, "variables": [], "constraints": []},
         created_at=utcnow(),
     )
     db.add(row)
@@ -184,6 +189,115 @@ class TestAdminExecutionsSpanThePlatform:
 
     def test_a_non_admin_is_refused(self, authenticated_client: TestClient):
         assert authenticated_client.get("/api/v2/admin/executions").status_code == 403
+
+
+class TestAdminExecutionsSayWhatRan:
+    """The Model column read "—" on every row, and no column said which solver ran.
+
+    Most runs carry no saved model: ``POST /solve``, the comparer, an import. The
+    list named a run only through its project, so the newest page of a platform
+    busy with API solves had no name on any row (found driving the admin panel,
+    2026-09-24).
+    """
+
+    def test_a_run_of_no_model_is_named_by_its_problem(
+        self, admin_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        run = _execution(
+            db_session,
+            org_id=test_organization.id,
+            time_ms=10,
+            origin="manual",
+            problem_name="QA infeasible blend",
+        )
+        db_session.commit()
+
+        rows = admin_client.get("/api/v2/admin/executions?page_size=100").json()["items"]
+
+        row = next(r for r in rows if r["id"] == run.id)
+        assert row["model_name"] == "QA infeasible blend"
+
+    def test_a_comparison_column_is_named_by_its_comparison(
+        self, admin_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        from app.models import SolverComparison
+
+        comparison = SolverComparison(
+            id=generate_id("cmp_"),
+            organization_id=test_organization.id,
+            problem_name="uploaded_plant.mps",
+            time_limit_seconds=20.0,
+            gap_tolerance=0.0001,
+            threads=1,
+            solver_names=["scip", "jaos"],
+            status="completed",
+        )
+        db_session.add(comparison)
+        db_session.flush()
+        # A column keeps no copy of the problem; its stored input is a stub.
+        column = _execution(
+            db_session,
+            org_id=test_organization.id,
+            time_ms=10,
+            origin="comparison",
+            problem_name="",
+            solver_name="jaos",
+            comparison_id=comparison.id,
+        )
+        db_session.commit()
+
+        rows = admin_client.get("/api/v2/admin/executions?page_size=100").json()["items"]
+
+        row = next(r for r in rows if r["id"] == column.id)
+        assert row["model_name"] == "uploaded_plant.mps"
+
+    def test_a_saved_model_still_names_its_runs(
+        self,
+        admin_client: TestClient,
+        db_session: Session,
+        test_organization: Organization,
+        test_user: User,
+    ):
+        project = ModelProject(
+            id=generate_id("mp_"),
+            organization_id=test_organization.id,
+            created_by=test_user.id,
+            name="Plant Location",
+            status="active",
+        )
+        db_session.add(project)
+        db_session.flush()
+        run = _execution(
+            db_session,
+            org_id=test_organization.id,
+            time_ms=10,
+            model_project_id=project.id,
+            problem_name="the compiled problem's own name",
+        )
+        db_session.commit()
+
+        rows = admin_client.get("/api/v2/admin/executions?page_size=100").json()["items"]
+
+        row = next(r for r in rows if r["id"] == run.id)
+        assert row["model_name"] == "Plant Location"
+        assert row["model_author"] == test_user.name
+
+    def test_filtering_by_solver_narrows_to_it(
+        self, admin_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        jaos = _execution(db_session, org_id=test_organization.id, time_ms=10, solver_name="jaos")
+        scip = _execution(db_session, org_id=test_organization.id, time_ms=900, solver_name="scip")
+        db_session.commit()
+
+        body = admin_client.get("/api/v2/admin/executions?solver=jaos&page_size=100").json()
+
+        ids = {r["id"] for r in body["items"]}
+        assert jaos.id in ids
+        assert scip.id not in ids
+        assert {r["solver_name"] for r in body["items"]} == {"jaos"}
+        # The figures follow the filter like every other one.
+        everything = admin_client.get("/api/v2/admin/executions").json()["stats"]["total"]
+        assert 1 <= body["stats"]["total"] < everything
 
 
 def resp_text(rows: list[dict]) -> str:

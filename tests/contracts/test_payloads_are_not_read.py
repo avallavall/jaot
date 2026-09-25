@@ -19,6 +19,8 @@ the broken code.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from sqlalchemy import event
 from sqlalchemy.orm import Session
@@ -62,6 +64,13 @@ class _Statements:
             assert not any(f"{table}.{column}" in q for q in self.seen), (
                 f"selected {table}.{column}, which this route never renders"
             )
+
+    def assert_only_one_field_read(self, table: str, column: str) -> None:
+        """The column is read only through a ``->>`` path, never whole."""
+        whole = re.compile(rf"{table}\.{column}(?!\s*->>)")
+        assert not any(whole.search(q) for q in self.seen), (
+            f"selected the whole {table}.{column}, where one field of it was enough"
+        )
 
 
 def _project(db: Session, org: Organization, pid: str) -> ModelProject:
@@ -125,6 +134,39 @@ def test_the_execution_table_does_not_read_the_model_drafts(
 
     assert resp.status_code == 200, resp.text
     sql.assert_never_selected("model_projects", _PROJECT_PAYLOADS)
+
+
+# CONTRACT-TEST: the admin executions table reads no payloads and no drafts.
+# It spans every organization, so its page is as heavy as any list here. It
+# loaded each named project whole, working copy included, and it read the live
+# progress trail of every row. A run with no project is named by its problem:
+# that name is one field inside the stored input, read as that field alone.
+def test_the_admin_execution_table_does_not_read_the_payloads(
+    admin_client, db_session: Session, test_organization: Organization
+) -> None:
+    project = _project(db_session, test_organization, "mp_payload_admin")
+    _run(db_session, test_organization, "exe_payload_admin", project)
+    _run(
+        db_session,
+        test_organization,
+        "exe_payload_admin_bare",
+        project,
+        model_project_id=None,
+        input_data={"name": "bare run", "variables": [{"name": "x"}]},
+    )
+    db_session.commit()
+
+    with _Statements(db_session) as sql:
+        resp = admin_client.get("/api/v2/admin/executions?page_size=100")
+
+    assert resp.status_code == 200, resp.text
+    rows = {r["id"]: r for r in resp.json()["items"]}
+    assert rows["exe_payload_admin"]["model_name"] == "Project mp_payload_admin"
+    assert rows["exe_payload_admin_bare"]["model_name"] == "bare run"
+    sql.assert_never_selected("model_projects", _PROJECT_PAYLOADS)
+    sql.assert_never_selected("model_executions", ("result_data", "progress_data"))
+    sql.assert_never_selected("model_executions", ("scenario_analysis",))
+    sql.assert_only_one_field_read("model_executions", "input_data")
 
 
 # CONTRACT-TEST: the model list reads no working copy.

@@ -207,6 +207,7 @@
     "jmodelHint": "Escriu el model en JModel (conjunts, paràmetres, famílies indexades). Es compila al model i es desa automàticament.",
     "jmodelAriaLabel": "Model com a codi JModel",
     "jmodelInvalid": "Error de compilació",
+    "jmodelErrorAt": "línia {line}, columna {column}",
     "jmodelBlockedGeneric": "La font actual no compila amb les dades seleccionades, així que resoldre està bloquejat.",
     "jmodelValid": "Model vàlid",
     "jmodelCompiling": "Compilant…",
@@ -2162,6 +2163,7 @@
       "totalExecutions": "Execucions totals",
       "avgTime": "Temps mitjà",
       "allStatus": "Tots els Estats",
+      "allSolvers": "Tots els solvers",
       "completed": "Completada",
       "failed": "Fallida",
       "running": "En execució",
@@ -2170,6 +2172,7 @@
         "id": "ID",
         "model": "Model",
         "organization": "Organització",
+        "solver": "Solver",
         "status": "Estat",
         "duration": "Durada",
         "date": "Data"
@@ -2890,6 +2893,7 @@
       "category": "Categoria",
       "tags": "Etiquetes",
       "tagsPlaceholder": "optimització, pressupost, planificació (separades per comes)",
+      "tagsHelp": "Fins a {maxTags} etiquetes, de {maxChars} caràcters com a màxim cadascuna.",
       "publishToMarketplace": "Publicar al Marketplace",
       "publishing": "Publicant...",
       "published": "Publicat",
@@ -4772,7 +4776,21 @@
         "empty_set": "El conjunt {name} no té membres. Escriu-los amb := o dona'ls en un dataset.",
         "empty_param": "El param {name} no té valors. Escriu-los amb := o dona'ls en un dataset.",
         "duplicate_members": "El conjunt {name} repeteix un membre. Cada membre apareix un sol cop.",
-        "unterminated_param": "El param {name} no està tancat. Li falta un punt i coma al final."
+        "unterminated_param": "El param {name} no està tancat. Li falta un punt i coma al final.",
+        "zero_variables": "El model no té variables. Cada família de variables està indexada sobre un conjunt buit. Revisa els membres dels conjunts al dataset.",
+        "dataset_unknown_set": "El dataset dona membres per a {name}, i el model no declara cap conjunt amb aquest nom.",
+        "dataset_set_dimension": "El conjunt {name} admet membres de {expected} components, i el dataset en dona {got} per membre.",
+        "dataset_duplicate_members": "El dataset repeteix un membre del conjunt {name}. Cada membre apareix un sol cop.",
+        "dataset_unknown_param": "El dataset dona valors per a {name}, i el model no declara cap param amb aquest nom.",
+        "dataset_param_scalar": "El param {name} és un sol nombre. El dataset li ha de donar un nombre.",
+        "dataset_param_indexed": "El param {name} està indexat. El dataset li ha de donar un objecte que associï claus d'índex a nombres.",
+        "computed_set_needs_members": "El conjunt {name} no té membres, i el conjunt {target} es construeix a partir d'ell. Escriu-los amb := o dona'ls en un dataset.",
+        "param_missing_value": "El param {name} no té valor per a l'índex {key}.",
+        "param_key_arity": "El param {name} té una clau {key} amb {count, plural, one {# membre} other {# membres}}, i en necessita {expected}.",
+        "param_key_not_in_set": "El param {name} té una clau amb {member}, que no és membre del conjunt {set}.",
+        "constraint_always_false": "La restricció {name} es queda sense variables i sempre és falsa ({value} {op} 0).",
+        "dataset_not_found": "El dataset ja no existeix. Potser s'ha esborrat.",
+        "internal_error": "El compilador ha fallat amb aquest codi. És un error de JAOT i ha quedat registrat."
       },
       "invite": {
         "not_found": "Aquest enllaç d’invitació no és vàlid.",
@@ -4785,7 +4803,9 @@
       },
       "projects": {
         "publish_needs_commit": "En publicar es fixa la teva darrera versió commitejada: el marketplace mai no veu el teu esborrany de treball. Commiteja el model a l'espai de treball i torna.",
-        "publish_needs_own_change": "Aquest model el vas adoptar del marketplace i no ha canviat des de llavors. Commiteja un canvi propi i publica'l com la teva fitxa."
+        "publish_needs_own_change": "Aquest model el vas adoptar del marketplace i no ha canviat des de llavors. Commiteja un canvi propi i publica'l com la teva fitxa.",
+        "publish_tag_too_long": "L'etiqueta «{tag}» és massa llarga. Una etiqueta pot tenir com a màxim {max} caràcters.",
+        "publish_too_many_tags": "Una fitxa pot tenir com a màxim {max} etiquetes. Aquesta en té {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "El servidor no pot arribar a aquesta adreça de webhook: apunta a {address}, una adreça privada, de loopback o d'enllaç local. Fes servir una URL pública.",

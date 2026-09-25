@@ -439,6 +439,65 @@ class TestExecutionsReconcile:
         pid = _create_project(authenticated_client)["id"]
         assert authenticated_client.get(f"/api/v2/projects/{pid}/executions").json() == []
 
+    def test_a_solver_matrix_cell_is_not_a_run_of_the_model(
+        self, authenticated_client: TestClient, db_session: Session, test_organization: Organization
+    ):
+        """The model's own runs only: the "Last run" line and the runs list agree.
+
+        A matrix cell carries the project's id. The Solve tab's "Last run:
+        solved · objective 18,390" showed a cell of a matrix run a minute
+        earlier, while "Runs of this model" left matrix runs out (found driving
+        the studio, 2026-09-24). Both read this endpoint.
+        """
+        from app.models import SolverComparison
+
+        pid = _create_project(authenticated_client)["id"]
+        now = utcnow()
+        own = _insert_execution(
+            db_session,
+            test_organization,
+            status="completed",
+            model_project_id=pid,
+            objective_value=90.0,
+            created_at=now - timedelta(minutes=5),
+        )
+        comparison = SolverComparison(
+            id=generate_id("cmp_"),
+            organization_id=test_organization.id,
+            model_project_id=pid,
+            problem_name="QA JAOS Facility",
+            time_limit_seconds=20.0,
+            gap_tolerance=0.0001,
+            threads=1,
+            solver_names=["scip", "jaos"],
+            status="completed",
+        )
+        db_session.add(comparison)
+        db_session.flush()
+        cell = ModelExecution(
+            id=generate_id("exe_"),
+            organization_id=test_organization.id,
+            input_data={"name": "tiny_lp"},
+            status="completed",
+            is_async=True,
+            origin="comparison",
+            model_project_id=pid,
+            source_kind="model_project",
+            source_id=pid,
+            comparison_id=comparison.id,
+            solver_name="jaos",
+            objective_value=18390.0,
+            created_at=now,
+        )
+        db_session.add(cell)
+        db_session.commit()
+
+        latest = authenticated_client.get(f"/api/v2/projects/{pid}/executions?limit=1").json()
+        every = authenticated_client.get(f"/api/v2/projects/{pid}/executions").json()
+
+        assert [r["id"] for r in latest] == [own.id]
+        assert cell.id not in {r["id"] for r in every}
+
     # CONTRACT-TEST: per-project executions are org-scoped (cross-org -> 404, anti-oracle)
     def test_executions_cross_tenant_404_anti_oracle(
         self,

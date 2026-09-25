@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { jmodelErrorText } from "@/lib/jmodel-error";
+import { jmodelErrorLocation, jmodelErrorText } from "@/lib/jmodel-error";
 import type { ErrorTranslator } from "@/lib/errors";
 
 const MESSAGES: Record<string, string> = {
@@ -51,5 +51,32 @@ describe("jmodelErrorText", () => {
 
   it("answers empty for no error at all", () => {
     expect(jmodelErrorText(null, t)).toBe("");
+  });
+});
+
+describe("jmodelErrorLocation", () => {
+  const tStudio = (key: string, values: Record<string, number>) =>
+    key === "jmodelErrorAt" ? `línea ${values.line}, columna ${values.column}` : key;
+
+  // The editor printed "(pos 712)", and a reader had to count characters to
+  // find the line (found driving the studio, 2026-09-24).
+  it("says the line and the column, in the reader's language", () => {
+    expect(
+      jmodelErrorLocation(
+        { message: "unknown symbol 'qq'", position: 30, line: 2, column: 19 },
+        tStudio,
+      ),
+    ).toBe("línea 2, columna 19");
+  });
+
+  it("says nothing for an error that points at no place", () => {
+    expect(jmodelErrorLocation({ message: "model has no objective", position: null }, tStudio)).toBe(
+      null,
+    );
+    expect(jmodelErrorLocation(null, tStudio)).toBe(null);
+  });
+
+  it("never falls back to the raw offset", () => {
+    expect(jmodelErrorLocation({ message: "x", position: 712 }, tStudio)).toBe(null);
   });
 });

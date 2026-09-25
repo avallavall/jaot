@@ -207,6 +207,7 @@
     "jmodelHint": "Schreibe das Modell in JModel (Mengen, Parameter, indizierte Familien). Es wird zum Modell kompiliert und automatisch gespeichert.",
     "jmodelAriaLabel": "Modell als JModel-Quelltext",
     "jmodelInvalid": "Kompilierfehler",
+    "jmodelErrorAt": "Zeile {line}, Spalte {column}",
     "jmodelBlockedGeneric": "Die aktuelle Quelle kompiliert nicht mit den gewählten Daten. Das Lösen ist blockiert.",
     "jmodelValid": "Gültiges Modell",
     "jmodelCompiling": "Kompiliere…",
@@ -2162,6 +2163,7 @@
       "totalExecutions": "Ausführungen insgesamt",
       "avgTime": "Durchschnittliche Zeit",
       "allStatus": "Alle Status",
+      "allSolvers": "Alle Solver",
       "completed": "Abgeschlossen",
       "failed": "Fehlgeschlagen",
       "running": "Läuft",
@@ -2170,6 +2172,7 @@
         "id": "ID",
         "model": "Modell",
         "organization": "Organisation",
+        "solver": "Solver",
         "status": "Status",
         "duration": "Dauer",
         "date": "Datum"
@@ -2890,6 +2893,7 @@
       "category": "Kategorie",
       "tags": "Tags",
       "tagsPlaceholder": "Optimierung, Budget, Planung (kommagetrennt)",
+      "tagsHelp": "Bis zu {maxTags} Tags, jeweils höchstens {maxChars} Zeichen.",
       "publishToMarketplace": "Im Marktplatz veröffentlichen",
       "publishing": "Wird veröffentlicht...",
       "published": "Veröffentlicht",
@@ -4772,7 +4776,21 @@
         "empty_set": "Die Menge {name} hat keine Elemente. Schreiben Sie sie mit := oder liefern Sie sie in einem Dataset.",
         "empty_param": "Der Param {name} hat keine Werte. Schreiben Sie sie mit := oder liefern Sie sie in einem Dataset.",
         "duplicate_members": "Die Menge {name} wiederholt ein Element. Jedes Element darf nur einmal vorkommen.",
-        "unterminated_param": "Der Param {name} ist nicht abgeschlossen. Am Ende fehlt ein Semikolon."
+        "unterminated_param": "Der Param {name} ist nicht abgeschlossen. Am Ende fehlt ein Semikolon.",
+        "zero_variables": "Das Modell hat keine Variablen. Jede Variablenfamilie ist über eine leere Menge indiziert. Prüfen Sie die Elemente der Mengen im Dataset.",
+        "dataset_unknown_set": "Das Dataset liefert Elemente für {name}, aber das Modell deklariert keine Menge mit diesem Namen.",
+        "dataset_set_dimension": "Die Menge {name} erwartet Elemente mit {expected} Komponenten, und das Dataset liefert {got} pro Element.",
+        "dataset_duplicate_members": "Das Dataset wiederholt ein Element der Menge {name}. Jedes Element darf nur einmal vorkommen.",
+        "dataset_unknown_param": "Das Dataset liefert Werte für {name}, aber das Modell deklariert keinen Param mit diesem Namen.",
+        "dataset_param_scalar": "Der Param {name} ist eine einzelne Zahl. Das Dataset muss ihm eine Zahl geben.",
+        "dataset_param_indexed": "Der Param {name} ist indiziert. Das Dataset muss ihm ein Objekt geben, das Indexschlüssel auf Zahlen abbildet.",
+        "computed_set_needs_members": "Die Menge {name} hat keine Elemente, und die Menge {target} wird aus ihr gebildet. Schreiben Sie sie mit := oder liefern Sie sie in einem Dataset.",
+        "param_missing_value": "Der Param {name} hat keinen Wert für den Index {key}.",
+        "param_key_arity": "Der Param {name} hat einen Schlüssel {key} mit {count, plural, one {# Element} other {# Elementen}}, braucht aber {expected}.",
+        "param_key_not_in_set": "Der Param {name} hat einen Schlüssel mit {member}, das kein Element der Menge {set} ist.",
+        "constraint_always_false": "Die Nebenbedingung {name} hat keine Variablen mehr und ist immer falsch ({value} {op} 0).",
+        "dataset_not_found": "Das Dataset existiert nicht mehr. Vielleicht wurde es gelöscht.",
+        "internal_error": "Der Compiler ist an diesem Quelltext gescheitert. Das ist ein Fehler in JAOT, und er wurde protokolliert."
       },
       "invite": {
         "not_found": "Dieser Einladungslink ist nicht gültig.",
@@ -4785,7 +4803,9 @@
       },
       "projects": {
         "publish_needs_commit": "Beim Veröffentlichen wird deine zuletzt committete Version festgeschrieben. Den Arbeitsentwurf sieht der Marktplatz nie. Committe dein Modell im Arbeitsbereich und komm zurück.",
-        "publish_needs_own_change": "Dieses Modell stammt aus dem Marktplatz und hat sich seitdem nicht geändert. Committe eine eigene Änderung und veröffentliche es dann als deinen Eintrag."
+        "publish_needs_own_change": "Dieses Modell stammt aus dem Marktplatz und hat sich seitdem nicht geändert. Committe eine eigene Änderung und veröffentliche es dann als deinen Eintrag.",
+        "publish_tag_too_long": "Der Tag „{tag}“ ist zu lang. Ein Tag darf höchstens {max} Zeichen haben.",
+        "publish_too_many_tags": "Ein Eintrag darf höchstens {max} Tags haben. Dieser hat {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "Der Server erreicht diese Webhook-Adresse nicht: Sie zeigt auf {address}, eine private, Loopback- oder Link-Local-Adresse. Verwende eine öffentliche URL.",

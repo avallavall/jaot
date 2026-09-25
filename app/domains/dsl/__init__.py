@@ -27,6 +27,7 @@ from app.domains.dsl.compiler import (
     compile_jmodel,
     inspect_declarations,
     latexify,
+    line_and_column,
 )
 
 __all__ = [
@@ -41,4 +42,5 @@ __all__ = [
     "compile_jmodel",
     "inspect_declarations",
     "latexify",
+    "line_and_column",
 ]

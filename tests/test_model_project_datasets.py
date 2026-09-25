@@ -466,15 +466,19 @@ class TestDatasetImport:
         )
         assert created.status_code == 201, created.text
 
-    def test_dat_parse_error_is_422_with_position(self, authenticated_client: TestClient):
+    def test_dat_parse_error_is_422_with_line_and_column(self, authenticated_client: TestClient):
+        """The message said "(pos 25)", and a reader had to count characters.
+
+        It now says the line and the column, counted on the second line here.
+        """
         pid = _create_project(authenticated_client)["id"]
         resp = authenticated_client.post(
             _import_url(pid),
-            files={"file": ("bad.dat", b"param w := a x;", "text/plain")},
+            files={"file": ("bad.dat", b"set I := a;\nparam w := a x;", "text/plain")},
         )
         assert resp.status_code == 422, resp.text
         assert "must end in a number" in resp.json()["detail"]
-        assert "(pos" in resp.json()["detail"]
+        assert "(line 2, column 14)" in resp.json()["detail"]
 
     def test_csv_one_param_with_header_and_filename_default(self, authenticated_client: TestClient):
         pid = _create_project(authenticated_client)["id"]

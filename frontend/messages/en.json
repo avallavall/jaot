@@ -207,6 +207,7 @@
     "jmodelHint": "Write the model in JModel (sets, params, indexed families). It compiles to the model and autosaves.",
     "jmodelAriaLabel": "Model as JModel source",
     "jmodelInvalid": "Compile error",
+    "jmodelErrorAt": "line {line}, column {column}",
     "jmodelBlockedGeneric": "The current source doesn't compile with the selected data, so solve is blocked.",
     "jmodelValid": "Valid model",
     "jmodelCompiling": "Compiling…",
@@ -2162,6 +2163,7 @@
       "totalExecutions": "Total executions",
       "avgTime": "Average time",
       "allStatus": "All Status",
+      "allSolvers": "All solvers",
       "completed": "Completed",
       "failed": "Failed",
       "running": "Running",
@@ -2170,6 +2172,7 @@
         "id": "ID",
         "model": "Model",
         "organization": "Organization",
+        "solver": "Solver",
         "status": "Status",
         "duration": "Duration",
         "date": "Date"
@@ -2915,6 +2918,7 @@
       "category": "Category",
       "tags": "Tags",
       "tagsPlaceholder": "optimization, budget, planning (comma separated)",
+      "tagsHelp": "Up to {maxTags} tags, each up to {maxChars} characters.",
       "publishToMarketplace": "Publish to Marketplace",
       "publishing": "Publishing...",
       "published": "Published",
@@ -4772,7 +4776,21 @@
         "empty_set": "The set {name} has no members. Write them inline with := or provide them in a dataset.",
         "empty_param": "The param {name} has no values. Write them inline with := or provide them in a dataset.",
         "duplicate_members": "The set {name} repeats a member. Every member must appear once.",
-        "unterminated_param": "The param {name} is not closed. It needs a semicolon at the end."
+        "unterminated_param": "The param {name} is not closed. It needs a semicolon at the end.",
+        "zero_variables": "The model has no variables. Every variable family is indexed over an empty set. Check the members of the sets in the dataset.",
+        "dataset_unknown_set": "The dataset gives members for {name}, and the model declares no set of that name.",
+        "dataset_set_dimension": "The set {name} takes members with {expected} components, and the dataset gives {got} per member.",
+        "dataset_duplicate_members": "The dataset repeats a member of the set {name}. Every member must appear once.",
+        "dataset_unknown_param": "The dataset gives values for {name}, and the model declares no param of that name.",
+        "dataset_param_scalar": "The param {name} is a single number. The dataset must give it one number.",
+        "dataset_param_indexed": "The param {name} is indexed. The dataset must give it an object of index keys to numbers.",
+        "computed_set_needs_members": "The set {name} has no members, and the set {target} is built from it. Write them with := or provide them in a dataset.",
+        "param_missing_value": "The param {name} has no value for the index {key}.",
+        "param_key_arity": "The param {name} has a key {key} with {count, plural, one {# member} other {# members}}, and it needs {expected}.",
+        "param_key_not_in_set": "The param {name} has a key with {member}, which is not a member of the set {set}.",
+        "constraint_always_false": "The constraint {name} has no variables left and is always false ({value} {op} 0).",
+        "dataset_not_found": "The dataset no longer exists. It may have been deleted.",
+        "internal_error": "The compiler failed on this source. This is a bug in JAOT, and it has been logged."
       },
       "invite": {
         "not_found": "This invitation link is not valid.",
@@ -4785,7 +4803,9 @@
       },
       "projects": {
         "publish_needs_commit": "Publishing pins your latest committed version. The marketplace never sees your working draft. Commit your model in the workspace, then come back.",
-        "publish_needs_own_change": "This model was adopted from the marketplace and has not changed since. Commit a change of your own, then publish it as your listing."
+        "publish_needs_own_change": "This model was adopted from the marketplace and has not changed since. Commit a change of your own, then publish it as your listing.",
+        "publish_tag_too_long": "The tag \"{tag}\" is too long. A tag can have at most {max} characters.",
+        "publish_too_many_tags": "A listing can have at most {max} tags. This one has {count}."
       },
       "trigger": {
         "webhook_url_unreachable": "This webhook address cannot be reached from the server: it resolves to {address}, a private, loopback or link-local address. Use a public URL.",
