@@ -32,6 +32,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 
 ## [Unreleased]
 
+## [3.11.1] - 2026-09-25
+
+### Fixed
+- **A fresh install of 3.11.0 could not start.** SQLAlchemy 2.1 came out the same day and changed its default PostgreSQL driver to one JAOT does not ship. JAOT now stays on SQLAlchemy 2.0. Version 3.11.0 was never deployed.
+
 ## [3.11.0] - 2026-09-25
 
 ### Added
@@ -1062,7 +1067,8 @@ Full rewrite of the platform. The plugin-based system was replaced by a universa
 - Only 3.0.0 onwards is tagged in this repository — it is the first release published
   here — so the comparison links below start there.
 
-[Unreleased]: https://github.com/avallavall/jaot/compare/v3.11.0...HEAD
+[Unreleased]: https://github.com/avallavall/jaot/compare/v3.11.1...HEAD
+[3.11.1]: https://github.com/avallavall/jaot/compare/v3.11.0...v3.11.1
 [3.11.0]: https://github.com/avallavall/jaot/compare/v3.10.0...v3.11.0
 [3.10.0]: https://github.com/avallavall/jaot/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/avallavall/jaot/compare/v3.8.0...v3.9.0
