@@ -15,42 +15,122 @@ from app.shared.utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
 
+# Codes for the refusals below. The trigger page translates them; the English
+# sentence stays in the response for API clients. Each one needs an
+# ``errors.codes`` entry in frontend/messages/en.json (a test checks).
+CODE_UNKNOWN_FIELDS = "trigger.override_unknown_fields"
+CODE_MISSING_REQUIRED = "trigger.override_missing_required"
+CODE_SOLVER_UNAVAILABLE = "trigger.solver_unavailable"
+REFUSAL_CODES = (CODE_UNKNOWN_FIELDS, CODE_MISSING_REQUIRED, CODE_SOLVER_UNAVAILABLE)
+
+
+class FireRefusal(str):
+    """Why a fire was refused: the English sentence, plus a code and its values.
+
+    A ``str``, so every caller that stored, logged or compared the old message
+    string keeps working. The route reads ``code`` and ``params`` to answer
+    with a coded 422 that the page can put in the reader's language.
+    """
+
+    code: str
+    params: dict[str, str]
+
+    def __new__(cls, message: str, code: str, params: dict[str, str]) -> "FireRefusal":
+        refusal = super().__new__(cls, message)
+        refusal.code = code
+        refusal.params = params
+        return refusal
+
 
 def validate_overrides(
     override_data: dict[str, Any] | None,
     override_schema: list[dict[str, Any]] | None,
-) -> str | None:
+) -> FireRefusal | None:
     """Validate that override_data keys are permitted by the override_schema.
 
     If override_schema is None (open schema), any keys are accepted.
     If override_schema is defined, only keys listed in the schema are allowed.
+
+    A required field with a default is satisfied by its default: that is what
+    the default is for, and the page shows it as the value that will be used.
 
     Args:
         override_data: Key-value pairs supplied by the caller.
         override_schema: List of declared field dicts with at least a 'name' key.
 
     Returns:
-        An error string describing the violation, or None if validation passes.
+        The refusal, or None if validation passes.
     """
     if override_schema is None:
         # Open schema — any keys permitted
         return None
 
     declared_names = {f["name"] for f in override_schema}
-    required_names = {f["name"] for f in override_schema if f.get("required")}
+    required_names = {
+        f["name"] for f in override_schema if f.get("required") and f.get("default") is None
+    }
     # No override_data is equivalent to an empty set of supplied keys: it can
     # never have unknown keys, only missing-required ones.
     supplied_keys = set(override_data.keys()) if override_data else set()
 
     unknown_keys = supplied_keys - declared_names
     if unknown_keys:
-        return f"Unknown override fields: {', '.join(sorted(unknown_keys))}"
+        fields = ", ".join(sorted(unknown_keys))
+        return FireRefusal(
+            f"Unknown override fields: {fields}", CODE_UNKNOWN_FIELDS, {"fields": fields}
+        )
 
     missing_required = required_names - supplied_keys
     if missing_required:
-        return f"Missing required override fields: {', '.join(sorted(missing_required))}"
+        fields = ", ".join(sorted(missing_required))
+        return FireRefusal(
+            f"Missing required override fields: {fields}",
+            CODE_MISSING_REQUIRED,
+            {"fields": fields},
+        )
 
     return None
+
+
+def unknown_solver_refusal(name: str | None) -> FireRefusal | None:
+    """Refuse a solver name this server has no worker for. None and "auto" pass.
+
+    The same rule ``POST /solve`` applies before it queues anything, and the
+    same sentence, which does not say whether the name is registered.
+    """
+    from app.domains.solver.adapters.base import SolverNotFoundError  # noqa: PLC0415
+    from app.domains.solver.queue_routing import resolve_queue  # noqa: PLC0415
+
+    if name is None or name == "auto":
+        return None
+    try:
+        resolve_queue(name)
+    except SolverNotFoundError:
+        return FireRefusal(
+            f"Solver '{name}' is not available.", CODE_SOLVER_UNAVAILABLE, {"solver": name}
+        )
+    return None
+
+
+def with_defaults(
+    override_data: dict[str, Any] | None,
+    override_schema: list[dict[str, Any]] | None,
+) -> dict[str, Any]:
+    """The caller's overrides, plus the schema default of every field they left out.
+
+    Nothing applied a default before. A field ``solver`` with the default
+    ``jaos`` showed "Default: jaos" on the page and in the curl snippet, and a
+    fire with an empty body ran on SCIP. A default of None means "no default".
+    """
+    supplied = dict(override_data or {})
+    if not override_schema:
+        return supplied
+    defaults = {
+        field["name"]: field["default"]
+        for field in override_schema
+        if field.get("default") is not None and field.get("name") not in supplied
+    }
+    return {**defaults, **supplied}
 
 
 def _set_nested(obj: Any, path: str, value: Any) -> None:
@@ -83,12 +163,13 @@ def apply_overrides(
     """Merge override values into model_json.
 
     When an override_schema is defined, each field's model_field_path
-    determines where in model_json the override value is placed.
+    determines where in model_json the override value is placed. A field the
+    caller did not send gets its schema default, when it has one.
 
     When no schema is defined (open schema), override_data keys are
     treated as direct top-level keys in model_json.
 
-    The original model_json dict is NOT mutated — a shallow copy is made
+    The original model_json dict is NOT mutated — a deep copy is made
     before applying overrides.
 
     Args:
@@ -102,20 +183,21 @@ def apply_overrides(
     import copy
 
     result = copy.deepcopy(model_json)
+    effective = with_defaults(override_data, override_schema)
 
-    if not override_data:
+    if not effective:
         return result
 
     if override_schema is not None:
         # Schema-guided: use model_field_path for each declared field
-        path_map: dict[str, str] = {f["name"]: f["model_field_path"] for f in override_schema}
-        for key, value in override_data.items():
+        path_map = {f["name"]: f.get("model_field_path") for f in override_schema}
+        for key, value in effective.items():
             path = path_map.get(key)
             if path:
                 _set_nested(result, path, value)
     else:
         # Open schema: treat keys as direct top-level model_json keys
-        for key, value in override_data.items():
+        for key, value in effective.items():
             result[key] = value
 
     return result
@@ -168,19 +250,43 @@ def create_run(
     return run
 
 
+def check_fire(
+    db: Session,
+    trigger: SolveTrigger,
+    override_data: dict[str, Any] | None,
+) -> FireRefusal | None:
+    """Why this fire would be refused before anything is queued, or None.
+
+    Two checks: the overrides against the schema, then the solver the merged
+    model names. An unknown solver used to pass here, answer 202, fail in the
+    worker, and leave an execution whose solver was the unknown name.
+
+    A model that does not validate is not refused here. The worker fails that
+    run with the exact validation error, which says more than a refusal would.
+    """
+    refusal = validate_overrides(override_data, trigger.override_schema)  # type: ignore[arg-type]
+    if refusal is not None:
+        return refusal
+    merged = merged_model_json(db, trigger, override_data)
+    if merged is None:
+        return None
+    name = merged.get("solver_name")
+    return unknown_solver_refusal(name) if isinstance(name, str) else None
+
+
 def fire_trigger(
     db: Session,
     trigger: SolveTrigger,
     override_data: dict[str, Any] | None,
-) -> tuple["TriggerRun", str | None]:
-    """Validate overrides and either queue a solve or record a validation failure.
+) -> tuple["TriggerRun", FireRefusal | None]:
+    """Check the fire and either queue a solve or record a validation failure.
 
-    If override validation fails:
+    If ``check_fire`` refuses it:
     - Creates a run with status="validation_failed"
     - Queues an outbound webhook to notify the trigger owner
-    - Returns (run, error_message)
+    - Returns (run, refusal)
 
-    If validation passes:
+    If it passes:
     - Creates a run with status="pending"
     - Queues trigger_solve_task via Celery
     - Returns (run, None)
@@ -191,12 +297,12 @@ def fire_trigger(
         override_data: Override inputs from the caller.
 
     Returns:
-        Tuple of (TriggerRun, error_message_or_None).
+        Tuple of (TriggerRun, refusal_or_None).
     """
-    schema = trigger.override_schema
-    error = validate_overrides(override_data, schema)  # type: ignore[arg-type]
+    refusal = check_fire(db, trigger, override_data)
 
-    if error:
+    if refusal is not None:
+        error = str(refusal)
         # Record validation failure without queuing a solve
         run = create_run(db, trigger, override_data, "validation_failed", error=error)
 
@@ -204,7 +310,7 @@ def fire_trigger(
         _queue_validation_failed_webhook(db, trigger, run, error)
 
         logger.warning("Trigger %s validation failed: %s (run=%s)", trigger.id, error, run.id)
-        return run, error
+        return run, refusal
 
     # Validation passed — create pending run and queue Celery task
     run = create_run(db, trigger, override_data, "pending")
@@ -286,6 +392,28 @@ def pinned_model_json(db: Session, trigger: SolveTrigger) -> dict[str, Any] | No
     return {}
 
 
+def merged_model_json(
+    db: Session,
+    trigger: SolveTrigger,
+    override_data: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """The model a fire solves: the pinned version, the trigger's solver, the overrides.
+
+    In that order, so a solver named by an override (sent or defaulted) beats
+    the trigger's, and the trigger's beats the version's own. ``None`` means the
+    pinned version is gone, as in ``pinned_model_json``.
+
+    The one place this is assembled. The fire-time checks, the queue routing
+    and the worker all read it, so they cannot disagree about the solver.
+    """
+    base = pinned_model_json(db, trigger)
+    if base is None:
+        return None
+    if trigger.solver_name:
+        base["solver_name"] = trigger.solver_name
+    return apply_overrides(base, override_data or {}, trigger.override_schema)  # type: ignore[arg-type]
+
+
 def effective_solver(problem: Any) -> str:
     """The solver a problem runs on: its own choice, ``auto`` resolved, else the default."""
     from app.domains.solver.services.solver_service import SolverService  # noqa: PLC0415
@@ -323,13 +451,11 @@ def solve_dispatch(
         PlatformSettingsService as PSS,
     )
 
-    base = pinned_model_json(db, trigger)
-    if base is None:
+    merged = merged_model_json(db, trigger, override_data)
+    if merged is None:
         return {}, {}
     try:
-        problem = OptimizationProblem.model_validate(
-            apply_overrides(base, override_data or {}, trigger.override_schema)  # type: ignore[arg-type]
-        )
+        problem = OptimizationProblem.model_validate(merged)
         solver = effective_solver(problem)
         queue = resolve_queue(solver)
     except (ValueError, SolverNotFoundError):

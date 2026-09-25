@@ -5,6 +5,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
+_SOLVER_NAME_HELP = (
+    "Solver this trigger runs on ('auto', 'scip', 'highs', 'cbc', 'glpk', 'jaos'). "
+    "Null keeps the solver the pinned version names. An override that sets "
+    "solver_name still wins for that fire."
+)
+
 
 class OverrideFieldSchema(BaseModel):
     """Schema definition for a single override field on a trigger.
@@ -48,6 +54,11 @@ class TriggerCreate(BaseModel):
         default=None,
         description="Declared override fields. If None, any key is accepted.",
     )
+    solver_name: str | None = Field(
+        default=None,
+        max_length=32,
+        description=_SOLVER_NAME_HELP,
+    )
     webhook_url: HttpUrl = Field(..., description="URL to receive trigger completion events")
     webhook_secret: str | None = Field(
         default=None, description="Secret for signing outbound webhook payloads"
@@ -85,6 +96,7 @@ class TriggerUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = Field(default=None)
     override_schema: list[OverrideFieldSchema] | None = Field(default=None)
+    solver_name: str | None = Field(default=None, max_length=32, description=_SOLVER_NAME_HELP)
     webhook_url: HttpUrl | None = Field(default=None)
     webhook_secret: str | None = Field(default=None)
 
@@ -124,6 +136,7 @@ class TriggerResponse(BaseModel):
         ..., description="First 8 characters of the SHA-256 hash for identification"
     )
     override_schema: list[dict[str, Any]] | None
+    solver_name: str | None = Field(default=None, description=_SOLVER_NAME_HELP)
     webhook_url: str
     webhook_secret_prefix: str | None
     workspace_id: str | None = None

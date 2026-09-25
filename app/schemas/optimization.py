@@ -696,6 +696,20 @@ class OptimizationResult(BaseModel):
 
     # Error info
     error_message: str | None = Field(default=None, description="Error details if failed")
+    # A stable name for a refusal the interface can put in the reader's language,
+    # with the values its sentence needs. ``error_message`` stays the English text:
+    # API clients read it, and the page falls back to it when it has no words for
+    # the code. None for any error that is not one of the known refusals.
+    error_code: str | None = Field(
+        default=None,
+        description=(
+            "Stable code for a known refusal, e.g. 'solver.quadratic_in_objective'. "
+            "error_message carries the same refusal in English."
+        ),
+    )
+    error_params: dict[str, str] | None = Field(
+        default=None, description="Values for the sentence that error_code names."
+    )
 
     # Auto-routing transparency (D-08). ``solver_used`` is the effective
     # solver that ran after ``solver_name="auto"`` resolves; ``auto_route_reason``
@@ -774,6 +788,10 @@ class OptimizationResult(BaseModel):
             "progress_history": (
                 [p.model_dump() for p in self.progress_history] if self.progress_history else None
             ),
+            # Kept on a failed run too, so the execution page can say the refusal
+            # in the reader's language instead of printing the English message.
+            "error_code": self.error_code,
+            "error_params": self.error_params,
         }
 
 

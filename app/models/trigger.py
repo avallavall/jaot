@@ -83,6 +83,10 @@ class SolveTrigger(Base):
     trigger_secret: Mapped[str] = mapped_column(String(128), nullable=False)
     # Array of {name, type, model_field_path, default, required, description}
     override_schema: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    # The solver this trigger runs on. NULL keeps the solver the pinned version
+    # names. It replaces that choice before any override is applied, so a caller
+    # can still name another solver per fire.
+    solver_name: Mapped[str | None] = mapped_column(String(32), nullable=True)
     webhook_url: Mapped[str] = mapped_column(String(500), nullable=False)
     # Separate secret for signing outbound webhooks (distinct from trigger_secret)
     webhook_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -149,7 +153,8 @@ class TriggerRun(Base):
     )
     # Exact override_data input — stored for /rerun support
     override_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    # Source of the run: "manual" (API /fire), "cron" (scheduled), "rerun" (/rerun endpoint)
+    # Source of the run: "manual" (API /fire), "cron" (scheduled), "rerun" (/rerun endpoint),
+    # "app" (Run now on the trigger page)
     source: Mapped[str] = mapped_column(String(16), nullable=False, default="manual")
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending", index=True)
     # FK to ModelExecution if a solve was created

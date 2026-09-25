@@ -1026,6 +1026,8 @@ export interface SolveTrigger {
   has_active_schedule?: boolean;
   workspace_id?: string | null;
   override_schema: _OverrideField[] | null;
+  /** The solver this trigger runs on. Null keeps the pinned version's own choice. */
+  solver_name?: string | null;
   webhook_url: string;
   is_enabled: boolean;
   total_runs: number;
@@ -1043,7 +1045,8 @@ export interface TriggerRun {
   id: string;
   trigger_id: string;
   organization_id: string;
-  source: "manual" | "cron" | "rerun";
+  /** "app" is the Run now button on the trigger page. */
+  source: "manual" | "cron" | "rerun" | "app";
   status: TriggerRunStatus;
   execution_id?: string | null;
   override_data?: Record<string, unknown>;
@@ -1071,9 +1074,21 @@ export interface CreateTriggerRequest {
   model_project_id?: string;
   model_project_version_id?: string;
   override_schema?: _OverrideField[];
+  solver_name?: string | null;
   webhook_url: string;
   webhook_secret?: string;
   workspace_id?: string;
+}
+
+/** PATCH /triggers/{id}. The pinned model and version cannot be changed. */
+export interface UpdateTriggerRequest {
+  name?: string;
+  description?: string | null;
+  override_schema?: _OverrideField[] | null;
+  /** Null goes back to the pinned version's own solver. */
+  solver_name?: string | null;
+  webhook_url?: string;
+  webhook_secret?: string | null;
 }
 
 export interface TriggerSchedule {

@@ -19,6 +19,7 @@ import { SolutionExplainer } from "@/components/solve/SolutionExplainer";
 import { InfeasibilityPanel } from "@/components/solve/InfeasibilityPanel";
 import { OriginBadge } from "@/components/solve/OriginBadge";
 import { noModelMessageKey } from "@/lib/execution-origin";
+import { solverErrorText, type CodedSolverError } from "@/lib/solver-error";
 import { readVariableBounds } from "@/lib/variable-bounds";
 import { SolveFactCard } from "@/components/solve/SolveFactCard";
 import { useSolverCapabilities } from "@/hooks/useSolvers";
@@ -246,7 +247,14 @@ export default function ExecutionDetailPage() {
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
           <h3 className="font-semibold text-destructive mb-2">{t("error")}</h3>
           <pre className="text-sm text-destructive whitespace-pre-wrap">
-            {execution.error_message}
+            {/* A refusal the solver named (a quadratic model sent to a linear
+                solver) carries a code in result_data, shown in the reader's
+                language. Anything else is the English message as stored. */}
+            {solverErrorText(
+              execution.result_data as CodedSolverError | undefined,
+              execution.error_message,
+              tError,
+            )}
           </pre>
         </div>
       )}
@@ -410,12 +418,10 @@ export default function ExecutionDetailPage() {
           </Button>
         ) : (
           // "Triggered externally" was said about a file imported through this
-          // app two seconds earlier — the record itself says origin="import",
-          // source_kind="imported_file". What is true of every one of these is
-          // that no saved model is behind it, so name that instead of inventing
-          // a story about where it came from.
+          // app, about a problem typed into Custom Solve, and about trigger runs.
+          // The record says where the run came from, so the sentence follows it.
           <p className="text-sm text-muted-foreground py-1" data-testid="execution-no-model">
-            {t(noModelMessageKey(execution.source_kind))}
+            {t(noModelMessageKey(execution.origin, execution.source_kind))}
           </p>
         )}
         <ExportButtons execution={execution} chartRef={chartRef} />

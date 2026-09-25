@@ -2946,7 +2946,6 @@
       "allStatus": "Tots els Estats",
       "allOrigins": "Tots els Orígens",
       "totalExecutions": "{count} execucions en total",
-      "external": "Extern",
       "tableHeaders": {
         "status": "Estat",
         "origin": "Origen",
@@ -2972,7 +2971,8 @@
       "selectedCount": "{count, plural, one {# seleccionada} other {# seleccionades}}",
       "clearSelection": "Treu",
       "compareSelected": "Compara",
-      "selectTwoHint": "Selecciona exactament dues execucions per comparar."
+      "selectTwoHint": "Selecciona exactament dues execucions per comparar.",
+      "noSavedModel": "Sense model desat"
     },
     "execution": {
       "title": "Detalls de l'Execució",
@@ -3064,14 +3064,19 @@
       "inputDataRawJson": "Dades d'Entrada (JSON en brut)",
       "resultDataRawJson": "Dades del Resultat (JSON en brut)",
       "openInStudio": "Obre-la al taller",
-      "externalExecution": "Aquesta execució es va llançar des de fora. No té model al darrere, així que no es pot obrir al taller i no té historial.",
       "viewTriggerConfig": "Veure Configuració del Trigger",
       "failedToLoad": "Error en carregar l'execució",
       "visualization": "Visualització",
       "variableValues": "Valors de variables",
       "insightsTitle": "Anàlisi automàtica",
       "datasetBadge": "Dataset usat en aquesta execució",
-      "importedExecution": "Aquesta execució va venir d'un fitxer que vas importar. No hi ha cap model desat al darrere, així que no hi ha res per obrir al taller i no hi ha historial. Torna a importar el fitxer per executar-lo."
+      "importedExecution": "Aquesta execució va venir d'un fitxer que vas importar. No hi ha cap model desat al darrere, així que no hi ha res per obrir al taller i no hi ha historial. Torna a importar el fitxer per executar-lo.",
+      "triggeredExecution": "Aquesta execució la va llançar un trigger. No té cap model del taller associat, així que no es pot obrir al taller i no té historial.",
+      "apiExecution": "Aquesta execució va arribar per l'API. No està associada a cap model desat, així que no es pot obrir al taller i no té historial.",
+      "mcpExecution": "Aquesta execució la va enviar un assistent d'IA per MCP. No està associada a cap model desat, així que no es pot obrir al taller i no té historial.",
+      "comparisonExecution": "Aquesta execució és una columna d'una comparació de solvers sobre un problema que no es va desar com a model, així que no es pot obrir al taller.",
+      "directExecution": "Aquesta execució va resoldre un problema introduït directament, per exemple a «Resoldre JSON». No es va desar com a model, així que no es pot obrir al taller i no té historial.",
+      "noSavedModelExecution": "Aquesta execució no està associada a cap model desat, així que no es pot obrir al taller i no té historial."
     },
     "compare": {
       "title": "Comparació d'Execucions",
@@ -3551,13 +3556,14 @@
       "enableTrigger": "Activar trigger",
       "viewDetails": "Veure detalls del trigger",
       "deleteTrigger": "Eliminar trigger",
-      "toggleEnabled": "Trigger {state}",
       "toggleError": "Error en canviar l'estat del trigger",
       "loadError": "Error en carregar els triggers",
       "deleteConfirm": "Eliminar el trigger \"{name}\"? Aquesta acció no es pot desfer.",
       "deleteTitle": "Eliminar Trigger",
       "deleted": "Trigger eliminat",
-      "deleteError": "Error en eliminar el trigger"
+      "deleteError": "Error en eliminar el trigger",
+      "toggledOn": "Trigger activat",
+      "toggledOff": "Trigger desactivat"
     },
     "new": {
       "title": "Crear Trigger",
@@ -3579,7 +3585,6 @@
       "noPermission": "El teu rol ({role}) no té permís per gestionar activadors. Demana a l'admin de l'espai de treball el rol d'Editor.",
       "notFound": "Trigger no trobat",
       "loadError": "Error en carregar el trigger",
-      "toggleEnabled": "Trigger {state}",
       "toggleError": "Error en canviar l'estat del trigger",
       "deleteConfirm": "Eliminar el trigger \"{name}\"? Aquesta acció no es pot desfer.",
       "deleteTitle": "Eliminar Trigger",
@@ -3611,7 +3616,29 @@
       "copyError": "No s'ha pogut copiar al porta-retalls",
       "copyLabel": "Copiar {label}",
       "statusEnabled": "Activat",
-      "statusDisabled": "Desactivat"
+      "statusDisabled": "Desactivat",
+      "toggledOn": "Trigger activat",
+      "toggledOff": "Trigger desactivat",
+      "runNow": "Executa ara",
+      "runNowQueued": "Execució en cua. Apareix a l'historial d'execucions.",
+      "runNowError": "No s'ha pogut executar el trigger",
+      "runNowDisabled": "Activa el trigger per executar-lo.",
+      "edit": "Edita",
+      "editTitle": "Edita el trigger",
+      "nameLabel": "Nom",
+      "nameRequired": "El nom és obligatori",
+      "solverLabel": "Solver",
+      "solverFromModel": "El solver del mateix model",
+      "solverHelp": "S'utilitza en cada execució d'aquest trigger. Una sobreescriptura que fixi el solver continua manant en aquella execució.",
+      "defaultsTitle": "Valors per defecte de les sobreescriptures",
+      "defaultsHelp": "S'utilitzen quan una crida no envia el camp, i a «Executa ara». Deixa la casella buida per no tenir valor per defecte.",
+      "invalidDefault": "No és un valor {type} vàlid.",
+      "save": "Desa",
+      "saving": "Desant...",
+      "cancel": "Cancel·la",
+      "saved": "Trigger actualitzat",
+      "saveError": "No s'ha pogut desar el trigger",
+      "schemaNotRequired": "No"
     },
     "codeSnippets": {
       "title": "Fragments de Codi",
@@ -3697,7 +3724,11 @@
       "createdAt": "Creat el",
       "errorMessage": "Missatge d'Error",
       "overrideData": "Dades de Sobreescriptura",
-      "resultData": "Dades del Resultat"
+      "resultData": "Dades del Resultat",
+      "webhookDeliveredLabel": "Lliurat",
+      "webhookFailedAfter": "Ha fallat després de {count, plural, one {# intent} other {# intents}}",
+      "webhookRetrying": "{count, plural, one {# intent fallit} other {# intents fallits}}, es torna a provar",
+      "webhookNotSent": "No enviat: l'adreça no és pública"
     },
     "schedule": {
       "title": "Programació",
@@ -4686,7 +4717,10 @@
         "publish_needs_own_change": "Aquest model el vas adoptar del marketplace i no ha canviat des de llavors. Commiteja un canvi propi i publica'l com la teva fitxa."
       },
       "trigger": {
-        "webhook_url_unreachable": "El servidor no pot arribar a aquesta adreça de webhook: apunta a {address}, una adreça privada, de loopback o d'enllaç local. Fes servir una URL pública."
+        "webhook_url_unreachable": "El servidor no pot arribar a aquesta adreça de webhook: apunta a {address}, una adreça privada, de loopback o d'enllaç local. Fes servir una URL pública.",
+        "override_unknown_fields": "Camps de sobreescriptura desconeguts: {fields}.",
+        "override_missing_required": "Falten camps de sobreescriptura obligatoris: {fields}.",
+        "solver_unavailable": "El solver «{solver}» no està disponible en aquest servidor."
       },
       "admin": {
         "email_taken": "Un altre compte ja fa servir aquesta adreça de correu.",
@@ -4703,6 +4737,11 @@
         "requires_use": "Fes servir aquest model a l'estudi abans de valorar-lo.",
         "requires_run": "Executa aquest model amb èxit a l'estudi abans de valorar-lo.",
         "report_own": "No pots denunciar la teva pròpia valoració. Esborra-la."
+      },
+      "solver": {
+        "linear_only": "{solver} només resol models lineals, i aquest model té termes quadràtics. Fes servir SCIP (o la selecció automàtica) per a models quadràtics.",
+        "quadratic_in_objective": "{solver} només resol models lineals. L'objectiu té el terme quadràtic {term}. Fes servir SCIP (o la selecció automàtica) per a models quadràtics.",
+        "quadratic_in_constraint": "{solver} només resol models lineals. La restricció {constraint} té el terme quadràtic {term}. Fes servir SCIP (o la selecció automàtica) per a models quadràtics."
       }
     }
   },

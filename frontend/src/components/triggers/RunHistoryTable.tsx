@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
+import { translateApiError } from "@/lib/errors";
 import type { TriggerRun, TriggerRunStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,9 +17,60 @@ import {
 } from "@/components/ui/dialog";
 import { Copy, Check, RefreshCw, Eye, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { useDateFormat } from "@/hooks/useDateFormat";
+import { canRerun, webhookState } from "./run-history";
 
 interface RunHistoryTableProps {
   triggerId: string;
+  /** Bumped by the page after it queues a run, so the table loads it without a click. */
+  refreshKey?: number;
+}
+
+type Translate = (key: string, values?: Record<string, string | number>) => string;
+
+/**
+ * The webhook outcome as words, or null for "nothing attempted yet".
+ *
+ * A failed delivery was shown as "—" while its retries were still scheduled,
+ * which reads as "no webhook". It now says how many attempts failed.
+ */
+function webhookText(run: TriggerRun, t: Translate): string | null {
+  const state = webhookState(run);
+  switch (state.kind) {
+    case "delivered":
+      return t("webhookDeliveredLabel");
+    case "failed":
+      return t("webhookFailedAfter", { count: state.attempts });
+    case "not_sent":
+      return t("webhookNotSent");
+    case "retrying":
+      return t("webhookRetrying", { count: state.attempts });
+    case "none":
+      return null;
+  }
+}
+
+function WebhookCell({ run, t }: { run: TriggerRun; t: Translate }) {
+  const state = webhookState(run);
+  const text = webhookText(run, t);
+  if (text === null) {
+    return <span className="text-muted-foreground text-xs">{"—"}</span>;
+  }
+  if (state.kind === "delivered") {
+    return (
+      <span className="inline-flex items-center" title={text}>
+        <CheckCircle className="w-4 h-4 text-green-500" aria-hidden="true" />
+        <span className="sr-only">{text}</span>
+      </span>
+    );
+  }
+  // Amber while another attempt is scheduled, red once the answer is final.
+  const tone = state.kind === "retrying" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs ${tone}`} data-testid="run-webhook-status">
+      <XCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+      {text}
+    </span>
+  );
 }
 
 /** Relative for the last day, then an absolute date — both in the page's language. */
@@ -125,13 +177,17 @@ function RunDetailModal({
             <div>
               <div className="text-xs text-muted-foreground mb-1">{t("webhookDelivered")}</div>
               <div>
-                {run.webhook_delivered === true ? (
-                  <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-4 h-4" /> {t("webhookYes")}</span>
-                ) : run.webhook_delivered === false ? (
-                  <span className="flex items-center gap-1 text-red-600"><XCircle className="w-4 h-4" /> {t("webhookNo")}</span>
-                ) : "\u2014"}
-                {run.webhook_attempts > 0 && (
-                  <span className="text-xs text-muted-foreground ml-1">{t("webhookAttempts", { count: run.webhook_attempts })}</span>
+                {webhookState(run).kind === "delivered" ? (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <CheckCircle className="w-4 h-4" /> {t("webhookYes")}
+                    {run.webhook_attempts > 1 && (
+                      <span className="text-xs text-muted-foreground ml-1">
+                        {t("webhookAttempts", { count: run.webhook_attempts })}
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <WebhookCell run={run} t={t} />
                 )}
               </div>
             </div>
@@ -173,9 +229,10 @@ function RunDetailModal({
   );
 }
 
-export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
+export function RunHistoryTable({ triggerId, refreshKey = 0 }: RunHistoryTableProps) {
   const router = useRouter();
   const t = useTranslations("triggers.runHistory");
+  const tError = useTranslations("errors.codes");
   const { day } = useDateFormat();
   const tc = useTranslations("common");
   const [runs, setRuns] = useState<TriggerRun[]>([]);
@@ -201,7 +258,7 @@ export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
 
   useEffect(() => {
     loadRuns(page);
-  }, [loadRuns, page]);
+  }, [loadRuns, page, refreshKey]);
 
   const handleRerun = async (run: TriggerRun) => {
     setRerunning((prev) => ({ ...prev, [run.id]: true }));
@@ -211,7 +268,8 @@ export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
       // Refresh after a short delay to show new run
       setTimeout(() => loadRuns(page), 1000);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("rerunError"));
+      // A refused input comes back with a code, said in the reader's language.
+      toast.error(translateApiError(err, tError, t("rerunError")));
     } finally {
       setRerunning((prev) => ({ ...prev, [run.id]: false }));
     }
@@ -293,13 +351,7 @@ export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  {run.webhook_delivered === true ? (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  ) : run.webhook_delivered === false ? (
-                    <XCircle className="w-4 h-4 text-red-500" />
-                  ) : (
-                    <span className="text-muted-foreground text-xs">{"\u2014"}</span>
-                  )}
+                  <WebhookCell run={run} t={t} />
                 </td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">
                   {formatDate(run.created_at, t, day)}
@@ -331,16 +383,19 @@ export function RunHistoryTable({ triggerId }: RunHistoryTableProps) {
                     >
                       <Eye className="w-3.5 h-3.5" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRerun(run)}
-                      disabled={rerunning[run.id]}
-                      title={t("rerunTitle")}
-                      className="h-7 px-2"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${rerunning[run.id] ? "animate-spin" : ""}`} />
-                    </Button>
+                    {canRerun(run) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRerun(run)}
+                        disabled={rerunning[run.id]}
+                        title={t("rerunTitle")}
+                        aria-label={t("rerunTitle")}
+                        className="h-7 px-2"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${rerunning[run.id] ? "animate-spin" : ""}`} />
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -2971,7 +2971,6 @@
       "allStatus": "All Status",
       "allOrigins": "All Origins",
       "totalExecutions": "{count} total executions",
-      "external": "External",
       "tableHeaders": {
         "status": "Status",
         "origin": "Origin",
@@ -2997,7 +2996,8 @@
       "selectedCount": "{count, plural, one {# selected} other {# selected}}",
       "clearSelection": "Clear",
       "compareSelected": "Compare",
-      "selectTwoHint": "Select exactly two runs to compare."
+      "selectTwoHint": "Select exactly two runs to compare.",
+      "noSavedModel": "No saved model"
     },
     "execution": {
       "title": "Execution Details",
@@ -3092,11 +3092,16 @@
       "inputDataRawJson": "Input Data (raw JSON)",
       "resultDataRawJson": "Result Data (raw JSON)",
       "openInStudio": "Open in the studio",
-      "externalExecution": "This execution was triggered externally. There is no model behind it, so it cannot be opened in the studio and it has no history.",
       "viewTriggerConfig": "View Trigger Config",
       "failedToLoad": "Failed to load execution",
       "datasetBadge": "Dataset used for this run",
-      "importedExecution": "This run came from a file you imported. There is no saved model behind it, so there is nothing to open in the studio and no history. Import the file again to run it."
+      "importedExecution": "This run came from a file you imported. There is no saved model behind it, so there is nothing to open in the studio and no history. Import the file again to run it.",
+      "triggeredExecution": "This run was fired by a trigger. No studio model is linked to it, so it cannot be opened in the studio and it has no history.",
+      "apiExecution": "This run was sent through the API. It is not linked to a saved model, so it cannot be opened in the studio and it has no history.",
+      "mcpExecution": "This run was sent by an AI assistant over MCP. It is not linked to a saved model, so it cannot be opened in the studio and it has no history.",
+      "comparisonExecution": "This run is one column of a solver comparison on a problem that was not saved as a model, so it cannot be opened in the studio.",
+      "directExecution": "This run was solved from a problem entered directly, for example in Custom Solve. It was not saved as a model, so it cannot be opened in the studio and it has no history.",
+      "noSavedModelExecution": "This run is not linked to a saved model, so it cannot be opened in the studio and it has no history."
     },
     "compare": {
       "title": "Execution Comparison",
@@ -3551,13 +3556,14 @@
       "enableTrigger": "Enable trigger",
       "viewDetails": "View trigger details",
       "deleteTrigger": "Delete trigger",
-      "toggleEnabled": "Trigger {state}",
       "toggleError": "Failed to toggle trigger",
       "loadError": "Failed to load triggers",
       "deleteConfirm": "Delete trigger \"{name}\"? This cannot be undone.",
       "deleteTitle": "Delete Trigger",
       "deleted": "Trigger deleted",
-      "deleteError": "Failed to delete trigger"
+      "deleteError": "Failed to delete trigger",
+      "toggledOn": "Trigger enabled",
+      "toggledOff": "Trigger disabled"
     },
     "new": {
       "title": "Create Trigger",
@@ -3579,7 +3585,6 @@
       "noPermission": "Your role ({role}) doesn't have permission to manage triggers. Contact your workspace admin to get the Editor role.",
       "notFound": "Trigger not found",
       "loadError": "Failed to load trigger",
-      "toggleEnabled": "Trigger {state}",
       "toggleError": "Failed to toggle trigger",
       "deleteConfirm": "Delete trigger \"{name}\"? This cannot be undone.",
       "deleteTitle": "Delete Trigger",
@@ -3611,7 +3616,29 @@
       "copyError": "Could not copy to clipboard",
       "copyLabel": "Copy {label}",
       "statusEnabled": "Enabled",
-      "statusDisabled": "Disabled"
+      "statusDisabled": "Disabled",
+      "toggledOn": "Trigger enabled",
+      "toggledOff": "Trigger disabled",
+      "runNow": "Run now",
+      "runNowQueued": "Run queued. It appears in Run History.",
+      "runNowError": "Could not run the trigger",
+      "runNowDisabled": "Enable the trigger to run it.",
+      "edit": "Edit",
+      "editTitle": "Edit trigger",
+      "nameLabel": "Name",
+      "nameRequired": "Name is required",
+      "solverLabel": "Solver",
+      "solverFromModel": "The model's own solver",
+      "solverHelp": "Used for every run of this trigger. An override that sets the solver still wins for that run.",
+      "defaultsTitle": "Override defaults",
+      "defaultsHelp": "Used when a call does not send the field, and by Run now. Leave a box empty for no default.",
+      "invalidDefault": "This is not a valid {type} value.",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "saved": "Trigger updated",
+      "saveError": "Could not save the trigger",
+      "schemaNotRequired": "No"
     },
     "codeSnippets": {
       "title": "Code Snippets",
@@ -3697,7 +3724,11 @@
       "createdAt": "Created At",
       "errorMessage": "Error Message",
       "overrideData": "Override Data",
-      "resultData": "Result Data"
+      "resultData": "Result Data",
+      "webhookDeliveredLabel": "Delivered",
+      "webhookFailedAfter": "Failed after {count, plural, one {# attempt} other {# attempts}}",
+      "webhookRetrying": "{count, plural, one {# failed attempt} other {# failed attempts}}, retrying",
+      "webhookNotSent": "Not sent: the address is not public"
     },
     "schedule": {
       "title": "Schedule",
@@ -4686,7 +4717,10 @@
         "publish_needs_own_change": "This model was adopted from the marketplace and has not changed since. Commit a change of your own, then publish it as your listing."
       },
       "trigger": {
-        "webhook_url_unreachable": "This webhook address cannot be reached from the server: it resolves to {address}, a private, loopback or link-local address. Use a public URL."
+        "webhook_url_unreachable": "This webhook address cannot be reached from the server: it resolves to {address}, a private, loopback or link-local address. Use a public URL.",
+        "override_unknown_fields": "Unknown override fields: {fields}.",
+        "override_missing_required": "Missing required override fields: {fields}.",
+        "solver_unavailable": "The solver \"{solver}\" is not available on this server."
       },
       "admin": {
         "email_taken": "Another account already uses that email address.",
@@ -4703,6 +4737,11 @@
         "requires_use": "Use this model in the studio before you review it.",
         "requires_run": "Run this model successfully in the studio before you review it.",
         "report_own": "You cannot report your own review. Delete it instead."
+      },
+      "solver": {
+        "linear_only": "{solver} solves linear models only, and this model has quadratic terms. Use SCIP (or automatic selection) for quadratic models.",
+        "quadratic_in_objective": "{solver} solves linear models only. The objective has the quadratic term {term}. Use SCIP (or automatic selection) for quadratic models.",
+        "quadratic_in_constraint": "{solver} solves linear models only. Constraint {constraint} has the quadratic term {term}. Use SCIP (or automatic selection) for quadratic models."
       }
     }
   },

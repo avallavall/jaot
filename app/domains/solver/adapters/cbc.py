@@ -41,6 +41,7 @@ from app.domains.solver.adapters.base import (
     CachedVersion,
     SolverCapabilities,
     SolverError,
+    refusal_fields,
 )
 from app.schemas.optimization import (
     OptimizationProblem,
@@ -254,6 +255,7 @@ class CBCAdapter(CachedVersion):
                 # server's filesystem was on the user's screen. The full
                 # exception, traceback included, is on the line above.
                 error_message=scrub_paths(f"CBC could not finish this run: {exc}"),
+                **refusal_fields(exc),
             )
 
     # ── running ──────────────────────────────────────────────────────────────

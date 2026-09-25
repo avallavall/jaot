@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.domains.solver.adapters._scip_model_builder import build_scip_model
-from app.domains.solver.adapters.base import SolverError
+from app.domains.solver.adapters.base import CODE_LINEAR_ONLY, LinearOnlyError
 from app.schemas.optimization import OptimizationProblem
 
 logger = logging.getLogger(__name__)
@@ -185,7 +185,7 @@ def workspace(prefix: str) -> Iterator[Path]:
 def write_problem_lp(problem: OptimizationProblem, path: Path, *, solver_label: str) -> float:
     """Write ``problem`` to ``path`` as a CPLEX LP file; return the objective constant.
 
-    Raises ``SolverError`` when the model is not linear. That check is not
+    Raises ``LinearOnlyError`` when the model is not linear. That check is not
     politeness: CBC reads an LP file whose only constraint is quadratic, drops
     what it does not understand and reports "Optimal" on the remains. It is the
     one input this module refuses rather than passes on.
@@ -203,9 +203,11 @@ def write_problem_lp(problem: OptimizationProblem, path: Path, *, solver_label: 
     handlers = {cons.getConshdlrName() for cons in model.getConss()}
     nonlinear = handlers - {_LINEAR_CONSHDLR}
     if nonlinear:
-        raise SolverError(
+        raise LinearOnlyError(
             f"{solver_label} solves linear problems only — this model carries "
-            "quadratic terms. Use SCIP (or automatic selection) for quadratic models."
+            "quadratic terms. Use SCIP (or automatic selection) for quadratic models.",
+            code=CODE_LINEAR_ONLY,
+            params={"solver": solver_label},
         )
     model.writeProblem(str(path), verbose=False)
     first_variable = model.getVars()[0].name if model.getVars() else None

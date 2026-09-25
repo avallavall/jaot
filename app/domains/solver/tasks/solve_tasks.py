@@ -280,7 +280,11 @@ def solve_async(
             # no value. W1: keep the DB row truthful — without this the
             # execution stays 'pending' forever in user-visible history.
             err_detail = getattr(result, "error_message", None) or "solver_error"
-            execution_writer.mark_failed_by_task(task_id, organization_id, str(err_detail))
+            # The result goes too: its error_code is how the page says the
+            # refusal in the reader's language.
+            execution_writer.mark_failed_by_task(
+                task_id, organization_id, str(err_detail), result=result
+            )
 
         # Extract solver metrics if available (MIP gap, bounds)
         metrics = None

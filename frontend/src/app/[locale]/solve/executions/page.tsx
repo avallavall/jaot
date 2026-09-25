@@ -230,7 +230,10 @@ export default function ExecutionsPage() {
                         (exec.organization_model_id
                           ? `/solve/${exec.organization_model_id}`
                           : null);
-                      const label = exec.model_name ?? (href ? t("openSource") : t("external"));
+                      // "External" was printed for every run with no saved model,
+                      // Custom Solve included. That is all the row knows, so it
+                      // says that; the origin badge beside it says where it came from.
+                      const label = exec.model_name ?? (href ? t("openSource") : t("noSavedModel"));
                       const content = (
                         <>
                           <span className="text-sm">{label}</span>

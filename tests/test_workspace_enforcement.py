@@ -854,6 +854,30 @@ class TestATriggerAndAComparisonStandBehindTheWall:
         assert trigger.name == "Nightly re-plan"
         assert trigger.is_enabled is True
 
+    def test_run_now_needs_the_solver_role_in_the_workspace(
+        self, client, db_session, mock_auth, enforcement_setup
+    ):
+        """Run now spends a solve, so it asks for what a rerun asks for."""
+        from unittest.mock import patch
+
+        from app.models.trigger import TriggerRun
+
+        ws, org = enforcement_setup["ws"], enforcement_setup["org"]
+        trigger, _ = self._walled(db_session, ws, org)
+
+        with patch("app.tasks.trigger_tasks.trigger_solve_task.apply_async") as queued:
+            for who in ("non_member", "viewer"):
+                mock_auth(enforcement_setup[who])
+                response = client.post(f"/api/v2/triggers/{trigger.id}/run")
+                assert response.status_code == 403, (who, response.text)
+            assert queued.call_count == 0
+            assert db_session.query(TriggerRun).filter_by(trigger_id=trigger.id).count() == 0
+
+            mock_auth(enforcement_setup["solver"])
+            response = client.post(f"/api/v2/triggers/{trigger.id}/run")
+            assert response.status_code == 202, response.text
+            assert queued.call_count == 1
+
     def test_a_viewer_of_the_workspace_reads_all_of_them(
         self, client, db_session, mock_auth, enforcement_setup
     ):

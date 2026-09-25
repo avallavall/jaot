@@ -2946,7 +2946,6 @@
       "allStatus": "Todos los estados",
       "allOrigins": "Todos los orígenes",
       "totalExecutions": "{count} ejecuciones en total",
-      "external": "Externa",
       "tableHeaders": {
         "status": "Estado",
         "origin": "Origen",
@@ -2972,7 +2971,8 @@
       "selectedCount": "{count, plural, one {# seleccionada} other {# seleccionadas}}",
       "clearSelection": "Quitar",
       "compareSelected": "Comparar",
-      "selectTwoHint": "Selecciona exactamente dos ejecuciones para comparar."
+      "selectTwoHint": "Selecciona exactamente dos ejecuciones para comparar.",
+      "noSavedModel": "Sin modelo guardado"
     },
     "execution": {
       "title": "Detalles de ejecución",
@@ -3064,14 +3064,19 @@
       "inputDataRawJson": "Datos de entrada (JSON sin procesar)",
       "resultDataRawJson": "Datos del resultado (JSON sin procesar)",
       "openInStudio": "Abrir en el taller",
-      "externalExecution": "Esta ejecución se lanzó desde fuera. No tiene modelo detrás, así que no se puede abrir en el taller y no tiene historial.",
       "viewTriggerConfig": "Ver configuración del trigger",
       "failedToLoad": "Error al cargar la ejecución",
       "visualization": "Visualización",
       "variableValues": "Valores de variables",
       "insightsTitle": "Análisis automático",
       "datasetBadge": "Dataset usado en esta ejecución",
-      "importedExecution": "Esta ejecución vino de un fichero que importaste. No hay ningún modelo guardado detrás, así que no hay nada que abrir en el taller y no hay historial. Vuelve a importar el fichero para ejecutarlo."
+      "importedExecution": "Esta ejecución vino de un fichero que importaste. No hay ningún modelo guardado detrás, así que no hay nada que abrir en el taller y no hay historial. Vuelve a importar el fichero para ejecutarlo.",
+      "triggeredExecution": "Esta ejecución la lanzó un trigger. No tiene ningún modelo del taller asociado, así que no se puede abrir en el taller y no tiene historial.",
+      "apiExecution": "Esta ejecución llegó por la API. No está asociada a ningún modelo guardado, así que no se puede abrir en el taller y no tiene historial.",
+      "mcpExecution": "Esta ejecución la envió un asistente de IA por MCP. No está asociada a ningún modelo guardado, así que no se puede abrir en el taller y no tiene historial.",
+      "comparisonExecution": "Esta ejecución es una columna de una comparación de solvers sobre un problema que no se guardó como modelo, así que no se puede abrir en el taller.",
+      "directExecution": "Esta ejecución resolvió un problema introducido directamente, por ejemplo en «Resolver JSON». No se guardó como modelo, así que no se puede abrir en el taller y no tiene historial.",
+      "noSavedModelExecution": "Esta ejecución no está asociada a ningún modelo guardado, así que no se puede abrir en el taller y no tiene historial."
     },
     "compare": {
       "title": "Comparación de ejecuciones",
@@ -3551,13 +3556,14 @@
       "enableTrigger": "Activar trigger",
       "viewDetails": "Ver detalles del trigger",
       "deleteTrigger": "Eliminar trigger",
-      "toggleEnabled": "Trigger {state}",
       "toggleError": "Error al cambiar el estado del trigger",
       "loadError": "Error al cargar los triggers",
       "deleteConfirm": "¿Eliminar trigger \"{name}\"? Esta acción no se puede deshacer.",
       "deleteTitle": "Eliminar trigger",
       "deleted": "Trigger eliminado",
-      "deleteError": "Error al eliminar el trigger"
+      "deleteError": "Error al eliminar el trigger",
+      "toggledOn": "Trigger activado",
+      "toggledOff": "Trigger desactivado"
     },
     "new": {
       "title": "Crear trigger",
@@ -3579,7 +3585,6 @@
       "noPermission": "Tu rol ({role}) no tiene permiso para gestionar disparadores. Pide al admin del espacio de trabajo el rol de Editor.",
       "notFound": "Trigger no encontrado",
       "loadError": "Error al cargar el trigger",
-      "toggleEnabled": "Trigger {state}",
       "toggleError": "Error al cambiar el estado del trigger",
       "deleteConfirm": "¿Eliminar trigger \"{name}\"? Esta acción no se puede deshacer.",
       "deleteTitle": "Eliminar trigger",
@@ -3611,7 +3616,29 @@
       "copyError": "No se pudo copiar al portapapeles",
       "copyLabel": "Copiar {label}",
       "statusEnabled": "Activado",
-      "statusDisabled": "Desactivado"
+      "statusDisabled": "Desactivado",
+      "toggledOn": "Trigger activado",
+      "toggledOff": "Trigger desactivado",
+      "runNow": "Ejecutar ahora",
+      "runNowQueued": "Ejecución en cola. Aparece en el historial de ejecuciones.",
+      "runNowError": "No se pudo ejecutar el trigger",
+      "runNowDisabled": "Activa el trigger para ejecutarlo.",
+      "edit": "Editar",
+      "editTitle": "Editar trigger",
+      "nameLabel": "Nombre",
+      "nameRequired": "El nombre es obligatorio",
+      "solverLabel": "Solver",
+      "solverFromModel": "El solver del propio modelo",
+      "solverHelp": "Se usa en cada ejecución de este trigger. Un override que fije el solver sigue mandando en esa ejecución.",
+      "defaultsTitle": "Valores por defecto de los overrides",
+      "defaultsHelp": "Se usan cuando una llamada no envía el campo, y en «Ejecutar ahora». Deja la casilla vacía para no tener valor por defecto.",
+      "invalidDefault": "No es un valor {type} válido.",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "cancel": "Cancelar",
+      "saved": "Trigger actualizado",
+      "saveError": "No se pudo guardar el trigger",
+      "schemaNotRequired": "No"
     },
     "codeSnippets": {
       "title": "Fragmentos de código",
@@ -3697,7 +3724,11 @@
       "createdAt": "Creado el",
       "errorMessage": "Mensaje de error",
       "overrideData": "Datos de override",
-      "resultData": "Datos del resultado"
+      "resultData": "Datos del resultado",
+      "webhookDeliveredLabel": "Entregado",
+      "webhookFailedAfter": "Falló tras {count, plural, one {# intento} other {# intentos}}",
+      "webhookRetrying": "{count, plural, one {# intento fallido} other {# intentos fallidos}}, reintentando",
+      "webhookNotSent": "No enviado: la dirección no es pública"
     },
     "schedule": {
       "title": "Programación",
@@ -4686,7 +4717,10 @@
         "publish_needs_own_change": "Este modelo lo adoptaste del marketplace y no ha cambiado desde entonces. Commitea un cambio propio y publícalo como tu ficha."
       },
       "trigger": {
-        "webhook_url_unreachable": "El servidor no puede llegar a esta dirección de webhook: apunta a {address}, una dirección privada, de loopback o de enlace local. Usa una URL pública."
+        "webhook_url_unreachable": "El servidor no puede llegar a esta dirección de webhook: apunta a {address}, una dirección privada, de loopback o de enlace local. Usa una URL pública.",
+        "override_unknown_fields": "Campos de override desconocidos: {fields}.",
+        "override_missing_required": "Faltan campos de override obligatorios: {fields}.",
+        "solver_unavailable": "El solver «{solver}» no está disponible en este servidor."
       },
       "admin": {
         "email_taken": "Otra cuenta ya usa esa dirección de correo.",
@@ -4703,6 +4737,11 @@
         "requires_use": "Usa este modelo en el estudio antes de valorarlo.",
         "requires_run": "Ejecuta este modelo con éxito en el estudio antes de valorarlo.",
         "report_own": "No puedes denunciar tu propia valoración. Bórrala."
+      },
+      "solver": {
+        "linear_only": "{solver} solo resuelve modelos lineales, y este modelo tiene términos cuadráticos. Usa SCIP (o la selección automática) para modelos cuadráticos.",
+        "quadratic_in_objective": "{solver} solo resuelve modelos lineales. El objetivo tiene el término cuadrático {term}. Usa SCIP (o la selección automática) para modelos cuadráticos.",
+        "quadratic_in_constraint": "{solver} solo resuelve modelos lineales. La restricción {constraint} tiene el término cuadrático {term}. Usa SCIP (o la selección automática) para modelos cuadráticos."
       }
     }
   },

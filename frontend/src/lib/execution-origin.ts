@@ -195,18 +195,49 @@ export function executionOriginHref(
   }
 }
 
+/** The sentences `noModelMessageKey` chooses from, in `solve.execution`. */
+export type NoModelMessageKey =
+  | "importedExecution"
+  | "triggeredExecution"
+  | "apiExecution"
+  | "mcpExecution"
+  | "comparisonExecution"
+  | "directExecution"
+  | "noSavedModelExecution";
+
 /**
  * Which sentence to show where the "open in studio" button would be, on a run
  * with no model behind it.
  *
  * There was one sentence for every such run: "This execution was triggered
- * externally — there is no model behind it." It was said about a file imported
- * through this app two seconds earlier, whose own record reads
- * `origin="import"`, `source_kind="imported_file"`. What is true of all of them
- * is that nothing was saved to open again; where the run came from is not.
+ * externally. There is no model behind it." It was said about a file imported
+ * through this app two seconds earlier, about a problem typed into Custom Solve,
+ * and about a trigger run of a studio model (QA, 2026-09-25). What is true of
+ * all of them is that nothing saved can be opened again. Where the run came from
+ * differs, and the record says it: `source_kind` first, then `origin`.
+ *
+ * `manual` is what a run stores when nobody named an origin, which from the app
+ * means Custom Solve. An API key with no origin is stored as `api`.
  */
 export function noModelMessageKey(
+  origin: string | null | undefined,
   sourceKind: ExecutionSourceKind | null | undefined
-): "importedExecution" | "externalExecution" {
-  return sourceKind === "imported_file" ? "importedExecution" : "externalExecution";
+): NoModelMessageKey {
+  if (sourceKind === "imported_file") return "importedExecution";
+  if (sourceKind === "trigger" || origin === "triggered") return "triggeredExecution";
+  switch (origin) {
+    case "api":
+      return "apiExecution";
+    case "mcp":
+      return "mcpExecution";
+    case "comparison":
+      return "comparisonExecution";
+    case "manual":
+    case "":
+    case null:
+    case undefined:
+      return "directExecution";
+    default:
+      return "noSavedModelExecution";
+  }
 }

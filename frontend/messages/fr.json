@@ -2946,7 +2946,6 @@
       "allStatus": "Tous les statuts",
       "allOrigins": "Toutes les origines",
       "totalExecutions": "{count} exécutions au total",
-      "external": "Externe",
       "tableHeaders": {
         "status": "Statut",
         "origin": "Origine",
@@ -2972,7 +2971,8 @@
       "selectedCount": "{count, plural, one {# sélectionnée} other {# sélectionnées}}",
       "clearSelection": "Effacer",
       "compareSelected": "Comparer",
-      "selectTwoHint": "Sélectionnez exactement deux exécutions à comparer."
+      "selectTwoHint": "Sélectionnez exactement deux exécutions à comparer.",
+      "noSavedModel": "Aucun modèle enregistré"
     },
     "execution": {
       "title": "Détails de l'exécution",
@@ -3064,14 +3064,19 @@
       "inputDataRawJson": "Données d'entrée (JSON brut)",
       "resultDataRawJson": "Données de résultat (JSON brut)",
       "openInStudio": "Ouvrir dans le studio",
-      "externalExecution": "Cette exécution a été déclenchée de l'extérieur. Aucun modèle ne se trouve derrière, elle ne peut donc pas être ouverte dans le studio et n'a pas d'historique.",
       "viewTriggerConfig": "Voir la configuration du déclencheur",
       "failedToLoad": "Échec du chargement de l'exécution",
       "visualization": "Visualisation",
       "variableValues": "Valeurs des variables",
       "insightsTitle": "Analyse automatique",
       "datasetBadge": "Jeu de données utilisé pour cette exécution",
-      "importedExecution": "Cette exécution vient d'un fichier que vous avez importé. Aucun modèle enregistré ne se trouve derrière, il n'y a donc rien à ouvrir dans l'atelier et pas d'historique. Réimportez le fichier pour l'exécuter."
+      "importedExecution": "Cette exécution vient d'un fichier que vous avez importé. Aucun modèle enregistré ne se trouve derrière, il n'y a donc rien à ouvrir dans l'atelier et pas d'historique. Réimportez le fichier pour l'exécuter.",
+      "triggeredExecution": "Cette exécution a été lancée par un déclencheur. Aucun modèle de l'atelier ne lui est lié, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique.",
+      "apiExecution": "Cette exécution est arrivée par l'API. Elle n'est liée à aucun modèle enregistré, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique.",
+      "mcpExecution": "Cette exécution a été envoyée par un assistant IA via MCP. Elle n'est liée à aucun modèle enregistré, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique.",
+      "comparisonExecution": "Cette exécution est une colonne d'une comparaison de solveurs sur un problème qui n'a pas été enregistré comme modèle, elle ne peut donc pas être ouverte dans l'atelier.",
+      "directExecution": "Cette exécution a résolu un problème saisi directement, par exemple dans « Résoudre JSON ». Il n'a pas été enregistré comme modèle, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique.",
+      "noSavedModelExecution": "Cette exécution n'est liée à aucun modèle enregistré, elle ne peut donc pas être ouverte dans l'atelier et n'a pas d'historique."
     },
     "compare": {
       "title": "Comparaison d'exécutions",
@@ -3551,13 +3556,14 @@
       "enableTrigger": "Activer le déclencheur",
       "viewDetails": "Voir les détails du déclencheur",
       "deleteTrigger": "Supprimer le déclencheur",
-      "toggleEnabled": "Déclencheur {state}",
       "toggleError": "Échec du changement d'état du déclencheur",
       "loadError": "Échec du chargement des déclencheurs",
       "deleteConfirm": "Supprimer le déclencheur « {name} » ? Cette action est irréversible.",
       "deleteTitle": "Supprimer le déclencheur",
       "deleted": "Déclencheur supprimé",
-      "deleteError": "Échec de la suppression du déclencheur"
+      "deleteError": "Échec de la suppression du déclencheur",
+      "toggledOn": "Déclencheur activé",
+      "toggledOff": "Déclencheur désactivé"
     },
     "new": {
       "title": "Créer un déclencheur",
@@ -3579,7 +3585,6 @@
       "noPermission": "Votre rôle ({role}) ne permet pas de gérer les déclencheurs. Demandez le rôle Éditeur à l'administrateur de l'espace de travail.",
       "notFound": "Déclencheur introuvable",
       "loadError": "Échec du chargement du déclencheur",
-      "toggleEnabled": "Déclencheur {state}",
       "toggleError": "Échec du changement d'état du déclencheur",
       "deleteConfirm": "Supprimer le déclencheur « {name} » ? Cette action est irréversible.",
       "deleteTitle": "Supprimer le déclencheur",
@@ -3611,7 +3616,29 @@
       "copyError": "Impossible de copier dans le presse-papiers",
       "copyLabel": "Copier {label}",
       "statusEnabled": "Activé",
-      "statusDisabled": "Désactivé"
+      "statusDisabled": "Désactivé",
+      "toggledOn": "Déclencheur activé",
+      "toggledOff": "Déclencheur désactivé",
+      "runNow": "Exécuter maintenant",
+      "runNowQueued": "Exécution en file d'attente. Elle apparaît dans l'historique des exécutions.",
+      "runNowError": "Impossible d'exécuter le déclencheur",
+      "runNowDisabled": "Activez le déclencheur pour l'exécuter.",
+      "edit": "Modifier",
+      "editTitle": "Modifier le déclencheur",
+      "nameLabel": "Nom",
+      "nameRequired": "Le nom est obligatoire",
+      "solverLabel": "Solveur",
+      "solverFromModel": "Le solveur du modèle",
+      "solverHelp": "Utilisé pour chaque exécution de ce déclencheur. Une surcharge qui fixe le solveur l'emporte pour cette exécution.",
+      "defaultsTitle": "Valeurs par défaut des surcharges",
+      "defaultsHelp": "Utilisées quand un appel n'envoie pas le champ, et par « Exécuter maintenant ». Laissez la case vide pour ne pas avoir de valeur par défaut.",
+      "invalidDefault": "Ce n'est pas une valeur {type} valide.",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "cancel": "Annuler",
+      "saved": "Déclencheur mis à jour",
+      "saveError": "Impossible d'enregistrer le déclencheur",
+      "schemaNotRequired": "Non"
     },
     "codeSnippets": {
       "title": "Extraits de code",
@@ -3697,7 +3724,11 @@
       "createdAt": "Créé le",
       "errorMessage": "Message d'erreur",
       "overrideData": "Données de surcharge",
-      "resultData": "Données de résultat"
+      "resultData": "Données de résultat",
+      "webhookDeliveredLabel": "Livré",
+      "webhookFailedAfter": "Échec après {count, plural, one {# tentative} other {# tentatives}}",
+      "webhookRetrying": "{count, plural, one {# tentative échouée} other {# tentatives échouées}}, nouvel essai prévu",
+      "webhookNotSent": "Non envoyé : l'adresse n'est pas publique"
     },
     "schedule": {
       "title": "Planification",
@@ -4686,7 +4717,10 @@
         "publish_needs_own_change": "Ce modèle a été adopté depuis la place de marché et n'a pas changé depuis. Validez une modification qui vous est propre, puis publiez-le comme votre fiche."
       },
       "trigger": {
-        "webhook_url_unreachable": "Le serveur ne peut pas joindre cette adresse de webhook : elle pointe vers {address}, une adresse privée, de loopback ou de lien local. Utilisez une URL publique."
+        "webhook_url_unreachable": "Le serveur ne peut pas joindre cette adresse de webhook : elle pointe vers {address}, une adresse privée, de loopback ou de lien local. Utilisez une URL publique.",
+        "override_unknown_fields": "Champs de surcharge inconnus : {fields}.",
+        "override_missing_required": "Champs de surcharge obligatoires manquants : {fields}.",
+        "solver_unavailable": "Le solveur « {solver} » n'est pas disponible sur ce serveur."
       },
       "admin": {
         "email_taken": "Un autre compte utilise déjà cette adresse e-mail.",
@@ -4703,6 +4737,11 @@
         "requires_use": "Utilisez ce modèle dans le studio avant de l'évaluer.",
         "requires_run": "Exécutez ce modèle avec succès dans le studio avant de l'évaluer.",
         "report_own": "Vous ne pouvez pas signaler votre propre avis. Supprimez-le plutôt."
+      },
+      "solver": {
+        "linear_only": "{solver} ne résout que des modèles linéaires, et ce modèle contient des termes quadratiques. Utilisez SCIP (ou la sélection automatique) pour les modèles quadratiques.",
+        "quadratic_in_objective": "{solver} ne résout que des modèles linéaires. L'objectif contient le terme quadratique {term}. Utilisez SCIP (ou la sélection automatique) pour les modèles quadratiques.",
+        "quadratic_in_constraint": "{solver} ne résout que des modèles linéaires. La contrainte {constraint} contient le terme quadratique {term}. Utilisez SCIP (ou la sélection automatique) pour les modèles quadratiques."
       }
     }
   },

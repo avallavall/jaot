@@ -47,6 +47,7 @@ import type {
   SolveTrigger,
   CreateTriggerResponse,
   CreateTriggerRequest,
+  UpdateTriggerRequest,
   TriggerRun,
   Workspace,
   WorkspaceMember,
@@ -154,6 +155,7 @@ export type {
   SolveTrigger,
   CreateTriggerResponse,
   CreateTriggerRequest,
+  UpdateTriggerRequest,
   TriggerRun,
   OverrideField,
   TriggerRunStatus,
@@ -1907,9 +1909,21 @@ export const api = {
         body: JSON.stringify(body),
         params: workspaceId ? { workspace_id: workspaceId } : undefined,
       }),
+    /**
+     * Queue one run with the trigger's own settings, as the signed-in user.
+     * Uses the session, never the trigger secret, which the page does not hold.
+     */
+    runNow: (
+      triggerId: string,
+      workspaceId?: string,
+    ): Promise<{ run_id: string; status: string }> =>
+      request<{ run_id: string; status: string }>(`/api/v2/triggers/${triggerId}/run`, {
+        method: "POST",
+        params: workspaceId ? { workspace_id: workspaceId } : undefined,
+      }),
     update: (
       triggerId: string,
-      body: Partial<CreateTriggerRequest>,
+      body: UpdateTriggerRequest,
       workspaceId?: string,
     ): Promise<SolveTrigger> =>
       request<SolveTrigger>(`/api/v2/triggers/${triggerId}`, {
@@ -1973,8 +1987,9 @@ export const api = {
   },
 
   schedules: {
-    get(triggerId: string): Promise<TriggerSchedule> {
-      return request<TriggerSchedule>(`/api/v2/triggers/${triggerId}/schedule`);
+    /** The trigger's schedule, or null when it has none (the usual case). */
+    get(triggerId: string): Promise<TriggerSchedule | null> {
+      return request<TriggerSchedule | null>(`/api/v2/triggers/${triggerId}/schedule`);
     },
     create(
       triggerId: string,
