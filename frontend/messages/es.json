@@ -420,6 +420,9 @@
     "versionRestoreLabel": "Restaurar la versión {version}"
   },
   "common": {
+    "languageSwitcher": {
+      "label": "Idioma: {language}"
+    },
     "loading": "Cargando...",
     "save": "Guardar",
     "cancel": "Cancelar",
@@ -1263,7 +1266,7 @@
       "tosRequired": "Debes aceptar los Términos de servicio y la Política de privacidad",
       "signupFailed": "Error al registrarse",
       "registrationDisabled": "El registro está cerrado temporalmente. Estamos preparando el lanzamiento.",
-      "contactSupport": "Contacta con support@jaot.io si necesitas acceso anticipado.",
+      "contactSupport": "<link>Contáctanos</link> si necesitas una cuenta.",
       "backToLogin": "Volver al inicio de sesión",
       "inviteNotice": "Te unes a un equipo. Tu cuenta pertenecerá a la organización que te ha invitado, así que no hay que poner nombre a ninguna organización.",
       "joinedWorkspace": "Cuenta creada. Te has unido al espacio de trabajo."
@@ -2354,6 +2357,9 @@
       "defaultValue": "Por defecto: {value}"
     },
     "users": {
+      "deactivate": "Desactivar",
+      "deactivateTitle": "Desactivar usuario",
+      "deactivateConfirm": "\"{name}\" ya no podrá iniciar sesión. Un administrador puede volver a activar la cuenta con Editar.",
       "title": "Usuarios",
       "subtitle": "Gestiona todos los usuarios de las organizaciones",
       "newUser": "+ Nuevo usuario",
@@ -2378,7 +2384,6 @@
       "active": "Activo",
       "inactive": "Inactivo",
       "edit": "Editar",
-      "delete": "Eliminar",
       "organizationLabel": "Organización",
       "selectOrg": "Seleccionar organización...",
       "nameLabel": "Nombre",
@@ -2389,8 +2394,6 @@
       "activeLabel": "Activo",
       "create": "Crear",
       "saveChanges": "Guardar cambios",
-      "deleteConfirm": "¿Seguro que quieres eliminar al usuario \"{name}\"? Esta acción no se puede deshacer.",
-      "deleteTitle": "Eliminar usuario",
       "pageOf": "Página {page} de {totalPages}",
       "operationFailed": "La operación ha fallado. Inténtalo de nuevo.",
       "loadError": "No se pudo cargar. Inténtalo de nuevo.",
@@ -2736,6 +2739,7 @@
       "useInStudio": "Usar en el estudio"
     },
     "detail": {
+      "noReviewsOwnModel": "Aún no hay reseñas.",
       "by": "por {author}",
       "verified": "Verificado",
       "cancel": "Cancelar",

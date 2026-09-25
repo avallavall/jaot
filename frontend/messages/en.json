@@ -420,6 +420,9 @@
     "versionRestoreLabel": "Restore version {version}"
   },
   "common": {
+    "languageSwitcher": {
+      "label": "Language: {language}"
+    },
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -1263,7 +1266,7 @@
       "tosRequired": "You must agree to the Terms of Service and Privacy Policy",
       "signupFailed": "Signup failed",
       "registrationDisabled": "Registration is currently closed. We are preparing for launch.",
-      "contactSupport": "Contact support@jaot.io if you need early access.",
+      "contactSupport": "<link>Contact us</link> if you need an account.",
       "backToLogin": "Back to login",
       "inviteNotice": "You are joining a team. Your account will belong to the organization that invited you, so there is no organization to name.",
       "joinedWorkspace": "Account created. You have joined the workspace."
@@ -2354,6 +2357,9 @@
       "defaultValue": "Default: {value}"
     },
     "users": {
+      "deactivate": "Deactivate",
+      "deactivateTitle": "Deactivate user",
+      "deactivateConfirm": "\"{name}\" will no longer be able to sign in. An admin can turn the account back on with Edit.",
       "title": "Users",
       "subtitle": "Manage all users across organizations",
       "newUser": "+ New User",
@@ -2378,7 +2384,6 @@
       "active": "Active",
       "inactive": "Inactive",
       "edit": "Edit",
-      "delete": "Delete",
       "organizationLabel": "Organization",
       "selectOrg": "Select organization...",
       "nameLabel": "Name",
@@ -2389,8 +2394,6 @@
       "activeLabel": "Active",
       "create": "Create",
       "saveChanges": "Save Changes",
-      "deleteConfirm": "Are you sure you want to delete user \"{name}\"? This action cannot be undone.",
-      "deleteTitle": "Delete User",
       "pageOf": "Page {page} of {totalPages}",
       "operationFailed": "Operation failed. Please try again.",
       "loadError": "Could not load. Please try again.",
@@ -2765,6 +2768,7 @@
       "useInStudio": "Use in studio"
     },
     "detail": {
+      "noReviewsOwnModel": "No reviews yet.",
       "by": "by {author}",
       "verified": "Verified",
       "cancel": "Cancel",

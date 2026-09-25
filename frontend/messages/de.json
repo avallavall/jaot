@@ -420,6 +420,9 @@
     "versionRestoreLabel": "Version {version} wiederherstellen"
   },
   "common": {
+    "languageSwitcher": {
+      "label": "Sprache: {language}"
+    },
     "loading": "Wird geladen...",
     "save": "Speichern",
     "cancel": "Abbrechen",
@@ -1263,7 +1266,7 @@
       "tosRequired": "Sie müssen den Nutzungsbedingungen und der Datenschutzerklärung zustimmen",
       "signupFailed": "Registrierung fehlgeschlagen",
       "registrationDisabled": "Die Registrierung ist derzeit geschlossen. Wir bereiten den Launch vor.",
-      "contactSupport": "Kontaktieren Sie support@jaot.io, wenn Sie frühzeitigen Zugang benötigen.",
+      "contactSupport": "<link>Kontaktieren Sie uns</link>, wenn Sie ein Konto benötigen.",
       "backToLogin": "Zurück zur Anmeldung",
       "inviteNotice": "Sie treten einem Team bei. Ihr Konto gehört zu der Organisation, die Sie eingeladen hat. Sie müssen also keine Organisation benennen.",
       "joinedWorkspace": "Konto erstellt. Sie sind dem Arbeitsbereich beigetreten."
@@ -2354,6 +2357,9 @@
       "defaultValue": "Standard: {value}"
     },
     "users": {
+      "deactivate": "Deaktivieren",
+      "deactivateTitle": "Benutzer deaktivieren",
+      "deactivateConfirm": "\"{name}\" kann sich nicht mehr anmelden. Ein Admin kann das Konto mit Bearbeiten wieder aktivieren.",
       "title": "Benutzer",
       "subtitle": "Alle Benutzer organisationsübergreifend verwalten",
       "newUser": "+ Neuer Benutzer",
@@ -2378,7 +2384,6 @@
       "active": "Aktiv",
       "inactive": "Inaktiv",
       "edit": "Bearbeiten",
-      "delete": "Löschen",
       "organizationLabel": "Organisation",
       "selectOrg": "Organisation auswählen...",
       "nameLabel": "Name",
@@ -2389,8 +2394,6 @@
       "activeLabel": "Aktiv",
       "create": "Erstellen",
       "saveChanges": "Änderungen speichern",
-      "deleteConfirm": "Sind Sie sicher, dass Sie Benutzer \"{name}\" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
-      "deleteTitle": "Benutzer löschen",
       "pageOf": "Seite {page} von {totalPages}",
       "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "loadError": "Laden fehlgeschlagen. Bitte erneut versuchen.",
@@ -2736,6 +2739,7 @@
       "useInStudio": "Im Studio verwenden"
     },
     "detail": {
+      "noReviewsOwnModel": "Noch keine Bewertungen.",
       "by": "von {author}",
       "verified": "Verifiziert",
       "cancel": "Abbrechen",

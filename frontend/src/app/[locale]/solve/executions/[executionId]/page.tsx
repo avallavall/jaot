@@ -29,6 +29,7 @@ import { solverDisplayName } from "@/lib/solver-display";
 import { useLocale, useTranslations } from "next-intl";
 import { useCommonLabels } from "@/hooks/useCommonLabels";
 import { useDateFormat } from "@/hooks/useDateFormat";
+import { completedWithoutPlan } from "@/lib/execution-outcome";
 import { Database } from "lucide-react";
 
 /** How often an unfinished run is re-fetched while its detail page is open. */
@@ -122,6 +123,7 @@ export default function ExecutionDetailPage() {
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "timeout":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "neutral":
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -183,8 +185,16 @@ export default function ExecutionDetailPage() {
         </button>
         <div className="flex items-center gap-4 flex-wrap">
           <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+          {/* The badge is the job's state. A run that completed with no plan
+              (infeasible, unbounded, out of time before any plan) keeps the
+              word "Completed" and loses the green, which read as success. */}
           <span
-            className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(execution.status)}`}
+            data-testid="execution-status-badge"
+            className={`px-3 py-1 rounded-full text-sm font-medium border ${
+              completedWithoutPlan(execution)
+                ? getStatusColor("neutral")
+                : getStatusColor(execution.status)
+            }`}
           >
             {statusLabel(execution.status)}
           </span>

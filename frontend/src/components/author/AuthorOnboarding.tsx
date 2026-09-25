@@ -15,16 +15,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  * that does not hold what the step measures) — the backend now returns real
  * ones, and `tests/test_author_area.py` fails if that regresses.
  */
-export function AuthorOnboarding() {
+interface AuthorOnboardingProps {
+  /** Change it to load the checklist again, after the page changed a listing. */
+  refreshKey?: number;
+}
+
+export function AuthorOnboarding({ refreshKey = 0 }: AuthorOnboardingProps) {
   const t = useTranslations("author.onboarding");
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
 
+  // Withdraw and "Publish again" on the same page change what the steps
+  // measure. The checklist loaded once, so "Publish your first model" kept
+  // its old state until a reload. A late answer never replaces a newer one.
   useEffect(() => {
+    let cancelled = false;
     api
       .getAuthorOnboardingStatus()
-      .then(setStatus)
-      .catch(() => setStatus(null));
-  }, []);
+      .then((next) => {
+        if (!cancelled) setStatus(next);
+      })
+      .catch(() => {
+        if (!cancelled) setStatus(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   // Nothing to nag about once every step is done.
   if (!status || status.all_complete) return null;

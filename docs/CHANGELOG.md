@@ -107,6 +107,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Ve
 - **The Pareto chart printed its method as "Weighted" in every language**, and the Spanish page titled it "Pareto Front" and "Epsilon Constraint".
 - **The execution page's solve summary wrote the gap and the time in English format** ("0.00%", "0.00s") on every page, and the Spanish solution explorer said "Binding".
 - **The unread count on the notification bell failed the WCAG AA contrast check** (white on light red, 3.8:1).
+- **The language button's name was only "EN" for screen readers, and "Sign In" in the public header was a button inside a link.** The button is now named "Language: English", and each header action is one link.
+- **The switches on the admin settings page had no name for screen readers.** Each control is now named after its setting.
+- **The maintenance notice was on the page twice, and `/maintenance` said "Under Maintenance" while the site was up.** The notice now shows once, and a visitor who opens `/maintenance` on a working site goes to the home page.
+- **The author of a listing was invited to "Be the first to review this model!"**, under a line saying they cannot review it. The author now reads "No reviews yet."
+- **An infeasible run had a green "Completed" badge on its page and in the run history.** The badge still says "Completed", and it is grey when the solver found no plan.
+- **Long formulas in the JModel math view were cut off at the right edge.** They now wrap after a plus sign or a relation.
+- **Admin → Users → "Delete" said "This action cannot be undone", but it only deactivates the account.** The action is now "Deactivate", and its dialog says an admin can turn the account back on with Edit.
+- **The "Get set up as an author" checklist did not change after Withdraw or "Publish again"** on the same page. It now loads its steps again.
+- **Restoring a version over unsaved changes sent a request that failed before the studio asked.** The studio now asks first.
+- **With registration closed, the sign-up page named `support@jaot.io`**, which is wrong on a self-hosted instance. It now links to the site's contact page.
 
 ## [3.10.0] - 2026-09-24
 

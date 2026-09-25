@@ -11,6 +11,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * could never happen — the question was answered for the user, always the same
  * way, and a toast then told them their work had been kept as a checkpoint when
  * nothing of the sort existed.
+ *
+ * The question is asked before any request when the tab knows it holds
+ * uncommitted work. The page used to POST first and wait for the 409, which
+ * the browser logs as a red console error on every restore of a dirty draft
+ * (browser QA, 2026-09-24). The 409 still opens the same question when the
+ * tab believed the draft was clean (a reload, another tab).
  */
 
 vi.mock("sonner", () => ({
@@ -114,22 +120,11 @@ function backendWithDirtyDraft() {
 describe("restoring a version with uncommitted work", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    storeState.headDirty = true;
   });
 
   // CONTRACT-TEST: restore never discards an uncommitted draft without asking
-  it("asks the backend to keep the draft on the first attempt", async () => {
-    backendWithDirtyDraft();
-    render(<VersionControls />);
-
-    screen.getByTestId("restore-v1").click();
-
-    await waitFor(() => expect(restore).toHaveBeenCalled());
-    const [, versionId, discardDraft] = restore.mock.calls[0];
-    expect(versionId).toBe("ver_1");
-    expect(discardDraft).toBe(false);
-  });
-
-  it("shows the discard confirmation instead of restoring, when the draft is dirty", async () => {
+  it("asks first, with no request, when this tab holds uncommitted work", async () => {
     backendWithDirtyDraft();
     render(<VersionControls />);
 
@@ -138,7 +133,7 @@ describe("restoring a version with uncommitted work", () => {
     await waitFor(() =>
       expect(screen.getByTestId("studio-version-restore-discard-confirm")).toBeTruthy(),
     );
-    expect(restore).toHaveBeenCalledTimes(1);
+    expect(restore).not.toHaveBeenCalled();
   });
 
   it("discards only after the user confirms", async () => {
@@ -149,7 +144,44 @@ describe("restoring a version with uncommitted work", () => {
     const confirm = await screen.findByTestId("studio-version-restore-discard-confirm");
     confirm.click();
 
-    await waitFor(() => expect(restore).toHaveBeenCalledTimes(2));
-    expect(restore.mock.calls[1][2]).toBe(true);
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(1));
+    const [, versionId, discardDraft] = restore.mock.calls[0];
+    expect(versionId).toBe("ver_1");
+    expect(discardDraft).toBe(true);
+  });
+});
+
+describe("restoring when this tab believes the draft is clean", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    storeState.headDirty = false;
+  });
+
+  // CONTRACT-TEST: restore never discards an uncommitted draft without asking
+  it("asks the backend to keep the draft, and asks the user on a 409", async () => {
+    // The server holds work this tab does not know about: saved before a
+    // reload, or from another tab.
+    backendWithDirtyDraft();
+    render(<VersionControls />);
+
+    screen.getByTestId("restore-v1").click();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("studio-version-restore-discard-confirm")).toBeTruthy(),
+    );
+    expect(restore).toHaveBeenCalledTimes(1);
+    expect(restore.mock.calls[0][2]).toBe(false);
+  });
+
+  it("restores at once when the server agrees there is nothing to lose", async () => {
+    restore.mockResolvedValue(RESTORED_PROJECT);
+    render(<VersionControls />);
+
+    screen.getByTestId("restore-v1").click();
+
+    await waitFor(() => expect(storeState.setLockVersion).toHaveBeenCalledWith(2));
+    expect(restore).toHaveBeenCalledTimes(1);
+    expect(restore.mock.calls[0][2]).toBe(false);
+    expect(screen.queryByTestId("studio-version-restore-discard-confirm")).toBeNull();
   });
 });

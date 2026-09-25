@@ -99,7 +99,10 @@ export function JModelMathView({ source, active }: JModelMathViewProps) {
             {parseError ? t("jmodelMathInvalid") : t("jmodelCompiling")}
           </p>
         ) : (
-          <div className={cn("space-y-5", parseError && "opacity-50")}>
+          // `jmodel-math-lines` lets a long formula wrap (rule in globals.css).
+          // Display-mode KaTeX never breaks a line, so a derived draft's
+          // objective ran past the pane's right edge and was cut there.
+          <div className={cn("jmodel-math-lines space-y-5", parseError && "opacity-50")}>
             {parseError && (
               <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />

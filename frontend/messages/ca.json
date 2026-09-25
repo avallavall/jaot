@@ -420,6 +420,9 @@
     "versionRestoreLabel": "Restaura la versió {version}"
   },
   "common": {
+    "languageSwitcher": {
+      "label": "Idioma: {language}"
+    },
     "loading": "Carregant...",
     "save": "Desar",
     "cancel": "Cancel·lar",
@@ -1263,7 +1266,7 @@
       "tosRequired": "Has d'acceptar els Termes de servei i la Política de privadesa",
       "signupFailed": "Error en registrar-se",
       "registrationDisabled": "El registre està tancat temporalment. Estem preparant el llançament.",
-      "contactSupport": "Contacta amb support@jaot.io si necessites accés anticipat.",
+      "contactSupport": "<link>Contacta amb nosaltres</link> si necessites un compte.",
       "backToLogin": "Tornar a l'inici de sessió",
       "inviteNotice": "T'uneixes a un equip. El teu compte pertanyerà a l'organització que t'ha convidat, així que no cal posar nom a cap organització.",
       "joinedWorkspace": "Compte creat. T'has unit a l'espai de treball."
@@ -2354,6 +2357,9 @@
       "defaultValue": "Per defecte: {value}"
     },
     "users": {
+      "deactivate": "Desactivar",
+      "deactivateTitle": "Desactivar usuari",
+      "deactivateConfirm": "\"{name}\" ja no podrà iniciar la sessió. Un administrador pot tornar a activar el compte amb Editar.",
       "title": "Usuaris",
       "subtitle": "Gestioneu tots els usuaris de totes les organitzacions",
       "newUser": "+ Nou Usuari",
@@ -2378,7 +2384,6 @@
       "active": "Actiu",
       "inactive": "Inactiu",
       "edit": "Editar",
-      "delete": "Eliminar",
       "organizationLabel": "Organització",
       "selectOrg": "Seleccioneu organització...",
       "nameLabel": "Nom",
@@ -2389,8 +2394,6 @@
       "activeLabel": "Actiu",
       "create": "Crear",
       "saveChanges": "Desar Canvis",
-      "deleteConfirm": "Esteu segurs que voleu eliminar l'usuari \"{name}\"? Aquesta acció no es pot desfer.",
-      "deleteTitle": "Eliminar Usuari",
       "pageOf": "Pàgina {page} de {totalPages}",
       "operationFailed": "L'operació ha fallat. Torna-ho a provar.",
       "loadError": "No s'ha pogut carregar. Torna-ho a provar.",
@@ -2736,6 +2739,7 @@
       "useInStudio": "Usa a l'estudi"
     },
     "detail": {
+      "noReviewsOwnModel": "Encara no hi ha ressenyes.",
       "by": "per {author}",
       "verified": "Verificat",
       "cancel": "Cancel·lar",

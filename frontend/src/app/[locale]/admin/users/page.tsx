@@ -125,10 +125,14 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
+  // The server's DELETE is a soft delete: it sets is_active=false, the same as
+  // unticking "Active" in Edit, and the account can be turned back on. The
+  // action was called "Delete" and warned "This action cannot be undone".
+  const handleDeactivateUser = async (userId: string, userName: string) => {
     const confirmed = await dialog.confirm(
-      t("deleteConfirm", { name: userName }),
-      t("deleteTitle")
+      t("deactivateConfirm", { name: userName }),
+      t("deactivateTitle"),
+      t("deactivate")
     );
     if (!confirmed) return;
     try {
@@ -302,9 +306,9 @@ export default function UsersPage() {
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteUser(user.id, user.name)}
+                          onClick={() => handleDeactivateUser(user.id, user.name)}
                         >
-                          {t("delete")}
+                          {t("deactivate")}
                         </Button>
                       </div>
                     </TableCell>

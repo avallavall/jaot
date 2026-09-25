@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { MAINTENANCE_PAGE_ATTRIBUTE } from "@/lib/maintenance";
 
 /**
  * Full-screen maintenance overlay that activates when the API returns
@@ -10,17 +12,15 @@ import { useEffect, useState } from "react";
  * API client in `lib/api.ts`.
  */
 export function MaintenanceBanner() {
+  const t = useTranslations("maintenance");
   const [visible, setVisible] = useState(false);
-  const [message, setMessage] = useState(
-    "JAOT is currently under maintenance. Please try again shortly."
-  );
 
   useEffect(() => {
-    function handleMaintenance(e: Event) {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.detail) {
-        setMessage(detail.detail);
-      }
+    function handleMaintenance() {
+      // The maintenance page makes API calls too, and they answer 503. The
+      // overlay then drew the same notice over the page, so the text was on
+      // screen and in the DOM twice. The page already says it.
+      if (document.querySelector(`[${MAINTENANCE_PAGE_ATTRIBUTE}]`)) return;
       setVisible(true);
     }
 
@@ -32,6 +32,8 @@ export function MaintenanceBanner() {
 
   if (!visible) return null;
 
+  // The server's 503 carries an English sentence. The same words exist in
+  // every locale under `maintenance.message`, so the overlay uses those.
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/95 backdrop-blur-sm">
       <div className="mx-4 max-w-md rounded-lg border bg-card p-8 text-center shadow-lg">
@@ -43,6 +45,7 @@ export function MaintenanceBanner() {
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={1.5}
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -52,14 +55,14 @@ export function MaintenanceBanner() {
           </svg>
         </div>
         <h2 className="mb-2 text-xl font-semibold text-foreground">
-          Under Maintenance
+          {t("heading")}
         </h2>
-        <p className="mb-6 text-muted-foreground">{message}</p>
+        <p className="mb-6 text-muted-foreground">{t("message")}</p>
         <button
           onClick={() => window.location.reload()}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
-          Retry
+          {t("retry")}
         </button>
       </div>
     </div>

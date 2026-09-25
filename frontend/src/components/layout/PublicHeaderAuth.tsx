@@ -17,17 +17,19 @@ export function PublicHeaderAuth() {
     );
   }
 
+  // One element per action. A <button> inside the <a> is two nested controls
+  // for one click, which screen readers announce twice.
   if (isAuthenticated) {
     return (
-      <Link href="/workspace">
-        <Button size="sm">{t("goToDashboard")}</Button>
-      </Link>
+      <Button asChild size="sm">
+        <Link href="/workspace">{t("goToDashboard")}</Link>
+      </Button>
     );
   }
 
   return (
-    <Link href="/login">
-      <Button size="sm">{t("signIn")}</Button>
-    </Link>
+    <Button asChild size="sm">
+      <Link href="/login">{t("signIn")}</Link>
+    </Button>
   );
 }

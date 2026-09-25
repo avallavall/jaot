@@ -279,6 +279,11 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
     );
   }
 
+  // The reader's organization published this model, so it cannot review it.
+  const isOwnModel = Boolean(
+    organization?.id && model.author_organization_id === organization.id,
+  );
+
   const hasSectionContent = Boolean(
     model.section_overview ||
       model.section_features ||
@@ -463,9 +468,7 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
         <ReviewsHeader
           total={reviews?.total ?? null}
           isAuthenticated={isAuthenticated}
-          isOwnModel={Boolean(
-            organization?.id && model?.author_organization_id === organization.id,
-          )}
+          isOwnModel={isOwnModel}
           onWrite={() => setShowReviewForm(!showReviewForm)}
           onSignIn={() => router.push(loginPathReturningTo(`/marketplace/${modelId}`))}
         />
@@ -682,7 +685,10 @@ export function ModelDetailClient({ modelId }: { modelId: string }) {
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            {t("noReviews")}
+            {/* The author sees "you cannot review it" just above, so the usual
+                "Be the first to review this model!" would invite them to do
+                what the page has just refused. */}
+            {isOwnModel ? t("noReviewsOwnModel") : t("noReviews")}
           </div>
         )}
       </div>
